@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { PageHeader } from "@/components/PageHeader";
@@ -12,11 +12,15 @@ import { toast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const schema = z.object({
+  grupoId: z.string().min(1, "Selecione um grupo"),
+  tipoPessoa: z.enum(["PF", "PJ"]),
   razaoSocial: z.string().min(3, "Mínimo 3 caracteres"),
   nomeFantasia: z.string().min(2, "Mínimo 2 caracteres"),
-  cnpj: z.string().min(14, "CNPJ inválido"),
+  cpfCnpj: z.string().min(1, "Obrigatório"),
   inscricaoEstadual: z.string().optional(),
   email: z.string().email("E-mail inválido"),
   telefone: z.string().optional(),
@@ -24,45 +28,48 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
-const columns: Column<Empresa>[] = [
-  { key: "nomeFantasia", header: "Nome Fantasia" },
-  { key: "razaoSocial", header: "Razão Social" },
-  { key: "cnpj", header: "CNPJ" },
-  { key: "email", header: "E-mail" },
-  {
-    key: "ativo",
-    header: "Status",
-    render: (row) => (
-      <Badge variant={row.ativo ? "default" : "secondary"}>
-        {row.ativo ? "Ativo" : "Inativo"}
-      </Badge>
-    ),
-  },
-];
-
-const fields: { name: keyof FormData; label: string; required?: boolean }[] = [
-  { name: "razaoSocial", label: "Razão Social", required: true },
-  { name: "nomeFantasia", label: "Nome Fantasia", required: true },
-  { name: "cnpj", label: "CNPJ", required: true },
-  { name: "inscricaoEstadual", label: "Inscrição Estadual" },
-  { name: "email", label: "E-mail", required: true },
-  { name: "telefone", label: "Telefone" },
-];
-
 export default function EmpresasPage() {
   const [data, setData] = useState<Empresa[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const { grupoAtual } = useOrganization();
+  const { grupoAtual, grupos } = useOrganization();
 
   const {
     register,
     handleSubmit,
     reset,
+    control,
+    watch,
     formState: { errors },
   } = useForm<FormData>({ resolver: zodResolver(schema) });
+
+  const tipoPessoa = watch("tipoPessoa") ?? "PJ";
+
+  const columns: Column<Empresa>[] = [
+    {
+      key: "grupoId",
+      header: "Grupo",
+      render: (row) => {
+        const g = grupos.find((g) => g.id === row.grupoId);
+        return g?.nome ?? row.grupoId;
+      },
+    },
+    { key: "nomeFantasia", header: "Nome Fantasia" },
+    { key: "razaoSocial", header: "Nome/Razão Social" },
+    { key: "cpfCnpj", header: "CPF/CNPJ" },
+    { key: "email", header: "E-mail" },
+    {
+      key: "ativo",
+      header: "Status",
+      render: (row) => (
+        <Badge variant={row.ativo ? "default" : "secondary"}>
+          {row.ativo ? "Ativo" : "Inativo"}
+        </Badge>
+      ),
+    },
+  ];
 
   const loadData = () => {
     setLoading(true);
@@ -78,13 +85,31 @@ export default function EmpresasPage() {
 
   const openNew = () => {
     setEditingId(null);
-    reset({ razaoSocial: "", nomeFantasia: "", cnpj: "", inscricaoEstadual: "", email: "", telefone: "" });
+    reset({
+      grupoId: grupoAtual?.id ?? "",
+      tipoPessoa: "PJ",
+      razaoSocial: "",
+      nomeFantasia: "",
+      cpfCnpj: "",
+      inscricaoEstadual: "",
+      email: "",
+      telefone: "",
+    });
     setModalOpen(true);
   };
 
   const openEdit = (row: Empresa) => {
     setEditingId(row.id);
-    reset(row);
+    reset({
+      grupoId: row.grupoId,
+      tipoPessoa: row.tipoPessoa,
+      razaoSocial: row.razaoSocial,
+      nomeFantasia: row.nomeFantasia,
+      cpfCnpj: row.cpfCnpj,
+      inscricaoEstadual: row.inscricaoEstadual,
+      email: row.email,
+      telefone: row.telefone,
+    });
     setModalOpen(true);
   };
 
@@ -94,7 +119,6 @@ export default function EmpresasPage() {
       await empresaService.salvar({
         ...formData,
         id: editingId ?? undefined,
-        grupoId: grupoAtual?.id ?? "g1",
       });
       toast({
         title: editingId ? "Empresa atualizada" : "Empresa criada",
@@ -135,18 +159,92 @@ export default function EmpresasPage() {
         onSave={onSave}
       >
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {fields.map((f) => (
-            <div key={f.name} className="space-y-1.5">
-              <Label htmlFor={f.name}>
-                {f.label}
-                {f.required && <span className="text-destructive ml-0.5">*</span>}
-              </Label>
-              <Input id={f.name} {...register(f.name)} />
-              {errors[f.name] && (
-                <p className="text-xs text-destructive">{errors[f.name]?.message}</p>
+          {/* Grupo */}
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label>Grupo <span className="text-destructive">*</span></Label>
+            <Controller
+              name="grupoId"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o grupo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {grupos.map((g) => (
+                      <SelectItem key={g.id} value={g.id}>{g.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               )}
-            </div>
-          ))}
+            />
+            {errors.grupoId && <p className="text-xs text-destructive">{errors.grupoId.message}</p>}
+          </div>
+
+          {/* Tipo Pessoa */}
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label>Tipo de Pessoa</Label>
+            <Controller
+              name="tipoPessoa"
+              control={control}
+              render={({ field }) => (
+                <RadioGroup value={field.value} onValueChange={field.onChange} className="flex gap-4">
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="PJ" id="pj" />
+                    <Label htmlFor="pj" className="font-normal cursor-pointer">Pessoa Jurídica</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="PF" id="pf" />
+                    <Label htmlFor="pf" className="font-normal cursor-pointer">Pessoa Física</Label>
+                  </div>
+                </RadioGroup>
+              )}
+            />
+          </div>
+
+          {/* Razão Social / Nome */}
+          <div className="space-y-1.5">
+            <Label htmlFor="razaoSocial">
+              {tipoPessoa === "PF" ? "Nome" : "Razão Social"} <span className="text-destructive">*</span>
+            </Label>
+            <Input id="razaoSocial" {...register("razaoSocial")} />
+            {errors.razaoSocial && <p className="text-xs text-destructive">{errors.razaoSocial.message}</p>}
+          </div>
+
+          {/* Nome Fantasia */}
+          <div className="space-y-1.5">
+            <Label htmlFor="nomeFantasia">Nome Fantasia <span className="text-destructive">*</span></Label>
+            <Input id="nomeFantasia" {...register("nomeFantasia")} />
+            {errors.nomeFantasia && <p className="text-xs text-destructive">{errors.nomeFantasia.message}</p>}
+          </div>
+
+          {/* CPF/CNPJ */}
+          <div className="space-y-1.5">
+            <Label htmlFor="cpfCnpj">
+              {tipoPessoa === "PF" ? "CPF" : "CNPJ"} <span className="text-destructive">*</span>
+            </Label>
+            <Input id="cpfCnpj" {...register("cpfCnpj")} />
+            {errors.cpfCnpj && <p className="text-xs text-destructive">{errors.cpfCnpj.message}</p>}
+          </div>
+
+          {/* Inscrição Estadual */}
+          <div className="space-y-1.5">
+            <Label htmlFor="inscricaoEstadual">Inscrição Estadual</Label>
+            <Input id="inscricaoEstadual" {...register("inscricaoEstadual")} />
+          </div>
+
+          {/* Email */}
+          <div className="space-y-1.5">
+            <Label htmlFor="email">E-mail <span className="text-destructive">*</span></Label>
+            <Input id="email" {...register("email")} />
+            {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
+          </div>
+
+          {/* Telefone */}
+          <div className="space-y-1.5">
+            <Label htmlFor="telefone">Telefone</Label>
+            <Input id="telefone" {...register("telefone")} />
+          </div>
         </div>
       </CrudModal>
     </>

@@ -19,7 +19,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useRef, useState, useCallback } from "react";
 
 function isMenuActive(item: MenuItem, pathname: string): boolean {
   if (item.url) return pathname.startsWith(item.url);
@@ -31,6 +31,23 @@ function RecursiveMenuItem({ item, pathname, depth = 0 }: { item: MenuItem; path
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const active = isMenuActive(item, pathname);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const scheduleClose = useCallback(() => {
+    closeTimer.current = setTimeout(() => setOpen(false), 150);
+  }, []);
+
+  const cancelClose = useCallback(() => {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  }, []);
+
+  const handleEnter = useCallback(() => {
+    cancelClose();
+    setOpen(true);
+  }, [cancelClose]);
 
   // Leaf node — navigates
   if (item.url) {
@@ -50,11 +67,13 @@ function RecursiveMenuItem({ item, pathname, depth = 0 }: { item: MenuItem; path
     );
   }
 
-  // Branch node — opens popup with children
+  // Branch node — opens popup with children on hover
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
+          onMouseEnter={handleEnter}
+          onMouseLeave={scheduleClose}
           className={cn(
             "flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors",
             "hover:bg-sidebar-accent/60 text-sidebar-foreground",
@@ -70,13 +89,74 @@ function RecursiveMenuItem({ item, pathname, depth = 0 }: { item: MenuItem; path
         side="right"
         align="start"
         sideOffset={4}
-        className="w-52 p-1 bg-sidebar-background border-sidebar-border"
+        onMouseEnter={cancelClose}
+        onMouseLeave={scheduleClose}
+        className="w-52 p-1 bg-sidebar/95 backdrop-blur-sm border border-sidebar-border shadow-lg"
       >
         <div className="flex flex-col gap-0.5">
           {item.children!.map((child) => (
             <RecursiveMenuItem key={child.title} item={child} pathname={pathname} depth={depth + 1} />
           ))}
         </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function CollapsedPopover({ item, pathname }: { item: MenuItem; pathname: string }) {
+  const [open, setOpen] = useState(false);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const scheduleClose = useCallback(() => {
+    closeTimer.current = setTimeout(() => setOpen(false), 150);
+  }, []);
+
+  const cancelClose = useCallback(() => {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  }, []);
+
+  const handleEnter = useCallback(() => {
+    cancelClose();
+    setOpen(true);
+  }, [cancelClose]);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <SidebarMenuButton
+          onMouseEnter={handleEnter}
+          onMouseLeave={scheduleClose}
+          className={cn(
+            "justify-center",
+            isMenuActive(item, pathname) && "bg-sidebar-accent text-sidebar-accent-foreground"
+          )}
+        >
+          <item.icon className="h-4 w-4" />
+        </SidebarMenuButton>
+      </PopoverTrigger>
+      <PopoverContent
+        side="right"
+        align="start"
+        sideOffset={4}
+        onMouseEnter={cancelClose}
+        onMouseLeave={scheduleClose}
+        className="w-52 p-1 bg-sidebar/95 backdrop-blur-sm border border-sidebar-border shadow-lg"
+      >
+        {item.url ? (
+          <RecursiveMenuItem item={item} pathname={pathname} />
+        ) : item.children ? (
+          <div className="flex flex-col gap-0.5">
+            <span className="px-3 py-1.5 text-xs font-semibold text-sidebar-foreground/50 uppercase">
+              {item.title}
+            </span>
+            {item.children.map((child) => (
+              <RecursiveMenuItem key={child.title} item={child} pathname={pathname} />
+            ))}
+          </div>
+        ) : null}
       </PopoverContent>
     </Popover>
   );
@@ -112,40 +192,8 @@ export function AppSidebar() {
                 {mod.items.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     {collapsed ? (
-                      // Collapsed mode: show icon, popup on hover/click
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <SidebarMenuButton
-                            className={cn(
-                              "justify-center",
-                              isMenuActive(item, location.pathname) && "bg-sidebar-accent text-sidebar-accent-foreground"
-                            )}
-                          >
-                            <item.icon className="h-4 w-4" />
-                          </SidebarMenuButton>
-                        </PopoverTrigger>
-                        <PopoverContent
-                          side="right"
-                          align="start"
-                          sideOffset={4}
-                          className="w-52 p-1 bg-sidebar-background border-sidebar-border"
-                        >
-                          {item.url ? (
-                            <RecursiveMenuItem item={item} pathname={location.pathname} />
-                          ) : item.children ? (
-                            <div className="flex flex-col gap-0.5">
-                              <span className="px-3 py-1.5 text-xs font-semibold text-sidebar-foreground/50 uppercase">
-                                {item.title}
-                              </span>
-                              {item.children.map((child) => (
-                                <RecursiveMenuItem key={child.title} item={child} pathname={location.pathname} />
-                              ))}
-                            </div>
-                          ) : null}
-                        </PopoverContent>
-                      </Popover>
+                      <CollapsedPopover item={item} pathname={location.pathname} />
                     ) : (
-                      // Expanded mode
                       <RecursiveMenuItem item={item} pathname={location.pathname} />
                     )}
                   </SidebarMenuItem>
