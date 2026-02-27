@@ -1,12 +1,15 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { empresaService, filialService } from "@/lib/services";
-import type { Empresa, Filial } from "@/lib/mock-data";
+import { empresaService, filialService, grupoService } from "@/lib/services";
+import type { Empresa, Filial, Grupo } from "@/lib/mock-data";
 
 interface OrganizationContextType {
+  grupos: Grupo[];
   empresas: Empresa[];
   filiais: Filial[];
+  grupoAtual: Grupo | null;
   empresaAtual: Empresa | null;
   filialAtual: Filial | null;
+  setGrupoId: (id: string) => void;
   setEmpresaId: (id: string) => void;
   setFilialId: (id: string) => void;
   loading: boolean;
@@ -15,22 +18,39 @@ interface OrganizationContextType {
 const OrganizationContext = createContext<OrganizationContextType | null>(null);
 
 export function OrganizationProvider({ children }: { children: React.ReactNode }) {
+  const [grupos, setGrupos] = useState<Grupo[]>([]);
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
   const [filiais, setFiliais] = useState<Filial[]>([]);
+  const [grupoAtual, setGrupoAtual] = useState<Grupo | null>(null);
   const [empresaAtual, setEmpresaAtual] = useState<Empresa | null>(null);
   const [filialAtual, setFilialAtual] = useState<Filial | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Load grupos on mount
   useEffect(() => {
-    empresaService.listar().then((list) => {
-      setEmpresas(list);
-      if (list.length > 0) {
-        setEmpresaAtual(list[0]);
-      }
+    grupoService.listar().then((list) => {
+      setGrupos(list);
+      if (list.length > 0) setGrupoAtual(list[0]);
       setLoading(false);
     });
   }, []);
 
+  // When grupo changes, reload empresas
+  useEffect(() => {
+    if (!grupoAtual) {
+      setEmpresas([]);
+      setEmpresaAtual(null);
+      setFiliais([]);
+      setFilialAtual(null);
+      return;
+    }
+    empresaService.listar(grupoAtual.id).then((list) => {
+      setEmpresas(list);
+      setEmpresaAtual(list.length > 0 ? list[0] : null);
+    });
+  }, [grupoAtual]);
+
+  // When empresa changes, reload filiais
   useEffect(() => {
     if (!empresaAtual) {
       setFiliais([]);
@@ -42,6 +62,14 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
       setFilialAtual(list.length > 0 ? list[0] : null);
     });
   }, [empresaAtual]);
+
+  const setGrupoId = useCallback(
+    (id: string) => {
+      const g = grupos.find((g) => g.id === id);
+      if (g) setGrupoAtual(g);
+    },
+    [grupos]
+  );
 
   const setEmpresaId = useCallback(
     (id: string) => {
@@ -61,7 +89,12 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
 
   return (
     <OrganizationContext.Provider
-      value={{ empresas, filiais, empresaAtual, filialAtual, setEmpresaId, setFilialId, loading }}
+      value={{
+        grupos, empresas, filiais,
+        grupoAtual, empresaAtual, filialAtual,
+        setGrupoId, setEmpresaId, setFilialId,
+        loading,
+      }}
     >
       {children}
     </OrganizationContext.Provider>

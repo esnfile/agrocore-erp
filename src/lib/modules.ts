@@ -15,19 +15,25 @@ import {
   DollarSign,
   ArrowDownCircle,
   ArrowUpCircle,
+  Server,
+  Layers,
+  Component,
+  AppWindow,
+  Lock,
   type LucideIcon,
 } from "lucide-react";
 
-export interface ModuleItem {
+export interface MenuItem {
   title: string;
-  url: string;
   icon: LucideIcon;
+  url?: string;
+  children?: MenuItem[];
 }
 
 export interface Module {
   title: string;
   icon: LucideIcon;
-  items: ModuleItem[];
+  items: MenuItem[];
 }
 
 export const modules: Module[] = [
@@ -40,11 +46,39 @@ export const modules: Module[] = [
     title: "Administrativo",
     icon: Settings,
     items: [
-      { title: "Grupos", url: "/admin/grupos", icon: GitBranch },
-      { title: "Empresas", url: "/admin/empresas", icon: Building2 },
-      { title: "Filiais", url: "/admin/filiais", icon: Building2 },
-      { title: "Usuários", url: "/admin/usuarios", icon: Users },
-      { title: "Permissões", url: "/admin/permissoes", icon: ShieldCheck },
+      {
+        title: "Grupo Empresarial",
+        icon: GitBranch,
+        children: [
+          { title: "Grupos", url: "/admin/grupos", icon: GitBranch },
+          { title: "Empresas", url: "/admin/empresas", icon: Building2 },
+          { title: "Filiais", url: "/admin/filiais", icon: Building2 },
+        ],
+      },
+      {
+        title: "GerSys",
+        icon: Server,
+        children: [
+          {
+            title: "Usuários",
+            icon: Users,
+            children: [
+              { title: "Usuários", url: "/admin/usuarios", icon: Users },
+              { title: "Permissões", url: "/admin/permissoes", icon: ShieldCheck },
+            ],
+          },
+          {
+            title: "Módulos e Programas",
+            icon: Layers,
+            children: [
+              { title: "Módulos", url: "/admin/gersys_modulos", icon: Component },
+              { title: "Sub-Módulos", url: "/admin/gersys_submodulos", icon: Layers },
+              { title: "Programas", url: "/admin/gersys_programas", icon: AppWindow },
+              { title: "Permissões", url: "/admin/gersys_permissoes", icon: Lock },
+            ],
+          },
+        ],
+      },
     ],
   },
   {
