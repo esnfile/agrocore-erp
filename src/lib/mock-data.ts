@@ -14,9 +14,10 @@ export interface Grupo {
 export interface Empresa {
   id: string;
   grupoId: string;
+  tipoPessoa: "PF" | "PJ";
   razaoSocial: string;
   nomeFantasia: string;
-  cnpj: string;
+  cpfCnpj: string;
   inscricaoEstadual: string;
   email: string;
   telefone: string;
@@ -75,9 +76,10 @@ export const empresas: Empresa[] = [
   {
     id: "e1",
     grupoId: "g1",
+    tipoPessoa: "PJ",
     razaoSocial: "Fazenda Boa Vista Ltda",
     nomeFantasia: "Fazenda Boa Vista",
-    cnpj: "12.345.678/0001-90",
+    cpfCnpj: "12.345.678/0001-90",
     inscricaoEstadual: "123.456.789",
     email: "contato@boavista.agro",
     telefone: "(44) 3333-1111",
@@ -88,11 +90,12 @@ export const empresas: Empresa[] = [
   {
     id: "e2",
     grupoId: "g1",
-    razaoSocial: "Armazéns Campo Verde S/A",
-    nomeFantasia: "Campo Verde Armazéns",
-    cnpj: "98.765.432/0001-10",
-    inscricaoEstadual: "987.654.321",
-    email: "contato@campoverde.agro",
+    tipoPessoa: "PF",
+    razaoSocial: "João da Silva",
+    nomeFantasia: "Fazenda Silva",
+    cpfCnpj: "123.456.789-00",
+    inscricaoEstadual: "",
+    email: "joao@fazsilva.agro",
     telefone: "(44) 3333-2222",
     ativo: true,
     criadoEm: "2024-02-10T08:00:00Z",
