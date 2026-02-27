@@ -7,7 +7,6 @@ import { OrganizationProvider } from "@/contexts/OrganizationContext";
 import { AppLayout } from "@/components/AppLayout";
 import DashboardPage from "@/pages/DashboardPage";
 import EmpresasPage from "@/pages/admin/EmpresasPage";
-import EmpresaFormPage from "@/pages/admin/EmpresaFormPage";
 import PlaceholderPage from "@/pages/PlaceholderPage";
 import NotFound from "./pages/NotFound";
 
@@ -24,13 +23,17 @@ const App = () => (
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route element={<AppLayout />}>
               <Route path="/dashboard" element={<DashboardPage />} />
-              {/* Administrativo */}
+              {/* Administrativo — Grupo Empresarial */}
               <Route path="/admin/grupos" element={<PlaceholderPage />} />
               <Route path="/admin/empresas" element={<EmpresasPage />} />
-              <Route path="/admin/empresas/:id" element={<EmpresaFormPage />} />
               <Route path="/admin/filiais" element={<PlaceholderPage />} />
+              {/* Administrativo — GerSys */}
               <Route path="/admin/usuarios" element={<PlaceholderPage />} />
               <Route path="/admin/permissoes" element={<PlaceholderPage />} />
+              <Route path="/admin/gersys_modulos" element={<PlaceholderPage />} />
+              <Route path="/admin/gersys_submodulos" element={<PlaceholderPage />} />
+              <Route path="/admin/gersys_programas" element={<PlaceholderPage />} />
+              <Route path="/admin/gersys_permissoes" element={<PlaceholderPage />} />
               {/* Cadastros */}
               <Route path="/cadastros/pessoas" element={<PlaceholderPage />} />
               <Route path="/cadastros/produtos" element={<PlaceholderPage />} />

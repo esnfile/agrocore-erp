@@ -27,6 +27,7 @@ export interface Empresa {
 
 export interface Filial {
   id: string;
+  grupoId: string;
   empresaId: string;
   nome: string;
   cnpj: string;
@@ -40,6 +41,7 @@ export interface Filial {
 
 export interface Usuario {
   id: string;
+  grupoId: string;
   nome: string;
   email: string;
   avatar?: string;
@@ -57,6 +59,14 @@ export const grupos: Grupo[] = [
     ativo: true,
     criadoEm: "2024-01-15T10:00:00Z",
     atualizadoEm: "2024-06-01T14:30:00Z",
+  },
+  {
+    id: "g2",
+    nome: "Grupo Norte Agro",
+    descricao: "Cooperativa de produtores do norte",
+    ativo: true,
+    criadoEm: "2024-03-10T08:00:00Z",
+    atualizadoEm: "2024-07-20T10:00:00Z",
   },
 ];
 
@@ -94,6 +104,7 @@ export const empresas: Empresa[] = [
 export const filiais: Filial[] = [
   {
     id: "f1",
+    grupoId: "g1",
     empresaId: "e1",
     nome: "Matriz — Maringá",
     cnpj: "12.345.678/0001-90",
@@ -106,6 +117,7 @@ export const filiais: Filial[] = [
   },
   {
     id: "f2",
+    grupoId: "g1",
     empresaId: "e1",
     nome: "Filial — Londrina",
     cnpj: "12.345.678/0002-71",
@@ -118,6 +130,7 @@ export const filiais: Filial[] = [
   },
   {
     id: "f3",
+    grupoId: "g1",
     empresaId: "e2",
     nome: "Unidade — Campo Mourão",
     cnpj: "98.765.432/0002-00",
@@ -134,6 +147,7 @@ export const filiais: Filial[] = [
 export const usuarios: Usuario[] = [
   {
     id: "u1",
+    grupoId: "g1",
     nome: "João Administrador",
     email: "joao@agroerp.com",
     ativo: true,
