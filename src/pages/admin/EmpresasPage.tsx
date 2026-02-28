@@ -25,6 +25,24 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+// ---- Máscaras ----
+function maskCPF(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 11);
+  return digits
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+}
+
+function maskCNPJ(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 14);
+  return digits
+    .replace(/(\d{2})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1/$2")
+    .replace(/(\d{4})(\d{1,2})$/, "$1-$2");
+}
+
 const schema = z.object({
   grupoId: z.string().min(1, "Selecione um grupo"),
   tipoPessoa: z.enum(["PF", "PJ"]),
@@ -241,12 +259,26 @@ export default function EmpresasPage() {
             {errors.nomeFantasia && <p className="text-xs text-destructive">{errors.nomeFantasia.message}</p>}
           </div>
 
-          {/* CPF/CNPJ */}
+          {/* CPF/CNPJ com máscara */}
           <div className="space-y-1.5">
             <Label htmlFor="cpfCnpj">
               {tipoPessoa === "PF" ? "CPF" : "CNPJ"} <span className="text-destructive">*</span>
             </Label>
-            <Input id="cpfCnpj" {...register("cpfCnpj")} />
+            <Controller
+              name="cpfCnpj"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  id="cpfCnpj"
+                  value={field.value}
+                  onChange={(e) => {
+                    const masked = tipoPessoa === "PF" ? maskCPF(e.target.value) : maskCNPJ(e.target.value);
+                    field.onChange(masked);
+                  }}
+                  placeholder={tipoPessoa === "PF" ? "000.000.000-00" : "00.000.000/0000-00"}
+                />
+              )}
+            />
             {errors.cpfCnpj && <p className="text-xs text-destructive">{errors.cpfCnpj.message}</p>}
           </div>
 
@@ -286,7 +318,7 @@ export default function EmpresasPage() {
               onClick={confirmDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Confirmar Exclusão
+              Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

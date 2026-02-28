@@ -8,6 +8,7 @@ import { AppLayout } from "@/components/AppLayout";
 import DashboardPage from "@/pages/DashboardPage";
 import EmpresasPage from "@/pages/admin/EmpresasPage";
 import GruposPage from "@/pages/admin/GruposPage";
+import FiliaisPage from "@/pages/admin/FiliaisPage";
 import PlaceholderPage from "@/pages/PlaceholderPage";
 import NotFound from "./pages/NotFound";
 
@@ -27,7 +28,7 @@ const App = () => (
               {/* Administrativo — Grupo Empresarial */}
               <Route path="/admin/grupos" element={<GruposPage />} />
               <Route path="/admin/empresas" element={<EmpresasPage />} />
-              <Route path="/admin/filiais" element={<PlaceholderPage />} />
+              <Route path="/admin/filiais" element={<FiliaisPage />} />
               {/* Administrativo — GerSys */}
               <Route path="/admin/usuarios" element={<PlaceholderPage />} />
               <Route path="/admin/permissoes" element={<PlaceholderPage />} />

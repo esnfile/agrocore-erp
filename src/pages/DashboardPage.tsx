@@ -8,7 +8,7 @@ export default function DashboardPage() {
 
   const cards = [
     { title: "Empresa", value: empresaAtual?.nomeFantasia ?? "—", icon: Building2 },
-    { title: "Filial", value: filialAtual?.nome ?? "—", icon: GitBranch },
+    { title: "Filial", value: filialAtual?.nomeRazao ?? "—", icon: GitBranch },
     { title: "Contratos", value: "0", icon: Package },
     { title: "Financeiro", value: "R$ 0,00", icon: DollarSign },
   ];
