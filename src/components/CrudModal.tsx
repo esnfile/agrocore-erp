@@ -20,13 +20,13 @@ interface CrudModalProps {
 export function CrudModal({ open, onClose, title, saving, onSave, children }: CrudModalProps) {
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
-        <div className="py-2">{children}</div>
+        <div className="py-6 px-2">{children}</div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={saving}>
+          <Button variant="outline" onClick={onClose} disabled={saving} className="hover:bg-destructive/10 hover:text-destructive hover:border-destructive">
             Cancelar
           </Button>
           {onSave && (
