@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react"; // v2
 import { empresaService, filialService, grupoService } from "@/lib/services";
 import type { Empresa, Filial, Grupo } from "@/lib/mock-data";
 
