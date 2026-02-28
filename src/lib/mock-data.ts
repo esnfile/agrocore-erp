@@ -12,6 +12,7 @@ export interface Grupo {
   atualizadoEm: string;
   atualizadoPor: string;
   deletadoEm: string | null;
+  deletadoPor: string | null;
 }
 
 export interface Empresa {
@@ -30,20 +31,28 @@ export interface Empresa {
   atualizadoEm: string;
   atualizadoPor: string;
   deletadoEm: string | null;
+  deletadoPor: string | null;
 }
 
 export interface Filial {
   id: string;
-  grupoId: string;
   empresaId: string;
-  nome: string;
-  cnpj: string;
+  nomeRazao: string;
+  cpfCnpj: string;
+  inscricaoEstadual: string;
   endereco: string;
+  numeroKm: string;
+  bairro: string;
+  cep: string;
   cidade: string;
-  uf: string;
+  estado: string;
   ativo: boolean;
   criadoEm: string;
+  criadoPor: string;
   atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
 }
 
 export interface Usuario {
@@ -69,6 +78,7 @@ export const grupos: Grupo[] = [
     atualizadoEm: "2024-06-01T14:30:00Z",
     atualizadoPor: "u1",
     deletadoEm: null,
+    deletadoPor: null,
   },
   {
     id: "g2",
@@ -80,6 +90,7 @@ export const grupos: Grupo[] = [
     atualizadoEm: "2024-07-20T10:00:00Z",
     atualizadoPor: "u1",
     deletadoEm: null,
+    deletadoPor: null,
   },
 ];
 
@@ -101,6 +112,7 @@ export const empresas: Empresa[] = [
     atualizadoEm: "2024-07-10T09:00:00Z",
     atualizadoPor: "u1",
     deletadoEm: null,
+    deletadoPor: null,
   },
   {
     id: "e2",
@@ -118,6 +130,7 @@ export const empresas: Empresa[] = [
     atualizadoEm: "2024-08-05T11:00:00Z",
     atualizadoPor: "u1",
     deletadoEm: null,
+    deletadoPor: null,
   },
 ];
 
@@ -125,42 +138,63 @@ export const empresas: Empresa[] = [
 export const filiais: Filial[] = [
   {
     id: "f1",
-    grupoId: "g1",
     empresaId: "e1",
-    nome: "Matriz — Maringá",
-    cnpj: "12.345.678/0001-90",
+    nomeRazao: "Matriz — Maringá",
+    cpfCnpj: "12.345.678/0001-90",
+    inscricaoEstadual: "123.456.789",
     endereco: "Rod. PR-317 Km 12",
+    numeroKm: "Km 12",
+    bairro: "Zona Rural",
+    cep: "87000-000",
     cidade: "Maringá",
-    uf: "PR",
+    estado: "PR",
     ativo: true,
     criadoEm: "2024-01-20T08:00:00Z",
+    criadoPor: "u1",
     atualizadoEm: "2024-01-20T08:00:00Z",
+    atualizadoPor: "u1",
+    deletadoEm: null,
+    deletadoPor: null,
   },
   {
     id: "f2",
-    grupoId: "g1",
     empresaId: "e1",
-    nome: "Filial — Londrina",
-    cnpj: "12.345.678/0002-71",
+    nomeRazao: "Filial — Londrina",
+    cpfCnpj: "12.345.678/0002-71",
+    inscricaoEstadual: "987.654.321",
     endereco: "Rod. PR-445 Km 8",
+    numeroKm: "Km 8",
+    bairro: "Distrito Industrial",
+    cep: "86000-000",
     cidade: "Londrina",
-    uf: "PR",
+    estado: "PR",
     ativo: true,
     criadoEm: "2024-03-01T08:00:00Z",
+    criadoPor: "u1",
     atualizadoEm: "2024-03-01T08:00:00Z",
+    atualizadoPor: "u1",
+    deletadoEm: null,
+    deletadoPor: null,
   },
   {
     id: "f3",
-    grupoId: "g1",
     empresaId: "e2",
-    nome: "Unidade — Campo Mourão",
-    cnpj: "98.765.432/0002-00",
+    nomeRazao: "Unidade — Campo Mourão",
+    cpfCnpj: "98.765.432/0002-00",
+    inscricaoEstadual: "",
     endereco: "Av. das Indústrias 500",
+    numeroKm: "500",
+    bairro: "Centro",
+    cep: "87300-000",
     cidade: "Campo Mourão",
-    uf: "PR",
+    estado: "PR",
     ativo: true,
     criadoEm: "2024-02-15T08:00:00Z",
+    criadoPor: "u1",
     atualizadoEm: "2024-02-15T08:00:00Z",
+    atualizadoPor: "u1",
+    deletadoEm: null,
+    deletadoPor: null,
   },
 ];
 

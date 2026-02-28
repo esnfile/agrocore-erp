@@ -15,12 +15,13 @@ interface CrudModalProps {
   saving?: boolean;
   onSave?: () => void;
   children: React.ReactNode;
+  maxWidth?: string;
 }
 
-export function CrudModal({ open, onClose, title, saving, onSave, children }: CrudModalProps) {
+export function CrudModal({ open, onClose, title, saving, onSave, children, maxWidth }: CrudModalProps) {
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className={maxWidth ?? "sm:max-w-2xl"}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>

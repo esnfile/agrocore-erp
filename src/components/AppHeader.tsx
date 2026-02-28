@@ -73,7 +73,7 @@ export function AppHeader() {
           <SelectContent>
             {filiais.map((f) => (
               <SelectItem key={f.id} value={f.id}>
-                {f.nome}
+                {f.nomeRazao}
               </SelectItem>
             ))}
           </SelectContent>

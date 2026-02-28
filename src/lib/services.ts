@@ -19,7 +19,7 @@ export const grupoService = {
   async salvar(data: Partial<Grupo>): Promise<Grupo> {
     await delay(400);
     const now = new Date().toISOString();
-    const userId = "u1"; // TODO: usuário autenticado
+    const userId = "u1";
     const existing = data.id ? mockGrupos.find((g) => g.id === data.id && g.deletadoEm === null) : undefined;
     if (existing) {
       existing.nome = (data.nome ?? existing.nome).trim();
@@ -37,6 +37,7 @@ export const grupoService = {
       atualizadoEm: now,
       atualizadoPor: userId,
       deletadoEm: null,
+      deletadoPor: null,
     };
     mockGrupos.push(novo);
     return novo;
@@ -58,6 +59,7 @@ export const grupoService = {
     const g = mockGrupos.find((g) => g.id === id && g.deletadoEm === null);
     if (g) {
       g.deletadoEm = now;
+      g.deletadoPor = "u1";
       g.atualizadoEm = now;
       g.atualizadoPor = "u1";
     }
@@ -101,13 +103,14 @@ export const empresaService = {
       atualizadoEm: now,
       atualizadoPor: userId,
       deletadoEm: null,
+      deletadoPor: null,
     };
     mockEmpresas.push(nova);
     return nova;
   },
   async possuiFiliais(id: string): Promise<boolean> {
     await delay(100);
-    return mockFiliais.some((f) => f.empresaId === id && f.ativo);
+    return mockFiliais.some((f) => f.empresaId === id && f.deletadoEm === null);
   },
   async excluir(id: string): Promise<void> {
     await delay();
@@ -115,6 +118,7 @@ export const empresaService = {
     const emp = mockEmpresas.find((e) => e.id === id && e.deletadoEm === null);
     if (emp) {
       emp.deletadoEm = now;
+      emp.deletadoPor = "u1";
       emp.atualizadoEm = now;
       emp.atualizadoPor = "u1";
     }
@@ -123,46 +127,71 @@ export const empresaService = {
 
 // ---- Filiais ----
 export const filialService = {
-  async listar(grupoId?: string): Promise<Filial[]> {
+  async listar(): Promise<Filial[]> {
     await delay();
-    let list = mockFiliais.filter((f) => f.ativo);
-    if (grupoId) list = list.filter((f) => f.grupoId === grupoId);
-    return list;
+    return mockFiliais.filter((f) => f.deletadoEm === null);
   },
   async listarPorEmpresa(empresaId: string): Promise<Filial[]> {
     await delay();
-    return mockFiliais.filter((f) => f.empresaId === empresaId && f.ativo);
+    return mockFiliais.filter((f) => f.empresaId === empresaId && f.deletadoEm === null);
   },
   async obterPorId(id: string): Promise<Filial | undefined> {
     await delay();
-    return mockFiliais.find((f) => f.id === id);
+    return mockFiliais.find((f) => f.id === id && f.deletadoEm === null);
+  },
+  async cpfCnpjExiste(cpfCnpj: string, empresaId: string, excludeId?: string): Promise<boolean> {
+    await delay(100);
+    const trimmed = cpfCnpj.trim();
+    return mockFiliais.some(
+      (f) => f.deletadoEm === null && f.empresaId === empresaId && f.cpfCnpj === trimmed && f.id !== excludeId
+    );
+  },
+  async possuiMovimentacoes(_id: string): Promise<boolean> {
+    // Preparado para futura integração com movimentações de estoque
+    await delay(100);
+    return false;
   },
   async salvar(data: Partial<Filial>): Promise<Filial> {
     await delay(400);
-    const existing = data.id ? mockFiliais.find((f) => f.id === data.id) : undefined;
+    const now = new Date().toISOString();
+    const userId = "u1";
+    const existing = data.id ? mockFiliais.find((f) => f.id === data.id && f.deletadoEm === null) : undefined;
     if (existing) {
-      Object.assign(existing, data, { atualizadoEm: new Date().toISOString() });
+      Object.assign(existing, data, { atualizadoEm: now, atualizadoPor: userId });
       return existing;
     }
     const nova: Filial = {
       id: `f${Date.now()}`,
-      grupoId: data.grupoId ?? "g1",
       empresaId: data.empresaId ?? "",
-      nome: data.nome ?? "",
-      cnpj: data.cnpj ?? "",
-      endereco: data.endereco ?? "",
-      cidade: data.cidade ?? "",
-      uf: data.uf ?? "",
-      ativo: true,
-      criadoEm: new Date().toISOString(),
-      atualizadoEm: new Date().toISOString(),
+      nomeRazao: (data.nomeRazao ?? "").trim(),
+      cpfCnpj: (data.cpfCnpj ?? "").trim(),
+      inscricaoEstadual: (data.inscricaoEstadual ?? "").trim(),
+      endereco: (data.endereco ?? "").trim(),
+      numeroKm: (data.numeroKm ?? "").trim(),
+      bairro: (data.bairro ?? "").trim(),
+      cep: (data.cep ?? "").trim(),
+      cidade: (data.cidade ?? "").trim(),
+      estado: (data.estado ?? "").trim(),
+      ativo: data.ativo ?? true,
+      criadoEm: now,
+      criadoPor: userId,
+      atualizadoEm: now,
+      atualizadoPor: userId,
+      deletadoEm: null,
+      deletadoPor: null,
     };
     mockFiliais.push(nova);
     return nova;
   },
   async excluir(id: string): Promise<void> {
     await delay();
-    const f = mockFiliais.find((f) => f.id === id);
-    if (f) f.ativo = false;
+    const now = new Date().toISOString();
+    const f = mockFiliais.find((f) => f.id === id && f.deletadoEm === null);
+    if (f) {
+      f.deletadoEm = now;
+      f.deletadoPor = "u1";
+      f.atualizadoEm = now;
+      f.atualizadoPor = "u1";
+    }
   },
 };
