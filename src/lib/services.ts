@@ -50,7 +50,7 @@ export const grupoService = {
   },
   async possuiEmpresas(id: string): Promise<boolean> {
     await delay(100);
-    return mockEmpresas.some((e) => e.grupoId === id && e.ativo);
+    return mockEmpresas.some((e) => e.grupoId === id && e.deletadoEm === null);
   },
   async excluir(id: string): Promise<void> {
     await delay();
@@ -68,7 +68,7 @@ export const grupoService = {
 export const empresaService = {
   async listar(grupoId?: string): Promise<Empresa[]> {
     await delay();
-    let list = mockEmpresas.filter((e) => e.ativo);
+    let list = mockEmpresas.filter((e) => e.deletadoEm === null);
     if (grupoId) list = list.filter((e) => e.grupoId === grupoId);
     return list;
   },
@@ -78,9 +78,11 @@ export const empresaService = {
   },
   async salvar(data: Partial<Empresa>): Promise<Empresa> {
     await delay(400);
-    const existing = data.id ? mockEmpresas.find((e) => e.id === data.id) : undefined;
+    const now = new Date().toISOString();
+    const userId = "u1";
+    const existing = data.id ? mockEmpresas.find((e) => e.id === data.id && e.deletadoEm === null) : undefined;
     if (existing) {
-      Object.assign(existing, data, { atualizadoEm: new Date().toISOString() });
+      Object.assign(existing, data, { atualizadoEm: now, atualizadoPor: userId });
       return existing;
     }
     const nova: Empresa = {
@@ -94,16 +96,28 @@ export const empresaService = {
       email: data.email ?? "",
       telefone: data.telefone ?? "",
       ativo: true,
-      criadoEm: new Date().toISOString(),
-      atualizadoEm: new Date().toISOString(),
+      criadoEm: now,
+      criadoPor: userId,
+      atualizadoEm: now,
+      atualizadoPor: userId,
+      deletadoEm: null,
     };
     mockEmpresas.push(nova);
     return nova;
   },
+  async possuiFiliais(id: string): Promise<boolean> {
+    await delay(100);
+    return mockFiliais.some((f) => f.empresaId === id && f.ativo);
+  },
   async excluir(id: string): Promise<void> {
     await delay();
-    const emp = mockEmpresas.find((e) => e.id === id);
-    if (emp) emp.ativo = false;
+    const now = new Date().toISOString();
+    const emp = mockEmpresas.find((e) => e.id === id && e.deletadoEm === null);
+    if (emp) {
+      emp.deletadoEm = now;
+      emp.atualizadoEm = now;
+      emp.atualizadoPor = "u1";
+    }
   },
 };
 

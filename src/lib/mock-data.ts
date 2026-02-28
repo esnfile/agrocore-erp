@@ -26,7 +26,10 @@ export interface Empresa {
   telefone: string;
   ativo: boolean;
   criadoEm: string;
+  criadoPor: string;
   atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
 }
 
 export interface Filial {
@@ -94,7 +97,10 @@ export const empresas: Empresa[] = [
     telefone: "(44) 3333-1111",
     ativo: true,
     criadoEm: "2024-01-20T08:00:00Z",
+    criadoPor: "u1",
     atualizadoEm: "2024-07-10T09:00:00Z",
+    atualizadoPor: "u1",
+    deletadoEm: null,
   },
   {
     id: "e2",
@@ -108,7 +114,10 @@ export const empresas: Empresa[] = [
     telefone: "(44) 3333-2222",
     ativo: true,
     criadoEm: "2024-02-10T08:00:00Z",
+    criadoPor: "u1",
     atualizadoEm: "2024-08-05T11:00:00Z",
+    atualizadoPor: "u1",
+    deletadoEm: null,
   },
 ];
 

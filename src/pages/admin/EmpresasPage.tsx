@@ -14,6 +14,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const schema = z.object({
   grupoId: z.string().min(1, "Selecione um grupo"),
@@ -34,6 +44,7 @@ export default function EmpresasPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Empresa | null>(null);
   const { grupoAtual, grupos } = useOrganization();
 
   const {
@@ -133,10 +144,22 @@ export default function EmpresasPage() {
     }
   });
 
-  const handleDelete = async (row: Empresa) => {
-    await empresaService.excluir(row.id);
-    setData((prev) => prev.filter((e) => e.id !== row.id));
-    toast({ title: "Empresa excluída", description: `${row.nomeFantasia} foi desativada.` });
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    const temFiliais = await empresaService.possuiFiliais(deleteTarget.id);
+    if (temFiliais) {
+      toast({
+        title: "Exclusão bloqueada",
+        description: "Não é possível excluir uma empresa que possui filiais vinculadas.",
+        variant: "destructive",
+      });
+      setDeleteTarget(null);
+      return;
+    }
+    await empresaService.excluir(deleteTarget.id);
+    toast({ title: "Empresa excluída", description: `${deleteTarget.nomeFantasia} foi removida.` });
+    setDeleteTarget(null);
+    loadData();
   };
 
   return (
@@ -149,7 +172,7 @@ export default function EmpresasPage() {
         searchPlaceholder="Buscar empresa..."
         onNew={openNew}
         onEdit={openEdit}
-        onDelete={handleDelete}
+        onDelete={(row) => setDeleteTarget(row)}
       />
       <CrudModal
         open={modalOpen}
@@ -158,7 +181,7 @@ export default function EmpresasPage() {
         saving={saving}
         onSave={onSave}
       >
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           {/* Grupo */}
           <div className="space-y-1.5 sm:col-span-2">
             <Label>Grupo <span className="text-destructive">*</span></Label>
@@ -247,6 +270,27 @@ export default function EmpresasPage() {
           </div>
         </div>
       </CrudModal>
+
+      {/* Confirmação de exclusão */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja realmente excluir esta empresa? Esta ação não poderá ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Confirmar Exclusão
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
