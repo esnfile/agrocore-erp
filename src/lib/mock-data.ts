@@ -8,7 +8,10 @@ export interface Grupo {
   descricao: string;
   ativo: boolean;
   criadoEm: string;
+  criadoPor: string;
   atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
 }
 
 export interface Empresa {
@@ -59,7 +62,10 @@ export const grupos: Grupo[] = [
     descricao: "Holding agroindustrial da região sul",
     ativo: true,
     criadoEm: "2024-01-15T10:00:00Z",
+    criadoPor: "u1",
     atualizadoEm: "2024-06-01T14:30:00Z",
+    atualizadoPor: "u1",
+    deletadoEm: null,
   },
   {
     id: "g2",
@@ -67,7 +73,10 @@ export const grupos: Grupo[] = [
     descricao: "Cooperativa de produtores do norte",
     ativo: true,
     criadoEm: "2024-03-10T08:00:00Z",
+    criadoPor: "u1",
     atualizadoEm: "2024-07-20T10:00:00Z",
+    atualizadoPor: "u1",
+    deletadoEm: null,
   },
 ];
 

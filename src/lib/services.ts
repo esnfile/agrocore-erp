@@ -10,34 +10,57 @@ const delay = (ms = 300) => new Promise((r) => setTimeout(r, ms));
 export const grupoService = {
   async listar(): Promise<Grupo[]> {
     await delay();
-    return mockGrupos.filter((g) => g.ativo);
+    return mockGrupos.filter((g) => g.deletadoEm === null);
   },
   async obterPorId(id: string): Promise<Grupo | undefined> {
     await delay();
-    return mockGrupos.find((g) => g.id === id);
+    return mockGrupos.find((g) => g.id === id && g.deletadoEm === null);
   },
   async salvar(data: Partial<Grupo>): Promise<Grupo> {
     await delay(400);
-    const existing = data.id ? mockGrupos.find((g) => g.id === data.id) : undefined;
+    const now = new Date().toISOString();
+    const userId = "u1"; // TODO: usuário autenticado
+    const existing = data.id ? mockGrupos.find((g) => g.id === data.id && g.deletadoEm === null) : undefined;
     if (existing) {
-      Object.assign(existing, data, { atualizadoEm: new Date().toISOString() });
+      existing.nome = (data.nome ?? existing.nome).trim();
+      existing.atualizadoEm = now;
+      existing.atualizadoPor = userId;
       return existing;
     }
     const novo: Grupo = {
       id: `g${Date.now()}`,
-      nome: data.nome ?? "",
+      nome: (data.nome ?? "").trim(),
       descricao: data.descricao ?? "",
       ativo: true,
-      criadoEm: new Date().toISOString(),
-      atualizadoEm: new Date().toISOString(),
+      criadoEm: now,
+      criadoPor: userId,
+      atualizadoEm: now,
+      atualizadoPor: userId,
+      deletadoEm: null,
     };
     mockGrupos.push(novo);
     return novo;
   },
+  async nomeExiste(nome: string, excludeId?: string): Promise<boolean> {
+    await delay(100);
+    const trimmed = nome.trim().toLowerCase();
+    return mockGrupos.some(
+      (g) => g.deletadoEm === null && g.nome.toLowerCase() === trimmed && g.id !== excludeId
+    );
+  },
+  async possuiEmpresas(id: string): Promise<boolean> {
+    await delay(100);
+    return mockEmpresas.some((e) => e.grupoId === id && e.ativo);
+  },
   async excluir(id: string): Promise<void> {
     await delay();
-    const g = mockGrupos.find((g) => g.id === id);
-    if (g) g.ativo = false;
+    const now = new Date().toISOString();
+    const g = mockGrupos.find((g) => g.id === id && g.deletadoEm === null);
+    if (g) {
+      g.deletadoEm = now;
+      g.atualizadoEm = now;
+      g.atualizadoPor = "u1";
+    }
   },
 };
 

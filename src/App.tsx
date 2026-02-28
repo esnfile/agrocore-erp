@@ -7,6 +7,7 @@ import { OrganizationProvider } from "@/contexts/OrganizationContext";
 import { AppLayout } from "@/components/AppLayout";
 import DashboardPage from "@/pages/DashboardPage";
 import EmpresasPage from "@/pages/admin/EmpresasPage";
+import GruposPage from "@/pages/admin/GruposPage";
 import PlaceholderPage from "@/pages/PlaceholderPage";
 import NotFound from "./pages/NotFound";
 
@@ -24,7 +25,7 @@ const App = () => (
             <Route element={<AppLayout />}>
               <Route path="/dashboard" element={<DashboardPage />} />
               {/* Administrativo — Grupo Empresarial */}
-              <Route path="/admin/grupos" element={<PlaceholderPage />} />
+              <Route path="/admin/grupos" element={<GruposPage />} />
               <Route path="/admin/empresas" element={<EmpresasPage />} />
               <Route path="/admin/filiais" element={<PlaceholderPage />} />
               {/* Administrativo — GerSys */}
