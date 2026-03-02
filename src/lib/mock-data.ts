@@ -66,6 +66,70 @@ export interface Usuario {
   atualizadoEm: string;
 }
 
+// ---- Grupo de Pessoas ----
+export interface GrupoPessoa {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  descGrupoPessoa: string;
+  ativo: boolean;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+// ---- Endereço (sub-entidade de Pessoa) ----
+export interface Endereco {
+  id: string;
+  enderecoPadrao: boolean;
+  tipoEndereco: "Residencial" | "Comercial" | "Outros";
+  cep: string;
+  cidade: string;
+  estado: string;
+  endereco: string;
+  numero: string;
+  bairro: string;
+  referencia: string;
+}
+
+// ---- Contato (sub-entidade de Pessoa) ----
+export interface Contato {
+  id: string;
+  contatoPadrao: boolean;
+  tipoContato: "Telefone" | "WhatsApp" | "Email" | "Outros";
+  descContatoPessoa: string;
+}
+
+// ---- Pessoa ----
+export interface Pessoa {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  tipoPessoa: "PF" | "PJ";
+  grupoPessoaId: string;
+  relacaoComercial: string[];
+  nomeRazao: string;
+  dataNascimentoAbertura: string;
+  cpfCnpj: string;
+  rgIe: string;
+  nomeFantasia: string;
+  sexo: "Masculino" | "Feminino" | "";
+  ativo: boolean;
+  enderecos: Endereco[];
+  contatos: Contato[];
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
 // ---- Grupos ----
 export const grupos: Grupo[] = [
   {
@@ -208,5 +272,149 @@ export const usuarios: Usuario[] = [
     ativo: true,
     criadoEm: "2024-01-01T08:00:00Z",
     atualizadoEm: "2024-01-01T08:00:00Z",
+  },
+];
+
+// ---- Grupo de Pessoas ----
+export const gruposPessoa: GrupoPessoa[] = [
+  {
+    id: "gp1",
+    grupoId: "g1",
+    empresaId: "e1",
+    filialId: "f1",
+    descGrupoPessoa: "Produtores Rurais",
+    ativo: true,
+    criadoEm: "2024-04-01T08:00:00Z",
+    criadoPor: "u1",
+    atualizadoEm: "2024-04-01T08:00:00Z",
+    atualizadoPor: "u1",
+    deletadoEm: null,
+    deletadoPor: null,
+  },
+  {
+    id: "gp2",
+    grupoId: "g1",
+    empresaId: "e1",
+    filialId: "f1",
+    descGrupoPessoa: "Fornecedores de Insumos",
+    ativo: true,
+    criadoEm: "2024-04-05T08:00:00Z",
+    criadoPor: "u1",
+    atualizadoEm: "2024-04-05T08:00:00Z",
+    atualizadoPor: "u1",
+    deletadoEm: null,
+    deletadoPor: null,
+  },
+  {
+    id: "gp3",
+    grupoId: "g1",
+    empresaId: "e1",
+    filialId: "f1",
+    descGrupoPessoa: "Transportadoras",
+    ativo: true,
+    criadoEm: "2024-04-10T08:00:00Z",
+    criadoPor: "u1",
+    atualizadoEm: "2024-04-10T08:00:00Z",
+    atualizadoPor: "u1",
+    deletadoEm: null,
+    deletadoPor: null,
+  },
+];
+
+// ---- Pessoas ----
+export const pessoas: Pessoa[] = [
+  {
+    id: "p1",
+    grupoId: "g1",
+    empresaId: "e1",
+    filialId: "f1",
+    tipoPessoa: "PF",
+    grupoPessoaId: "gp1",
+    relacaoComercial: ["Produtor", "Cliente"],
+    nomeRazao: "Carlos Eduardo Mendes",
+    dataNascimentoAbertura: "1985-06-15",
+    cpfCnpj: "456.789.123-00",
+    rgIe: "12.345.678-9",
+    nomeFantasia: "",
+    sexo: "Masculino",
+    ativo: true,
+    enderecos: [
+      {
+        id: "end1",
+        enderecoPadrao: true,
+        tipoEndereco: "Residencial",
+        cep: "87050-100",
+        cidade: "Maringá",
+        estado: "PR",
+        endereco: "Rua das Palmeiras",
+        numero: "123",
+        bairro: "Jardim Alvorada",
+        referencia: "Próximo ao mercado central",
+      },
+    ],
+    contatos: [
+      {
+        id: "ct1",
+        contatoPadrao: true,
+        tipoContato: "WhatsApp",
+        descContatoPessoa: "(44) 99999-1111",
+      },
+      {
+        id: "ct2",
+        contatoPadrao: false,
+        tipoContato: "Email",
+        descContatoPessoa: "carlos@email.com",
+      },
+    ],
+    criadoEm: "2024-05-01T08:00:00Z",
+    criadoPor: "u1",
+    atualizadoEm: "2024-05-01T08:00:00Z",
+    atualizadoPor: "u1",
+    deletadoEm: null,
+    deletadoPor: null,
+  },
+  {
+    id: "p2",
+    grupoId: "g1",
+    empresaId: "e1",
+    filialId: "f1",
+    tipoPessoa: "PJ",
+    grupoPessoaId: "gp2",
+    relacaoComercial: ["Fornecedor"],
+    nomeRazao: "AgroInsumos Ltda",
+    dataNascimentoAbertura: "2010-03-20",
+    cpfCnpj: "11.222.333/0001-44",
+    rgIe: "987.654.321",
+    nomeFantasia: "AgroInsumos",
+    sexo: "",
+    ativo: true,
+    enderecos: [
+      {
+        id: "end2",
+        enderecoPadrao: true,
+        tipoEndereco: "Comercial",
+        cep: "86010-200",
+        cidade: "Londrina",
+        estado: "PR",
+        endereco: "Av. Brasil",
+        numero: "4500",
+        bairro: "Centro",
+        referencia: "",
+      },
+    ],
+    contatos: [
+      {
+        id: "ct3",
+        contatoPadrao: true,
+        tipoContato: "Telefone",
+        descContatoPessoa: "(43) 3344-5566",
+      },
+    ],
+    criadoEm: "2024-05-10T08:00:00Z",
+    criadoPor: "u1",
+    atualizadoEm: "2024-05-10T08:00:00Z",
+    atualizadoPor: "u1",
+    deletadoEm: null,
+    deletadoPor: null,
   },
 ];
