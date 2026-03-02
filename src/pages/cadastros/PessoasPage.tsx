@@ -576,7 +576,7 @@ export default function PessoasPage() {
                     {errors.cpfCnpj && <p className="text-xs text-destructive">{errors.cpfCnpj.message}</p>}
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="rgIe">{tipoPessoa === "PF" ? "RG" : "IE"}</Label>
+                    <Label htmlFor="rgIe">RG/IE</Label>
                     <Input id="rgIe" maxLength={20} {...register("rgIe")} />
                   </div>
                   <div className="space-y-1.5">
