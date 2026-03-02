@@ -688,8 +688,11 @@ export default function PessoasPage() {
                   {enderecoFields.map((field, index) => {
                     const isExpanded = expandedEnderecos.has(index);
                     const tipoEnd = watch(`enderecos.${index}.tipoEndereco`);
+                    const enderecoRua = watch(`enderecos.${index}.endereco`);
+                    const numeroEnd = watch(`enderecos.${index}.numero`);
                     const cidadeEnd = watch(`enderecos.${index}.cidade`);
                     const estadoEnd = watch(`enderecos.${index}.estado`);
+                    const isPadrao = watch(`enderecos.${index}.enderecoPadrao`);
 
                     return (
                       <Collapsible
@@ -706,14 +709,16 @@ export default function PessoasPage() {
                                   {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                                 </Button>
                               </CollapsibleTrigger>
-                              <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                              <div className="flex items-center gap-2 min-w-0 flex-nowrap">
                                 <Badge variant="outline" className="text-xs flex-shrink-0">{tipoEnd || "—"}</Badge>
-                                {(cidadeEnd || estadoEnd) && (
-                                  <span className="text-sm text-muted-foreground truncate">
-                                    {[cidadeEnd, estadoEnd].filter(Boolean).join(" / ")}
-                                  </span>
-                                )}
-                                {field.enderecoPadrao && (
+                                <span className="text-sm text-muted-foreground truncate">
+                                  {[
+                                    [enderecoRua, numeroEnd].filter(Boolean).join(", "),
+                                    cidadeEnd,
+                                    estadoEnd
+                                  ].filter(Boolean).join(" / ") || "Novo endereço"}
+                                </span>
+                                {isPadrao && (
                                   <Badge variant="default" className="text-xs flex-shrink-0">Padrão</Badge>
                                 )}
                               </div>
@@ -852,15 +857,6 @@ export default function PessoasPage() {
                   <p className="text-sm text-muted-foreground">Nenhum contato cadastrado.</p>
                 )}
 
-                {/* Header da grid de contatos */}
-                {contatoFields.length > 0 && (
-                  <div className="hidden sm:grid sm:grid-cols-[60px_1fr_1fr_40px] gap-3 px-1">
-                    <Label className="text-xs text-muted-foreground">Padrão</Label>
-                    <Label className="text-xs text-muted-foreground">Tipo</Label>
-                    <Label className="text-xs text-muted-foreground">Descrição</Label>
-                    <span />
-                  </div>
-                )}
 
                 <div className="space-y-2">
                   {contatoFields.map((field, index) => {
@@ -870,8 +866,8 @@ export default function PessoasPage() {
                     return (
                       <div key={field.id} className="grid grid-cols-1 sm:grid-cols-[60px_1fr_1fr_40px] gap-3 items-start rounded-lg border p-3 sm:p-2">
                         {/* Padrão */}
-                        <div className="flex items-center gap-2 sm:justify-center sm:pt-1">
-                          <Label className="text-xs sm:hidden">Padrão</Label>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Padrão</Label>
                           <Switch
                             checked={field.contatoPadrao}
                             onCheckedChange={() => toggleContatoPadrao(index)}
@@ -880,7 +876,7 @@ export default function PessoasPage() {
 
                         {/* Tipo */}
                         <div className="space-y-1">
-                          <Label className="text-xs sm:hidden">Tipo</Label>
+                          <Label className="text-xs">Tipo</Label>
                           <Controller
                             name={`contatos.${index}.tipoContato`}
                             control={control}
@@ -902,7 +898,7 @@ export default function PessoasPage() {
 
                         {/* Descrição dinâmica */}
                         <div className="space-y-1">
-                          <Label className="text-xs sm:hidden">
+                          <Label className="text-xs">
                             {getContatoLabel(tipoContato)} <span className="text-destructive">*</span>
                           </Label>
                           <Controller
