@@ -1,47 +1,42 @@
-## Plano: Reorganizar Modal de Pessoas com Abas
 
-### Alteração única: `src/pages/cadastros/PessoasPage.tsx`
 
-**Importar** `Tabs, TabsList, TabsTrigger, TabsContent` de `@/components/ui/tabs`.
+## Plano: 3 Correções na Modal de Pessoas
 
-**Estrutura da modal:**
+### Correção 1 — Scroll vertical (`src/components/CrudModal.tsx`)
 
-```text
-┌─────────────────────────────────────────────┐
-│  Status (Switch) ────────── alinhado direita│
-├─────────────────────────────────────────────┤
-│  [Dados Gerais]  [Endereços e Contatos]     │  ← Tabs
-├─────────────────────────────────────────────┤
-│  ABA 1 - Dados Gerais:                      │
-│  L1: Tipo Pessoa (Radio: Física/Jurídica)   │
-│      + Relação Comercial (checkboxes)       │
-│  L2: Grupo de Pessoas   				      │
-│  L3: Nome/Razão Social                     │
-│  L4: CPF/CNPJ | RG/IE | Data Nasc/Abertura │
-│  L5: Sexo (se PF) ou Nome Fantasia (se PJ) │
-├─────────────────────────────────────────────┤
-│  ABA 2 - Endereços e Contatos:              │
-│  Seção Endereços (lista dinâmica, sem mudança│
-│  de lógica)                                 │
-│  Seção Contatos (lista dinâmica, sem mudança│
-│  de lógica)                                 │
-└─────────────────────────────────────────────┘
+O `ScrollArea` do Radix não está propagando a altura corretamente. Substituir por um `div` nativo com `overflow-y-auto flex-1 min-h-0` que funciona de forma confiável com flexbox.
+
+**Linha 29-31**: Trocar `<ScrollArea className="flex-1 min-h-0">` por `<div className="flex-1 min-h-0 overflow-y-auto">` e remover import do ScrollArea.
+
+---
+
+### Correção 2 — Header endereço em 1 linha (`src/pages/cadastros/PessoasPage.tsx`)
+
+**Linhas 690-692**: Adicionar watches para `endereco` e `numero`:
+```
+const enderecoRua = watch(`enderecos.${index}.endereco`);
+const numeroEnd = watch(`enderecos.${index}.numero`);
 ```
 
-**Mudanças específicas no layout da Aba 1:**
+**Linhas 709-719**: Reorganizar conteúdo do header para formato:
+`[Badge tipo] Endereco, numero / Cidade / UF [Badge Padrão]`
 
-1. **Status** sobe para fora das tabs, topo da modal, alinhado à direita
-2. **Linha 1**: Tipo Pessoa (radio com labels "Física" / "Jurídica") e Relação Comercial lado a lado em grid 2 colunas  
-3. **Linha 2**: Grupo de Pessoas  (grid 1 coluna)  
-4. **Linha 3**: Nome/Razão Social (grid 1 coluna)
-  5. **Linha 4**: CPF/CNPJ + Data + RG/IE (grid 3 colunas, posição fixa)
-  6. **Linha 5**: Campo condicional (Sexo ou Nome Fantasia) aparece abaixo, sem alterar posição dos demais
+- Manter Badge `variant="outline"` para tipo
+- Texto corrido com truncate: `enderecoRua, numeroEnd / cidadeEnd / estadoEnd`
+- Badge `variant="default"` para Padrão
+- Remover `flex-wrap`, usar `truncate` no texto
+- Tudo em uma linha com `items-center gap-2 flex-nowrap`
 
-**Aba 2**: Move Endereços e Contatos para dentro da tab, mantendo toda lógica existente (useFieldArray, toggle padrão, máscaras, validações).
+---
 
-**Sem alterações**: Schema Zod, serviços, mock data, outros arquivos.
+### Correção 3 — Labels nos contatos (`src/pages/cadastros/PessoasPage.tsx`)
 
+**Linhas 856-863**: Remover o header grid fixo (bloco `hidden sm:grid`).
 
-| Arquivo                               | Ação                               |
-| ------------------------------------- | ---------------------------------- |
-| `src/pages/cadastros/PessoasPage.tsx` | Adicionar Tabs, reorganizar campos |
+**Linhas 874, 883, 905**: Remover `sm:hidden` de todos os Labels dentro de cada contato para que fiquem sempre visíveis acima dos campos.
+
+| Arquivo | Ação |
+|---|---|
+| `src/components/CrudModal.tsx` | Substituir ScrollArea por div com overflow-y-auto |
+| `src/pages/cadastros/PessoasPage.tsx` | Header endereço 1 linha + labels contatos sempre visíveis |
+
