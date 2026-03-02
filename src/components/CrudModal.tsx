@@ -7,7 +7,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface CrudModalProps {
   open: boolean;
@@ -26,9 +25,9 @@ export function CrudModal({ open, onClose, title, saving, onSave, children, maxW
         <DialogHeader className="flex-shrink-0">
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
-        <ScrollArea className="flex-1 min-h-0">
+        <div className="flex-1 min-h-0 overflow-y-auto">
           <div className="py-4 px-2">{children}</div>
-        </ScrollArea>
+        </div>
         <DialogFooter className="flex-shrink-0 border-t pt-4">
           <Button variant="outline" onClick={onClose} disabled={saving} className="hover:bg-destructive/10 hover:text-destructive hover:border-destructive">
             Cancelar
