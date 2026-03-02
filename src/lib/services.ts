@@ -1,8 +1,14 @@
 // ============================================================
 // AgroERP — Service Layer (mock, swap-ready)
 // ============================================================
-import { empresas as mockEmpresas, filiais as mockFiliais, grupos as mockGrupos } from "./mock-data";
-import type { Empresa, Filial, Grupo } from "./mock-data";
+import {
+  empresas as mockEmpresas,
+  filiais as mockFiliais,
+  grupos as mockGrupos,
+  gruposPessoa as mockGruposPessoa,
+  pessoas as mockPessoas,
+} from "./mock-data";
+import type { Empresa, Filial, Grupo, GrupoPessoa, Pessoa } from "./mock-data";
 
 const delay = (ms = 300) => new Promise((r) => setTimeout(r, ms));
 
@@ -147,7 +153,6 @@ export const filialService = {
     );
   },
   async possuiMovimentacoes(_id: string): Promise<boolean> {
-    // Preparado para futura integração com movimentações de estoque
     await delay(100);
     return false;
   },
@@ -192,6 +197,189 @@ export const filialService = {
       f.deletadoPor = "u1";
       f.atualizadoEm = now;
       f.atualizadoPor = "u1";
+    }
+  },
+};
+
+// ---- Grupo de Pessoas ----
+export const grupoPessoaService = {
+  async listar(empresaId: string, filialId: string): Promise<GrupoPessoa[]> {
+    await delay();
+    return mockGruposPessoa.filter(
+      (gp) => gp.deletadoEm === null && gp.empresaId === empresaId && gp.filialId === filialId
+    );
+  },
+  async listarTodos(): Promise<GrupoPessoa[]> {
+    await delay();
+    return mockGruposPessoa.filter((gp) => gp.deletadoEm === null);
+  },
+  async nomeExiste(nome: string, empresaId: string, filialId: string, excludeId?: string): Promise<boolean> {
+    await delay(100);
+    const trimmed = nome.trim().toLowerCase();
+    return mockGruposPessoa.some(
+      (gp) =>
+        gp.deletadoEm === null &&
+        gp.empresaId === empresaId &&
+        gp.filialId === filialId &&
+        gp.descGrupoPessoa.toLowerCase() === trimmed &&
+        gp.id !== excludeId
+    );
+  },
+  async salvar(
+    data: Partial<GrupoPessoa>,
+    ctx: { grupoId: string; empresaId: string; filialId: string }
+  ): Promise<GrupoPessoa> {
+    await delay(400);
+    const now = new Date().toISOString();
+    const userId = "u1";
+    const existing = data.id
+      ? mockGruposPessoa.find((gp) => gp.id === data.id && gp.deletadoEm === null)
+      : undefined;
+    if (existing) {
+      existing.descGrupoPessoa = (data.descGrupoPessoa ?? existing.descGrupoPessoa).trim();
+      existing.ativo = data.ativo ?? existing.ativo;
+      existing.atualizadoEm = now;
+      existing.atualizadoPor = userId;
+      return existing;
+    }
+    const novo: GrupoPessoa = {
+      id: `gp${Date.now()}`,
+      grupoId: ctx.grupoId,
+      empresaId: ctx.empresaId,
+      filialId: ctx.filialId,
+      descGrupoPessoa: (data.descGrupoPessoa ?? "").trim(),
+      ativo: data.ativo ?? true,
+      criadoEm: now,
+      criadoPor: userId,
+      atualizadoEm: now,
+      atualizadoPor: userId,
+      deletadoEm: null,
+      deletadoPor: null,
+    };
+    mockGruposPessoa.push(novo);
+    return novo;
+  },
+  async excluir(id: string): Promise<void> {
+    await delay();
+    const now = new Date().toISOString();
+    const gp = mockGruposPessoa.find((gp) => gp.id === id && gp.deletadoEm === null);
+    if (gp) {
+      gp.deletadoEm = now;
+      gp.deletadoPor = "u1";
+      gp.atualizadoEm = now;
+      gp.atualizadoPor = "u1";
+    }
+  },
+  async possuiPessoas(id: string): Promise<boolean> {
+    await delay(100);
+    return mockPessoas.some((p) => p.grupoPessoaId === id && p.deletadoEm === null);
+  },
+};
+
+// ---- Pessoas ----
+export const pessoaService = {
+  async listar(
+    empresaId: string,
+    filialId: string,
+    filtros?: {
+      nome?: string;
+      cpfCnpj?: string;
+      tipoPessoa?: string;
+      relacaoComercial?: string;
+      status?: string;
+    }
+  ): Promise<Pessoa[]> {
+    await delay();
+    let list = mockPessoas.filter(
+      (p) => p.deletadoEm === null && p.empresaId === empresaId && p.filialId === filialId
+    );
+    if (filtros?.nome) {
+      const term = filtros.nome.toLowerCase();
+      list = list.filter((p) => p.nomeRazao.toLowerCase().includes(term));
+    }
+    if (filtros?.cpfCnpj) {
+      const term = filtros.cpfCnpj.toLowerCase();
+      list = list.filter((p) => p.cpfCnpj.toLowerCase().includes(term));
+    }
+    if (filtros?.tipoPessoa) {
+      list = list.filter((p) => p.tipoPessoa === filtros.tipoPessoa);
+    }
+    if (filtros?.relacaoComercial) {
+      list = list.filter((p) => p.relacaoComercial.includes(filtros.relacaoComercial!));
+    }
+    if (filtros?.status) {
+      const isAtivo = filtros.status === "ativo";
+      list = list.filter((p) => p.ativo === isAtivo);
+    }
+    return list;
+  },
+  async cpfCnpjExiste(cpfCnpj: string, empresaId: string, excludeId?: string): Promise<boolean> {
+    await delay(100);
+    const trimmed = cpfCnpj.trim();
+    return mockPessoas.some(
+      (p) => p.deletadoEm === null && p.empresaId === empresaId && p.cpfCnpj === trimmed && p.id !== excludeId
+    );
+  },
+  async salvar(
+    data: Partial<Pessoa>,
+    ctx: { grupoId: string; empresaId: string; filialId: string }
+  ): Promise<Pessoa> {
+    await delay(400);
+    const now = new Date().toISOString();
+    const userId = "u1";
+    const existing = data.id
+      ? mockPessoas.find((p) => p.id === data.id && p.deletadoEm === null)
+      : undefined;
+    if (existing) {
+      Object.assign(existing, data, {
+        grupoId: existing.grupoId,
+        empresaId: existing.empresaId,
+        filialId: existing.filialId,
+        criadoEm: existing.criadoEm,
+        criadoPor: existing.criadoPor,
+        atualizadoEm: now,
+        atualizadoPor: userId,
+        deletadoEm: null,
+        deletadoPor: null,
+      });
+      return existing;
+    }
+    const nova: Pessoa = {
+      id: `p${Date.now()}`,
+      grupoId: ctx.grupoId,
+      empresaId: ctx.empresaId,
+      filialId: ctx.filialId,
+      tipoPessoa: data.tipoPessoa ?? "PF",
+      grupoPessoaId: data.grupoPessoaId ?? "",
+      relacaoComercial: data.relacaoComercial ?? [],
+      nomeRazao: (data.nomeRazao ?? "").trim(),
+      dataNascimentoAbertura: data.dataNascimentoAbertura ?? "",
+      cpfCnpj: (data.cpfCnpj ?? "").trim(),
+      rgIe: (data.rgIe ?? "").trim(),
+      nomeFantasia: (data.nomeFantasia ?? "").trim(),
+      sexo: data.sexo ?? "",
+      ativo: data.ativo ?? true,
+      enderecos: data.enderecos ?? [],
+      contatos: data.contatos ?? [],
+      criadoEm: now,
+      criadoPor: userId,
+      atualizadoEm: now,
+      atualizadoPor: userId,
+      deletadoEm: null,
+      deletadoPor: null,
+    };
+    mockPessoas.push(nova);
+    return nova;
+  },
+  async excluir(id: string): Promise<void> {
+    await delay();
+    const now = new Date().toISOString();
+    const p = mockPessoas.find((p) => p.id === id && p.deletadoEm === null);
+    if (p) {
+      p.deletadoEm = now;
+      p.deletadoPor = "u1";
+      p.atualizadoEm = now;
+      p.atualizadoPor = "u1";
     }
   },
 };

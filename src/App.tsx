@@ -9,6 +9,8 @@ import DashboardPage from "@/pages/DashboardPage";
 import EmpresasPage from "@/pages/admin/EmpresasPage";
 import GruposPage from "@/pages/admin/GruposPage";
 import FiliaisPage from "@/pages/admin/FiliaisPage";
+import GrupoPessoasPage from "@/pages/cadastros/GrupoPessoasPage";
+import PessoasPage from "@/pages/cadastros/PessoasPage";
 import PlaceholderPage from "@/pages/PlaceholderPage";
 import NotFound from "./pages/NotFound";
 
@@ -37,7 +39,8 @@ const App = () => (
               <Route path="/admin/gersys_programas" element={<PlaceholderPage />} />
               <Route path="/admin/gersys_permissoes" element={<PlaceholderPage />} />
               {/* Cadastros */}
-              <Route path="/cadastros/pessoas" element={<PlaceholderPage />} />
+              <Route path="/cadastros/pessoas" element={<PessoasPage />} />
+              <Route path="/cadastros/grupo-pessoas" element={<GrupoPessoasPage />} />
               <Route path="/cadastros/produtos" element={<PlaceholderPage />} />
               <Route path="/cadastros/categorias" element={<PlaceholderPage />} />
               <Route path="/cadastros/locais-estoque" element={<PlaceholderPage />} />

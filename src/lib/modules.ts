@@ -47,12 +47,26 @@ export const modules: Module[] = [
     icon: Settings,
     items: [
       {
-        title: "Grupo Empresarial",
-        icon: GitBranch,
+        title: "Tabelas Gerais",
+        icon: Layers,
         children: [
-          { title: "Grupos", url: "/admin/grupos", icon: GitBranch },
-          { title: "Empresas", url: "/admin/empresas", icon: Building2 },
-          { title: "Filiais", url: "/admin/filiais", icon: Building2 },
+          {
+            title: "Grupo Empresarial",
+            icon: GitBranch,
+            children: [
+              { title: "Grupos", url: "/admin/grupos", icon: GitBranch },
+              { title: "Empresas", url: "/admin/empresas", icon: Building2 },
+              { title: "Filiais", url: "/admin/filiais", icon: Building2 },
+            ],
+          },
+          {
+            title: "Pessoas",
+            icon: Contact,
+            children: [
+              { title: "Pessoas", url: "/cadastros/pessoas", icon: Contact },
+              { title: "Grupo de Pessoas", url: "/cadastros/grupo-pessoas", icon: Users },
+            ],
+          },
         ],
       },
       {
@@ -83,9 +97,8 @@ export const modules: Module[] = [
   },
   {
     title: "Cadastros",
-    icon: Contact,
+    icon: Package,
     items: [
-      { title: "Pessoas", url: "/cadastros/pessoas", icon: Contact },
       { title: "Produtos", url: "/cadastros/produtos", icon: Package },
       { title: "Categorias", url: "/cadastros/categorias", icon: Tags },
       { title: "Locais de Estoque", url: "/cadastros/locais-estoque", icon: WarehouseIcon },
