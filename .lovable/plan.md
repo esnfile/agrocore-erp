@@ -1,234 +1,119 @@
-## Instrução 1 - Vamos manter os padrões nas confirmações de exclusão, onde os botões serão Cancelar, e Excluir (No caso a confirmação de exclusão da empresa está divergente)... Vamos implementar juntamente com a proxima implementação. Instrução 2 - No cadastro de empresas, quando alterado a empresa para pessoa fisica deve ser obrigatório digitar o Nome e CPF, inclusive adicionar mascara de CPF quando selecionado pessoa juridica deve ser obrigatório digitar a Razão Social e CNPJ, inclusive adicionar mascara de CNPJ no campo;  
-Enum Estados Brasileiros + Campo `deletadoPor` na Auditoria
+## Plano: Módulo Pessoas + Grupo de Pessoas + Reorganização Menu
 
-### Instrução 3 - Criar constante de estados brasileiros
+### Escopo
 
-`src/lib/constants.ts` (novo arquivo):
+8 arquivos afetados (4 novos, 4 modificados). Nenhum layout, modal ou serviço existente será alterado.
 
-- Exportar array `ESTADOS_BRASILEIROS` com os 27 estados: `[{ sigla: "AC"}, { sigla: "AL"}, ...]`
-- Será usado como Select na página de Filiais (campo estado)
+---
 
-### 2. Adicionar `deletado_por` em todas as interfaces de auditoria
+### 1. Reorganizar menu (`src/lib/modules.ts`)
 
-`src/lib/mock-data.ts`**:**
+Mover "Pessoas" e novo "Grupo de Pessoas" para dentro de **Administrativo > Tabelas Gerais**, mantendo rotas existentes:
 
-- Adicionar `deletado_por:` UUID (opcional) nas interfaces `Grupo`, `Empresa`, `Filial`
-- Atualizar mock data com `deletado_por: null`
+```text
+Administrativo
+└── Tabelas Gerais
+    ├── Grupo Empresarial
+    │   ├── Grupos        → /admin/grupos
+    │   ├── Empresas      → /admin/empresas
+    │   └── Filiais       → /admin/filiais
+    └── Pessoas
+        ├── Pessoas       → /cadastros/pessoas
+        └── Grupo de Pessoas → /cadastros/grupo-pessoas
+```
 
-### 3. Atualizar services para preencher `deletado_por`
+Remover "Pessoas" do módulo "Cadastros" (mantém Produtos, Categorias, Locais de Estoque).
 
-`src/lib/services.ts`**:**
+---
 
-- Em `grupoService.excluir()`: adicionar `g.deletado_por = "u1"`
-- Em `empresaService.excluir()`: adicionar `emp.deletado_por = "u1"`
-- Em `filialService.excluir()`: adicionar `f.deletado_por = "u1"` (quando for refatorado para soft delete)
+### 2. Interfaces e mock data (`src/lib/mock-data.ts`)
+
+Adicionar:
+
+- `**GrupoPessoa**`: `id`, `grupoId`, `empresaId`, `filialId`, `descGrupoPessoa`, `ativo`, auditoria completa + soft delete
+- `**Pessoa**`: `id`, `grupoId`, `empresaId`, `filialId`, `tipoPessoa` (PF/PJ), `grupoPessoaId`, `relacaoComercial` (string[]), `nomeRazao`, `dataNascimentoAbertura`, `cpfCnpj`, `rgIe`, `nomeFantasia`, `sexo`, `ativo`, auditoria + soft delete
+- `**Endereco**` (sub-entidade inline, sem tabela própria): `id`, `enderecoPadrao`, `tipoEndereco`, `cep`, `cidade`, `estado`, `endereco`, `numero`, `bairro`, `referencia`
+- `**Contato**` (sub-entidade inline): `id`, `contatoPadrao`, `tipoContato`, `descContatoPessoa`
+- Pessoa contém `enderecos: Endereco[]` e `contatos: Contato[]`
+
+Mock data com 2-3 registros de GrupoPessoa e 2-3 Pessoas com endereços/contatos.
+
+---
+
+### 3. Services (`src/lib/services.ts`)
+
+Adicionar:
+
+- `**grupoPessoaService**`: `listar(empresaId, filialId)`, `salvar`, `excluir` (soft delete), `nomeExiste`
+- `**pessoaService**`: `listar(empresaId, filialId)` com filtros opcionais (nome, cpfCnpj, tipoPessoa, relacaoComercial, status), `salvar`, `excluir` (soft delete), `cpfCnpjExiste`
+
+Todos filtram por `deletadoEm === null`. Preenchem `grupoId/empresaId/filialId` automaticamente via parâmetro (vindo do contexto). Auditoria completa no salvar/excluir.
+
+---
+
+### 4. Página Grupo de Pessoas (`src/pages/cadastros/GrupoPessoasPage.tsx`)
+
+- Padrão existente: PageHeader + DataTable + CrudModal + AlertDialog
+- Tabela: Descrição, Status, Ações
+- Filtros inline: Descrição (text) + Status (select)
+- Modal simples (max-w-lg): Descrição (obrigatório, max 50 chars) + Status (Switch)
+- Validação duplicidade de nome
+- `grupoId/empresaId/filialId` preenchidos via `useOrganization()` — não exibidos na tela
+- Exclusão com confirmação (Cancelar / Excluir)
+
+---
+
+### 5. Página Pessoas (`src/pages/cadastros/PessoasPage.tsx`)
+
+**Listagem:**
+
+- PageHeader + barra de filtros (Nome/Razão, CPF/CNPJ, Tipo Pessoa, Relação Comercial, Status) + Filtrar/Limpar + DataTable
+- Colunas: Nome/Razão, Tipo, CPF/CNPJ, Relação Comercial (badges), Status, Ações
+- `grupoId/empresaId/filialId` via contexto — não aparecem
+
+**Modal (max-w-4xl, ~1000px):**
+
+Seção **Dados Gerais** — grid 2 colunas:
+
+- Tipo Pessoa (Radio Física/Jurídica) — dinâmico: Física mostra Sexo + máscara CPF + oculta Nome Fantasia + altera os labels para: Data Nascimento, CPF, Nome ; Jurídica mostra Nome Fantasia + máscara CNPJ + oculta Sexo + altera os labels para: Data Abertura, CNPJ, Razão Social
+- Grupo de Pessoas (select, obrigatório)
+- Relação Comercial (multi-select com checkboxes, mínimo 1)
+- Nome: quando selecionado Física ou Razão Social: quando selecionado Jurídica, Nascimento: se Pessoa Física ou Abertura: se Jurídica, CPF: se Física ou CNPJ: se Jurídica, RG/IE, Nome Fantasia (se Jurídica), Sexo (se Física), Status (Switch)
+
+Seção **Endereços** — lista dinâmica:
+
+- Botão "+ Adicionar Endereço"
+- Card por endereço com: Padrão (switch), Tipo (Residencial/Comercial/Outros), CEP, Cidade, Estado (select UF), Endereço, Número, Bairro, Referência
+- Botões Editar/Remover por card
+- Lógica: apenas 1 padrão ativo (desmarcar anterior automaticamente)
+
+Seção **Contatos** — lista dinâmica:
+
+- Botão "+ Adicionar Contato"
+- Card por contato com: Padrão (switch), Tipo (Telefone/WhatsApp/Email/Outros), Descrição
+- Máscara telefone se Telefone/WhatsApp, validação email se Email
+- Apenas 1 padrão ativo
+
+Validações Zod: tipoPessoa obrigatório, grupoPessoaId obrigatório, relacaoComercial min 1, nomeRazao obrigatório, cpfCnpj obrigatório, sexo obrigatório se Física, duplicidade CPF/CNPJ.
+
+---
+
+### 6. Rotas (`src/App.tsx`)
+
+- Importar `GrupoPessoasPage` e `PessoasPage`
+- `/cadastros/pessoas` → `PessoasPage` (substituir PlaceholderPage)
+- `/cadastros/grupo-pessoas` → `GrupoPessoasPage` (nova rota)
+
+---
 
 ### Arquivos afetados
 
 
-| Arquivo                | Acao                                             |
-| ---------------------- | ------------------------------------------------ |
-| `src/lib/constants.ts` | Novo — enum estados brasileiros                  |
-| `src/lib/mock-data.ts` | `deletado_por` em Grupo, Empresa, Filial         |
-| `src/lib/services.ts`  | Preencher `deletado_por` nos métodos de exclusão |
-
-
-🔥 INSTRUÇÃO 3 — CRIAR PÁGINA FILIAIS
-
-📌 Objetivo
-
-Criar página:
-
-Administrativo → Grupo Empresarial → Filiais
-
-Sem alterar menus existentes.
-
-🗂 Estrutura da Tabela Filiais (NÃO ALTERAR)
-
-Tabela: filiais
-
-Campos:
-
-id: UUID PK (sequencial)
-
-empresa_id: UUID FK obrigatório
-
-nome_razao: string(200)
-
-cpf_cnpj: string(20)
-
-inscricao_estadual: string(30)
-
-endereco: string(150)
-
-numero_km: string(20)
-
-bairro: string(70)
-
-cep: string(10)
-
-cidade: string(100)
-
-estado: string(2) 
-
-ativo: boolean (toggle)
-
-Auditoria obrigatória:
-
-criado_em
-
-criado_por
-
-atualizado_em
-
-atualizado_por
-
-deletado_em (Soft Delete)  
-deletado_por (Soft Delete)
-
-🖥 Página: Listagem de Filiais
-
-📍 Rota
-
-/admin/filiais
-
-🔎 Filtros
-
-Select Empresa (obrigatório)
-
-Busca por Nome/Razão Social
-
-Busca por CNPJ
-
-Botão Filtrar
-
-Botão Limpar
-
-Sempre filtrar: deletado_em IS NULL
-
-📋 Tabela
-
-Colunas:
-
-Empresa
-
-Nome/Razão Social
-
-CPF/CNPJ
-
-Cidade
-
-Estado 
-
-Ativo
-
-Ações
-
-🎛 Ações
-
-✏ Editar
-
-🗑 Excluir (com confirmação obrigatória)
-
-➕ Botão Novo
-
-Texto:
-
-Novo (manter padrão anterior)
-
-Abre Modal
-
-📦 Modal Cadastro / Edição Filial
-
-⚠ Manter padrão visual da modal de Empresa (após correção).
-
-🔎 Validações
-
-Empresa obrigatória
-
-Nome/Razão Social obrigatório
-
-CPF/CNPJ obrigatório
-
-Não permitir duplicidade de CNPJ na mesma empresa
-
-Estado deve ter exatamente 2 caracteres
-
-CEP máximo 10 caracteres
-
-Trim automático em todos os campos texto
-
-💾 Ao Salvar
-
-Se novo:
-
-Gerar UUID sequencial
-
-Preencher auditoria completa
-
-Se edição:
-
-Atualizar campos editáveis
-
-Atualizar atualizado_em e atualizado_por
-
-Nunca alterar criado_em e criado_por.
-
-🗑 Exclusão Filial
-
-Abrir confirmação
-
-Texto:
-
-“Deseja realmente excluir esta filial? Esta ação não poderá ser desfeita.”
-
-Executar soft delete
-
-🚨 Regra de Integridade
-
-Antes de excluir filial:
-
-Verificar se existem registros vinculados (futuro: contratos, estoque, etc).
-
-Por enquanto:
-
-Bloquear exclusão se houver movimentações vinculadas (preparar estrutura, mesmo que ainda não exista).
-
-🎨 Identidade Visual
-
-Manter paleta:
-
-Tabela limpa
-
-Sem cards desnecessários
-
-🔌 Endpoints Esperados
-
-GET /filiais POST /filiais PUT /filiais/{id} DELETE /filiais/{id} (soft delete)
-
-📌 Resultado Esperado
-
-Modal Empresa corrigida e mais espaçada
-
-Confirmação de exclusão implementada
-
-Página Filiais completa
-
-Sem quebrar regras anteriores
-
-100% compatível com API .NET 8
-
-❌ Não alterar layouts já criados
-
-❌ Não alterar menus e submenus
-
-❌ Não quebrar implementações anteriores
-
-✅ Manter auditoria completa
-
-✅ Manter Soft Delete
-
-✅ Backend .NET 8 responsável por regras
-
-✅ Manter identidade visual já aplicada  
-  
+| Arquivo                                    | Ação                                                      |
+| ------------------------------------------ | --------------------------------------------------------- |
+| `src/lib/modules.ts`                       | Reorganizar menu Administrativo                           |
+| `src/lib/mock-data.ts`                     | Interfaces + mock: GrupoPessoa, Pessoa, Endereco, Contato |
+| `src/lib/services.ts`                      | grupoPessoaService + pessoaService                        |
+| `src/pages/cadastros/GrupoPessoasPage.tsx` | Nova página CRUD                                          |
+| `src/pages/cadastros/PessoasPage.tsx`      | Nova página CRUD completa                                 |
+| `src/App.tsx`                              | Novas rotas                                               |
