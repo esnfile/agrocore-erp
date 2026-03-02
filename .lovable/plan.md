@@ -1,119 +1,47 @@
-## Plano: Módulo Pessoas + Grupo de Pessoas + Reorganização Menu
+## Plano: Reorganizar Modal de Pessoas com Abas
 
-### Escopo
+### Alteração única: `src/pages/cadastros/PessoasPage.tsx`
 
-8 arquivos afetados (4 novos, 4 modificados). Nenhum layout, modal ou serviço existente será alterado.
+**Importar** `Tabs, TabsList, TabsTrigger, TabsContent` de `@/components/ui/tabs`.
 
----
-
-### 1. Reorganizar menu (`src/lib/modules.ts`)
-
-Mover "Pessoas" e novo "Grupo de Pessoas" para dentro de **Administrativo > Tabelas Gerais**, mantendo rotas existentes:
+**Estrutura da modal:**
 
 ```text
-Administrativo
-└── Tabelas Gerais
-    ├── Grupo Empresarial
-    │   ├── Grupos        → /admin/grupos
-    │   ├── Empresas      → /admin/empresas
-    │   └── Filiais       → /admin/filiais
-    └── Pessoas
-        ├── Pessoas       → /cadastros/pessoas
-        └── Grupo de Pessoas → /cadastros/grupo-pessoas
+┌─────────────────────────────────────────────┐
+│  Status (Switch) ────────── alinhado direita│
+├─────────────────────────────────────────────┤
+│  [Dados Gerais]  [Endereços e Contatos]     │  ← Tabs
+├─────────────────────────────────────────────┤
+│  ABA 1 - Dados Gerais:                      │
+│  L1: Tipo Pessoa (Radio: Física/Jurídica)   │
+│      + Relação Comercial (checkboxes)       │
+│  L2: Grupo de Pessoas   				      │
+│  L3: Nome/Razão Social                     │
+│  L4: CPF/CNPJ | RG/IE | Data Nasc/Abertura │
+│  L5: Sexo (se PF) ou Nome Fantasia (se PJ) │
+├─────────────────────────────────────────────┤
+│  ABA 2 - Endereços e Contatos:              │
+│  Seção Endereços (lista dinâmica, sem mudança│
+│  de lógica)                                 │
+│  Seção Contatos (lista dinâmica, sem mudança│
+│  de lógica)                                 │
+└─────────────────────────────────────────────┘
 ```
 
-Remover "Pessoas" do módulo "Cadastros" (mantém Produtos, Categorias, Locais de Estoque).
+**Mudanças específicas no layout da Aba 1:**
 
----
+1. **Status** sobe para fora das tabs, topo da modal, alinhado à direita
+2. **Linha 1**: Tipo Pessoa (radio com labels "Física" / "Jurídica") e Relação Comercial lado a lado em grid 2 colunas  
+3. **Linha 2**: Grupo de Pessoas  (grid 1 coluna)  
+4. **Linha 3**: Nome/Razão Social (grid 1 coluna)
+  5. **Linha 4**: CPF/CNPJ + Data + RG/IE (grid 3 colunas, posição fixa)
+  6. **Linha 5**: Campo condicional (Sexo ou Nome Fantasia) aparece abaixo, sem alterar posição dos demais
 
-### 2. Interfaces e mock data (`src/lib/mock-data.ts`)
+**Aba 2**: Move Endereços e Contatos para dentro da tab, mantendo toda lógica existente (useFieldArray, toggle padrão, máscaras, validações).
 
-Adicionar:
-
-- `**GrupoPessoa**`: `id`, `grupoId`, `empresaId`, `filialId`, `descGrupoPessoa`, `ativo`, auditoria completa + soft delete
-- `**Pessoa**`: `id`, `grupoId`, `empresaId`, `filialId`, `tipoPessoa` (PF/PJ), `grupoPessoaId`, `relacaoComercial` (string[]), `nomeRazao`, `dataNascimentoAbertura`, `cpfCnpj`, `rgIe`, `nomeFantasia`, `sexo`, `ativo`, auditoria + soft delete
-- `**Endereco**` (sub-entidade inline, sem tabela própria): `id`, `enderecoPadrao`, `tipoEndereco`, `cep`, `cidade`, `estado`, `endereco`, `numero`, `bairro`, `referencia`
-- `**Contato**` (sub-entidade inline): `id`, `contatoPadrao`, `tipoContato`, `descContatoPessoa`
-- Pessoa contém `enderecos: Endereco[]` e `contatos: Contato[]`
-
-Mock data com 2-3 registros de GrupoPessoa e 2-3 Pessoas com endereços/contatos.
-
----
-
-### 3. Services (`src/lib/services.ts`)
-
-Adicionar:
-
-- `**grupoPessoaService**`: `listar(empresaId, filialId)`, `salvar`, `excluir` (soft delete), `nomeExiste`
-- `**pessoaService**`: `listar(empresaId, filialId)` com filtros opcionais (nome, cpfCnpj, tipoPessoa, relacaoComercial, status), `salvar`, `excluir` (soft delete), `cpfCnpjExiste`
-
-Todos filtram por `deletadoEm === null`. Preenchem `grupoId/empresaId/filialId` automaticamente via parâmetro (vindo do contexto). Auditoria completa no salvar/excluir.
-
----
-
-### 4. Página Grupo de Pessoas (`src/pages/cadastros/GrupoPessoasPage.tsx`)
-
-- Padrão existente: PageHeader + DataTable + CrudModal + AlertDialog
-- Tabela: Descrição, Status, Ações
-- Filtros inline: Descrição (text) + Status (select)
-- Modal simples (max-w-lg): Descrição (obrigatório, max 50 chars) + Status (Switch)
-- Validação duplicidade de nome
-- `grupoId/empresaId/filialId` preenchidos via `useOrganization()` — não exibidos na tela
-- Exclusão com confirmação (Cancelar / Excluir)
-
----
-
-### 5. Página Pessoas (`src/pages/cadastros/PessoasPage.tsx`)
-
-**Listagem:**
-
-- PageHeader + barra de filtros (Nome/Razão, CPF/CNPJ, Tipo Pessoa, Relação Comercial, Status) + Filtrar/Limpar + DataTable
-- Colunas: Nome/Razão, Tipo, CPF/CNPJ, Relação Comercial (badges), Status, Ações
-- `grupoId/empresaId/filialId` via contexto — não aparecem
-
-**Modal (max-w-4xl, ~1000px):**
-
-Seção **Dados Gerais** — grid 2 colunas:
-
-- Tipo Pessoa (Radio Física/Jurídica) — dinâmico: Física mostra Sexo + máscara CPF + oculta Nome Fantasia + altera os labels para: Data Nascimento, CPF, Nome ; Jurídica mostra Nome Fantasia + máscara CNPJ + oculta Sexo + altera os labels para: Data Abertura, CNPJ, Razão Social
-- Grupo de Pessoas (select, obrigatório)
-- Relação Comercial (multi-select com checkboxes, mínimo 1)
-- Nome: quando selecionado Física ou Razão Social: quando selecionado Jurídica, Nascimento: se Pessoa Física ou Abertura: se Jurídica, CPF: se Física ou CNPJ: se Jurídica, RG/IE, Nome Fantasia (se Jurídica), Sexo (se Física), Status (Switch)
-
-Seção **Endereços** — lista dinâmica:
-
-- Botão "+ Adicionar Endereço"
-- Card por endereço com: Padrão (switch), Tipo (Residencial/Comercial/Outros), CEP, Cidade, Estado (select UF), Endereço, Número, Bairro, Referência
-- Botões Editar/Remover por card
-- Lógica: apenas 1 padrão ativo (desmarcar anterior automaticamente)
-
-Seção **Contatos** — lista dinâmica:
-
-- Botão "+ Adicionar Contato"
-- Card por contato com: Padrão (switch), Tipo (Telefone/WhatsApp/Email/Outros), Descrição
-- Máscara telefone se Telefone/WhatsApp, validação email se Email
-- Apenas 1 padrão ativo
-
-Validações Zod: tipoPessoa obrigatório, grupoPessoaId obrigatório, relacaoComercial min 1, nomeRazao obrigatório, cpfCnpj obrigatório, sexo obrigatório se Física, duplicidade CPF/CNPJ.
-
----
-
-### 6. Rotas (`src/App.tsx`)
-
-- Importar `GrupoPessoasPage` e `PessoasPage`
-- `/cadastros/pessoas` → `PessoasPage` (substituir PlaceholderPage)
-- `/cadastros/grupo-pessoas` → `GrupoPessoasPage` (nova rota)
-
----
-
-### Arquivos afetados
+**Sem alterações**: Schema Zod, serviços, mock data, outros arquivos.
 
 
-| Arquivo                                    | Ação                                                      |
-| ------------------------------------------ | --------------------------------------------------------- |
-| `src/lib/modules.ts`                       | Reorganizar menu Administrativo                           |
-| `src/lib/mock-data.ts`                     | Interfaces + mock: GrupoPessoa, Pessoa, Endereco, Contato |
-| `src/lib/services.ts`                      | grupoPessoaService + pessoaService                        |
-| `src/pages/cadastros/GrupoPessoasPage.tsx` | Nova página CRUD                                          |
-| `src/pages/cadastros/PessoasPage.tsx`      | Nova página CRUD completa                                 |
-| `src/App.tsx`                              | Novas rotas                                               |
+| Arquivo                               | Ação                               |
+| ------------------------------------- | ---------------------------------- |
+| `src/pages/cadastros/PessoasPage.tsx` | Adicionar Tabs, reorganizar campos |
