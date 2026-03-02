@@ -18,7 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Search, X, Plus, Trash2, Pencil } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ESTADOS_BRASILEIROS } from "@/lib/constants";
 import {
   AlertDialog,
@@ -460,131 +460,72 @@ export default function PessoasPage() {
         onSave={onSave}
         maxWidth="sm:max-w-4xl"
       >
-        <div className="space-y-6">
-          {/* ===== SEÇÃO DADOS GERAIS ===== */}
-          <div>
-            <h3 className="text-sm font-semibold mb-4">Dados Gerais</h3>
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-              {/* Tipo Pessoa */}
-              <div className="space-y-1.5 sm:col-span-2">
-                <Label>Tipo de Pessoa <span className="text-destructive">*</span></Label>
-                <Controller
-                  name="tipoPessoa"
-                  control={control}
-                  render={({ field }) => (
-                    <RadioGroup value={field.value} onValueChange={field.onChange} className="flex gap-4">
-                      <div className="flex items-center gap-2">
-                        <RadioGroupItem value="PF" id="pf" />
-                        <Label htmlFor="pf" className="font-normal cursor-pointer">Pessoa Física</Label>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <RadioGroupItem value="PJ" id="pj" />
-                        <Label htmlFor="pj" className="font-normal cursor-pointer">Pessoa Jurídica</Label>
-                      </div>
-                    </RadioGroup>
-                  )}
-                />
-              </div>
-
-              {/* Grupo de Pessoas */}
-              <div className="space-y-1.5">
-                <Label>Grupo de Pessoas <span className="text-destructive">*</span></Label>
-                <Controller
-                  name="grupoPessoaId"
-                  control={control}
-                  render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {gruposPessoa.map((gp) => (
-                          <SelectItem key={gp.id} value={gp.id}>{gp.descGrupoPessoa}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-                {errors.grupoPessoaId && <p className="text-xs text-destructive">{errors.grupoPessoaId.message}</p>}
-              </div>
-
-              {/* Relação Comercial */}
-              <div className="space-y-1.5">
-                <Label>Relação Comercial <span className="text-destructive">*</span></Label>
-                <div className="flex flex-wrap gap-3 pt-1">
-                  {RELACOES.map((rel) => (
-                    <label key={rel} className="flex items-center gap-1.5 cursor-pointer text-sm">
-                      <Checkbox
-                        checked={relacaoComercial.includes(rel)}
-                        onCheckedChange={() => toggleRelacao(rel)}
-                      />
-                      {rel}
-                    </label>
-                  ))}
-                </div>
-                {errors.relacaoComercial && <p className="text-xs text-destructive">{errors.relacaoComercial.message}</p>}
-              </div>
-
-              {/* Nome/Razão Social */}
-              <div className="space-y-1.5">
-                <Label htmlFor="nomeRazao">
-                  {tipoPessoa === "PF" ? "Nome" : "Razão Social"} <span className="text-destructive">*</span>
-                </Label>
-                <Input id="nomeRazao" maxLength={200} {...register("nomeRazao")} />
-                {errors.nomeRazao && <p className="text-xs text-destructive">{errors.nomeRazao.message}</p>}
-              </div>
-
-              {/* Nome Fantasia (PJ only) */}
-              {tipoPessoa === "PJ" && (
-                <div className="space-y-1.5">
-                  <Label htmlFor="nomeFantasia">Nome Fantasia</Label>
-                  <Input id="nomeFantasia" maxLength={200} {...register("nomeFantasia")} />
-                </div>
+        <div className="space-y-5">
+          {/* ===== STATUS NO TOPO ===== */}
+          <div className="flex items-center justify-end gap-2">
+            <Label htmlFor="ativo" className="text-sm">Ativo</Label>
+            <Controller
+              name="ativo"
+              control={control}
+              render={({ field }) => (
+                <Switch id="ativo" checked={field.value} onCheckedChange={field.onChange} />
               )}
+            />
+          </div>
 
-              {/* Data Nascimento / Abertura */}
-              <div className="space-y-1.5">
-                <Label htmlFor="dataNascimentoAbertura">
-                  {tipoPessoa === "PF" ? "Data Nascimento" : "Data Abertura"}
-                </Label>
-                <Input id="dataNascimentoAbertura" type="date" {...register("dataNascimentoAbertura")} />
-              </div>
+          {/* ===== TABS ===== */}
+          <Tabs defaultValue="dados-gerais" className="w-full">
+            <TabsList className="w-full grid grid-cols-2">
+              <TabsTrigger value="dados-gerais">Dados Gerais</TabsTrigger>
+              <TabsTrigger value="enderecos-contatos">Endereços e Contatos</TabsTrigger>
+            </TabsList>
 
-              {/* CPF/CNPJ */}
-              <div className="space-y-1.5">
-                <Label htmlFor="cpfCnpj">
-                  {tipoPessoa === "PF" ? "CPF" : "CNPJ"} <span className="text-destructive">*</span>
-                </Label>
-                <Controller
-                  name="cpfCnpj"
-                  control={control}
-                  render={({ field }) => (
-                    <Input
-                      id="cpfCnpj"
-                      value={field.value}
-                      onChange={(e) => {
-                        const masked = tipoPessoa === "PF" ? maskCPF(e.target.value) : maskCNPJ(e.target.value);
-                        field.onChange(masked);
-                      }}
-                      placeholder={tipoPessoa === "PF" ? "000.000.000-00" : "00.000.000/0000-00"}
+            {/* ===== ABA 1 - DADOS GERAIS ===== */}
+            <TabsContent value="dados-gerais">
+              <div className="space-y-5 pt-2">
+                {/* L1: Tipo Pessoa + Relação Comercial */}
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label>Tipo de Pessoa <span className="text-destructive">*</span></Label>
+                    <Controller
+                      name="tipoPessoa"
+                      control={control}
+                      render={({ field }) => (
+                        <RadioGroup value={field.value} onValueChange={field.onChange} className="flex gap-4 pt-1">
+                          <div className="flex items-center gap-2">
+                            <RadioGroupItem value="PF" id="pf" />
+                            <Label htmlFor="pf" className="font-normal cursor-pointer">Física</Label>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <RadioGroupItem value="PJ" id="pj" />
+                            <Label htmlFor="pj" className="font-normal cursor-pointer">Jurídica</Label>
+                          </div>
+                        </RadioGroup>
+                      )}
                     />
-                  )}
-                />
-                {errors.cpfCnpj && <p className="text-xs text-destructive">{errors.cpfCnpj.message}</p>}
-              </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Relação Comercial <span className="text-destructive">*</span></Label>
+                    <div className="flex flex-wrap gap-3 pt-1">
+                      {RELACOES.map((rel) => (
+                        <label key={rel} className="flex items-center gap-1.5 cursor-pointer text-sm">
+                          <Checkbox
+                            checked={relacaoComercial.includes(rel)}
+                            onCheckedChange={() => toggleRelacao(rel)}
+                          />
+                          {rel}
+                        </label>
+                      ))}
+                    </div>
+                    {errors.relacaoComercial && <p className="text-xs text-destructive">{errors.relacaoComercial.message}</p>}
+                  </div>
+                </div>
 
-              {/* RG/IE */}
-              <div className="space-y-1.5">
-                <Label htmlFor="rgIe">RG/IE</Label>
-                <Input id="rgIe" maxLength={20} {...register("rgIe")} />
-              </div>
-
-              {/* Sexo (PF only) */}
-              {tipoPessoa === "PF" && (
+                {/* L2: Grupo de Pessoas */}
                 <div className="space-y-1.5">
-                  <Label>Sexo <span className="text-destructive">*</span></Label>
+                  <Label>Grupo de Pessoas <span className="text-destructive">*</span></Label>
                   <Controller
-                    name="sexo"
+                    name="grupoPessoaId"
                     control={control}
                     render={({ field }) => (
                       <Select value={field.value} onValueChange={field.onChange}>
@@ -592,244 +533,305 @@ export default function PessoasPage() {
                           <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Masculino">Masculino</SelectItem>
-                          <SelectItem value="Feminino">Feminino</SelectItem>
+                          {gruposPessoa.map((gp) => (
+                            <SelectItem key={gp.id} value={gp.id}>{gp.descGrupoPessoa}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     )}
                   />
-                  {errors.sexo && <p className="text-xs text-destructive">{errors.sexo.message}</p>}
+                  {errors.grupoPessoaId && <p className="text-xs text-destructive">{errors.grupoPessoaId.message}</p>}
                 </div>
-              )}
 
-              {/* Ativo */}
-              <div className="space-y-1.5 flex items-end gap-3">
-                <div className="flex items-center gap-2">
-                  <Label htmlFor="ativo">Ativo</Label>
-                  <Controller
-                    name="ativo"
-                    control={control}
-                    render={({ field }) => (
-                      <Switch id="ativo" checked={field.value} onCheckedChange={field.onChange} />
-                    )}
-                  />
+                {/* L3: Nome/Razão Social */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="nomeRazao">
+                    {tipoPessoa === "PF" ? "Nome" : "Razão Social"} <span className="text-destructive">*</span>
+                  </Label>
+                  <Input id="nomeRazao" maxLength={200} {...register("nomeRazao")} />
+                  {errors.nomeRazao && <p className="text-xs text-destructive">{errors.nomeRazao.message}</p>}
+                </div>
+
+                {/* L4: CPF/CNPJ + RG/IE + Data (posição fixa, 3 colunas) */}
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="cpfCnpj">
+                      {tipoPessoa === "PF" ? "CPF" : "CNPJ"} <span className="text-destructive">*</span>
+                    </Label>
+                    <Controller
+                      name="cpfCnpj"
+                      control={control}
+                      render={({ field }) => (
+                        <Input
+                          id="cpfCnpj"
+                          value={field.value}
+                          onChange={(e) => {
+                            const masked = tipoPessoa === "PF" ? maskCPF(e.target.value) : maskCNPJ(e.target.value);
+                            field.onChange(masked);
+                          }}
+                          placeholder={tipoPessoa === "PF" ? "000.000.000-00" : "00.000.000/0000-00"}
+                        />
+                      )}
+                    />
+                    {errors.cpfCnpj && <p className="text-xs text-destructive">{errors.cpfCnpj.message}</p>}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="rgIe">{tipoPessoa === "PF" ? "RG" : "IE"}</Label>
+                    <Input id="rgIe" maxLength={20} {...register("rgIe")} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="dataNascimentoAbertura">
+                      {tipoPessoa === "PF" ? "Data Nascimento" : "Data Abertura"}
+                    </Label>
+                    <Input id="dataNascimentoAbertura" type="date" {...register("dataNascimentoAbertura")} />
+                  </div>
+                </div>
+
+                {/* L5: Campos condicionais */}
+                {tipoPessoa === "PF" && (
+                  <div className="space-y-1.5 max-w-xs">
+                    <Label>Sexo <span className="text-destructive">*</span></Label>
+                    <Controller
+                      name="sexo"
+                      control={control}
+                      render={({ field }) => (
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Masculino">Masculino</SelectItem>
+                            <SelectItem value="Feminino">Feminino</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                    {errors.sexo && <p className="text-xs text-destructive">{errors.sexo.message}</p>}
+                  </div>
+                )}
+                {tipoPessoa === "PJ" && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="nomeFantasia">Nome Fantasia</Label>
+                    <Input id="nomeFantasia" maxLength={200} {...register("nomeFantasia")} />
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+
+            {/* ===== ABA 2 - ENDEREÇOS E CONTATOS ===== */}
+            <TabsContent value="enderecos-contatos">
+              <div className="space-y-6 pt-2">
+                {/* Seção Endereços */}
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold">Endereços</h3>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        appendEndereco({
+                          id: `end${Date.now()}`,
+                          enderecoPadrao: enderecoFields.length === 0,
+                          tipoEndereco: "Residencial",
+                          cep: "",
+                          cidade: "",
+                          estado: "",
+                          endereco: "",
+                          numero: "",
+                          bairro: "",
+                          referencia: "",
+                        })
+                      }
+                    >
+                      <Plus className="mr-1 h-4 w-4" /> Adicionar Endereço
+                    </Button>
+                  </div>
+
+                  {enderecoFields.length === 0 && (
+                    <p className="text-sm text-muted-foreground">Nenhum endereço cadastrado.</p>
+                  )}
+
+                  <div className="space-y-4">
+                    {enderecoFields.map((field, index) => (
+                      <div key={field.id} className="rounded-lg border p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <Label className="text-xs">Padrão</Label>
+                            <Switch
+                              checked={field.enderecoPadrao}
+                              onCheckedChange={() => toggleEnderecoPadrao(index)}
+                            />
+                            <Controller
+                              name={`enderecos.${index}.tipoEndereco`}
+                              control={control}
+                              render={({ field: f }) => (
+                                <Select value={f.value} onValueChange={f.onChange}>
+                                  <SelectTrigger className="w-[150px]">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="Residencial">Residencial</SelectItem>
+                                    <SelectItem value="Comercial">Comercial</SelectItem>
+                                    <SelectItem value="Outros">Outros</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              )}
+                            />
+                          </div>
+                          <Button type="button" variant="ghost" size="icon" onClick={() => removeEndereco(index)}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                          <div className="space-y-1">
+                            <Label className="text-xs">CEP</Label>
+                            <Input maxLength={10} {...register(`enderecos.${index}.cep`)} />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Cidade</Label>
+                            <Input maxLength={100} {...register(`enderecos.${index}.cidade`)} />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Estado (UF)</Label>
+                            <Controller
+                              name={`enderecos.${index}.estado`}
+                              control={control}
+                              render={({ field: f }) => (
+                                <Select value={f.value} onValueChange={f.onChange}>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="UF" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {ESTADOS_BRASILEIROS.map((e) => (
+                                      <SelectItem key={e.sigla} value={e.sigla}>{e.sigla}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              )}
+                            />
+                          </div>
+                          <div className="space-y-1 sm:col-span-2">
+                            <Label className="text-xs">Endereço</Label>
+                            <Input maxLength={150} {...register(`enderecos.${index}.endereco`)} />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Número</Label>
+                            <Input maxLength={20} {...register(`enderecos.${index}.numero`)} />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Bairro</Label>
+                            <Input maxLength={70} {...register(`enderecos.${index}.bairro`)} />
+                          </div>
+                          <div className="space-y-1 sm:col-span-2">
+                            <Label className="text-xs">Referência</Label>
+                            <Input maxLength={150} {...register(`enderecos.${index}.referencia`)} />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Seção Contatos */}
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold">Contatos</h3>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        appendContato({
+                          id: `ct${Date.now()}`,
+                          contatoPadrao: contatoFields.length === 0,
+                          tipoContato: "Telefone",
+                          descContatoPessoa: "",
+                        })
+                      }
+                    >
+                      <Plus className="mr-1 h-4 w-4" /> Adicionar Contato
+                    </Button>
+                  </div>
+
+                  {contatoFields.length === 0 && (
+                    <p className="text-sm text-muted-foreground">Nenhum contato cadastrado.</p>
+                  )}
+
+                  <div className="space-y-4">
+                    {contatoFields.map((field, index) => (
+                      <div key={field.id} className="rounded-lg border p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <Label className="text-xs">Padrão</Label>
+                            <Switch
+                              checked={field.contatoPadrao}
+                              onCheckedChange={() => toggleContatoPadrao(index)}
+                            />
+                          </div>
+                          <Button type="button" variant="ghost" size="icon" onClick={() => removeContato(index)}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Tipo</Label>
+                            <Controller
+                              name={`contatos.${index}.tipoContato`}
+                              control={control}
+                              render={({ field: f }) => (
+                                <Select value={f.value} onValueChange={f.onChange}>
+                                  <SelectTrigger>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="Telefone">Telefone</SelectItem>
+                                    <SelectItem value="WhatsApp">WhatsApp</SelectItem>
+                                    <SelectItem value="Email">Email</SelectItem>
+                                    <SelectItem value="Outros">Outros</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              )}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Descrição <span className="text-destructive">*</span></Label>
+                            <Controller
+                              name={`contatos.${index}.descContatoPessoa`}
+                              control={control}
+                              render={({ field: f }) => {
+                                const tipoContato = watch(`contatos.${index}.tipoContato`);
+                                const isTel = tipoContato === "Telefone" || tipoContato === "WhatsApp";
+                                return (
+                                  <Input
+                                    value={f.value}
+                                    onChange={(e) => {
+                                      const val = isTel ? maskTelefone(e.target.value) : e.target.value;
+                                      f.onChange(val);
+                                    }}
+                                    placeholder={
+                                      isTel
+                                        ? "(00) 00000-0000"
+                                        : tipoContato === "Email"
+                                        ? "email@exemplo.com"
+                                        : "Descrição"
+                                    }
+                                  />
+                                );
+                              }}
+                            />
+                            {errors.contatos?.[index]?.descContatoPessoa && (
+                              <p className="text-xs text-destructive">{errors.contatos[index]?.descContatoPessoa?.message}</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* ===== SEÇÃO ENDEREÇOS ===== */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold">Endereços</h3>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() =>
-                  appendEndereco({
-                    id: `end${Date.now()}`,
-                    enderecoPadrao: enderecoFields.length === 0,
-                    tipoEndereco: "Residencial",
-                    cep: "",
-                    cidade: "",
-                    estado: "",
-                    endereco: "",
-                    numero: "",
-                    bairro: "",
-                    referencia: "",
-                  })
-                }
-              >
-                <Plus className="mr-1 h-4 w-4" /> Adicionar Endereço
-              </Button>
-            </div>
-
-            {enderecoFields.length === 0 && (
-              <p className="text-sm text-muted-foreground">Nenhum endereço cadastrado.</p>
-            )}
-
-            <div className="space-y-4">
-              {enderecoFields.map((field, index) => (
-                <div key={field.id} className="rounded-lg border p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Label className="text-xs">Padrão</Label>
-                      <Switch
-                        checked={field.enderecoPadrao}
-                        onCheckedChange={() => toggleEnderecoPadrao(index)}
-                      />
-                      <Controller
-                        name={`enderecos.${index}.tipoEndereco`}
-                        control={control}
-                        render={({ field: f }) => (
-                          <Select value={f.value} onValueChange={f.onChange}>
-                            <SelectTrigger className="w-[150px]">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Residencial">Residencial</SelectItem>
-                              <SelectItem value="Comercial">Comercial</SelectItem>
-                              <SelectItem value="Outros">Outros</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        )}
-                      />
-                    </div>
-                    <Button type="button" variant="ghost" size="icon" onClick={() => removeEndereco(index)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                    <div className="space-y-1">
-                      <Label className="text-xs">CEP</Label>
-                      <Input maxLength={10} {...register(`enderecos.${index}.cep`)} />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Cidade</Label>
-                      <Input maxLength={100} {...register(`enderecos.${index}.cidade`)} />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Estado (UF)</Label>
-                      <Controller
-                        name={`enderecos.${index}.estado`}
-                        control={control}
-                        render={({ field: f }) => (
-                          <Select value={f.value} onValueChange={f.onChange}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="UF" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {ESTADOS_BRASILEIROS.map((e) => (
-                                <SelectItem key={e.sigla} value={e.sigla}>{e.sigla}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        )}
-                      />
-                    </div>
-                    <div className="space-y-1 sm:col-span-2">
-                      <Label className="text-xs">Endereço</Label>
-                      <Input maxLength={150} {...register(`enderecos.${index}.endereco`)} />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Número</Label>
-                      <Input maxLength={20} {...register(`enderecos.${index}.numero`)} />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Bairro</Label>
-                      <Input maxLength={70} {...register(`enderecos.${index}.bairro`)} />
-                    </div>
-                    <div className="space-y-1 sm:col-span-2">
-                      <Label className="text-xs">Referência</Label>
-                      <Input maxLength={150} {...register(`enderecos.${index}.referencia`)} />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* ===== SEÇÃO CONTATOS ===== */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold">Contatos</h3>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() =>
-                  appendContato({
-                    id: `ct${Date.now()}`,
-                    contatoPadrao: contatoFields.length === 0,
-                    tipoContato: "Telefone",
-                    descContatoPessoa: "",
-                  })
-                }
-              >
-                <Plus className="mr-1 h-4 w-4" /> Adicionar Contato
-              </Button>
-            </div>
-
-            {contatoFields.length === 0 && (
-              <p className="text-sm text-muted-foreground">Nenhum contato cadastrado.</p>
-            )}
-
-            <div className="space-y-4">
-              {contatoFields.map((field, index) => (
-                <div key={field.id} className="rounded-lg border p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <Label className="text-xs">Padrão</Label>
-                      <Switch
-                        checked={field.contatoPadrao}
-                        onCheckedChange={() => toggleContatoPadrao(index)}
-                      />
-                    </div>
-                    <Button type="button" variant="ghost" size="icon" onClick={() => removeContato(index)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div className="space-y-1">
-                      <Label className="text-xs">Tipo</Label>
-                      <Controller
-                        name={`contatos.${index}.tipoContato`}
-                        control={control}
-                        render={({ field: f }) => (
-                          <Select value={f.value} onValueChange={f.onChange}>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Telefone">Telefone</SelectItem>
-                              <SelectItem value="WhatsApp">WhatsApp</SelectItem>
-                              <SelectItem value="Email">Email</SelectItem>
-                              <SelectItem value="Outros">Outros</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        )}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Descrição <span className="text-destructive">*</span></Label>
-                      <Controller
-                        name={`contatos.${index}.descContatoPessoa`}
-                        control={control}
-                        render={({ field: f }) => {
-                          const tipoContato = watch(`contatos.${index}.tipoContato`);
-                          const isTel = tipoContato === "Telefone" || tipoContato === "WhatsApp";
-                          return (
-                            <Input
-                              value={f.value}
-                              onChange={(e) => {
-                                const val = isTel ? maskTelefone(e.target.value) : e.target.value;
-                                f.onChange(val);
-                              }}
-                              placeholder={
-                                isTel
-                                  ? "(00) 00000-0000"
-                                  : tipoContato === "Email"
-                                  ? "email@exemplo.com"
-                                  : "Descrição"
-                              }
-                            />
-                          );
-                        }}
-                      />
-                      {errors.contatos?.[index]?.descContatoPessoa && (
-                        <p className="text-xs text-destructive">{errors.contatos[index]?.descContatoPessoa?.message}</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </CrudModal>
 
