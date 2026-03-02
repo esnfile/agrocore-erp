@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Search, X, Plus, Trash2, Pencil } from "lucide-react";
+import { Search, X, Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ESTADOS_BRASILEIROS } from "@/lib/constants";
 import {
@@ -30,6 +30,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 // ---- Máscaras ----
 function maskCPF(value: string): string {
@@ -115,6 +120,7 @@ export default function PessoasPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Pessoa | null>(null);
+  const [expandedEnderecos, setExpandedEnderecos] = useState<Set<number>>(new Set());
 
   // Filtros
   const [filtroNome, setFiltroNome] = useState("");
@@ -218,7 +224,6 @@ export default function PessoasPage() {
     setFiltroStatus("");
   };
 
-  // Reset filters and reload when cleared
   useEffect(() => {
     if (!filtroNome && !filtroCpfCnpj && !filtroTipo && !filtroRelacao && !filtroStatus) {
       loadData();
@@ -243,6 +248,7 @@ export default function PessoasPage() {
   const openNew = () => {
     setEditingId(null);
     reset(emptyForm);
+    setExpandedEnderecos(new Set());
     setModalOpen(true);
   };
 
@@ -262,13 +268,13 @@ export default function PessoasPage() {
       enderecos: row.enderecos,
       contatos: row.contatos,
     });
+    setExpandedEnderecos(new Set());
     setModalOpen(true);
   };
 
   const onSave = handleSubmit(async (formData) => {
     if (!grupoAtual || !empresaAtual || !filialAtual) return;
 
-    // Validar email nos contatos
     const emailContatos = formData.contatos.filter((c) => c.tipoContato === "Email");
     for (const ec of emailContatos) {
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ec.descContatoPessoa)) {
@@ -348,7 +354,6 @@ export default function PessoasPage() {
     loadData();
   };
 
-  // Endereço padrão toggle
   const toggleEnderecoPadrao = (index: number) => {
     enderecoFields.forEach((f, i) => {
       if (i === index) {
@@ -359,7 +364,6 @@ export default function PessoasPage() {
     });
   };
 
-  // Contato padrão toggle
   const toggleContatoPadrao = (index: number) => {
     contatoFields.forEach((f, i) => {
       if (i === index) {
@@ -373,14 +377,61 @@ export default function PessoasPage() {
   const toggleRelacao = (rel: string) => {
     const current = relacaoComercial;
     if (current.includes(rel)) {
-      setValue(
-        "relacaoComercial",
-        current.filter((r) => r !== rel),
-        { shouldValidate: true }
-      );
+      setValue("relacaoComercial", current.filter((r) => r !== rel), { shouldValidate: true });
     } else {
       setValue("relacaoComercial", [...current, rel], { shouldValidate: true });
     }
+  };
+
+  const toggleEnderecoExpanded = (index: number) => {
+    setExpandedEnderecos((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  };
+
+  const addEndereco = () => {
+    const newIndex = enderecoFields.length;
+    appendEndereco({
+      id: `end${Date.now()}`,
+      enderecoPadrao: enderecoFields.length === 0,
+      tipoEndereco: "Residencial",
+      cep: "",
+      cidade: "",
+      estado: "",
+      endereco: "",
+      numero: "",
+      bairro: "",
+      referencia: "",
+    });
+    setExpandedEnderecos((prev) => new Set(prev).add(newIndex));
+  };
+
+  const removeEnderecoAt = (index: number) => {
+    removeEndereco(index);
+    setExpandedEnderecos((prev) => {
+      const next = new Set<number>();
+      prev.forEach((i) => {
+        if (i < index) next.add(i);
+        else if (i > index) next.add(i - 1);
+      });
+      return next;
+    });
+  };
+
+  // Helper to get contact description label
+  const getContatoLabel = (tipo: string) => {
+    if (tipo === "Telefone" || tipo === "WhatsApp") return "Telefone";
+    if (tipo === "Email") return "E-mail";
+    return "Descrição";
+  };
+
+  const getContatoPlaceholder = (tipo: string) => {
+    if (tipo === "Telefone" || tipo === "WhatsApp") return "(00) 00000-0000";
+    if (tipo === "Email") return "email@exemplo.com";
+    return "Descrição";
   };
 
   return (
@@ -475,9 +526,10 @@ export default function PessoasPage() {
 
           {/* ===== TABS ===== */}
           <Tabs defaultValue="dados-gerais" className="w-full">
-            <TabsList className="w-full grid grid-cols-2">
+            <TabsList className="w-full grid grid-cols-3">
               <TabsTrigger value="dados-gerais">Dados Gerais</TabsTrigger>
-              <TabsTrigger value="enderecos-contatos">Endereços e Contatos</TabsTrigger>
+              <TabsTrigger value="enderecos">Endereços</TabsTrigger>
+              <TabsTrigger value="contatos">Contatos</TabsTrigger>
             </TabsList>
 
             {/* ===== ABA 1 - DADOS GERAIS ===== */}
@@ -618,216 +670,269 @@ export default function PessoasPage() {
               </div>
             </TabsContent>
 
-            {/* ===== ABA 2 - ENDEREÇOS E CONTATOS ===== */}
-            <TabsContent value="enderecos-contatos">
-              <div className="space-y-6 pt-2">
-                {/* Seção Endereços */}
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold">Endereços</h3>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        appendEndereco({
-                          id: `end${Date.now()}`,
-                          enderecoPadrao: enderecoFields.length === 0,
-                          tipoEndereco: "Residencial",
-                          cep: "",
-                          cidade: "",
-                          estado: "",
-                          endereco: "",
-                          numero: "",
-                          bairro: "",
-                          referencia: "",
-                        })
-                      }
-                    >
-                      <Plus className="mr-1 h-4 w-4" /> Adicionar Endereço
-                    </Button>
-                  </div>
-
-                  {enderecoFields.length === 0 && (
-                    <p className="text-sm text-muted-foreground">Nenhum endereço cadastrado.</p>
-                  )}
-
-                  <div className="space-y-4">
-                    {enderecoFields.map((field, index) => (
-                      <div key={field.id} className="rounded-lg border p-4 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <Label className="text-xs">Padrão</Label>
-                            <Switch
-                              checked={field.enderecoPadrao}
-                              onCheckedChange={() => toggleEnderecoPadrao(index)}
-                            />
-                            <Controller
-                              name={`enderecos.${index}.tipoEndereco`}
-                              control={control}
-                              render={({ field: f }) => (
-                                <Select value={f.value} onValueChange={f.onChange}>
-                                  <SelectTrigger className="w-[150px]">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="Residencial">Residencial</SelectItem>
-                                    <SelectItem value="Comercial">Comercial</SelectItem>
-                                    <SelectItem value="Outros">Outros</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              )}
-                            />
-                          </div>
-                          <Button type="button" variant="ghost" size="icon" onClick={() => removeEndereco(index)}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                          <div className="space-y-1">
-                            <Label className="text-xs">CEP</Label>
-                            <Input maxLength={10} {...register(`enderecos.${index}.cep`)} />
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs">Cidade</Label>
-                            <Input maxLength={100} {...register(`enderecos.${index}.cidade`)} />
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs">Estado (UF)</Label>
-                            <Controller
-                              name={`enderecos.${index}.estado`}
-                              control={control}
-                              render={({ field: f }) => (
-                                <Select value={f.value} onValueChange={f.onChange}>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="UF" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {ESTADOS_BRASILEIROS.map((e) => (
-                                      <SelectItem key={e.sigla} value={e.sigla}>{e.sigla}</SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              )}
-                            />
-                          </div>
-                          <div className="space-y-1 sm:col-span-2">
-                            <Label className="text-xs">Endereço</Label>
-                            <Input maxLength={150} {...register(`enderecos.${index}.endereco`)} />
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs">Número</Label>
-                            <Input maxLength={20} {...register(`enderecos.${index}.numero`)} />
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs">Bairro</Label>
-                            <Input maxLength={70} {...register(`enderecos.${index}.bairro`)} />
-                          </div>
-                          <div className="space-y-1 sm:col-span-2">
-                            <Label className="text-xs">Referência</Label>
-                            <Input maxLength={150} {...register(`enderecos.${index}.referencia`)} />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+            {/* ===== ABA 2 - ENDEREÇOS ===== */}
+            <TabsContent value="enderecos">
+              <div className="space-y-4 pt-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold">Endereços</h3>
+                  <Button type="button" size="sm" variant="outline" onClick={addEndereco}>
+                    <Plus className="mr-1 h-4 w-4" /> Adicionar Endereço
+                  </Button>
                 </div>
 
-                {/* Seção Contatos */}
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold">Contatos</h3>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        appendContato({
-                          id: `ct${Date.now()}`,
-                          contatoPadrao: contatoFields.length === 0,
-                          tipoContato: "Telefone",
-                          descContatoPessoa: "",
-                        })
-                      }
-                    >
-                      <Plus className="mr-1 h-4 w-4" /> Adicionar Contato
-                    </Button>
-                  </div>
+                {enderecoFields.length === 0 && (
+                  <p className="text-sm text-muted-foreground">Nenhum endereço cadastrado.</p>
+                )}
 
-                  {contatoFields.length === 0 && (
-                    <p className="text-sm text-muted-foreground">Nenhum contato cadastrado.</p>
-                  )}
+                <div className="space-y-3">
+                  {enderecoFields.map((field, index) => {
+                    const isExpanded = expandedEnderecos.has(index);
+                    const tipoEnd = watch(`enderecos.${index}.tipoEndereco`);
+                    const cidadeEnd = watch(`enderecos.${index}.cidade`);
+                    const estadoEnd = watch(`enderecos.${index}.estado`);
 
-                  <div className="space-y-4">
-                    {contatoFields.map((field, index) => (
-                      <div key={field.id} className="rounded-lg border p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-3">
-                            <Label className="text-xs">Padrão</Label>
-                            <Switch
-                              checked={field.contatoPadrao}
-                              onCheckedChange={() => toggleContatoPadrao(index)}
-                            />
+                    return (
+                      <Collapsible
+                        key={field.id}
+                        open={isExpanded}
+                        onOpenChange={() => toggleEnderecoExpanded(index)}
+                      >
+                        <div className="rounded-lg border">
+                          {/* Header do card */}
+                          <div className="flex items-center justify-between px-4 py-3">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <CollapsibleTrigger asChild>
+                                <Button type="button" variant="ghost" size="icon" className="h-7 w-7 flex-shrink-0">
+                                  {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                </Button>
+                              </CollapsibleTrigger>
+                              <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                                <Badge variant="outline" className="text-xs flex-shrink-0">{tipoEnd || "—"}</Badge>
+                                {(cidadeEnd || estadoEnd) && (
+                                  <span className="text-sm text-muted-foreground truncate">
+                                    {[cidadeEnd, estadoEnd].filter(Boolean).join(" / ")}
+                                  </span>
+                                )}
+                                {field.enderecoPadrao && (
+                                  <Badge variant="default" className="text-xs flex-shrink-0">Padrão</Badge>
+                                )}
+                              </div>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 flex-shrink-0"
+                              onClick={(e) => { e.stopPropagation(); removeEnderecoAt(index); }}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
                           </div>
-                          <Button type="button" variant="ghost" size="icon" onClick={() => removeContato(index)}>
+
+                          {/* Conteúdo expandido */}
+                          <CollapsibleContent>
+                            <div className="px-4 pb-4 space-y-3 border-t pt-3">
+                              {/* Padrão + Tipo */}
+                              <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-2">
+                                  <Label className="text-xs">Padrão</Label>
+                                  <Switch
+                                    checked={field.enderecoPadrao}
+                                    onCheckedChange={() => toggleEnderecoPadrao(index)}
+                                  />
+                                </div>
+                                <div className="space-y-1 flex-1 max-w-[200px]">
+                                  <Label className="text-xs">Tipo Endereço</Label>
+                                  <Controller
+                                    name={`enderecos.${index}.tipoEndereco`}
+                                    control={control}
+                                    render={({ field: f }) => (
+                                      <Select value={f.value} onValueChange={f.onChange}>
+                                        <SelectTrigger>
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="Residencial">Residencial</SelectItem>
+                                          <SelectItem value="Comercial">Comercial</SelectItem>
+                                          <SelectItem value="Outros">Outros</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    )}
+                                  />
+                                </div>
+                              </div>
+
+                              {/* CEP + Cidade + Estado */}
+                              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                                <div className="space-y-1">
+                                  <Label className="text-xs">CEP</Label>
+                                  <Input maxLength={10} {...register(`enderecos.${index}.cep`)} />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-xs">Cidade</Label>
+                                  <Input maxLength={100} {...register(`enderecos.${index}.cidade`)} />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-xs">Estado (UF)</Label>
+                                  <Controller
+                                    name={`enderecos.${index}.estado`}
+                                    control={control}
+                                    render={({ field: f }) => (
+                                      <Select value={f.value} onValueChange={f.onChange}>
+                                        <SelectTrigger>
+                                          <SelectValue placeholder="UF" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {ESTADOS_BRASILEIROS.map((e) => (
+                                            <SelectItem key={e.sigla} value={e.sigla}>{e.sigla}</SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    )}
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Endereço + Número */}
+                              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                                <div className="space-y-1 sm:col-span-2">
+                                  <Label className="text-xs">Endereço</Label>
+                                  <Input maxLength={150} {...register(`enderecos.${index}.endereco`)} />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-xs">Número</Label>
+                                  <Input maxLength={20} {...register(`enderecos.${index}.numero`)} />
+                                </div>
+                              </div>
+
+                              {/* Bairro + Referência */}
+                              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                                <div className="space-y-1">
+                                  <Label className="text-xs">Bairro</Label>
+                                  <Input maxLength={70} {...register(`enderecos.${index}.bairro`)} />
+                                </div>
+                                <div className="space-y-1 sm:col-span-2">
+                                  <Label className="text-xs">Referência</Label>
+                                  <Input maxLength={150} {...register(`enderecos.${index}.referencia`)} />
+                                </div>
+                              </div>
+                            </div>
+                          </CollapsibleContent>
+                        </div>
+                      </Collapsible>
+                    );
+                  })}
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* ===== ABA 3 - CONTATOS ===== */}
+            <TabsContent value="contatos">
+              <div className="space-y-4 pt-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold">Contatos</h3>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      appendContato({
+                        id: `ct${Date.now()}`,
+                        contatoPadrao: contatoFields.length === 0,
+                        tipoContato: "Telefone",
+                        descContatoPessoa: "",
+                      })
+                    }
+                  >
+                    <Plus className="mr-1 h-4 w-4" /> Adicionar Contato
+                  </Button>
+                </div>
+
+                {contatoFields.length === 0 && (
+                  <p className="text-sm text-muted-foreground">Nenhum contato cadastrado.</p>
+                )}
+
+                {/* Header da grid de contatos */}
+                {contatoFields.length > 0 && (
+                  <div className="hidden sm:grid sm:grid-cols-[60px_1fr_1fr_40px] gap-3 px-1">
+                    <Label className="text-xs text-muted-foreground">Padrão</Label>
+                    <Label className="text-xs text-muted-foreground">Tipo</Label>
+                    <Label className="text-xs text-muted-foreground">Descrição</Label>
+                    <span />
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  {contatoFields.map((field, index) => {
+                    const tipoContato = watch(`contatos.${index}.tipoContato`);
+                    const isTel = tipoContato === "Telefone" || tipoContato === "WhatsApp";
+
+                    return (
+                      <div key={field.id} className="grid grid-cols-1 sm:grid-cols-[60px_1fr_1fr_40px] gap-3 items-start rounded-lg border p-3 sm:p-2">
+                        {/* Padrão */}
+                        <div className="flex items-center gap-2 sm:justify-center sm:pt-1">
+                          <Label className="text-xs sm:hidden">Padrão</Label>
+                          <Switch
+                            checked={field.contatoPadrao}
+                            onCheckedChange={() => toggleContatoPadrao(index)}
+                          />
+                        </div>
+
+                        {/* Tipo */}
+                        <div className="space-y-1">
+                          <Label className="text-xs sm:hidden">Tipo</Label>
+                          <Controller
+                            name={`contatos.${index}.tipoContato`}
+                            control={control}
+                            render={({ field: f }) => (
+                              <Select value={f.value} onValueChange={f.onChange}>
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Telefone">Telefone</SelectItem>
+                                  <SelectItem value="WhatsApp">WhatsApp</SelectItem>
+                                  <SelectItem value="Email">Email</SelectItem>
+                                  <SelectItem value="Outros">Outros</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            )}
+                          />
+                        </div>
+
+                        {/* Descrição dinâmica */}
+                        <div className="space-y-1">
+                          <Label className="text-xs sm:hidden">
+                            {getContatoLabel(tipoContato)} <span className="text-destructive">*</span>
+                          </Label>
+                          <Controller
+                            name={`contatos.${index}.descContatoPessoa`}
+                            control={control}
+                            render={({ field: f }) => (
+                              <Input
+                                value={f.value}
+                                onChange={(e) => {
+                                  const val = isTel ? maskTelefone(e.target.value) : e.target.value;
+                                  f.onChange(val);
+                                }}
+                                placeholder={getContatoPlaceholder(tipoContato)}
+                              />
+                            )}
+                          />
+                          {errors.contatos?.[index]?.descContatoPessoa && (
+                            <p className="text-xs text-destructive">{errors.contatos[index]?.descContatoPessoa?.message}</p>
+                          )}
+                        </div>
+
+                        {/* Excluir */}
+                        <div className="flex items-center sm:justify-center sm:pt-1">
+                          <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeContato(index)}>
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </div>
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                          <div className="space-y-1">
-                            <Label className="text-xs">Tipo</Label>
-                            <Controller
-                              name={`contatos.${index}.tipoContato`}
-                              control={control}
-                              render={({ field: f }) => (
-                                <Select value={f.value} onValueChange={f.onChange}>
-                                  <SelectTrigger>
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="Telefone">Telefone</SelectItem>
-                                    <SelectItem value="WhatsApp">WhatsApp</SelectItem>
-                                    <SelectItem value="Email">Email</SelectItem>
-                                    <SelectItem value="Outros">Outros</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              )}
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs">Descrição <span className="text-destructive">*</span></Label>
-                            <Controller
-                              name={`contatos.${index}.descContatoPessoa`}
-                              control={control}
-                              render={({ field: f }) => {
-                                const tipoContato = watch(`contatos.${index}.tipoContato`);
-                                const isTel = tipoContato === "Telefone" || tipoContato === "WhatsApp";
-                                return (
-                                  <Input
-                                    value={f.value}
-                                    onChange={(e) => {
-                                      const val = isTel ? maskTelefone(e.target.value) : e.target.value;
-                                      f.onChange(val);
-                                    }}
-                                    placeholder={
-                                      isTel
-                                        ? "(00) 00000-0000"
-                                        : tipoContato === "Email"
-                                        ? "email@exemplo.com"
-                                        : "Descrição"
-                                    }
-                                  />
-                                );
-                              }}
-                            />
-                            {errors.contatos?.[index]?.descContatoPessoa && (
-                              <p className="text-xs text-destructive">{errors.contatos[index]?.descContatoPessoa?.message}</p>
-                            )}
-                          </div>
-                        </div>
                       </div>
-                    ))}
-                  </div>
+                    );
+                  })}
                 </div>
               </div>
             </TabsContent>
