@@ -657,7 +657,7 @@ export default function ProdutosPage() {
                 checked={ativoValue}
                 onCheckedChange={(v) => setValue("ativo", v)}
               />
-              <Label htmlFor="ativo">Ativo</Label>
+              <Label htmlFor="ativo">Produto está ativo?</Label>
             </div>
           </div>
 
