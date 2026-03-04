@@ -21,6 +21,8 @@ import {
   AppWindow,
   Lock,
   ShoppingCart,
+  Calculator,
+  Table2,
   type LucideIcon,
 } from "lucide-react";
 
@@ -145,6 +147,8 @@ export const modules: Module[] = [
               { title: "Subgrupo", url: "/produtos-estoque/subgrupo-produto", icon: Component },
             ],
           },
+          { title: "Coeficientes", url: "/produtos-estoque/coeficientes", icon: Calculator },
+          { title: "Tabela de Preços", url: "/produtos-estoque/tabela-precos", icon: Table2 },
         ],
       },
       { title: "Produtos", url: "/produtos-estoque/produtos", icon: Package },

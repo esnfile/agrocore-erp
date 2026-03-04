@@ -13,10 +13,16 @@ import {
   secoesProduto as mockSecoesProduto,
   gruposProduto as mockGruposProduto,
   subgruposProduto as mockSubgruposProduto,
+  coeficientes as mockCoeficientes,
+  coeficienteEmpresas as mockCoeficienteEmpresas,
+  tabelasPreco as mockTabelasPreco,
+  tabelaPrecoEmpresas as mockTabelaPrecoEmpresas,
+  parametrosComerciais as mockParametrosComerciais,
 } from "./mock-data";
 import type {
   Empresa, Filial, Grupo, GrupoPessoa, Pessoa,
   TipoProduto, MarcaProduto, DivisaoProduto, SecaoProduto, GrupoProduto, SubgrupoProduto,
+  Coeficiente, CoeficienteEmpresa, TabelaPreco, TabelaPrecoEmpresa, ParametroComercial, AplicaSobre,
 } from "./mock-data";
 
 const delay = (ms = 300) => new Promise((r) => setTimeout(r, ms));
@@ -489,3 +495,178 @@ export const divisaoProdutoService = createSimpleCrudService<DivisaoProduto>(moc
 export const secaoProdutoService = createSimpleCrudService<SecaoProduto>(mockSecoesProduto, "sp");
 export const grupoProdutoService = createSimpleCrudService<GrupoProduto>(mockGruposProduto, "grp");
 export const subgrupoProdutoService = createSimpleCrudService<SubgrupoProduto>(mockSubgruposProduto, "sgp");
+
+// ============================================================
+// Coeficientes
+// ============================================================
+export const coeficienteService = {
+  async listar(grupoId: string): Promise<Coeficiente[]> {
+    await delay();
+    return mockCoeficientes.filter((c) => c.deletadoEm === null && c.grupoId === grupoId);
+  },
+  async descricaoExiste(descricao: string, grupoId: string, excludeId?: string): Promise<boolean> {
+    await delay(100);
+    const t = descricao.trim().toLowerCase();
+    return mockCoeficientes.some(
+      (c) => c.deletadoEm === null && c.grupoId === grupoId && c.descricao.toLowerCase() === t && c.id !== excludeId
+    );
+  },
+  async salvar(data: Partial<Coeficiente>, grupoId: string): Promise<Coeficiente> {
+    await delay(400);
+    const now = new Date().toISOString();
+    const existing = data.id ? mockCoeficientes.find((c) => c.id === data.id && c.deletadoEm === null) : undefined;
+    if (existing) {
+      existing.descricao = (data.descricao ?? existing.descricao).trim();
+      existing.ativo = data.ativo ?? existing.ativo;
+      existing.atualizadoEm = now;
+      existing.atualizadoPor = "u1";
+      return existing;
+    }
+    const novo: Coeficiente = {
+      id: `coef${Date.now()}`, grupoId, empresaId: null, filialId: null,
+      descricao: (data.descricao ?? "").trim(), ativo: data.ativo ?? true,
+      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      deletadoEm: null, deletadoPor: null,
+    };
+    mockCoeficientes.push(novo);
+    return novo;
+  },
+  async excluir(id: string): Promise<void> {
+    await delay();
+    const now = new Date().toISOString();
+    const c = mockCoeficientes.find((c) => c.id === id && c.deletadoEm === null);
+    if (c) { c.deletadoEm = now; c.deletadoPor = "u1"; c.atualizadoEm = now; c.atualizadoPor = "u1"; }
+  },
+};
+
+export const coeficienteEmpresaService = {
+  async listarPorCoeficiente(coeficienteId: string): Promise<CoeficienteEmpresa[]> {
+    await delay();
+    return mockCoeficienteEmpresas.filter((ce) => ce.deletadoEm === null && ce.coeficienteId === coeficienteId);
+  },
+  async salvar(data: Partial<CoeficienteEmpresa>, coeficienteId: string): Promise<CoeficienteEmpresa> {
+    await delay(200);
+    const now = new Date().toISOString();
+    const existing = data.id ? mockCoeficienteEmpresas.find((ce) => ce.id === data.id && ce.deletadoEm === null) : undefined;
+    if (existing) {
+      existing.percentualCustoVariavel = data.percentualCustoVariavel ?? existing.percentualCustoVariavel;
+      existing.percentualCustoFixo = data.percentualCustoFixo ?? existing.percentualCustoFixo;
+      existing.percentualImpostos = data.percentualImpostos ?? existing.percentualImpostos;
+      existing.aplicaSobre = data.aplicaSobre ?? existing.aplicaSobre;
+      existing.atualizadoEm = now;
+      existing.atualizadoPor = "u1";
+      return existing;
+    }
+    // check duplicate
+    const dup = mockCoeficienteEmpresas.find(
+      (ce) => ce.deletadoEm === null && ce.coeficienteId === coeficienteId && ce.empresaId === data.empresaId
+    );
+    if (dup) throw new Error("Empresa já vinculada a este coeficiente.");
+    const novo: CoeficienteEmpresa = {
+      id: `ce${Date.now()}`, coeficienteId, empresaId: data.empresaId!,
+      percentualCustoVariavel: data.percentualCustoVariavel ?? 0,
+      percentualCustoFixo: data.percentualCustoFixo ?? 0,
+      percentualImpostos: data.percentualImpostos ?? 0,
+      aplicaSobre: data.aplicaSobre ?? "CUSTO_BASE",
+      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      deletadoEm: null, deletadoPor: null,
+    };
+    mockCoeficienteEmpresas.push(novo);
+    return novo;
+  },
+  async excluir(id: string): Promise<void> {
+    await delay();
+    const now = new Date().toISOString();
+    const ce = mockCoeficienteEmpresas.find((ce) => ce.id === id && ce.deletadoEm === null);
+    if (ce) { ce.deletadoEm = now; ce.deletadoPor = "u1"; ce.atualizadoEm = now; ce.atualizadoPor = "u1"; }
+  },
+};
+
+// ============================================================
+// Tabela de Preço
+// ============================================================
+export const tabelaPrecoService = {
+  async listar(grupoId: string): Promise<TabelaPreco[]> {
+    await delay();
+    return mockTabelasPreco.filter((t) => t.deletadoEm === null && t.grupoId === grupoId);
+  },
+  async descricaoExiste(descricao: string, grupoId: string, excludeId?: string): Promise<boolean> {
+    await delay(100);
+    const t = descricao.trim().toLowerCase();
+    return mockTabelasPreco.some(
+      (tp) => tp.deletadoEm === null && tp.grupoId === grupoId && tp.descricao.toLowerCase() === t && tp.id !== excludeId
+    );
+  },
+  async salvar(data: Partial<TabelaPreco>, grupoId: string): Promise<TabelaPreco> {
+    await delay(400);
+    const now = new Date().toISOString();
+    const existing = data.id ? mockTabelasPreco.find((t) => t.id === data.id && t.deletadoEm === null) : undefined;
+    if (existing) {
+      existing.descricao = (data.descricao ?? existing.descricao).trim();
+      existing.ativo = data.ativo ?? existing.ativo;
+      existing.atualizadoEm = now;
+      existing.atualizadoPor = "u1";
+      return existing;
+    }
+    const novo: TabelaPreco = {
+      id: `tpreco${Date.now()}`, grupoId, empresaId: null, filialId: null,
+      descricao: (data.descricao ?? "").trim(), ativo: data.ativo ?? true,
+      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      deletadoEm: null, deletadoPor: null,
+    };
+    mockTabelasPreco.push(novo);
+    return novo;
+  },
+  async excluir(id: string): Promise<void> {
+    await delay();
+    const now = new Date().toISOString();
+    const t = mockTabelasPreco.find((t) => t.id === id && t.deletadoEm === null);
+    if (t) { t.deletadoEm = now; t.deletadoPor = "u1"; t.atualizadoEm = now; t.atualizadoPor = "u1"; }
+  },
+};
+
+export const tabelaPrecoEmpresaService = {
+  async listarPorTabela(tabelaPrecoId: string): Promise<TabelaPrecoEmpresa[]> {
+    await delay();
+    return mockTabelaPrecoEmpresas.filter((t) => t.deletadoEm === null && t.tabelaPrecoId === tabelaPrecoId);
+  },
+  async salvar(data: Partial<TabelaPrecoEmpresa>, tabelaPrecoId: string): Promise<TabelaPrecoEmpresa> {
+    await delay(200);
+    const now = new Date().toISOString();
+    const existing = data.id ? mockTabelaPrecoEmpresas.find((t) => t.id === data.id && t.deletadoEm === null) : undefined;
+    if (existing) {
+      existing.margemLucroPercentual = data.margemLucroPercentual ?? existing.margemLucroPercentual;
+      existing.atualizadoEm = now;
+      existing.atualizadoPor = "u1";
+      return existing;
+    }
+    const dup = mockTabelaPrecoEmpresas.find(
+      (t) => t.deletadoEm === null && t.tabelaPrecoId === tabelaPrecoId && t.empresaId === data.empresaId
+    );
+    if (dup) throw new Error("Empresa já vinculada a esta tabela de preço.");
+    const novo: TabelaPrecoEmpresa = {
+      id: `tpe${Date.now()}`, tabelaPrecoId, empresaId: data.empresaId!,
+      margemLucroPercentual: data.margemLucroPercentual ?? 0,
+      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      deletadoEm: null, deletadoPor: null,
+    };
+    mockTabelaPrecoEmpresas.push(novo);
+    return novo;
+  },
+  async excluir(id: string): Promise<void> {
+    await delay();
+    const now = new Date().toISOString();
+    const t = mockTabelaPrecoEmpresas.find((t) => t.id === id && t.deletadoEm === null);
+    if (t) { t.deletadoEm = now; t.deletadoPor = "u1"; t.atualizadoEm = now; t.atualizadoPor = "u1"; }
+  },
+};
+
+// ============================================================
+// Parâmetros Comerciais
+// ============================================================
+export const parametroComercialService = {
+  async obterPorEmpresa(empresaId: string): Promise<ParametroComercial | null> {
+    await delay();
+    return mockParametrosComerciais.find((p) => p.deletadoEm === null && p.empresaId === empresaId) ?? null;
+  },
+};
