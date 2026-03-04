@@ -20,6 +20,7 @@ import {
   Component,
   AppWindow,
   Lock,
+  ShoppingCart,
   type LucideIcon,
 } from "lucide-react";
 
@@ -111,6 +112,51 @@ export const modules: Module[] = [
       { title: "Contratos", url: "/armazem/contratos", icon: FileText },
       { title: "Entregas", url: "/armazem/entregas", icon: Truck },
       { title: "Estoque", url: "/armazem/estoque", icon: BarChart3 },
+    ],
+  },
+  {
+    title: "Produtos e Estoque",
+    icon: Package,
+    items: [
+      {
+        title: "Central de Compras",
+        icon: ShoppingCart,
+        children: [
+          { title: "Entrada de Mercadoria", url: "/produtos-estoque/entrada-mercadoria", icon: ArrowDownCircle },
+          { title: "Pedido de Compra", url: "/produtos-estoque/pedido-compra", icon: FileText },
+          { title: "Cotação de Preços", url: "/produtos-estoque/cotacao-precos", icon: DollarSign },
+          { title: "Liberação de Pedidos", url: "/produtos-estoque/liberacao-pedidos", icon: ShieldCheck },
+          { title: "Requisição de Compra", url: "/produtos-estoque/requisicao-compra", icon: FileText },
+        ],
+      },
+      {
+        title: "Tabelas",
+        icon: Layers,
+        children: [
+          { title: "Tipo de Produto", url: "/produtos-estoque/tipo-produto", icon: Tags },
+          { title: "Marca de Produto", url: "/produtos-estoque/marca-produto", icon: Tags },
+          { title: "Divisão de Produto", url: "/produtos-estoque/divisao-produto", icon: Tags },
+          {
+            title: "Classificação",
+            icon: Layers,
+            children: [
+              { title: "Seção", url: "/produtos-estoque/secao-produto", icon: Component },
+              { title: "Grupo", url: "/produtos-estoque/grupo-produto", icon: Component },
+              { title: "Subgrupo", url: "/produtos-estoque/subgrupo-produto", icon: Component },
+            ],
+          },
+        ],
+      },
+      { title: "Produtos", url: "/produtos-estoque/produtos", icon: Package },
+      {
+        title: "Auxiliares",
+        icon: Server,
+        children: [
+          { title: "Estrutura de Estoque", url: "/produtos-estoque/estrutura-estoque", icon: WarehouseIcon },
+          { title: "Pontos de Estoque", url: "/produtos-estoque/pontos-estoque", icon: WarehouseIcon },
+          { title: "Inventário de Estoque", url: "/produtos-estoque/inventario-estoque", icon: BarChart3 },
+        ],
+      },
     ],
   },
   {

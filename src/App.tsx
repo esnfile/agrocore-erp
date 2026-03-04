@@ -11,6 +11,12 @@ import GruposPage from "@/pages/admin/GruposPage";
 import FiliaisPage from "@/pages/admin/FiliaisPage";
 import GrupoPessoasPage from "@/pages/cadastros/GrupoPessoasPage";
 import PessoasPage from "@/pages/cadastros/PessoasPage";
+import TipoProdutoPage from "@/pages/produtos-estoque/TipoProdutoPage";
+import MarcaProdutoPage from "@/pages/produtos-estoque/MarcaProdutoPage";
+import DivisaoProdutoPage from "@/pages/produtos-estoque/DivisaoProdutoPage";
+import SecaoProdutoPage from "@/pages/produtos-estoque/SecaoProdutoPage";
+import GrupoProdutoPage from "@/pages/produtos-estoque/GrupoProdutoPage";
+import SubgrupoProdutoPage from "@/pages/produtos-estoque/SubgrupoProdutoPage";
 import PlaceholderPage from "@/pages/PlaceholderPage";
 import NotFound from "./pages/NotFound";
 
@@ -51,6 +57,23 @@ const App = () => (
               {/* Financeiro */}
               <Route path="/financeiro/contas-receber" element={<PlaceholderPage />} />
               <Route path="/financeiro/contas-pagar" element={<PlaceholderPage />} />
+              {/* Produtos e Estoque — Tabelas */}
+              <Route path="/produtos-estoque/tipo-produto" element={<TipoProdutoPage />} />
+              <Route path="/produtos-estoque/marca-produto" element={<MarcaProdutoPage />} />
+              <Route path="/produtos-estoque/divisao-produto" element={<DivisaoProdutoPage />} />
+              <Route path="/produtos-estoque/secao-produto" element={<SecaoProdutoPage />} />
+              <Route path="/produtos-estoque/grupo-produto" element={<GrupoProdutoPage />} />
+              <Route path="/produtos-estoque/subgrupo-produto" element={<SubgrupoProdutoPage />} />
+              {/* Produtos e Estoque — Placeholders */}
+              <Route path="/produtos-estoque/entrada-mercadoria" element={<PlaceholderPage />} />
+              <Route path="/produtos-estoque/pedido-compra" element={<PlaceholderPage />} />
+              <Route path="/produtos-estoque/cotacao-precos" element={<PlaceholderPage />} />
+              <Route path="/produtos-estoque/liberacao-pedidos" element={<PlaceholderPage />} />
+              <Route path="/produtos-estoque/requisicao-compra" element={<PlaceholderPage />} />
+              <Route path="/produtos-estoque/produtos" element={<PlaceholderPage />} />
+              <Route path="/produtos-estoque/estrutura-estoque" element={<PlaceholderPage />} />
+              <Route path="/produtos-estoque/pontos-estoque" element={<PlaceholderPage />} />
+              <Route path="/produtos-estoque/inventario-estoque" element={<PlaceholderPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
