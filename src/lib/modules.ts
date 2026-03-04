@@ -67,8 +67,8 @@ export const modules: Module[] = [
             title: "Pessoas",
             icon: Contact,
             children: [
-              { title: "Pessoas", url: "/cadastros/pessoas", icon: Contact },
-              { title: "Grupo de Pessoas", url: "/cadastros/grupo-pessoas", icon: Users },
+              { title: "Pessoas", url: "/admin/pessoas", icon: Contact },
+              { title: "Grupo de Pessoas", url: "/admin/grupo-pessoas", icon: Users },
             ],
           },
         ],
@@ -82,7 +82,6 @@ export const modules: Module[] = [
             icon: Users,
             children: [
               { title: "Usuários", url: "/admin/usuarios", icon: Users },
-              { title: "Permissões", url: "/admin/permissoes", icon: ShieldCheck },
             ],
           },
           {
@@ -97,15 +96,6 @@ export const modules: Module[] = [
           },
         ],
       },
-    ],
-  },
-  {
-    title: "Cadastros",
-    icon: Package,
-    items: [
-      { title: "Produtos", url: "/cadastros/produtos", icon: Package },
-      { title: "Categorias", url: "/cadastros/categorias", icon: Tags },
-      { title: "Locais de Estoque", url: "/cadastros/locais-estoque", icon: WarehouseIcon },
     ],
   },
   {
@@ -138,18 +128,24 @@ export const modules: Module[] = [
         children: [
           { title: "Tipo de Produto", url: "/produtos-estoque/tipo-produto", icon: Tags },
           { title: "Marca de Produto", url: "/produtos-estoque/marca-produto", icon: Tags },
-          { title: "Divisão de Produto", url: "/produtos-estoque/divisao-produto", icon: Tags },
           {
             title: "Classificação",
             icon: Layers,
             children: [
+              { title: "Divisão", url: "/produtos-estoque/divisao-produto", icon: Component },
               { title: "Seção", url: "/produtos-estoque/secao-produto", icon: Component },
               { title: "Grupo", url: "/produtos-estoque/grupo-produto", icon: Component },
               { title: "Subgrupo", url: "/produtos-estoque/subgrupo-produto", icon: Component },
             ],
           },
-          { title: "Coeficientes", url: "/produtos-estoque/coeficientes", icon: Calculator },
-          { title: "Tabela de Preços", url: "/produtos-estoque/tabela-precos", icon: Table2 },
+          {
+            title: "Custos e Vendas",
+            icon: DollarSign,
+            children: [
+              { title: "Coeficientes", url: "/produtos-estoque/coeficientes", icon: Calculator },
+              { title: "Tabela de Preços", url: "/produtos-estoque/tabela-precos", icon: Table2 },
+            ],
+          },
           { title: "Unidades de Medida", url: "/produtos-estoque/unidades-medida", icon: Ruler },
         ],
       },
@@ -158,7 +154,6 @@ export const modules: Module[] = [
         title: "Auxiliares",
         icon: Server,
         children: [
-          { title: "Estrutura de Estoque", url: "/produtos-estoque/estrutura-estoque", icon: WarehouseIcon },
           { title: "Pontos de Estoque", url: "/produtos-estoque/pontos-estoque", icon: WarehouseIcon },
           { title: "Movimentação de Estoque", url: "/produtos-estoque/movimentacao-estoque", icon: ArrowDownCircle },
           { title: "Consulta de Estoque", url: "/produtos-estoque/consulta-estoque", icon: BarChart3 },

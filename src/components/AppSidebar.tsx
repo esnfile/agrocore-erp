@@ -143,7 +143,7 @@ function CollapsedPopover({ item, pathname }: { item: MenuItem; pathname: string
         sideOffset={4}
         onMouseEnter={cancelClose}
         onMouseLeave={scheduleClose}
-        className="w-52 p-1 bg-sidebar/95 backdrop-blur-sm border border-sidebar-border shadow-lg"
+        className="w-auto min-w-[13rem] p-1 bg-sidebar/95 backdrop-blur-sm border border-sidebar-border shadow-lg"
       >
         {item.url ? (
           <RecursiveMenuItem item={item} pathname={pathname} />

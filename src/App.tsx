@@ -78,7 +78,7 @@ const App = () => (
               <Route path="/produtos-estoque/liberacao-pedidos" element={<PlaceholderPage />} />
               <Route path="/produtos-estoque/requisicao-compra" element={<PlaceholderPage />} />
               <Route path="/produtos-estoque/produtos" element={<ProdutosEstoquePage />} />
-              <Route path="/produtos-estoque/estrutura-estoque" element={<PlaceholderPage />} />
+              {/* removed /produtos-estoque/estrutura-estoque */}
               <Route path="/produtos-estoque/pontos-estoque" element={<PontosEstoquePage />} />
               <Route path="/produtos-estoque/movimentacao-estoque" element={<MovimentacaoEstoquePage />} />
               <Route path="/produtos-estoque/consulta-estoque" element={<ConsultaEstoquePage />} />
