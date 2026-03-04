@@ -1,42 +1,35 @@
 
 
-## Plano: 3 Correções na Modal de Pessoas
+## Plano: Reorganizar layout da aba Dados Gerais do Produto
 
-### Correção 1 — Scroll vertical (`src/components/CrudModal.tsx`)
+### Mudanças em `src/pages/produtos-estoque/ProdutosPage.tsx`
 
-O `ScrollArea` do Radix não está propagando a altura corretamente. Substituir por um `div` nativo com `overflow-y-auto flex-1 min-h-0` que funciona de forma confiável com flexbox.
+**1. Reordenar seções** (dentro da TabsContent "dados", linhas 656-1024):
 
-**Linha 29-31**: Trocar `<ScrollArea className="flex-1 min-h-0">` por `<div className="flex-1 min-h-0 overflow-y-auto">` e remover import do ScrollArea.
+Ordem atual: Código/Descrição → Aplicação → Tipo Baixa → **Unidades** → Divisão/Marca → Seção/Grupo/Subgrupo → Ativo
 
----
+Nova ordem: Código/Descrição → Aplicação → Tipo Baixa → Divisão/Marca → Seção/Grupo/Subgrupo → **Unidades** → Ativo
 
-### Correção 2 — Header endereço em 1 linha (`src/pages/cadastros/PessoasPage.tsx`)
+**2. Unidades em 3 colunas (layout compacto)**
 
-**Linhas 690-692**: Adicionar watches para `endereco` e `numero`:
-```
-const enderecoRua = watch(`enderecos.${index}.endereco`);
-const numeroEnd = watch(`enderecos.${index}.numero`);
-```
+Substituir as 3 grids separadas (linhas 720-877) por um único grid de 3 colunas:
 
-**Linhas 709-719**: Reorganizar conteúdo do header para formato:
-`[Badge tipo] Endereco, numero / Cidade / UF [Badge Padrão]`
+| Coluna 1 | Coluna 2 | Coluna 3 |
+|---|---|---|
+| Unidade Base | Unidade de Compra | Unidade de Venda |
+| _(vazio)_ | Qtd. Emb. Compra | Qtd. Emb. Venda |
 
-- Manter Badge `variant="outline"` para tipo
-- Texto corrido com truncate: `enderecoRua, numeroEnd / cidadeEnd / estadoEnd`
-- Badge `variant="default"` para Padrão
-- Remover `flex-wrap`, usar `truncate` no texto
-- Tudo em uma linha com `items-center gap-2 flex-nowrap`
+Cada coluna é um `div` com `space-y-4` contendo os campos empilhados.
 
----
+**3. Toggle "Ativo" alinhado com as abas**
 
-### Correção 3 — Labels nos contatos (`src/pages/cadastros/PessoasPage.tsx`)
+Mover o toggle `Ativo` para fora da `TabsContent`, posicionando-o na mesma linha do `TabsList` usando `flex justify-between items-center` no container do TabsList + toggle.
 
-**Linhas 856-863**: Remover o header grid fixo (bloco `hidden sm:grid`).
+**4. Remover `max-w-[700px]`** (linha 656)
 
-**Linhas 874, 883, 905**: Remover `sm:hidden` de todos os Labels dentro de cada contato para que fiquem sempre visíveis acima dos campos.
+Trocar `max-w-[700px]` por largura total para aproveitar o espaço da modal `sm:max-w-5xl`, corrigindo o espaçamento excessivo à direita.
 
-| Arquivo | Ação |
-|---|---|
-| `src/components/CrudModal.tsx` | Substituir ScrollArea por div com overflow-y-auto |
-| `src/pages/cadastros/PessoasPage.tsx` | Header endereço 1 linha + labels contatos sempre visíveis |
+| Arquivo | Linhas | Ação |
+|---|---|---|
+| `src/pages/produtos-estoque/ProdutosPage.tsx` | 647-1024 | Reordenar seções, compactar unidades em 3 cols, mover Ativo para linha das abas, remover max-w |
 
