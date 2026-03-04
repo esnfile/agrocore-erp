@@ -418,3 +418,182 @@ export const pessoas: Pessoa[] = [
     deletadoPor: null,
   },
 ];
+
+// ---- Tipo de Produto ----
+export interface TipoProduto {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  descricao: string;
+  ativo: boolean;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+// ---- Marca de Produto ----
+export interface MarcaProduto {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  descricao: string;
+  ativo: boolean;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+// ---- Divisão de Produto ----
+export interface DivisaoProduto {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  descricao: string;
+  ativo: boolean;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+// ---- Seção de Produto ----
+export interface SecaoProduto {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  descricao: string;
+  ativo: boolean;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+// ---- Grupo de Produto ----
+export interface GrupoProduto {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  descricao: string;
+  secaoProdutoId: string;
+  ativo: boolean;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+// ---- Subgrupo de Produto ----
+export interface SubgrupoProduto {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  descricao: string;
+  grupoProdutoId: string;
+  ativo: boolean;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export const tiposProduto: TipoProduto[] = [
+  {
+    id: "tp1", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    descricao: "Matéria-Prima", ativo: true,
+    criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "tp2", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    descricao: "Produto Acabado", ativo: true,
+    criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+];
+
+export const marcasProduto: MarcaProduto[] = [
+  {
+    id: "mp1", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    descricao: "Syngenta", ativo: true,
+    criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+];
+
+export const divisoesProduto: DivisaoProduto[] = [
+  {
+    id: "dp1", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    descricao: "Agrícola", ativo: true,
+    criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+];
+
+export const secoesProduto: SecaoProduto[] = [
+  {
+    id: "sp1", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    descricao: "Insumos", ativo: true,
+    criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "sp2", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    descricao: "Grãos", ativo: true,
+    criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+];
+
+export const gruposProduto: GrupoProduto[] = [
+  {
+    id: "grp1", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    descricao: "Fertilizantes", secaoProdutoId: "sp1", ativo: true,
+    criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "grp2", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    descricao: "Soja", secaoProdutoId: "sp2", ativo: true,
+    criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+];
+
+export const subgruposProduto: SubgrupoProduto[] = [
+  {
+    id: "sgp1", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    descricao: "NPK", grupoProdutoId: "grp1", ativo: true,
+    criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+];

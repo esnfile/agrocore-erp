@@ -7,8 +7,17 @@ import {
   grupos as mockGrupos,
   gruposPessoa as mockGruposPessoa,
   pessoas as mockPessoas,
+  tiposProduto as mockTiposProduto,
+  marcasProduto as mockMarcasProduto,
+  divisoesProduto as mockDivisoesProduto,
+  secoesProduto as mockSecoesProduto,
+  gruposProduto as mockGruposProduto,
+  subgruposProduto as mockSubgruposProduto,
 } from "./mock-data";
-import type { Empresa, Filial, Grupo, GrupoPessoa, Pessoa } from "./mock-data";
+import type {
+  Empresa, Filial, Grupo, GrupoPessoa, Pessoa,
+  TipoProduto, MarcaProduto, DivisaoProduto, SecaoProduto, GrupoProduto, SubgrupoProduto,
+} from "./mock-data";
 
 const delay = (ms = 300) => new Promise((r) => setTimeout(r, ms));
 
@@ -383,3 +392,100 @@ export const pessoaService = {
     }
   },
 };
+
+// ============================================================
+// Generic CRUD service factory for simple description+ativo tables
+// ============================================================
+interface SimpleEntity {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  descricao: string;
+  ativo: boolean;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+function createSimpleCrudService<T extends SimpleEntity>(store: T[], prefix: string) {
+  return {
+    async listar(empresaId: string, filialId: string): Promise<T[]> {
+      await delay();
+      return store.filter((i) => i.deletadoEm === null && i.empresaId === empresaId && i.filialId === filialId);
+    },
+    async listarTodos(): Promise<T[]> {
+      await delay();
+      return store.filter((i) => i.deletadoEm === null);
+    },
+    async descricaoExiste(descricao: string, empresaId: string, filialId: string, excludeId?: string): Promise<boolean> {
+      await delay(100);
+      const trimmed = descricao.trim().toLowerCase();
+      return store.some(
+        (i) => i.deletadoEm === null && i.empresaId === empresaId && i.filialId === filialId &&
+          i.descricao.toLowerCase() === trimmed && i.id !== excludeId
+      );
+    },
+    async salvar(
+      data: Partial<T>,
+      ctx: { grupoId: string; empresaId: string; filialId: string }
+    ): Promise<T> {
+      await delay(400);
+      const now = new Date().toISOString();
+      const userId = "u1";
+      const existing = data.id ? store.find((i) => i.id === data.id && i.deletadoEm === null) : undefined;
+      if (existing) {
+        existing.descricao = (data.descricao ?? existing.descricao).trim();
+        existing.ativo = data.ativo ?? existing.ativo;
+        const extraKeys = Object.keys(data).filter(k => !['id','descricao','ativo','grupoId','empresaId','filialId','criadoEm','criadoPor','atualizadoEm','atualizadoPor','deletadoEm','deletadoPor'].includes(k));
+        for (const key of extraKeys) {
+          (existing as any)[key] = (data as any)[key];
+        }
+        existing.atualizadoEm = now;
+        existing.atualizadoPor = userId;
+        return existing;
+      }
+      const novo = {
+        id: `${prefix}${Date.now()}`,
+        grupoId: ctx.grupoId,
+        empresaId: ctx.empresaId,
+        filialId: ctx.filialId,
+        descricao: (data.descricao ?? "").trim(),
+        ativo: data.ativo ?? true,
+        criadoEm: now,
+        criadoPor: userId,
+        atualizadoEm: now,
+        atualizadoPor: userId,
+        deletadoEm: null,
+        deletadoPor: null,
+      } as T;
+      const extraKeys = Object.keys(data).filter(k => !['id','descricao','ativo','grupoId','empresaId','filialId'].includes(k));
+      for (const key of extraKeys) {
+        (novo as any)[key] = (data as any)[key];
+      }
+      store.push(novo);
+      return novo;
+    },
+    async excluir(id: string): Promise<void> {
+      await delay();
+      const now = new Date().toISOString();
+      const item = store.find((i) => i.id === id && i.deletadoEm === null);
+      if (item) {
+        item.deletadoEm = now;
+        item.deletadoPor = "u1";
+        item.atualizadoEm = now;
+        item.atualizadoPor = "u1";
+      }
+    },
+  };
+}
+
+export const tipoProdutoService = createSimpleCrudService<TipoProduto>(mockTiposProduto, "tp");
+export const marcaProdutoService = createSimpleCrudService<MarcaProduto>(mockMarcasProduto, "mp");
+export const divisaoProdutoService = createSimpleCrudService<DivisaoProduto>(mockDivisoesProduto, "dp");
+export const secaoProdutoService = createSimpleCrudService<SecaoProduto>(mockSecoesProduto, "sp");
+export const grupoProdutoService = createSimpleCrudService<GrupoProduto>(mockGruposProduto, "grp");
+export const subgrupoProdutoService = createSimpleCrudService<SubgrupoProduto>(mockSubgruposProduto, "sgp");
