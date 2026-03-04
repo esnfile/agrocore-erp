@@ -51,12 +51,9 @@ const App = () => (
               <Route path="/admin/gersys_submodulos" element={<PlaceholderPage />} />
               <Route path="/admin/gersys_programas" element={<PlaceholderPage />} />
               <Route path="/admin/gersys_permissoes" element={<PlaceholderPage />} />
-              {/* Cadastros */}
-              <Route path="/cadastros/pessoas" element={<PessoasPage />} />
-              <Route path="/cadastros/grupo-pessoas" element={<GrupoPessoasPage />} />
-              <Route path="/cadastros/produtos" element={<PlaceholderPage />} />
-              <Route path="/cadastros/categorias" element={<PlaceholderPage />} />
-              <Route path="/cadastros/locais-estoque" element={<PlaceholderPage />} />
+              {/* Pessoas (movido para /admin) */}
+              <Route path="/admin/pessoas" element={<PessoasPage />} />
+              <Route path="/admin/grupo-pessoas" element={<GrupoPessoasPage />} />
               {/* Armazém */}
               <Route path="/armazem/contratos" element={<PlaceholderPage />} />
               <Route path="/armazem/entregas" element={<PlaceholderPage />} />
