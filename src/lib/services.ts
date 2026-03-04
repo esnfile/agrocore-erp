@@ -21,12 +21,14 @@ import {
   produtos as mockProdutos,
   produtoEmpresas as mockProdutoEmpresas,
   produtoEmpresaTabelasPreco as mockProdutoEmpresaTabelasPreco,
+  unidadesMedida as mockUnidadesMedida,
 } from "./mock-data";
 import type {
   Empresa, Filial, Grupo, GrupoPessoa, Pessoa,
   TipoProduto, MarcaProduto, DivisaoProduto, SecaoProduto, GrupoProduto, SubgrupoProduto,
   Coeficiente, CoeficienteEmpresa, TabelaPreco, TabelaPrecoEmpresa, ParametroComercial, AplicaSobre,
   Produto, ProdutoEmpresa, ProdutoEmpresaTabelaPreco, TipoBaixaEstoque,
+  UnidadeMedida, TipoUnidadeMedida,
 } from "./mock-data";
 
 const delay = (ms = 300) => new Promise((r) => setTimeout(r, ms));
@@ -716,6 +718,9 @@ export const produtoService = {
       grupoProdutoId: data.grupoProdutoId ?? "",
       subgrupoProdutoId: data.subgrupoProdutoId ?? "",
       marcaProdutoId: data.marcaProdutoId ?? null,
+      unidadeBaseId: data.unidadeBaseId ?? "",
+      unidadeCompraId: data.unidadeCompraId ?? "",
+      unidadeVendaId: data.unidadeVendaId ?? "",
       ativo: data.ativo ?? true,
       criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
       deletadoEm: null, deletadoPor: null,
@@ -798,5 +803,71 @@ export const produtoEmpresaTabelaPrecoService = {
     };
     mockProdutoEmpresaTabelasPreco.push(novo);
     return novo;
+  },
+};
+
+// ============================================================
+// Unidade de Medida
+// ============================================================
+export const unidadeMedidaService = {
+  async listar(empresaId: string, filialId: string): Promise<UnidadeMedida[]> {
+    await delay();
+    return mockUnidadesMedida.filter((u) => u.deletadoEm === null && u.empresaId === empresaId && u.filialId === filialId);
+  },
+  async listarPorGrupo(grupoId: string): Promise<UnidadeMedida[]> {
+    await delay();
+    return mockUnidadesMedida.filter((u) => u.deletadoEm === null && u.grupoId === grupoId);
+  },
+  async codigoExiste(codigo: string, empresaId: string, filialId: string, excludeId?: string): Promise<boolean> {
+    await delay(100);
+    const t = codigo.trim().toUpperCase();
+    return mockUnidadesMedida.some(
+      (u) => u.deletadoEm === null && u.empresaId === empresaId && u.filialId === filialId && u.codigo.toUpperCase() === t && u.id !== excludeId
+    );
+  },
+  async estaEmUso(id: string): Promise<boolean> {
+    await delay(100);
+    return mockProdutos.some(
+      (p) => p.deletadoEm === null && (p.unidadeBaseId === id || p.unidadeCompraId === id || p.unidadeVendaId === id)
+    );
+  },
+  async salvar(
+    data: Partial<UnidadeMedida>,
+    ctx: { grupoId: string; empresaId: string; filialId: string }
+  ): Promise<UnidadeMedida> {
+    await delay(400);
+    const now = new Date().toISOString();
+    const existing = data.id ? mockUnidadesMedida.find((u) => u.id === data.id && u.deletadoEm === null) : undefined;
+    if (existing) {
+      existing.codigo = (data.codigo ?? existing.codigo).trim().toUpperCase();
+      existing.descricao = (data.descricao ?? existing.descricao).trim();
+      existing.tipo = data.tipo ?? existing.tipo;
+      existing.fatorBase = data.fatorBase ?? existing.fatorBase;
+      existing.ativo = data.ativo ?? existing.ativo;
+      existing.atualizadoEm = now;
+      existing.atualizadoPor = "u1";
+      return existing;
+    }
+    const novo: UnidadeMedida = {
+      id: `um${Date.now()}`,
+      grupoId: ctx.grupoId,
+      empresaId: ctx.empresaId,
+      filialId: ctx.filialId,
+      codigo: (data.codigo ?? "").trim().toUpperCase(),
+      descricao: (data.descricao ?? "").trim(),
+      tipo: data.tipo ?? "UNIDADE",
+      fatorBase: data.fatorBase ?? 1,
+      ativo: data.ativo ?? true,
+      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      deletadoEm: null, deletadoPor: null,
+    };
+    mockUnidadesMedida.push(novo);
+    return novo;
+  },
+  async excluir(id: string): Promise<void> {
+    await delay();
+    const now = new Date().toISOString();
+    const u = mockUnidadesMedida.find((u) => u.id === id && u.deletadoEm === null);
+    if (u) { u.deletadoEm = now; u.deletadoPor = "u1"; u.atualizadoEm = now; u.atualizadoPor = "u1"; }
   },
 };
