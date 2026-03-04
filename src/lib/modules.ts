@@ -23,6 +23,7 @@ import {
   ShoppingCart,
   Calculator,
   Table2,
+  Ruler,
   type LucideIcon,
 } from "lucide-react";
 
@@ -149,6 +150,7 @@ export const modules: Module[] = [
           },
           { title: "Coeficientes", url: "/produtos-estoque/coeficientes", icon: Calculator },
           { title: "Tabela de Preços", url: "/produtos-estoque/tabela-precos", icon: Table2 },
+          { title: "Unidades de Medida", url: "/produtos-estoque/unidades-medida", icon: Ruler },
         ],
       },
       { title: "Produtos", url: "/produtos-estoque/produtos", icon: Package },

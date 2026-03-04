@@ -744,6 +744,27 @@ export const parametrosComerciais: ParametroComercial[] = [
   },
 ];
 
+// ---- Unidade de Medida ----
+export type TipoUnidadeMedida = "PESO" | "VOLUME" | "UNIDADE";
+
+export interface UnidadeMedida {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  codigo: string;
+  descricao: string;
+  tipo: TipoUnidadeMedida;
+  fatorBase: number;
+  ativo: boolean;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
 // ---- Produto ----
 export type TipoBaixaEstoque = "INDIVIDUAL" | "AGREGADO";
 
@@ -763,6 +784,9 @@ export interface Produto {
   grupoProdutoId: string;
   subgrupoProdutoId: string;
   marcaProdutoId: string | null;
+  unidadeBaseId: string;
+  unidadeCompraId: string;
+  unidadeVendaId: string;
   ativo: boolean;
   criadoEm: string;
   criadoPor: string;
@@ -802,6 +826,15 @@ export interface ProdutoEmpresaTabelaPreco {
   deletadoPor: string | null;
 }
 
+export const unidadesMedida: UnidadeMedida[] = [
+  { id: "um1", grupoId: "g1", empresaId: "e1", filialId: "f1", codigo: "KG", descricao: "Quilograma", tipo: "PESO", fatorBase: 1, ativo: true, criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "um2", grupoId: "g1", empresaId: "e1", filialId: "f1", codigo: "TON", descricao: "Tonelada", tipo: "PESO", fatorBase: 1000, ativo: true, criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "um3", grupoId: "g1", empresaId: "e1", filialId: "f1", codigo: "G", descricao: "Grama", tipo: "PESO", fatorBase: 0.001, ativo: true, criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "um4", grupoId: "g1", empresaId: "e1", filialId: "f1", codigo: "L", descricao: "Litro", tipo: "VOLUME", fatorBase: 1, ativo: true, criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "um5", grupoId: "g1", empresaId: "e1", filialId: "f1", codigo: "ML", descricao: "Mililitro", tipo: "VOLUME", fatorBase: 0.001, ativo: true, criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "um6", grupoId: "g1", empresaId: "e1", filialId: "f1", codigo: "UND", descricao: "Unidade", tipo: "UNIDADE", fatorBase: 1, ativo: true, criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+];
+
 export const produtos: Produto[] = [
   {
     id: "prod1", grupoId: "g1", empresaId: "e1", filialId: "f1",
@@ -811,7 +844,9 @@ export const produtos: Produto[] = [
     quantidadeEmbalagemCompra: 50, quantidadeEmbalagemVenda: 25,
     divisaoProdutoId: "dp1", secaoProdutoId: "sp1",
     grupoProdutoId: "grp1", subgrupoProdutoId: "sgp1",
-    marcaProdutoId: "mp1", ativo: true,
+    marcaProdutoId: "mp1",
+    unidadeBaseId: "um1", unidadeCompraId: "um1", unidadeVendaId: "um1",
+    ativo: true,
     criadoEm: "2024-07-01T08:00:00Z", criadoPor: "u1",
     atualizadoEm: "2024-07-01T08:00:00Z", atualizadoPor: "u1",
     deletadoEm: null, deletadoPor: null,
