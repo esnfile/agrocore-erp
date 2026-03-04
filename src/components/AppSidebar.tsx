@@ -91,7 +91,7 @@ function RecursiveMenuItem({ item, pathname, depth = 0 }: { item: MenuItem; path
         sideOffset={4}
         onMouseEnter={cancelClose}
         onMouseLeave={scheduleClose}
-        className="w-52 p-1 bg-sidebar/95 backdrop-blur-sm border border-sidebar-border shadow-lg"
+        className="w-auto min-w-[13rem] p-1 bg-sidebar/95 backdrop-blur-sm border border-sidebar-border shadow-lg"
       >
         <div className="flex flex-col gap-0.5">
           {item.children!.map((child) => (
