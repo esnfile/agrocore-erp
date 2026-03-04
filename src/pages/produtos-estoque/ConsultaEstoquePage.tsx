@@ -134,7 +134,7 @@ export default function ConsultaEstoquePage() {
                     <TableCell>{getNomeProduto(e.produtoId)}</TableCell>
                     <TableCell>{getNomePonto(e.pontoEstoqueId)}</TableCell>
                     <TableCell className={`text-right font-mono ${e.quantidadeAtual < 0 ? "text-destructive font-bold" : ""}`}>
-                      {e.quantidadeAtual.toFixed(6)}
+                      {Number(e.quantidadeAtual).toFixed(6)}
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline">{getUnidadeBaseProduto(e.produtoId)}</Badge>
