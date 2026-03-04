@@ -1,35 +1,80 @@
 
 
-## Plano: Reorganizar layout da aba Dados Gerais do Produto
+## Plano: Estrutura de Estoque (Quantidade + Controle de Negativo)
 
-### Mudanças em `src/pages/produtos-estoque/ProdutosPage.tsx`
+### 1. Atualizar `ParametroComercial` — `src/lib/mock-data.ts`
 
-**1. Reordenar seções** (dentro da TabsContent "dados", linhas 656-1024):
+Adicionar campo `permitirEstoqueNegativo: boolean` na interface e no mock data (default `false`).
 
-Ordem atual: Código/Descrição → Aplicação → Tipo Baixa → **Unidades** → Divisão/Marca → Seção/Grupo/Subgrupo → Ativo
+### 2. Novas Interfaces e Mock Data — `src/lib/mock-data.ts`
 
-Nova ordem: Código/Descrição → Aplicação → Tipo Baixa → Divisão/Marca → Seção/Grupo/Subgrupo → **Unidades** → Ativo
+**`PontoEstoque`:**
+- id, grupoId, empresaId, filialId, descricao, principal (boolean), tipo ("PROPRIO" | "TERCEIRO"), ativo, auditoria completa
 
-**2. Unidades em 3 colunas (layout compacto)**
+**`Estoque`:**
+- id, grupoId, empresaId, filialId, produtoId, pontoEstoqueId, quantidadeAtual (decimal), custoMedioAtual (nullable), valorTotalEstoque (nullable)
 
-Substituir as 3 grids separadas (linhas 720-877) por um único grid de 3 colunas:
+**`MovimentacaoEstoque`:**
+- id, grupoId, empresaId, filialId, produtoId, pontoEstoqueId, tipoMovimento ("ENTRADA" | "SAIDA" | "AJUSTE"), quantidadeInformada, unidadeMovimentacaoId, quantidadeConvertidaBase, dataMovimentacao, observacao, auditoria completa
 
-| Coluna 1 | Coluna 2 | Coluna 3 |
-|---|---|---|
-| Unidade Base | Unidade de Compra | Unidade de Venda |
-| _(vazio)_ | Qtd. Emb. Compra | Qtd. Emb. Venda |
+Mock data: 1 ponto de estoque (principal, PROPRIO), 1 registro de estoque para prod1, 0 movimentações iniciais.
 
-Cada coluna é um `div` com `space-y-4` contendo os campos empilhados.
+### 3. Novos Services — `src/lib/services.ts`
 
-**3. Toggle "Ativo" alinhado com as abas**
+**`pontoEstoqueService`:** listar (por empresa+filial), salvar (validar unicidade de principal por empresa+filial), excluir (soft delete).
 
-Mover o toggle `Ativo` para fora da `TabsContent`, posicionando-o na mesma linha do `TabsList` usando `flex justify-between items-center` no container do TabsList + toggle.
+**`estoqueService`:** listarPorEmpresaFilial, obterSaldo (por produto+ponto), atualizarSaldo.
 
-**4. Remover `max-w-[700px]`** (linha 656)
+**`movimentacaoEstoqueService`:** listar (com filtros), registrar — contém toda a lógica central:
+1. Validar tipo da unidade (mesmo tipo da unidade_base do produto)
+2. Converter quantidade para unidade_base usando fatorBase
+3. Calcular novo saldo (ENTRADA: +, SAIDA: -, AJUSTE: = valor)
+4. Verificar `permitirEstoqueNegativo` se saldo < 0
+5. Atualizar registro de estoque
+6. Inserir movimentação
 
-Trocar `max-w-[700px]` por largura total para aproveitar o espaço da modal `sm:max-w-5xl`, corrigindo o espaçamento excessivo à direita.
+### 4. Atualizar Menu — `src/lib/modules.ts`
 
-| Arquivo | Linhas | Ação |
-|---|---|---|
-| `src/pages/produtos-estoque/ProdutosPage.tsx` | 647-1024 | Reordenar seções, compactar unidades em 3 cols, mover Ativo para linha das abas, remover max-w |
+Dentro de "Auxiliares", adicionar/ajustar:
+- Pontos de Estoque (já existe placeholder)
+- Movimentação de Estoque (novo item)
+- Consulta de Estoque (novo item)
+
+### 5. Novas Páginas
+
+**`src/pages/produtos-estoque/PontosEstoquePage.tsx`:**
+- CRUD com listagem, novo, editar, soft delete
+- Campos: descrição, tipo (PROPRIO/TERCEIRO), principal (toggle), ativo
+- Validação: apenas 1 principal por empresa+filial
+
+**`src/pages/produtos-estoque/MovimentacaoEstoquePage.tsx`:**
+- Formulário: Produto (select), Ponto de Estoque (select), Tipo Movimento (ENTRADA/SAIDA/AJUSTE), Unidade (select filtrada por tipo da unidade_base), Quantidade, Data, Observação
+- Exibir "Quantidade convertida para unidade base: XXX [codigo]" em tempo real
+- Ao confirmar: chamar service que faz conversão, validação de negativo e atualização de saldo
+- Toast de sucesso/erro
+- Listagem de movimentações recentes abaixo do formulário
+
+**`src/pages/produtos-estoque/ConsultaEstoquePage.tsx`:**
+- Grid: Produto, Ponto, Quantidade Atual, Unidade Base
+- Filtros: Produto, Ponto
+- Saldo negativo destacado em vermelho
+
+### 6. Rotas — `src/App.tsx`
+
+Substituir placeholders por componentes reais:
+- `/produtos-estoque/pontos-estoque` → PontosEstoquePage
+- `/produtos-estoque/movimentacao-estoque` → MovimentacaoEstoquePage (nova rota)
+- `/produtos-estoque/consulta-estoque` → ConsultaEstoquePage (nova rota)
+
+### Arquivos Modificados
+
+| Arquivo | Ação |
+|---|---|
+| `src/lib/mock-data.ts` | Adicionar interfaces, types, mock arrays, campo em ParametroComercial |
+| `src/lib/services.ts` | Adicionar pontoEstoqueService, estoqueService, movimentacaoEstoqueService |
+| `src/lib/modules.ts` | Adicionar itens de menu (Movimentação, Consulta) |
+| `src/App.tsx` | Adicionar imports e rotas |
+| `src/pages/produtos-estoque/PontosEstoquePage.tsx` | Criar |
+| `src/pages/produtos-estoque/MovimentacaoEstoquePage.tsx` | Criar |
+| `src/pages/produtos-estoque/ConsultaEstoquePage.tsx` | Criar |
 
