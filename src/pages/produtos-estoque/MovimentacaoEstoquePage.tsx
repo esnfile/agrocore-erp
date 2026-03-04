@@ -237,7 +237,7 @@ export default function MovimentacaoEstoquePage() {
               {quantidadeConvertida !== null && unidadeBase && (
                 <div className="rounded-md bg-muted p-3 text-sm">
                   Quantidade convertida para unidade base:{" "}
-                  <strong>{quantidadeConvertida.toFixed(6)} {unidadeBase.codigo}</strong>
+                  <strong>{Number(quantidadeConvertida).toFixed(6)} {unidadeBase.codigo}</strong>
                 </div>
               )}
 
