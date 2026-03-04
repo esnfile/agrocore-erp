@@ -18,11 +18,15 @@ import {
   tabelasPreco as mockTabelasPreco,
   tabelaPrecoEmpresas as mockTabelaPrecoEmpresas,
   parametrosComerciais as mockParametrosComerciais,
+  produtos as mockProdutos,
+  produtoEmpresas as mockProdutoEmpresas,
+  produtoEmpresaTabelasPreco as mockProdutoEmpresaTabelasPreco,
 } from "./mock-data";
 import type {
   Empresa, Filial, Grupo, GrupoPessoa, Pessoa,
   TipoProduto, MarcaProduto, DivisaoProduto, SecaoProduto, GrupoProduto, SubgrupoProduto,
   Coeficiente, CoeficienteEmpresa, TabelaPreco, TabelaPrecoEmpresa, ParametroComercial, AplicaSobre,
+  Produto, ProdutoEmpresa, ProdutoEmpresaTabelaPreco, TipoBaixaEstoque,
 } from "./mock-data";
 
 const delay = (ms = 300) => new Promise((r) => setTimeout(r, ms));
@@ -668,5 +672,131 @@ export const parametroComercialService = {
   async obterPorEmpresa(empresaId: string): Promise<ParametroComercial | null> {
     await delay();
     return mockParametrosComerciais.find((p) => p.deletadoEm === null && p.empresaId === empresaId) ?? null;
+  },
+};
+
+// ============================================================
+// Produtos
+// ============================================================
+export const produtoService = {
+  async listar(grupoId: string): Promise<Produto[]> {
+    await delay();
+    return mockProdutos.filter((p) => p.deletadoEm === null && p.grupoId === grupoId);
+  },
+  async descricaoExiste(descricao: string, grupoId: string, excludeId?: string): Promise<boolean> {
+    await delay(100);
+    const t = descricao.trim().toLowerCase();
+    return mockProdutos.some(
+      (p) => p.deletadoEm === null && p.grupoId === grupoId && p.descricao.toLowerCase() === t && p.id !== excludeId
+    );
+  },
+  async salvar(data: Partial<Produto>, ctx: { grupoId: string; empresaId: string; filialId: string }): Promise<Produto> {
+    await delay(400);
+    const now = new Date().toISOString();
+    const existing = data.id ? mockProdutos.find((p) => p.id === data.id && p.deletadoEm === null) : undefined;
+    if (existing) {
+      Object.assign(existing, data, {
+        grupoId: existing.grupoId, empresaId: existing.empresaId, filialId: existing.filialId,
+        criadoEm: existing.criadoEm, criadoPor: existing.criadoPor,
+        atualizadoEm: now, atualizadoPor: "u1", deletadoEm: null, deletadoPor: null,
+      });
+      return existing;
+    }
+    const novo: Produto = {
+      id: `prod${Date.now()}`,
+      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      codigoBarras: data.codigoBarras ?? "",
+      descricao: (data.descricao ?? "").trim(),
+      aplicacao: data.aplicacao ?? "",
+      tipoBaixaEstoque: data.tipoBaixaEstoque ?? "INDIVIDUAL",
+      quantidadeEmbalagemCompra: data.quantidadeEmbalagemCompra ?? 1,
+      quantidadeEmbalagemVenda: data.quantidadeEmbalagemVenda ?? 1,
+      divisaoProdutoId: data.divisaoProdutoId ?? "",
+      secaoProdutoId: data.secaoProdutoId ?? "",
+      grupoProdutoId: data.grupoProdutoId ?? "",
+      subgrupoProdutoId: data.subgrupoProdutoId ?? "",
+      marcaProdutoId: data.marcaProdutoId ?? null,
+      ativo: data.ativo ?? true,
+      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      deletadoEm: null, deletadoPor: null,
+    };
+    mockProdutos.push(novo);
+    return novo;
+  },
+  async excluir(id: string): Promise<void> {
+    await delay();
+    const now = new Date().toISOString();
+    const p = mockProdutos.find((p) => p.id === id && p.deletadoEm === null);
+    if (p) { p.deletadoEm = now; p.deletadoPor = "u1"; p.atualizadoEm = now; p.atualizadoPor = "u1"; }
+  },
+};
+
+export const produtoEmpresaService = {
+  async listarPorProduto(produtoId: string): Promise<ProdutoEmpresa[]> {
+    await delay();
+    return mockProdutoEmpresas.filter((pe) => pe.deletadoEm === null && pe.produtoId === produtoId);
+  },
+  async salvar(data: Partial<ProdutoEmpresa>, produtoId: string): Promise<ProdutoEmpresa> {
+    await delay(200);
+    const now = new Date().toISOString();
+    const existing = data.id ? mockProdutoEmpresas.find((pe) => pe.id === data.id && pe.deletadoEm === null) : undefined;
+    if (existing) {
+      existing.coeficienteEmpresaId = data.coeficienteEmpresaId ?? existing.coeficienteEmpresaId;
+      existing.custoBase = data.custoBase ?? existing.custoBase;
+      existing.custoCalculado = data.custoCalculado ?? existing.custoCalculado;
+      existing.ativo = data.ativo ?? existing.ativo;
+      existing.atualizadoEm = now;
+      existing.atualizadoPor = "u1";
+      return existing;
+    }
+    const dup = mockProdutoEmpresas.find(
+      (pe) => pe.deletadoEm === null && pe.produtoId === produtoId && pe.empresaId === data.empresaId
+    );
+    if (dup) throw new Error("Empresa já vinculada a este produto.");
+    const novo: ProdutoEmpresa = {
+      id: `pe${Date.now()}`, produtoId, empresaId: data.empresaId!,
+      coeficienteEmpresaId: data.coeficienteEmpresaId ?? "",
+      custoBase: data.custoBase ?? 0, custoCalculado: data.custoCalculado ?? 0,
+      ativo: data.ativo ?? true,
+      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      deletadoEm: null, deletadoPor: null,
+    };
+    mockProdutoEmpresas.push(novo);
+    return novo;
+  },
+  async excluirPorProduto(produtoId: string): Promise<void> {
+    const now = new Date().toISOString();
+    mockProdutoEmpresas.filter((pe) => pe.produtoId === produtoId && pe.deletadoEm === null).forEach((pe) => {
+      pe.deletadoEm = now; pe.deletadoPor = "u1";
+    });
+  },
+};
+
+export const produtoEmpresaTabelaPrecoService = {
+  async listarPorProdutoEmpresa(produtoEmpresaId: string): Promise<ProdutoEmpresaTabelaPreco[]> {
+    await delay();
+    return mockProdutoEmpresaTabelasPreco.filter((t) => t.deletadoEm === null && t.produtoEmpresaId === produtoEmpresaId);
+  },
+  async salvar(data: Partial<ProdutoEmpresaTabelaPreco>, produtoEmpresaId: string): Promise<ProdutoEmpresaTabelaPreco> {
+    await delay(200);
+    const now = new Date().toISOString();
+    const existing = data.id ? mockProdutoEmpresaTabelasPreco.find((t) => t.id === data.id && t.deletadoEm === null) : undefined;
+    if (existing) {
+      existing.precoCalculado = data.precoCalculado ?? existing.precoCalculado;
+      existing.ativo = data.ativo ?? existing.ativo;
+      existing.atualizadoEm = now;
+      existing.atualizadoPor = "u1";
+      return existing;
+    }
+    const novo: ProdutoEmpresaTabelaPreco = {
+      id: `petp${Date.now()}`, produtoEmpresaId,
+      tabelaPrecoEmpresaId: data.tabelaPrecoEmpresaId ?? "",
+      precoCalculado: data.precoCalculado ?? 0,
+      ativo: data.ativo ?? true,
+      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      deletadoEm: null, deletadoPor: null,
+    };
+    mockProdutoEmpresaTabelasPreco.push(novo);
+    return novo;
   },
 };

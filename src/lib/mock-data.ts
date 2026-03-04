@@ -743,3 +743,98 @@ export const parametrosComerciais: ParametroComercial[] = [
     deletadoEm: null, deletadoPor: null,
   },
 ];
+
+// ---- Produto ----
+export type TipoBaixaEstoque = "INDIVIDUAL" | "AGREGADO";
+
+export interface Produto {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  codigoBarras: string;
+  descricao: string;
+  aplicacao: string;
+  tipoBaixaEstoque: TipoBaixaEstoque;
+  quantidadeEmbalagemCompra: number;
+  quantidadeEmbalagemVenda: number;
+  divisaoProdutoId: string;
+  secaoProdutoId: string;
+  grupoProdutoId: string;
+  subgrupoProdutoId: string;
+  marcaProdutoId: string | null;
+  ativo: boolean;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export interface ProdutoEmpresa {
+  id: string;
+  produtoId: string;
+  empresaId: string;
+  coeficienteEmpresaId: string;
+  custoBase: number;
+  custoCalculado: number;
+  ativo: boolean;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export interface ProdutoEmpresaTabelaPreco {
+  id: string;
+  produtoEmpresaId: string;
+  tabelaPrecoEmpresaId: string;
+  precoCalculado: number;
+  ativo: boolean;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export const produtos: Produto[] = [
+  {
+    id: "prod1", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    codigoBarras: "7891234567890", descricao: "Fertilizante NPK 20-05-20",
+    aplicacao: "Aplicação foliar em soja e milho",
+    tipoBaixaEstoque: "INDIVIDUAL",
+    quantidadeEmbalagemCompra: 50, quantidadeEmbalagemVenda: 25,
+    divisaoProdutoId: "dp1", secaoProdutoId: "sp1",
+    grupoProdutoId: "grp1", subgrupoProdutoId: "sgp1",
+    marcaProdutoId: "mp1", ativo: true,
+    criadoEm: "2024-07-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2024-07-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+];
+
+export const produtoEmpresas: ProdutoEmpresa[] = [
+  {
+    id: "pe1", produtoId: "prod1", empresaId: "e1",
+    coeficienteEmpresaId: "ce1", custoBase: 120.00, custoCalculado: 144.84,
+    ativo: true,
+    criadoEm: "2024-07-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2024-07-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+];
+
+export const produtoEmpresaTabelasPreco: ProdutoEmpresaTabelaPreco[] = [
+  {
+    id: "petp1", produtoEmpresaId: "pe1", tabelaPrecoEmpresaId: "tpe1",
+    precoCalculado: 166.57, ativo: true,
+    criadoEm: "2024-07-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2024-07-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+];
