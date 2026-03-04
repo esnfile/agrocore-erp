@@ -597,3 +597,149 @@ export const subgruposProduto: SubgrupoProduto[] = [
     deletadoEm: null, deletadoPor: null,
   },
 ];
+
+// ---- Coeficiente ----
+export type AplicaSobre = "CUSTO_BASE" | "CUSTO_COM_IMPOSTO";
+
+export interface Coeficiente {
+  id: string;
+  grupoId: string;
+  empresaId: string | null;
+  filialId: string | null;
+  descricao: string;
+  ativo: boolean;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export interface CoeficienteEmpresa {
+  id: string;
+  coeficienteId: string;
+  empresaId: string;
+  percentualCustoVariavel: number;
+  percentualCustoFixo: number;
+  percentualImpostos: number;
+  aplicaSobre: AplicaSobre;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+// ---- Tabela de Preço ----
+export interface TabelaPreco {
+  id: string;
+  grupoId: string;
+  empresaId: string | null;
+  filialId: string | null;
+  descricao: string;
+  ativo: boolean;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export interface TabelaPrecoEmpresa {
+  id: string;
+  tabelaPrecoId: string;
+  empresaId: string;
+  margemLucroPercentual: number;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+// ---- Parâmetros Comerciais ----
+export interface ParametroComercial {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string | null;
+  atualizarCustoAutomaticamente: boolean;
+  atualizarPrecoAutomaticamente: boolean;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+// ---- Mock Data ----
+export const coeficientes: Coeficiente[] = [
+  {
+    id: "coef1", grupoId: "g1", empresaId: null, filialId: null,
+    descricao: "Soja", ativo: true,
+    criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "coef2", grupoId: "g1", empresaId: null, filialId: null,
+    descricao: "Milho", ativo: true,
+    criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+];
+
+export const coeficienteEmpresas: CoeficienteEmpresa[] = [
+  {
+    id: "ce1", coeficienteId: "coef1", empresaId: "e1",
+    percentualCustoVariavel: 5.50, percentualCustoFixo: 3.20,
+    percentualImpostos: 12.00, aplicaSobre: "CUSTO_BASE",
+    criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+];
+
+export const tabelasPreco: TabelaPreco[] = [
+  {
+    id: "tp_preco1", grupoId: "g1", empresaId: null, filialId: null,
+    descricao: "Varejo", ativo: true,
+    criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "tp_preco2", grupoId: "g1", empresaId: null, filialId: null,
+    descricao: "Atacado", ativo: true,
+    criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+];
+
+export const tabelaPrecoEmpresas: TabelaPrecoEmpresa[] = [
+  {
+    id: "tpe1", tabelaPrecoId: "tp_preco1", empresaId: "e1",
+    margemLucroPercentual: 15.00,
+    criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+];
+
+export const parametrosComerciais: ParametroComercial[] = [
+  {
+    id: "pc1", grupoId: "g1", empresaId: "e1", filialId: null,
+    atualizarCustoAutomaticamente: false,
+    atualizarPrecoAutomaticamente: false,
+    criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+];
