@@ -46,7 +46,7 @@ const App = () => (
               <Route path="/admin/filiais" element={<FiliaisPage />} />
               {/* Administrativo — GerSys */}
               <Route path="/admin/usuarios" element={<PlaceholderPage />} />
-              <Route path="/admin/permissoes" element={<PlaceholderPage />} />
+              {/* removed /admin/permissoes */}
               <Route path="/admin/gersys_modulos" element={<PlaceholderPage />} />
               <Route path="/admin/gersys_submodulos" element={<PlaceholderPage />} />
               <Route path="/admin/gersys_programas" element={<PlaceholderPage />} />
