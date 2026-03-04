@@ -160,6 +160,8 @@ export const modules: Module[] = [
         children: [
           { title: "Estrutura de Estoque", url: "/produtos-estoque/estrutura-estoque", icon: WarehouseIcon },
           { title: "Pontos de Estoque", url: "/produtos-estoque/pontos-estoque", icon: WarehouseIcon },
+          { title: "Movimentação de Estoque", url: "/produtos-estoque/movimentacao-estoque", icon: ArrowDownCircle },
+          { title: "Consulta de Estoque", url: "/produtos-estoque/consulta-estoque", icon: BarChart3 },
           { title: "Inventário de Estoque", url: "/produtos-estoque/inventario-estoque", icon: BarChart3 },
         ],
       },

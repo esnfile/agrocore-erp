@@ -21,6 +21,9 @@ import CoeficientesPage from "@/pages/produtos-estoque/CoeficientesPage";
 import TabelaPrecosPage from "@/pages/produtos-estoque/TabelaPrecosPage";
 import UnidadesMedidaPage from "@/pages/produtos-estoque/UnidadesMedidaPage";
 import ProdutosEstoquePage from "@/pages/produtos-estoque/ProdutosPage";
+import PontosEstoquePage from "@/pages/produtos-estoque/PontosEstoquePage";
+import MovimentacaoEstoquePage from "@/pages/produtos-estoque/MovimentacaoEstoquePage";
+import ConsultaEstoquePage from "@/pages/produtos-estoque/ConsultaEstoquePage";
 import PlaceholderPage from "@/pages/PlaceholderPage";
 import NotFound from "./pages/NotFound";
 
@@ -79,7 +82,9 @@ const App = () => (
               <Route path="/produtos-estoque/requisicao-compra" element={<PlaceholderPage />} />
               <Route path="/produtos-estoque/produtos" element={<ProdutosEstoquePage />} />
               <Route path="/produtos-estoque/estrutura-estoque" element={<PlaceholderPage />} />
-              <Route path="/produtos-estoque/pontos-estoque" element={<PlaceholderPage />} />
+              <Route path="/produtos-estoque/pontos-estoque" element={<PontosEstoquePage />} />
+              <Route path="/produtos-estoque/movimentacao-estoque" element={<MovimentacaoEstoquePage />} />
+              <Route path="/produtos-estoque/consulta-estoque" element={<ConsultaEstoquePage />} />
               <Route path="/produtos-estoque/inventario-estoque" element={<PlaceholderPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
