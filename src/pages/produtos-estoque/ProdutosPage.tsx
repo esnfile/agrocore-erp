@@ -645,15 +645,25 @@ export default function ProdutosPage() {
         maxWidth="sm:max-w-5xl"
       >
         <Tabs defaultValue="dados" className="w-full">
-          <TabsList className="mb-4">
-            <TabsTrigger value="dados">Dados Gerais</TabsTrigger>
-            <TabsTrigger value="empresas">Empresas Permitidas</TabsTrigger>
-            <TabsTrigger value="precos">Tabelas de Preço</TabsTrigger>
-          </TabsList>
+          <div className="flex justify-between items-center mb-4">
+            <TabsList>
+              <TabsTrigger value="dados">Dados Gerais</TabsTrigger>
+              <TabsTrigger value="empresas">Empresas Permitidas</TabsTrigger>
+              <TabsTrigger value="precos">Tabelas de Preço</TabsTrigger>
+            </TabsList>
+            <div className="flex items-center gap-3">
+              <Switch
+                id="ativo"
+                checked={ativoValue}
+                onCheckedChange={(v) => setValue("ativo", v)}
+              />
+              <Label htmlFor="ativo">Ativo</Label>
+            </div>
+          </div>
 
           {/* ---- TAB 1: Dados Gerais ---- */}
           <TabsContent value="dados">
-            <div className="space-y-4 max-w-[700px]">
+            <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="codigoBarras">Código de Barras</Label>
@@ -711,169 +721,6 @@ export default function ProdutosPage() {
                       <SelectItem value="AGREGADO">Agregado</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-              </div>
-
-              {/* 📦 Unidades */}
-              <div className="space-y-2">
-                <h4 className="text-sm font-medium text-muted-foreground">📦 Unidades</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-1.5">
-                    <Label>
-                      Unidade Base <span className="text-destructive">*</span>
-                    </Label>
-                    <Select
-                      value={watch("unidadeBaseId")}
-                      onValueChange={(v) => {
-                        setValue("unidadeBaseId", v);
-                        // Reset compra/venda when base changes
-                        setValue("unidadeCompraId", "");
-                        setValue("unidadeVendaId", "");
-                        setValue("quantidadeEmbalagemCompra", 1);
-                        setValue("quantidadeEmbalagemVenda", 1);
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {unidades.filter((u) => u.ativo).map((u) => (
-                          <SelectItem key={u.id} value={u.id}>
-                            {u.codigo} - {u.descricao}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.unidadeBaseId && (
-                      <p className="text-xs text-destructive">
-                        {errors.unidadeBaseId.message}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-1.5">
-                    <Label>
-                      Unidade de Compra <span className="text-destructive">*</span>
-                    </Label>
-                    <Select
-                      value={watch("unidadeCompraId")}
-                      onValueChange={(v) => {
-                        setValue("unidadeCompraId", v);
-                        // If compra == base, qty = 1 readonly
-                        if (v === unidadeBaseIdSel) {
-                          setValue("quantidadeEmbalagemCompra", 1);
-                        }
-                        // Log conversion mock
-                        const um = unidades.find((u) => u.id === v);
-                        if (um) {
-                          console.log(`[Mock Conversão Compra] unidade=${um.codigo}, fator=${um.fatorBase}`);
-                        }
-                      }}
-                      disabled={!unidadeBaseIdSel}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {unidadesCompraFiltradas.map((u) => (
-                          <SelectItem key={u.id} value={u.id}>
-                            {u.codigo} - {u.descricao}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.unidadeCompraId && (
-                      <p className="text-xs text-destructive">
-                        {errors.unidadeCompraId.message}
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>
-                      Qtd. Emb. Compra{" "}
-                      <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      type="number"
-                      step="0.000001"
-                      min="0"
-                      readOnly={unidadeCompraIdSel === unidadeBaseIdSel && !!unidadeCompraIdSel}
-                      className={unidadeCompraIdSel === unidadeBaseIdSel && !!unidadeCompraIdSel ? "bg-muted" : ""}
-                      {...register("quantidadeEmbalagemCompra")}
-                      onChange={(e) => {
-                        register("quantidadeEmbalagemCompra").onChange(e);
-                        const val = parseFloat(e.target.value) || 0;
-                        const um = unidades.find((u) => u.id === unidadeCompraIdSel);
-                        if (um) {
-                          console.log(`[Mock Conversão] quantidade_base = ${val} × ${um.fatorBase} = ${val * um.fatorBase}`);
-                        }
-                      }}
-                    />
-                    {errors.quantidadeEmbalagemCompra && (
-                      <p className="text-xs text-destructive">
-                        {errors.quantidadeEmbalagemCompra.message}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-1.5">
-                    <Label>
-                      Unidade de Venda <span className="text-destructive">*</span>
-                    </Label>
-                    <Select
-                      value={watch("unidadeVendaId")}
-                      onValueChange={(v) => {
-                        setValue("unidadeVendaId", v);
-                        if (v === unidadeBaseIdSel) {
-                          setValue("quantidadeEmbalagemVenda", 1);
-                        }
-                        const um = unidades.find((u) => u.id === v);
-                        if (um) {
-                          console.log(`[Mock Conversão Venda] unidade=${um.codigo}, fator=${um.fatorBase}`);
-                        }
-                      }}
-                      disabled={!unidadeBaseIdSel}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {unidadesVendaFiltradas.map((u) => (
-                          <SelectItem key={u.id} value={u.id}>
-                            {u.codigo} - {u.descricao}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.unidadeVendaId && (
-                      <p className="text-xs text-destructive">
-                        {errors.unidadeVendaId.message}
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>
-                      Qtd. Emb. Venda{" "}
-                      <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      type="number"
-                      step="0.000001"
-                      min="0"
-                      readOnly={unidadeVendaIdSel === unidadeBaseIdSel && !!unidadeVendaIdSel}
-                      className={unidadeVendaIdSel === unidadeBaseIdSel && !!unidadeVendaIdSel ? "bg-muted" : ""}
-                      {...register("quantidadeEmbalagemVenda")}
-                    />
-                    {errors.quantidadeEmbalagemVenda && (
-                      <p className="text-xs text-destructive">
-                        {errors.quantidadeEmbalagemVenda.message}
-                      </p>
-                    )}
-                  </div>
                 </div>
               </div>
 
@@ -1013,13 +860,167 @@ export default function ProdutosPage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <Switch
-                  id="ativo"
-                  checked={ativoValue}
-                  onCheckedChange={(v) => setValue("ativo", v)}
-                />
-                <Label htmlFor="ativo">Ativo</Label>
+              {/* 📦 Unidades */}
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium text-muted-foreground">📦 Unidades</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Coluna 1: Unidade Base */}
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <Label>
+                        Unidade Base <span className="text-destructive">*</span>
+                      </Label>
+                      <Select
+                        value={watch("unidadeBaseId")}
+                        onValueChange={(v) => {
+                          setValue("unidadeBaseId", v);
+                          setValue("unidadeCompraId", "");
+                          setValue("unidadeVendaId", "");
+                          setValue("quantidadeEmbalagemCompra", 1);
+                          setValue("quantidadeEmbalagemVenda", 1);
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {unidades.filter((u) => u.ativo).map((u) => (
+                            <SelectItem key={u.id} value={u.id}>
+                              {u.codigo} - {u.descricao}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.unidadeBaseId && (
+                        <p className="text-xs text-destructive">
+                          {errors.unidadeBaseId.message}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Coluna 2: Unidade de Compra + Qtd Emb */}
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <Label>
+                        Unidade de Compra <span className="text-destructive">*</span>
+                      </Label>
+                      <Select
+                        value={watch("unidadeCompraId")}
+                        onValueChange={(v) => {
+                          setValue("unidadeCompraId", v);
+                          if (v === unidadeBaseIdSel) {
+                            setValue("quantidadeEmbalagemCompra", 1);
+                          }
+                          const um = unidades.find((u) => u.id === v);
+                          if (um) {
+                            console.log(`[Mock Conversão Compra] unidade=${um.codigo}, fator=${um.fatorBase}`);
+                          }
+                        }}
+                        disabled={!unidadeBaseIdSel}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {unidadesCompraFiltradas.map((u) => (
+                            <SelectItem key={u.id} value={u.id}>
+                              {u.codigo} - {u.descricao}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.unidadeCompraId && (
+                        <p className="text-xs text-destructive">
+                          {errors.unidadeCompraId.message}
+                        </p>
+                      )}
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>
+                        Qtd. Emb. Compra <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        type="number"
+                        step="0.000001"
+                        min="0"
+                        readOnly={unidadeCompraIdSel === unidadeBaseIdSel && !!unidadeCompraIdSel}
+                        className={unidadeCompraIdSel === unidadeBaseIdSel && !!unidadeCompraIdSel ? "bg-muted" : ""}
+                        {...register("quantidadeEmbalagemCompra")}
+                        onChange={(e) => {
+                          register("quantidadeEmbalagemCompra").onChange(e);
+                          const val = parseFloat(e.target.value) || 0;
+                          const um = unidades.find((u) => u.id === unidadeCompraIdSel);
+                          if (um) {
+                            console.log(`[Mock Conversão] quantidade_base = ${val} × ${um.fatorBase} = ${val * um.fatorBase}`);
+                          }
+                        }}
+                      />
+                      {errors.quantidadeEmbalagemCompra && (
+                        <p className="text-xs text-destructive">
+                          {errors.quantidadeEmbalagemCompra.message}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Coluna 3: Unidade de Venda + Qtd Emb */}
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <Label>
+                        Unidade de Venda <span className="text-destructive">*</span>
+                      </Label>
+                      <Select
+                        value={watch("unidadeVendaId")}
+                        onValueChange={(v) => {
+                          setValue("unidadeVendaId", v);
+                          if (v === unidadeBaseIdSel) {
+                            setValue("quantidadeEmbalagemVenda", 1);
+                          }
+                          const um = unidades.find((u) => u.id === v);
+                          if (um) {
+                            console.log(`[Mock Conversão Venda] unidade=${um.codigo}, fator=${um.fatorBase}`);
+                          }
+                        }}
+                        disabled={!unidadeBaseIdSel}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {unidadesVendaFiltradas.map((u) => (
+                            <SelectItem key={u.id} value={u.id}>
+                              {u.codigo} - {u.descricao}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.unidadeVendaId && (
+                        <p className="text-xs text-destructive">
+                          {errors.unidadeVendaId.message}
+                        </p>
+                      )}
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>
+                        Qtd. Emb. Venda <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        type="number"
+                        step="0.000001"
+                        min="0"
+                        readOnly={unidadeVendaIdSel === unidadeBaseIdSel && !!unidadeVendaIdSel}
+                        className={unidadeVendaIdSel === unidadeBaseIdSel && !!unidadeVendaIdSel ? "bg-muted" : ""}
+                        {...register("quantidadeEmbalagemVenda")}
+                      />
+                      {errors.quantidadeEmbalagemVenda && (
+                        <p className="text-xs text-destructive">
+                          {errors.quantidadeEmbalagemVenda.message}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </TabsContent>
