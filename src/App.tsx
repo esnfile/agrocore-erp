@@ -46,17 +46,14 @@ const App = () => (
               <Route path="/admin/filiais" element={<FiliaisPage />} />
               {/* Administrativo — GerSys */}
               <Route path="/admin/usuarios" element={<PlaceholderPage />} />
-              <Route path="/admin/permissoes" element={<PlaceholderPage />} />
+              {/* removed /admin/permissoes */}
               <Route path="/admin/gersys_modulos" element={<PlaceholderPage />} />
               <Route path="/admin/gersys_submodulos" element={<PlaceholderPage />} />
               <Route path="/admin/gersys_programas" element={<PlaceholderPage />} />
               <Route path="/admin/gersys_permissoes" element={<PlaceholderPage />} />
-              {/* Cadastros */}
-              <Route path="/cadastros/pessoas" element={<PessoasPage />} />
-              <Route path="/cadastros/grupo-pessoas" element={<GrupoPessoasPage />} />
-              <Route path="/cadastros/produtos" element={<PlaceholderPage />} />
-              <Route path="/cadastros/categorias" element={<PlaceholderPage />} />
-              <Route path="/cadastros/locais-estoque" element={<PlaceholderPage />} />
+              {/* Pessoas (movido para /admin) */}
+              <Route path="/admin/pessoas" element={<PessoasPage />} />
+              <Route path="/admin/grupo-pessoas" element={<GrupoPessoasPage />} />
               {/* Armazém */}
               <Route path="/armazem/contratos" element={<PlaceholderPage />} />
               <Route path="/armazem/entregas" element={<PlaceholderPage />} />
@@ -81,7 +78,7 @@ const App = () => (
               <Route path="/produtos-estoque/liberacao-pedidos" element={<PlaceholderPage />} />
               <Route path="/produtos-estoque/requisicao-compra" element={<PlaceholderPage />} />
               <Route path="/produtos-estoque/produtos" element={<ProdutosEstoquePage />} />
-              <Route path="/produtos-estoque/estrutura-estoque" element={<PlaceholderPage />} />
+              {/* removed /produtos-estoque/estrutura-estoque */}
               <Route path="/produtos-estoque/pontos-estoque" element={<PontosEstoquePage />} />
               <Route path="/produtos-estoque/movimentacao-estoque" element={<MovimentacaoEstoquePage />} />
               <Route path="/produtos-estoque/consulta-estoque" element={<ConsultaEstoquePage />} />

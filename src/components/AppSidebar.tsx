@@ -62,7 +62,7 @@ function RecursiveMenuItem({ item, pathname, depth = 0 }: { item: MenuItem; path
         )}
       >
         <item.icon className="h-4 w-4 shrink-0" />
-        <span>{item.title}</span>
+        <span className="whitespace-nowrap">{item.title}</span>
       </button>
     );
   }
@@ -81,7 +81,7 @@ function RecursiveMenuItem({ item, pathname, depth = 0 }: { item: MenuItem; path
           )}
         >
           <item.icon className="h-4 w-4 shrink-0" />
-          <span className="flex-1 text-left">{item.title}</span>
+          <span className="flex-1 text-left whitespace-nowrap">{item.title}</span>
           <ChevronRight className="h-3.5 w-3.5 opacity-50" />
         </button>
       </PopoverTrigger>
@@ -91,7 +91,7 @@ function RecursiveMenuItem({ item, pathname, depth = 0 }: { item: MenuItem; path
         sideOffset={4}
         onMouseEnter={cancelClose}
         onMouseLeave={scheduleClose}
-        className="w-52 p-1 bg-sidebar/95 backdrop-blur-sm border border-sidebar-border shadow-lg"
+        className="w-auto min-w-[13rem] p-1 bg-sidebar/95 backdrop-blur-sm border border-sidebar-border shadow-lg"
       >
         <div className="flex flex-col gap-0.5">
           {item.children!.map((child) => (
@@ -143,7 +143,7 @@ function CollapsedPopover({ item, pathname }: { item: MenuItem; pathname: string
         sideOffset={4}
         onMouseEnter={cancelClose}
         onMouseLeave={scheduleClose}
-        className="w-52 p-1 bg-sidebar/95 backdrop-blur-sm border border-sidebar-border shadow-lg"
+        className="w-auto min-w-[13rem] p-1 bg-sidebar/95 backdrop-blur-sm border border-sidebar-border shadow-lg"
       >
         {item.url ? (
           <RecursiveMenuItem item={item} pathname={pathname} />
