@@ -669,6 +669,7 @@ export interface ParametroComercial {
   filialId: string | null;
   atualizarCustoAutomaticamente: boolean;
   atualizarPrecoAutomaticamente: boolean;
+  permitirEstoqueNegativo: boolean;
   criadoEm: string;
   criadoPor: string;
   atualizadoEm: string;
@@ -738,6 +739,7 @@ export const parametrosComerciais: ParametroComercial[] = [
     id: "pc1", grupoId: "g1", empresaId: "e1", filialId: null,
     atualizarCustoAutomaticamente: false,
     atualizarPrecoAutomaticamente: false,
+    permitirEstoqueNegativo: false,
     criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1",
     atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1",
     deletadoEm: null, deletadoPor: null,
@@ -873,3 +875,89 @@ export const produtoEmpresaTabelasPreco: ProdutoEmpresaTabelaPreco[] = [
     deletadoEm: null, deletadoPor: null,
   },
 ];
+
+// ---- Ponto de Estoque ----
+export type TipoPontoEstoque = "PROPRIO" | "TERCEIRO";
+
+export interface PontoEstoque {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  descricao: string;
+  principal: boolean;
+  tipo: TipoPontoEstoque;
+  ativo: boolean;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export const pontosEstoque: PontoEstoque[] = [
+  {
+    id: "pe_est1", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    descricao: "Armazém Principal", principal: true, tipo: "PROPRIO", ativo: true,
+    criadoEm: "2024-07-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2024-07-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+];
+
+// ---- Estoque ----
+export interface Estoque {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  produtoId: string;
+  pontoEstoqueId: string;
+  quantidadeAtual: number;
+  custoMedioAtual: number | null;
+  valorTotalEstoque: number | null;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export const estoques: Estoque[] = [
+  {
+    id: "est1", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    produtoId: "prod1", pontoEstoqueId: "pe_est1",
+    quantidadeAtual: 0, custoMedioAtual: null, valorTotalEstoque: null,
+    criadoEm: "2024-07-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2024-07-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+];
+
+// ---- Movimentação de Estoque ----
+export type TipoMovimentoEstoque = "ENTRADA" | "SAIDA" | "AJUSTE";
+
+export interface MovimentacaoEstoque {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  produtoId: string;
+  pontoEstoqueId: string;
+  tipoMovimento: TipoMovimentoEstoque;
+  quantidadeInformada: number;
+  unidadeMovimentacaoId: string;
+  quantidadeConvertidaBase: number;
+  dataMovimentacao: string;
+  observacao: string;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export const movimentacoesEstoque: MovimentacaoEstoque[] = [];

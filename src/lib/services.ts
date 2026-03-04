@@ -22,6 +22,9 @@ import {
   produtoEmpresas as mockProdutoEmpresas,
   produtoEmpresaTabelasPreco as mockProdutoEmpresaTabelasPreco,
   unidadesMedida as mockUnidadesMedida,
+  pontosEstoque as mockPontosEstoque,
+  estoques as mockEstoques,
+  movimentacoesEstoque as mockMovimentacoesEstoque,
 } from "./mock-data";
 import type {
   Empresa, Filial, Grupo, GrupoPessoa, Pessoa,
@@ -29,6 +32,7 @@ import type {
   Coeficiente, CoeficienteEmpresa, TabelaPreco, TabelaPrecoEmpresa, ParametroComercial, AplicaSobre,
   Produto, ProdutoEmpresa, ProdutoEmpresaTabelaPreco, TipoBaixaEstoque,
   UnidadeMedida, TipoUnidadeMedida,
+  PontoEstoque, TipoPontoEstoque, Estoque, MovimentacaoEstoque, TipoMovimentoEstoque,
 } from "./mock-data";
 
 const delay = (ms = 300) => new Promise((r) => setTimeout(r, ms));
@@ -869,5 +873,209 @@ export const unidadeMedidaService = {
     const now = new Date().toISOString();
     const u = mockUnidadesMedida.find((u) => u.id === id && u.deletadoEm === null);
     if (u) { u.deletadoEm = now; u.deletadoPor = "u1"; u.atualizadoEm = now; u.atualizadoPor = "u1"; }
+  },
+};
+
+// ============================================================
+// Pontos de Estoque
+// ============================================================
+export const pontoEstoqueService = {
+  async listar(empresaId: string, filialId: string): Promise<PontoEstoque[]> {
+    await delay();
+    return mockPontosEstoque.filter(
+      (p) => p.deletadoEm === null && p.empresaId === empresaId && p.filialId === filialId
+    );
+  },
+  async descricaoExiste(descricao: string, empresaId: string, filialId: string, excludeId?: string): Promise<boolean> {
+    await delay(100);
+    const t = descricao.trim().toLowerCase();
+    return mockPontosEstoque.some(
+      (p) => p.deletadoEm === null && p.empresaId === empresaId && p.filialId === filialId &&
+        p.descricao.toLowerCase() === t && p.id !== excludeId
+    );
+  },
+  async salvar(
+    data: Partial<PontoEstoque>,
+    ctx: { grupoId: string; empresaId: string; filialId: string }
+  ): Promise<PontoEstoque> {
+    await delay(400);
+    const now = new Date().toISOString();
+    const userId = "u1";
+
+    // Se marcando como principal, desmarcar outros
+    if (data.principal) {
+      mockPontosEstoque
+        .filter((p) => p.deletadoEm === null && p.empresaId === ctx.empresaId && p.filialId === ctx.filialId && p.id !== data.id)
+        .forEach((p) => { p.principal = false; p.atualizadoEm = now; p.atualizadoPor = userId; });
+    }
+
+    const existing = data.id ? mockPontosEstoque.find((p) => p.id === data.id && p.deletadoEm === null) : undefined;
+    if (existing) {
+      existing.descricao = (data.descricao ?? existing.descricao).trim();
+      existing.principal = data.principal ?? existing.principal;
+      existing.tipo = data.tipo ?? existing.tipo;
+      existing.ativo = data.ativo ?? existing.ativo;
+      existing.atualizadoEm = now;
+      existing.atualizadoPor = userId;
+      return existing;
+    }
+    const novo: PontoEstoque = {
+      id: `pe_est${Date.now()}`,
+      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      descricao: (data.descricao ?? "").trim(),
+      principal: data.principal ?? false,
+      tipo: data.tipo ?? "PROPRIO",
+      ativo: data.ativo ?? true,
+      criadoEm: now, criadoPor: userId, atualizadoEm: now, atualizadoPor: userId,
+      deletadoEm: null, deletadoPor: null,
+    };
+    mockPontosEstoque.push(novo);
+    return novo;
+  },
+  async excluir(id: string): Promise<void> {
+    await delay();
+    const now = new Date().toISOString();
+    const p = mockPontosEstoque.find((p) => p.id === id && p.deletadoEm === null);
+    if (p) { p.deletadoEm = now; p.deletadoPor = "u1"; p.atualizadoEm = now; p.atualizadoPor = "u1"; }
+  },
+};
+
+// ============================================================
+// Estoque
+// ============================================================
+export const estoqueService = {
+  async listarPorEmpresaFilial(empresaId: string, filialId: string): Promise<Estoque[]> {
+    await delay();
+    return mockEstoques.filter(
+      (e) => e.deletadoEm === null && e.empresaId === empresaId && e.filialId === filialId
+    );
+  },
+  obterSaldo(produtoId: string, pontoEstoqueId: string): Estoque | undefined {
+    return mockEstoques.find(
+      (e) => e.deletadoEm === null && e.produtoId === produtoId && e.pontoEstoqueId === pontoEstoqueId
+    );
+  },
+  atualizarSaldo(produtoId: string, pontoEstoqueId: string, novaQuantidade: number, ctx: { grupoId: string; empresaId: string; filialId: string }): Estoque {
+    const now = new Date().toISOString();
+    let registro = mockEstoques.find(
+      (e) => e.deletadoEm === null && e.produtoId === produtoId && e.pontoEstoqueId === pontoEstoqueId
+    );
+    if (registro) {
+      registro.quantidadeAtual = novaQuantidade;
+      registro.atualizadoEm = now;
+      registro.atualizadoPor = "u1";
+      return registro;
+    }
+    registro = {
+      id: `est${Date.now()}`,
+      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      produtoId, pontoEstoqueId,
+      quantidadeAtual: novaQuantidade,
+      custoMedioAtual: null, valorTotalEstoque: null,
+      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      deletadoEm: null, deletadoPor: null,
+    };
+    mockEstoques.push(registro);
+    return registro;
+  },
+};
+
+// ============================================================
+// Movimentação de Estoque
+// ============================================================
+export const movimentacaoEstoqueService = {
+  async listar(empresaId: string, filialId: string): Promise<MovimentacaoEstoque[]> {
+    await delay();
+    return mockMovimentacoesEstoque
+      .filter((m) => m.deletadoEm === null && m.empresaId === empresaId && m.filialId === filialId)
+      .sort((a, b) => new Date(b.dataMovimentacao).getTime() - new Date(a.dataMovimentacao).getTime());
+  },
+  async registrar(
+    data: {
+      produtoId: string;
+      pontoEstoqueId: string;
+      tipoMovimento: TipoMovimentoEstoque;
+      quantidadeInformada: number;
+      unidadeMovimentacaoId: string;
+      dataMovimentacao: string;
+      observacao: string;
+    },
+    ctx: { grupoId: string; empresaId: string; filialId: string }
+  ): Promise<{ sucesso: boolean; mensagem: string }> {
+    await delay(400);
+    const now = new Date().toISOString();
+
+    // 1. Buscar produto
+    const produto = mockProdutos.find((p) => p.id === data.produtoId && p.deletadoEm === null);
+    if (!produto) return { sucesso: false, mensagem: "Produto não encontrado." };
+
+    // 2. Buscar unidade base do produto e unidade da movimentação
+    const unidadeBase = mockUnidadesMedida.find((u) => u.id === produto.unidadeBaseId && u.deletadoEm === null);
+    const unidadeMov = mockUnidadesMedida.find((u) => u.id === data.unidadeMovimentacaoId && u.deletadoEm === null);
+    if (!unidadeBase || !unidadeMov) return { sucesso: false, mensagem: "Unidade de medida inválida." };
+
+    // 3. Validar tipo da unidade
+    if (unidadeMov.tipo !== unidadeBase.tipo) {
+      return { sucesso: false, mensagem: `Tipo da unidade informada (${unidadeMov.tipo}) difere do tipo da unidade base do produto (${unidadeBase.tipo}). Operação bloqueada.` };
+    }
+
+    // 4. Converter para unidade base
+    let quantidadeConvertidaBase: number;
+    if (data.unidadeMovimentacaoId === produto.unidadeBaseId) {
+      quantidadeConvertidaBase = data.quantidadeInformada;
+    } else if (data.unidadeMovimentacaoId === produto.unidadeCompraId) {
+      quantidadeConvertidaBase = data.quantidadeInformada * produto.quantidadeEmbalagemCompra;
+    } else if (data.unidadeMovimentacaoId === produto.unidadeVendaId) {
+      quantidadeConvertidaBase = data.quantidadeInformada * produto.quantidadeEmbalagemVenda;
+    } else {
+      // Conversão genérica por fator
+      quantidadeConvertidaBase = (data.quantidadeInformada * unidadeMov.fatorBase) / unidadeBase.fatorBase;
+    }
+
+    // 5. Calcular novo saldo
+    const saldoAtual = estoqueService.obterSaldo(data.produtoId, data.pontoEstoqueId);
+    const qtdAtual = saldoAtual?.quantidadeAtual ?? 0;
+    let novaQuantidade: number;
+
+    if (data.tipoMovimento === "ENTRADA") {
+      novaQuantidade = qtdAtual + quantidadeConvertidaBase;
+    } else if (data.tipoMovimento === "SAIDA") {
+      novaQuantidade = qtdAtual - quantidadeConvertidaBase;
+    } else {
+      // AJUSTE
+      novaQuantidade = quantidadeConvertidaBase;
+    }
+
+    // 6. Validar estoque negativo
+    if (novaQuantidade < 0) {
+      const param = mockParametrosComerciais.find(
+        (p) => p.deletadoEm === null && p.empresaId === ctx.empresaId
+      );
+      const permitir = param?.permitirEstoqueNegativo ?? false;
+      if (!permitir) {
+        return { sucesso: false, mensagem: "Operação não permitida. Estoque insuficiente." };
+      }
+    }
+
+    // 7. Atualizar saldo
+    estoqueService.atualizarSaldo(data.produtoId, data.pontoEstoqueId, novaQuantidade, ctx);
+
+    // 8. Inserir movimentação
+    const mov: MovimentacaoEstoque = {
+      id: `mov${Date.now()}`,
+      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      produtoId: data.produtoId, pontoEstoqueId: data.pontoEstoqueId,
+      tipoMovimento: data.tipoMovimento,
+      quantidadeInformada: data.quantidadeInformada,
+      unidadeMovimentacaoId: data.unidadeMovimentacaoId,
+      quantidadeConvertidaBase,
+      dataMovimentacao: data.dataMovimentacao,
+      observacao: data.observacao,
+      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      deletadoEm: null, deletadoPor: null,
+    };
+    mockMovimentacoesEstoque.push(mov);
+
+    return { sucesso: true, mensagem: "Movimentação registrada com sucesso." };
   },
 };
