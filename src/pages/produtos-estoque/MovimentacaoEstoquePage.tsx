@@ -288,8 +288,8 @@ export default function MovimentacaoEstoquePage() {
                         </TableCell>
                         <TableCell>{getNomeProduto(m.produtoId)}</TableCell>
                         <TableCell>{getNomePonto(m.pontoEstoqueId)}</TableCell>
-                        <TableCell className="text-right">{m.quantidadeInformada.toFixed(6)} {getCodigoUnidade(m.unidadeMovimentacaoId)}</TableCell>
-                        <TableCell className="text-right">{m.quantidadeConvertidaBase.toFixed(6)} {unidadeBase?.codigo ?? ""}</TableCell>
+                        <TableCell className="text-right">{Number(m.quantidadeInformada).toFixed(6)} {getCodigoUnidade(m.unidadeMovimentacaoId)}</TableCell>
+                        <TableCell className="text-right">{Number(m.quantidadeConvertidaBase).toFixed(6)} {unidadeBase?.codigo ?? ""}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
