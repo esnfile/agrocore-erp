@@ -62,7 +62,7 @@ function RecursiveMenuItem({ item, pathname, depth = 0 }: { item: MenuItem; path
         )}
       >
         <item.icon className="h-4 w-4 shrink-0" />
-        <span>{item.title}</span>
+        <span className="whitespace-nowrap">{item.title}</span>
       </button>
     );
   }
