@@ -383,6 +383,7 @@ export default function ProdutosPage() {
   const openEdit = async (row: Produto) => {
     setEditingId(row.id);
     reset({
+      tipoProdutoId: row.tipoProdutoId ?? "",
       codigoBarras: row.codigoBarras,
       descricao: row.descricao,
       aplicacao: row.aplicacao,
