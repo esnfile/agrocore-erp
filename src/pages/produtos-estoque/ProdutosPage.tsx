@@ -46,6 +46,7 @@ import {
   subgrupoProdutoService,
   marcaProdutoService,
   unidadeMedidaService,
+  tipoProdutoService,
 } from "@/lib/services";
 import {
   tabelasPreco as mockTabelasPrecoData,
