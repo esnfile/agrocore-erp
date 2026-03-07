@@ -716,6 +716,7 @@ export const produtoService = {
       id: `prod${Date.now()}`,
       grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
       codigoBarras: data.codigoBarras ?? "",
+      tipoProdutoId: data.tipoProdutoId ?? "",
       descricao: (data.descricao ?? "").trim(),
       aplicacao: data.aplicacao ?? "",
       tipoBaixaEstoque: data.tipoBaixaEstoque ?? "INDIVIDUAL",
