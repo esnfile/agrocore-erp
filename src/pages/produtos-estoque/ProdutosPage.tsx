@@ -343,6 +343,7 @@ export default function ProdutosPage() {
   const openNew = () => {
     setEditingId(null);
     reset({
+      tipoProdutoId: "",
       codigoBarras: "",
       descricao: "",
       aplicacao: "",
