@@ -71,6 +71,7 @@ import type {
 
 // ---- Schema ----
 const schema = z.object({
+  tipoProdutoId: z.string().min(1, "Tipo de Produto é obrigatório"),
   codigoBarras: z.string().max(50).optional().default(""),
   descricao: z
     .string()
