@@ -66,6 +66,7 @@ import type {
   MarcaProduto,
   TipoBaixaEstoque,
   UnidadeMedida,
+  TipoProduto,
 } from "@/lib/mock-data";
 
 // ---- Schema ----

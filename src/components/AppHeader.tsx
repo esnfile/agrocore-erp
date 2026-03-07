@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import {
@@ -14,8 +15,56 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Building2, GitBranch, LogOut, Network, User } from "lucide-react";
+import { Building2, GitBranch, LogOut, Network, User, TrendingUp, TrendingDown } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { cotacaoMoedaService } from "@/lib/services";
+import type { CotacaoMoeda } from "@/lib/mock-data";
+
+function CotacaoWidget() {
+  const [usd, setUsd] = useState<CotacaoMoeda | undefined>(
+    cotacaoMoedaService.obterUltima("moeda2", "moeda1")
+  );
+  const [eur, setEur] = useState<CotacaoMoeda | undefined>(
+    cotacaoMoedaService.obterUltima("moeda3", "moeda1")
+  );
+
+  useEffect(() => {
+    const update = () => {
+      const { usd: u, eur: e } = cotacaoMoedaService.simularAtualizacao();
+      setUsd(u);
+      setEur(e);
+    };
+    const interval = setInterval(update, 10 * 60 * 1000); // 10 min
+    return () => clearInterval(interval);
+  }, []);
+
+  const renderCotacao = (label: string, cot?: CotacaoMoeda) => {
+    if (!cot) return null;
+    const positivo = cot.variacaoPercentual >= 0;
+    return (
+      <div className="flex items-center gap-1 text-xs">
+        <span className="font-medium text-foreground">{label}:</span>
+        <span className="font-semibold text-foreground">{cot.valorCompra.toFixed(2)}</span>
+        {positivo ? (
+          <TrendingUp className="h-3 w-3 text-emerald-500" />
+        ) : (
+          <TrendingDown className="h-3 w-3 text-destructive" />
+        )}
+        <span className={positivo ? "text-emerald-500" : "text-destructive"}>
+          {positivo ? "+" : ""}{cot.variacaoPercentual.toFixed(2)}%
+        </span>
+      </div>
+    );
+  };
+
+  return (
+    <div className="flex items-center gap-3 rounded-md bg-muted/50 px-3 py-1.5">
+      {renderCotacao("USD", usd)}
+      <Separator orientation="vertical" className="h-4" />
+      {renderCotacao("EUR", eur)}
+    </div>
+  );
+}
 
 export function AppHeader() {
   const {
@@ -79,6 +128,11 @@ export function AppHeader() {
           </SelectContent>
         </Select>
       </div>
+
+      <Separator orientation="vertical" className="h-6" />
+
+      {/* Cotação */}
+      <CotacaoWidget />
 
       {/* Spacer */}
       <div className="flex-1" />
