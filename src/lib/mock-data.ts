@@ -841,6 +841,7 @@ export const unidadesMedida: UnidadeMedida[] = [
 export const produtos: Produto[] = [
   {
     id: "prod1", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    tipoProdutoId: "tp1",
     codigoBarras: "7891234567890", descricao: "Fertilizante NPK 20-05-20",
     aplicacao: "Aplicação foliar em soja e milho",
     tipoBaixaEstoque: "INDIVIDUAL",
