@@ -46,6 +46,7 @@ import {
   subgrupoProdutoService,
   marcaProdutoService,
   unidadeMedidaService,
+  tipoProdutoService,
 } from "@/lib/services";
 import {
   tabelasPreco as mockTabelasPrecoData,
@@ -65,10 +66,12 @@ import type {
   MarcaProduto,
   TipoBaixaEstoque,
   UnidadeMedida,
+  TipoProduto,
 } from "@/lib/mock-data";
 
 // ---- Schema ----
 const schema = z.object({
+  tipoProdutoId: z.string().min(1, "Tipo de Produto é obrigatório"),
   codigoBarras: z.string().max(50).optional().default(""),
   descricao: z
     .string()
@@ -141,6 +144,7 @@ export default function ProdutosPage() {
   const [marcas, setMarcas] = useState<MarcaProduto[]>([]);
   const [unidades, setUnidades] = useState<UnidadeMedida[]>([]);
   const [empresasGrupo, setEmpresasGrupo] = useState<Empresa[]>([]);
+  const [tiposProdutoList, setTiposProdutoList] = useState<TipoProduto[]>([]);
 
   // Empresa tab
   const [empresaRows, setEmpresaRows] = useState<EmpresaRowState[]>([]);
@@ -259,13 +263,15 @@ export default function ProdutosPage() {
       subgrupoProdutoService.listar(eId, fId),
       marcaProdutoService.listar(eId, fId),
       unidadeMedidaService.listar(eId, fId),
-    ]).then(([d, s, g, sg, m, um]) => {
+      tipoProdutoService.listar(eId, fId),
+    ]).then(([d, s, g, sg, m, um, tp]) => {
       setDivisoes(d);
       setSecoes(s);
       setGruposProduto(g);
       setSubgrupos(sg);
       setMarcas(m);
       setUnidades(um);
+      setTiposProdutoList(tp);
     });
   }, [empresaAtual, filialAtual]);
 
@@ -337,6 +343,7 @@ export default function ProdutosPage() {
   const openNew = () => {
     setEditingId(null);
     reset({
+      tipoProdutoId: "",
       codigoBarras: "",
       descricao: "",
       aplicacao: "",
@@ -376,6 +383,7 @@ export default function ProdutosPage() {
   const openEdit = async (row: Produto) => {
     setEditingId(row.id);
     reset({
+      tipoProdutoId: row.tipoProdutoId ?? "",
       codigoBarras: row.codigoBarras,
       descricao: row.descricao,
       aplicacao: row.aplicacao,
@@ -664,6 +672,33 @@ export default function ProdutosPage() {
           {/* ---- TAB 1: Dados Gerais ---- */}
           <TabsContent value="dados">
             <div className="space-y-4">
+              {/* Tipo de Produto - primeiro campo */}
+              <div className="space-y-1.5">
+                <Label>
+                  Tipo de Produto <span className="text-destructive">*</span>
+                </Label>
+                <Select
+                  value={watch("tipoProdutoId")}
+                  onValueChange={(v) => setValue("tipoProdutoId", v)}
+                >
+                  <SelectTrigger className="w-[300px]">
+                    <SelectValue placeholder="Selecione o tipo de produto..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {tiposProdutoList.filter((tp) => tp.ativo).map((tp) => (
+                      <SelectItem key={tp.id} value={tp.id}>
+                        {tp.descricao}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.tipoProdutoId && (
+                  <p className="text-xs text-destructive">
+                    {errors.tipoProdutoId.message}
+                  </p>
+                )}
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="codigoBarras">Código de Barras</Label>

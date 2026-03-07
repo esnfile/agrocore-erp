@@ -775,6 +775,7 @@ export interface Produto {
   grupoId: string;
   empresaId: string;
   filialId: string;
+  tipoProdutoId: string;
   codigoBarras: string;
   descricao: string;
   aplicacao: string;
@@ -840,6 +841,7 @@ export const unidadesMedida: UnidadeMedida[] = [
 export const produtos: Produto[] = [
   {
     id: "prod1", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    tipoProdutoId: "tp1",
     codigoBarras: "7891234567890", descricao: "Fertilizante NPK 20-05-20",
     aplicacao: "Aplicação foliar em soja e milho",
     tipoBaixaEstoque: "INDIVIDUAL",
@@ -961,3 +963,112 @@ export interface MovimentacaoEstoque {
 }
 
 export const movimentacoesEstoque: MovimentacaoEstoque[] = [];
+
+// ---- Moeda ----
+export interface Moeda {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  codigo: string;
+  descricao: string;
+  simbolo: string;
+  ativo: boolean;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export const moedas: Moeda[] = [
+  {
+    id: "moeda1", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    codigo: "BRL", descricao: "Real Brasileiro", simbolo: "R$", ativo: true,
+    criadoEm: "2024-01-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2024-01-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "moeda2", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    codigo: "USD", descricao: "Dólar Americano", simbolo: "$", ativo: true,
+    criadoEm: "2024-01-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2024-01-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "moeda3", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    codigo: "EUR", descricao: "Euro", simbolo: "€", ativo: true,
+    criadoEm: "2024-01-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2024-01-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+];
+
+// ---- Cotação de Moeda ----
+export interface CotacaoMoeda {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  moedaOrigemId: string;
+  moedaDestinoId: string;
+  valorCompra: number;
+  valorVenda: number;
+  variacao: number;
+  variacaoPercentual: number;
+  valorMaximo: number;
+  valorMinimo: number;
+  dataHoraCotacao: string;
+  fonte: string;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export const cotacoesMoeda: CotacaoMoeda[] = [
+  {
+    id: "cot1", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    moedaOrigemId: "moeda2", moedaDestinoId: "moeda1",
+    valorCompra: 5.02, valorVenda: 5.04,
+    variacao: 0.02, variacaoPercentual: 0.40,
+    valorMaximo: 5.10, valorMinimo: 4.95,
+    dataHoraCotacao: new Date().toISOString(), fonte: "Mock",
+    criadoEm: new Date().toISOString(), criadoPor: "u1",
+    atualizadoEm: new Date().toISOString(), atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "cot2", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    moedaOrigemId: "moeda3", moedaDestinoId: "moeda1",
+    valorCompra: 5.43, valorVenda: 5.46,
+    variacao: -0.008, variacaoPercentual: -0.15,
+    valorMaximo: 5.55, valorMinimo: 5.38,
+    dataHoraCotacao: new Date().toISOString(), fonte: "Mock",
+    criadoEm: new Date().toISOString(), criadoPor: "u1",
+    atualizadoEm: new Date().toISOString(), atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+];
+
+// ---- Ponto Estoque ↔ Tipo Produto ----
+export interface PontoEstoqueTipoProduto {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  pontoEstoqueId: string;
+  tipoProdutoId: string;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export const pontoEstoqueTiposProduto: PontoEstoqueTipoProduto[] = [];

@@ -25,6 +25,9 @@ import {
   pontosEstoque as mockPontosEstoque,
   estoques as mockEstoques,
   movimentacoesEstoque as mockMovimentacoesEstoque,
+  moedas as mockMoedas,
+  cotacoesMoeda as mockCotacoesMoeda,
+  pontoEstoqueTiposProduto as mockPontoEstoqueTiposProduto,
 } from "./mock-data";
 import type {
   Empresa, Filial, Grupo, GrupoPessoa, Pessoa,
@@ -33,6 +36,7 @@ import type {
   Produto, ProdutoEmpresa, ProdutoEmpresaTabelaPreco, TipoBaixaEstoque,
   UnidadeMedida, TipoUnidadeMedida,
   PontoEstoque, TipoPontoEstoque, Estoque, MovimentacaoEstoque, TipoMovimentoEstoque,
+  Moeda, CotacaoMoeda, PontoEstoqueTipoProduto,
 } from "./mock-data";
 
 const delay = (ms = 300) => new Promise((r) => setTimeout(r, ms));
@@ -712,6 +716,7 @@ export const produtoService = {
       id: `prod${Date.now()}`,
       grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
       codigoBarras: data.codigoBarras ?? "",
+      tipoProdutoId: data.tipoProdutoId ?? "",
       descricao: (data.descricao ?? "").trim(),
       aplicacao: data.aplicacao ?? "",
       tipoBaixaEstoque: data.tipoBaixaEstoque ?? "INDIVIDUAL",
@@ -1077,5 +1082,166 @@ export const movimentacaoEstoqueService = {
     mockMovimentacoesEstoque.push(mov);
 
     return { sucesso: true, mensagem: "Movimentação registrada com sucesso." };
+  },
+};
+
+// ============================================================
+// Moedas
+// ============================================================
+export const moedaService = {
+  async listar(): Promise<Moeda[]> {
+    await delay();
+    return mockMoedas.filter((m) => m.deletadoEm === null);
+  },
+  async salvar(data: Partial<Moeda>, ctx: { grupoId: string; empresaId: string; filialId: string }): Promise<Moeda> {
+    await delay(400);
+    const now = new Date().toISOString();
+    const existing = data.id ? mockMoedas.find((m) => m.id === data.id && m.deletadoEm === null) : undefined;
+    if (existing) {
+      existing.codigo = (data.codigo ?? existing.codigo).trim();
+      existing.descricao = (data.descricao ?? existing.descricao).trim();
+      existing.simbolo = data.simbolo ?? existing.simbolo;
+      existing.ativo = data.ativo ?? existing.ativo;
+      existing.atualizadoEm = now;
+      existing.atualizadoPor = "u1";
+      return existing;
+    }
+    const novo: Moeda = {
+      id: `moeda${Date.now()}`, grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      codigo: (data.codigo ?? "").trim(), descricao: (data.descricao ?? "").trim(),
+      simbolo: data.simbolo ?? "", ativo: data.ativo ?? true,
+      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      deletadoEm: null, deletadoPor: null,
+    };
+    mockMoedas.push(novo);
+    return novo;
+  },
+  async excluir(id: string): Promise<void> {
+    await delay();
+    const now = new Date().toISOString();
+    const m = mockMoedas.find((m) => m.id === id && m.deletadoEm === null);
+    if (m) { m.deletadoEm = now; m.deletadoPor = "u1"; m.atualizadoEm = now; m.atualizadoPor = "u1"; }
+  },
+};
+
+// ============================================================
+// Cotação de Moedas
+// ============================================================
+export const cotacaoMoedaService = {
+  async listar(): Promise<CotacaoMoeda[]> {
+    await delay();
+    return mockCotacoesMoeda.filter((c) => c.deletadoEm === null);
+  },
+  obterUltima(moedaOrigemId: string, moedaDestinoId: string): CotacaoMoeda | undefined {
+    return mockCotacoesMoeda
+      .filter((c) => c.deletadoEm === null && c.moedaOrigemId === moedaOrigemId && c.moedaDestinoId === moedaDestinoId)
+      .sort((a, b) => new Date(b.dataHoraCotacao).getTime() - new Date(a.dataHoraCotacao).getTime())[0];
+  },
+  simularAtualizacao(): { usd: CotacaoMoeda; eur: CotacaoMoeda } {
+    const now = new Date().toISOString();
+    const lastUsd = this.obterUltima("moeda2", "moeda1");
+    const lastEur = this.obterUltima("moeda3", "moeda1");
+
+    const randomVariation = (base: number) => {
+      const pct = (Math.random() - 0.5) * 0.04; // ±2%
+      return Math.round((base * (1 + pct)) * 1000000) / 1000000;
+    };
+
+    const baseUsd = lastUsd?.valorCompra ?? 5.02;
+    const baseEur = lastEur?.valorCompra ?? 5.43;
+    const newUsdCompra = randomVariation(baseUsd);
+    const newEurCompra = randomVariation(baseEur);
+    const usdVar = newUsdCompra - baseUsd;
+    const eurVar = newEurCompra - baseEur;
+
+    const usd: CotacaoMoeda = {
+      id: `cot${Date.now()}a`, grupoId: "g1", empresaId: "e1", filialId: "f1",
+      moedaOrigemId: "moeda2", moedaDestinoId: "moeda1",
+      valorCompra: newUsdCompra, valorVenda: Math.round((newUsdCompra + 0.02) * 1000000) / 1000000,
+      variacao: Math.round(usdVar * 1000000) / 1000000,
+      variacaoPercentual: Math.round((usdVar / baseUsd) * 10000) / 100,
+      valorMaximo: Math.max(newUsdCompra, lastUsd?.valorMaximo ?? 0),
+      valorMinimo: Math.min(newUsdCompra, lastUsd?.valorMinimo ?? Infinity),
+      dataHoraCotacao: now, fonte: "Mock",
+      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      deletadoEm: null, deletadoPor: null,
+    };
+
+    const eur: CotacaoMoeda = {
+      id: `cot${Date.now()}b`, grupoId: "g1", empresaId: "e1", filialId: "f1",
+      moedaOrigemId: "moeda3", moedaDestinoId: "moeda1",
+      valorCompra: newEurCompra, valorVenda: Math.round((newEurCompra + 0.03) * 1000000) / 1000000,
+      variacao: Math.round(eurVar * 1000000) / 1000000,
+      variacaoPercentual: Math.round((eurVar / baseEur) * 10000) / 100,
+      valorMaximo: Math.max(newEurCompra, lastEur?.valorMaximo ?? 0),
+      valorMinimo: Math.min(newEurCompra, lastEur?.valorMinimo ?? Infinity),
+      dataHoraCotacao: now, fonte: "Mock",
+      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      deletadoEm: null, deletadoPor: null,
+    };
+
+    mockCotacoesMoeda.push(usd, eur);
+    return { usd, eur };
+  },
+};
+
+// ============================================================
+// Ponto Estoque ↔ Tipo Produto
+// ============================================================
+export const pontoEstoqueTipoProdutoService = {
+  async listarPorPonto(pontoEstoqueId: string): Promise<PontoEstoqueTipoProduto[]> {
+    await delay();
+    return mockPontoEstoqueTiposProduto.filter(
+      (p) => p.deletadoEm === null && p.pontoEstoqueId === pontoEstoqueId
+    );
+  },
+  async salvar(
+    data: { pontoEstoqueId: string; tipoProdutoId: string },
+    ctx: { grupoId: string; empresaId: string; filialId: string }
+  ): Promise<PontoEstoqueTipoProduto> {
+    await delay(200);
+    const now = new Date().toISOString();
+    // Check dup
+    const dup = mockPontoEstoqueTiposProduto.find(
+      (p) => p.deletadoEm === null && p.pontoEstoqueId === data.pontoEstoqueId && p.tipoProdutoId === data.tipoProdutoId
+    );
+    if (dup) return dup;
+    const novo: PontoEstoqueTipoProduto = {
+      id: `petp${Date.now()}${Math.random().toString(36).slice(2, 5)}`,
+      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      pontoEstoqueId: data.pontoEstoqueId, tipoProdutoId: data.tipoProdutoId,
+      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      deletadoEm: null, deletadoPor: null,
+    };
+    mockPontoEstoqueTiposProduto.push(novo);
+    return novo;
+  },
+  async excluir(id: string): Promise<void> {
+    await delay();
+    const now = new Date().toISOString();
+    const p = mockPontoEstoqueTiposProduto.find((p) => p.id === id && p.deletadoEm === null);
+    if (p) { p.deletadoEm = now; p.deletadoPor = "u1"; p.atualizadoEm = now; p.atualizadoPor = "u1"; }
+  },
+  async sincronizar(
+    pontoEstoqueId: string,
+    tipoProdutoIds: string[],
+    ctx: { grupoId: string; empresaId: string; filialId: string }
+  ): Promise<void> {
+    const now = new Date().toISOString();
+    // Remove existing
+    mockPontoEstoqueTiposProduto
+      .filter((p) => p.deletadoEm === null && p.pontoEstoqueId === pontoEstoqueId)
+      .forEach((p) => { p.deletadoEm = now; p.deletadoPor = "u1"; });
+    // Add new
+    for (const tpId of tipoProdutoIds) {
+      const novo: PontoEstoqueTipoProduto = {
+        id: `petp${Date.now()}${Math.random().toString(36).slice(2, 5)}`,
+        grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+        pontoEstoqueId, tipoProdutoId: tpId,
+        criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+        deletadoEm: null, deletadoPor: null,
+      };
+      mockPontoEstoqueTiposProduto.push(novo);
+    }
   },
 };

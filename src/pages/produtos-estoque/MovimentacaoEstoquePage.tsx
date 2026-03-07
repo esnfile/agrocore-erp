@@ -18,12 +18,12 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { useOrganization } from "@/contexts/OrganizationContext";
-import { pontoEstoqueService, movimentacaoEstoqueService } from "@/lib/services";
+import { pontoEstoqueService, movimentacaoEstoqueService, empresaService, filialService } from "@/lib/services";
 import {
   produtos as mockProdutos,
   unidadesMedida as mockUnidades,
 } from "@/lib/mock-data";
-import type { PontoEstoque, MovimentacaoEstoque, Produto, UnidadeMedida } from "@/lib/mock-data";
+import type { PontoEstoque, MovimentacaoEstoque, Produto, UnidadeMedida, Empresa, Filial } from "@/lib/mock-data";
 
 const schema = z.object({
   produtoId: z.string().min(1, "Produto é obrigatório"),
@@ -38,10 +38,14 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 export default function MovimentacaoEstoquePage() {
-  const { grupoAtual, empresaAtual, filialAtual } = useOrganization();
+  const { grupoAtual, empresaAtual, filialAtual, empresas: empresasCtx } = useOrganization();
   const selectedGrupo = grupoAtual?.id ?? null;
-  const selectedEmpresa = empresaAtual?.id ?? null;
-  const selectedFilial = filialAtual?.id ?? null;
+
+  // Empresa/Filial local (permite alteração manual)
+  const [empresasList, setEmpresasList] = useState<Empresa[]>([]);
+  const [filiaisList, setFiliaisList] = useState<Filial[]>([]);
+  const [selectedEmpresa, setSelectedEmpresa] = useState<string>(empresaAtual?.id ?? "");
+  const [selectedFilial, setSelectedFilial] = useState<string>(filialAtual?.id ?? "");
 
   const [pontos, setPontos] = useState<PontoEstoque[]>([]);
   const [movimentacoes, setMovimentacoes] = useState<MovimentacaoEstoque[]>([]);
@@ -59,6 +63,36 @@ export default function MovimentacaoEstoquePage() {
   const produtoId = watch("produtoId");
   const unidadeMovimentacaoId = watch("unidadeMovimentacaoId");
   const quantidadeInformada = watch("quantidadeInformada");
+
+  // Sync from context when context changes
+  useEffect(() => {
+    if (empresaAtual) setSelectedEmpresa(empresaAtual.id);
+  }, [empresaAtual]);
+  useEffect(() => {
+    if (filialAtual) setSelectedFilial(filialAtual.id);
+  }, [filialAtual]);
+
+  // Load empresas do grupo
+  useEffect(() => {
+    if (selectedGrupo) {
+      empresaService.listar(selectedGrupo).then(setEmpresasList);
+    }
+  }, [selectedGrupo]);
+
+  // Load filiais da empresa selecionada
+  useEffect(() => {
+    if (selectedEmpresa) {
+      filialService.listarPorEmpresa(selectedEmpresa).then((list) => {
+        setFiliaisList(list);
+        if (!list.find((f) => f.id === selectedFilial) && list.length > 0) {
+          setSelectedFilial(list[0].id);
+        }
+      });
+    } else {
+      setFiliaisList([]);
+      setSelectedFilial("");
+    }
+  }, [selectedEmpresa]);
 
   // Produtos ativos filtrados
   const produtosAtivos = useMemo(
@@ -102,6 +136,9 @@ export default function MovimentacaoEstoquePage() {
     if (selectedEmpresa && selectedFilial) {
       pontoEstoqueService.listar(selectedEmpresa, selectedFilial).then(setPontos);
       movimentacaoEstoqueService.listar(selectedEmpresa, selectedFilial).then(setMovimentacoes);
+    } else {
+      setPontos([]);
+      setMovimentacoes([]);
     }
   }, [selectedEmpresa, selectedFilial]);
 
@@ -153,12 +190,12 @@ export default function MovimentacaoEstoquePage() {
   const getNomePonto = (id: string) => pontos.find((p) => p.id === id)?.descricao ?? id;
   const getCodigoUnidade = (id: string) => mockUnidades.find((u) => u.id === id)?.codigo ?? id;
 
-  if (!selectedEmpresa || !selectedFilial) {
+  if (!selectedGrupo) {
     return (
       <>
         <PageHeader title="Movimentação de Estoque" description="Registrar entradas, saídas e ajustes de estoque" />
         <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
-          Selecione uma Empresa e Filial para registrar movimentações.
+          Selecione um Grupo para registrar movimentações.
         </div>
       </>
     );
@@ -173,6 +210,31 @@ export default function MovimentacaoEstoquePage() {
           <CardHeader><CardTitle>Nova Movimentação</CardTitle></CardHeader>
           <CardContent>
             <form onSubmit={onSubmit} className="space-y-4">
+              {/* Empresa e Filial no topo */}
+              <div className="space-y-1.5">
+                <Label>Empresa <span className="text-destructive">*</span></Label>
+                <Select value={selectedEmpresa} onValueChange={(v) => setSelectedEmpresa(v)}>
+                  <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                  <SelectContent>
+                    {empresasList.map((e) => (
+                      <SelectItem key={e.id} value={e.id}>{e.nomeFantasia || e.razaoSocial}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Filial <span className="text-destructive">*</span></Label>
+                <Select value={selectedFilial} onValueChange={(v) => setSelectedFilial(v)} disabled={!selectedEmpresa}>
+                  <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                  <SelectContent>
+                    {filiaisList.map((f) => (
+                      <SelectItem key={f.id} value={f.id}>{f.nomeRazao}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="space-y-1.5">
                 <Label>Produto <span className="text-destructive">*</span></Label>
                 <Select value={produtoId} onValueChange={(v) => setValue("produtoId", v)}>
@@ -252,7 +314,7 @@ export default function MovimentacaoEstoquePage() {
                 <Textarea rows={3} {...register("observacao")} />
               </div>
 
-              <Button type="submit" className="w-full" disabled={saving}>
+              <Button type="submit" className="w-full" disabled={saving || !selectedEmpresa || !selectedFilial}>
                 {saving ? "Salvando..." : "Confirmar Movimentação"}
               </Button>
             </form>
