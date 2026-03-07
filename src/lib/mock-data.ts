@@ -775,6 +775,7 @@ export interface Produto {
   grupoId: string;
   empresaId: string;
   filialId: string;
+  tipoProdutoId: string;
   codigoBarras: string;
   descricao: string;
   aplicacao: string;
