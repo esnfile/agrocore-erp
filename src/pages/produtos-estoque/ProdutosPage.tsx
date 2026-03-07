@@ -263,13 +263,15 @@ export default function ProdutosPage() {
       subgrupoProdutoService.listar(eId, fId),
       marcaProdutoService.listar(eId, fId),
       unidadeMedidaService.listar(eId, fId),
-    ]).then(([d, s, g, sg, m, um]) => {
+      tipoProdutoService.listar(eId, fId),
+    ]).then(([d, s, g, sg, m, um, tp]) => {
       setDivisoes(d);
       setSecoes(s);
       setGruposProduto(g);
       setSubgrupos(sg);
       setMarcas(m);
       setUnidades(um);
+      setTiposProdutoList(tp);
     });
   }, [empresaAtual, filialAtual]);
 
