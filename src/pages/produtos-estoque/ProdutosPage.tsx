@@ -144,6 +144,7 @@ export default function ProdutosPage() {
   const [marcas, setMarcas] = useState<MarcaProduto[]>([]);
   const [unidades, setUnidades] = useState<UnidadeMedida[]>([]);
   const [empresasGrupo, setEmpresasGrupo] = useState<Empresa[]>([]);
+  const [tiposProdutoList, setTiposProdutoList] = useState<TipoProduto[]>([]);
 
   // Empresa tab
   const [empresaRows, setEmpresaRows] = useState<EmpresaRowState[]>([]);
