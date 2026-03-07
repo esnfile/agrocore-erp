@@ -1,80 +1,72 @@
 
 
-## Plano: Estrutura de Estoque (Quantidade + Controle de Negativo)
+## Plano: Correções Estruturais Pré-Contratos
 
-### 1. Atualizar `ParametroComercial` — `src/lib/mock-data.ts`
+### 1. Moedas e Cotações — `src/lib/mock-data.ts`
 
-Adicionar campo `permitirEstoqueNegativo: boolean` na interface e no mock data (default `false`).
+**Interface `Moeda`:** id, codigo (string 3), descricao (string 50), simbolo (string 5), ativo, grupoId, empresaId, filialId, auditoria completa.
 
-### 2. Novas Interfaces e Mock Data — `src/lib/mock-data.ts`
+**Interface `CotacaoMoeda`:** id, moedaOrigemId, moedaDestinoId, valorCompra, valorVenda, variacao, variacaoPercentual, valorMaximo, valorMinimo, dataHoraCotacao, fonte, grupoId, empresaId, filialId, auditoria completa.
 
-**`PontoEstoque`:**
-- id, grupoId, empresaId, filialId, descricao, principal (boolean), tipo ("PROPRIO" | "TERCEIRO"), ativo, auditoria completa
+**Mock data:** 3 moedas (BRL, USD, EUR). Cotações iniciais: USD/BRL e EUR/BRL com valores simulados.
 
-**`Estoque`:**
-- id, grupoId, empresaId, filialId, produtoId, pontoEstoqueId, quantidadeAtual (decimal), custoMedioAtual (nullable), valorTotalEstoque (nullable)
+### 2. Serviço Mock de Cotação — `src/lib/services.ts`
 
-**`MovimentacaoEstoque`:**
-- id, grupoId, empresaId, filialId, produtoId, pontoEstoqueId, tipoMovimento ("ENTRADA" | "SAIDA" | "AJUSTE"), quantidadeInformada, unidadeMovimentacaoId, quantidadeConvertidaBase, dataMovimentacao, observacao, auditoria completa
+**`moedaService`:** CRUD padrão (listar, salvar, excluir).
 
-Mock data: 1 ponto de estoque (principal, PROPRIO), 1 registro de estoque para prod1, 0 movimentações iniciais.
+**`cotacaoMoedaService`:** listar, obterUltima (por par de moedas), simularAtualizacao — gera valores aleatórios com variação ±2% sobre o valor anterior, salva novo registro.
 
-### 3. Novos Services — `src/lib/services.ts`
+### 3. Cotação no Header — `src/components/AppHeader.tsx`
 
-**`pontoEstoqueService`:** listar (por empresa+filial), salvar (validar unicidade de principal por empresa+filial), excluir (soft delete).
+Adicionar entre os seletores e o spacer um componente inline que:
+- Carrega últimas cotações USD/BRL e EUR/BRL via `cotacaoMoedaService`
+- Exibe: `USD: 5.02 ▲ +0.40%` / `EUR: 5.43 ▼ -0.15%`
+- Seta verde (▲) se variação positiva, vermelha (▼) se negativa
+- `useEffect` com `setInterval` de 10 min chamando `simularAtualizacao`
+- Texto pequeno, sem quebrar layout do header
 
-**`estoqueService`:** listarPorEmpresaFilial, obterSaldo (por produto+ponto), atualizarSaldo.
+### 4. Vínculo Tipo Produto ↔ Ponto de Estoque — `src/lib/mock-data.ts`
 
-**`movimentacaoEstoqueService`:** listar (com filtros), registrar — contém toda a lógica central:
-1. Validar tipo da unidade (mesmo tipo da unidade_base do produto)
-2. Converter quantidade para unidade_base usando fatorBase
-3. Calcular novo saldo (ENTRADA: +, SAIDA: -, AJUSTE: = valor)
-4. Verificar `permitirEstoqueNegativo` se saldo < 0
-5. Atualizar registro de estoque
-6. Inserir movimentação
+**Interface `PontoEstoqueTipoProduto`:** id, pontoEstoqueId, tipoProdutoId, grupoId, empresaId, filialId, auditoria completa.
 
-### 4. Atualizar Menu — `src/lib/modules.ts`
+**Mock array:** inicialmente vazio.
 
-Dentro de "Auxiliares", adicionar/ajustar:
-- Pontos de Estoque (já existe placeholder)
-- Movimentação de Estoque (novo item)
-- Consulta de Estoque (novo item)
+**Service** (`src/lib/services.ts`): `pontoEstoqueTipoProdutoService` — listarPorPonto, salvar, excluir.
 
-### 5. Novas Páginas
+### 5. Aba "Tipos de Produtos Permitidos" — `src/pages/produtos-estoque/PontosEstoquePage.tsx`
 
-**`src/pages/produtos-estoque/PontosEstoquePage.tsx`:**
-- CRUD com listagem, novo, editar, soft delete
-- Campos: descrição, tipo (PROPRIO/TERCEIRO), principal (toggle), ativo
-- Validação: apenas 1 principal por empresa+filial
+No modal de cadastro/edição de Ponto de Estoque:
+- Adicionar `Tabs` com duas abas: "Dados Gerais" (formulário atual) e "Tipos de Produtos Permitidos"
+- Na aba de tipos: grid com checkbox multi-select listando todos os tipos de produto ativos
+- Ao salvar, persiste os vínculos via `pontoEstoqueTipoProdutoService`
 
-**`src/pages/produtos-estoque/MovimentacaoEstoquePage.tsx`:**
-- Formulário: Produto (select), Ponto de Estoque (select), Tipo Movimento (ENTRADA/SAIDA/AJUSTE), Unidade (select filtrada por tipo da unidade_base), Quantidade, Data, Observação
-- Exibir "Quantidade convertida para unidade base: XXX [codigo]" em tempo real
-- Ao confirmar: chamar service que faz conversão, validação de negativo e atualização de saldo
-- Toast de sucesso/erro
-- Listagem de movimentações recentes abaixo do formulário
+### 6. Campo `tipoProdutoId` no Produto — `src/lib/mock-data.ts` + `src/pages/produtos-estoque/ProdutosPage.tsx`
 
-**`src/pages/produtos-estoque/ConsultaEstoquePage.tsx`:**
-- Grid: Produto, Ponto, Quantidade Atual, Unidade Base
-- Filtros: Produto, Ponto
-- Saldo negativo destacado em vermelho
+**mock-data.ts:** Adicionar `tipoProdutoId: string` (obrigatório) na interface `Produto`. Atualizar mock existente (`prod1`) com `tipoProdutoId: "tp1"`.
 
-### 6. Rotas — `src/App.tsx`
+**services.ts:** Adicionar `tipoProdutoId` no `produtoService.salvar`.
 
-Substituir placeholders por componentes reais:
-- `/produtos-estoque/pontos-estoque` → PontosEstoquePage
-- `/produtos-estoque/movimentacao-estoque` → MovimentacaoEstoquePage (nova rota)
-- `/produtos-estoque/consulta-estoque` → ConsultaEstoquePage (nova rota)
+**ProdutosPage.tsx:**
+- Adicionar `tipoProdutoId` ao schema Zod (obrigatório)
+- Adicionar Select de Tipo de Produto como **primeiro campo** do formulário (acima de código e descrição)
+- Carregar lista de tipos via `tipoProdutoService`
+- Preencher no openEdit
+
+### 7. Empresa/Filial na Movimentação de Estoque — `src/pages/produtos-estoque/MovimentacaoEstoquePage.tsx`
+
+Adicionar no topo do formulário (antes dos campos de produto):
+- Select **Empresa** (preenchido automaticamente com `empresaAtual`, permite alteração manual, lista empresas do grupo)
+- Select **Filial** (preenchido automaticamente com `filialAtual`, atualiza ao trocar empresa, lista filiais da empresa selecionada)
+- Ao trocar empresa/filial: recarregar pontos de estoque e produtos filtrados
 
 ### Arquivos Modificados
 
 | Arquivo | Ação |
 |---|---|
-| `src/lib/mock-data.ts` | Adicionar interfaces, types, mock arrays, campo em ParametroComercial |
-| `src/lib/services.ts` | Adicionar pontoEstoqueService, estoqueService, movimentacaoEstoqueService |
-| `src/lib/modules.ts` | Adicionar itens de menu (Movimentação, Consulta) |
-| `src/App.tsx` | Adicionar imports e rotas |
-| `src/pages/produtos-estoque/PontosEstoquePage.tsx` | Criar |
-| `src/pages/produtos-estoque/MovimentacaoEstoquePage.tsx` | Criar |
-| `src/pages/produtos-estoque/ConsultaEstoquePage.tsx` | Criar |
+| `src/lib/mock-data.ts` | Adicionar Moeda, CotacaoMoeda, PontoEstoqueTipoProduto; adicionar tipoProdutoId em Produto |
+| `src/lib/services.ts` | Adicionar moedaService, cotacaoMoedaService, pontoEstoqueTipoProdutoService; atualizar produtoService |
+| `src/components/AppHeader.tsx` | Adicionar widget de cotação com atualização automática |
+| `src/pages/produtos-estoque/PontosEstoquePage.tsx` | Adicionar aba "Tipos de Produtos Permitidos" com multi-select |
+| `src/pages/produtos-estoque/ProdutosPage.tsx` | Adicionar campo obrigatório Tipo de Produto no topo do formulário |
+| `src/pages/produtos-estoque/MovimentacaoEstoquePage.tsx` | Adicionar seletores Empresa/Filial no topo |
 
