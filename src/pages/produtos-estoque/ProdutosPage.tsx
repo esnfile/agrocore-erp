@@ -672,6 +672,33 @@ export default function ProdutosPage() {
           {/* ---- TAB 1: Dados Gerais ---- */}
           <TabsContent value="dados">
             <div className="space-y-4">
+              {/* Tipo de Produto - primeiro campo */}
+              <div className="space-y-1.5">
+                <Label>
+                  Tipo de Produto <span className="text-destructive">*</span>
+                </Label>
+                <Select
+                  value={watch("tipoProdutoId")}
+                  onValueChange={(v) => setValue("tipoProdutoId", v)}
+                >
+                  <SelectTrigger className="w-[300px]">
+                    <SelectValue placeholder="Selecione o tipo de produto..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {tiposProdutoList.filter((tp) => tp.ativo).map((tp) => (
+                      <SelectItem key={tp.id} value={tp.id}>
+                        {tp.descricao}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.tipoProdutoId && (
+                  <p className="text-xs text-destructive">
+                    {errors.tipoProdutoId.message}
+                  </p>
+                )}
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="codigoBarras">Código de Barras</Label>
