@@ -764,14 +764,16 @@ export default function ContratosPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Data</TableHead>
-                      <TableHead className="text-right">Quantidade</TableHead>
-                      <TableHead>Unidade</TableHead>
-                      <TableHead className="text-right">Peso Bruto</TableHead>
-                      <TableHead className="text-right">Peso Líquido</TableHead>
-                      <TableHead>Motorista</TableHead>
-                      <TableHead>Placa</TableHead>
-                      {!viewOnly && <TableHead className="text-right">Ações</TableHead>}
+                       <TableHead>Data</TableHead>
+                       <TableHead className="text-right">Quantidade</TableHead>
+                       <TableHead>Unidade</TableHead>
+                       <TableHead className="text-right">Peso Bruto</TableHead>
+                       <TableHead className="text-right">Peso Líquido</TableHead>
+                       <TableHead className="text-right">Peso Comercial</TableHead>
+                       <TableHead className="text-right">Desc. %</TableHead>
+                       <TableHead>Motorista</TableHead>
+                       <TableHead>Placa</TableHead>
+                       {!viewOnly && <TableHead className="text-right">Ações</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
