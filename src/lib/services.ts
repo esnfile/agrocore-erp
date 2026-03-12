@@ -1727,3 +1727,195 @@ export const contratoCondicaoService = {
     if (c) { c.deletadoEm = now; c.deletadoPor = "u1"; c.atualizadoEm = now; c.atualizadoPor = "u1"; }
   },
 };
+
+// ============================================================
+// Classificação de Grãos — Tipos
+// ============================================================
+export const classificacaoTipoService = {
+  async listar(empresaId: string, filialId: string): Promise<ClassificacaoTipo[]> {
+    await delay();
+    return mockClassificacaoTipos.filter(
+      (t) => t.deletadoEm === null && t.empresaId === empresaId && t.filialId === filialId
+    );
+  },
+  async listarTodos(): Promise<ClassificacaoTipo[]> {
+    await delay();
+    return mockClassificacaoTipos.filter((t) => t.deletadoEm === null);
+  },
+  async descricaoExiste(descricao: string, empresaId: string, filialId: string, excludeId?: string): Promise<boolean> {
+    await delay(100);
+    const t = descricao.trim().toLowerCase();
+    return mockClassificacaoTipos.some(
+      (ct) => ct.deletadoEm === null && ct.empresaId === empresaId && ct.filialId === filialId &&
+        ct.descricao.toLowerCase() === t && ct.id !== excludeId
+    );
+  },
+  async salvar(
+    data: Partial<ClassificacaoTipo>,
+    ctx: { grupoId: string; empresaId: string; filialId: string }
+  ): Promise<ClassificacaoTipo> {
+    await delay(400);
+    const now = new Date().toISOString();
+    const existing = data.id ? mockClassificacaoTipos.find((t) => t.id === data.id && t.deletadoEm === null) : undefined;
+    if (existing) {
+      existing.descricao = (data.descricao ?? existing.descricao).trim();
+      existing.unidade = data.unidade ?? existing.unidade;
+      existing.ativo = data.ativo ?? existing.ativo;
+      existing.atualizadoEm = now;
+      existing.atualizadoPor = "u1";
+      return existing;
+    }
+    const novo: ClassificacaoTipo = {
+      id: `ct${Date.now()}`,
+      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      descricao: (data.descricao ?? "").trim(),
+      unidade: data.unidade ?? "PERCENTUAL",
+      ativo: data.ativo ?? true,
+      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      deletadoEm: null, deletadoPor: null,
+    };
+    mockClassificacaoTipos.push(novo);
+    return novo;
+  },
+  async excluir(id: string): Promise<void> {
+    await delay();
+    const now = new Date().toISOString();
+    const t = mockClassificacaoTipos.find((t) => t.id === id && t.deletadoEm === null);
+    if (t) { t.deletadoEm = now; t.deletadoPor = "u1"; t.atualizadoEm = now; t.atualizadoPor = "u1"; }
+  },
+};
+
+// ============================================================
+// Produto Classificações
+// ============================================================
+export const produtoClassificacaoService = {
+  async listarPorProduto(produtoId: string): Promise<ProdutoClassificacao[]> {
+    await delay();
+    return mockProdutoClassificacoes.filter((p) => p.deletadoEm === null && p.produtoId === produtoId);
+  },
+  async salvar(
+    data: Partial<ProdutoClassificacao>,
+    ctx: { grupoId: string; empresaId: string; filialId: string }
+  ): Promise<ProdutoClassificacao> {
+    await delay(200);
+    const now = new Date().toISOString();
+    const existing = data.id ? mockProdutoClassificacoes.find((p) => p.id === data.id && p.deletadoEm === null) : undefined;
+    if (existing) {
+      existing.classificacaoTipoId = data.classificacaoTipoId ?? existing.classificacaoTipoId;
+      existing.valorPadrao = data.valorPadrao ?? existing.valorPadrao;
+      existing.limiteTolerancia = data.limiteTolerancia ?? existing.limiteTolerancia;
+      existing.ativo = data.ativo ?? existing.ativo;
+      existing.atualizadoEm = now;
+      existing.atualizadoPor = "u1";
+      return existing;
+    }
+    const novo: ProdutoClassificacao = {
+      id: `pc${Date.now()}`,
+      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      produtoId: data.produtoId ?? "",
+      classificacaoTipoId: data.classificacaoTipoId ?? "",
+      valorPadrao: data.valorPadrao ?? 0,
+      limiteTolerancia: data.limiteTolerancia ?? 0,
+      ativo: data.ativo ?? true,
+      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      deletadoEm: null, deletadoPor: null,
+    };
+    mockProdutoClassificacoes.push(novo);
+    return novo;
+  },
+  async excluir(id: string): Promise<void> {
+    await delay();
+    const now = new Date().toISOString();
+    const p = mockProdutoClassificacoes.find((p) => p.id === id && p.deletadoEm === null);
+    if (p) { p.deletadoEm = now; p.deletadoPor = "u1"; p.atualizadoEm = now; p.atualizadoPor = "u1"; }
+  },
+};
+
+// ============================================================
+// Classificação Descontos
+// ============================================================
+export const classificacaoDescontoService = {
+  async listarPorProduto(produtoId: string): Promise<ClassificacaoDesconto[]> {
+    await delay();
+    return mockClassificacaoDescontos.filter((d) => d.deletadoEm === null && d.produtoId === produtoId);
+  },
+  async salvar(
+    data: Partial<ClassificacaoDesconto>,
+    ctx: { grupoId: string; empresaId: string; filialId: string }
+  ): Promise<ClassificacaoDesconto> {
+    await delay(200);
+    const now = new Date().toISOString();
+    const existing = data.id ? mockClassificacaoDescontos.find((d) => d.id === data.id && d.deletadoEm === null) : undefined;
+    if (existing) {
+      existing.classificacaoTipoId = data.classificacaoTipoId ?? existing.classificacaoTipoId;
+      existing.valorMinimo = data.valorMinimo ?? existing.valorMinimo;
+      existing.valorMaximo = data.valorMaximo ?? existing.valorMaximo;
+      existing.percentualDesconto = data.percentualDesconto ?? existing.percentualDesconto;
+      existing.atualizadoEm = now;
+      existing.atualizadoPor = "u1";
+      return existing;
+    }
+    const novo: ClassificacaoDesconto = {
+      id: `cd${Date.now()}`,
+      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      produtoId: data.produtoId ?? "",
+      classificacaoTipoId: data.classificacaoTipoId ?? "",
+      valorMinimo: data.valorMinimo ?? 0,
+      valorMaximo: data.valorMaximo ?? 0,
+      percentualDesconto: data.percentualDesconto ?? 0,
+      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      deletadoEm: null, deletadoPor: null,
+    };
+    mockClassificacaoDescontos.push(novo);
+    return novo;
+  },
+  async excluir(id: string): Promise<void> {
+    await delay();
+    const now = new Date().toISOString();
+    const d = mockClassificacaoDescontos.find((d) => d.id === id && d.deletadoEm === null);
+    if (d) { d.deletadoEm = now; d.deletadoPor = "u1"; d.atualizadoEm = now; d.atualizadoPor = "u1"; }
+  },
+  buscarDescontoPorFaixa(produtoId: string, classificacaoTipoId: string, valor: number): number {
+    const faixa = mockClassificacaoDescontos.find(
+      (d) => d.deletadoEm === null && d.produtoId === produtoId &&
+        d.classificacaoTipoId === classificacaoTipoId &&
+        valor >= d.valorMinimo && valor <= d.valorMaximo
+    );
+    return faixa?.percentualDesconto ?? 0;
+  },
+};
+
+// ============================================================
+// Romaneio Classificações
+// ============================================================
+export const romaneioClassificacaoService = {
+  async listarPorRomaneio(romaneioId: string): Promise<RomaneioClassificacao[]> {
+    await delay();
+    return mockRomaneioClassificacoes.filter((r) => r.deletadoEm === null && r.romaneioId === romaneioId);
+  },
+  async salvarClassificacoes(
+    romaneioId: string,
+    itens: { classificacaoTipoId: string; valorApurado: number; percentualDesconto: number }[],
+    ctx: { grupoId: string; empresaId: string; filialId: string }
+  ): Promise<RomaneioClassificacao[]> {
+    await delay(200);
+    const now = new Date().toISOString();
+    // Remove old
+    mockRomaneioClassificacoes
+      .filter((r) => r.romaneioId === romaneioId && r.deletadoEm === null)
+      .forEach((r) => { r.deletadoEm = now; r.deletadoPor = "u1"; });
+    // Insert new
+    const novas: RomaneioClassificacao[] = itens.map((item, idx) => ({
+      id: `rc${Date.now()}${idx}`,
+      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      romaneioId,
+      classificacaoTipoId: item.classificacaoTipoId,
+      valorApurado: item.valorApurado,
+      percentualDesconto: item.percentualDesconto,
+      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      deletadoEm: null, deletadoPor: null,
+    }));
+    mockRomaneioClassificacoes.push(...novas);
+    return novas;
+  },
+};

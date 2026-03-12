@@ -147,6 +147,7 @@ export const modules: Module[] = [
             ],
           },
           { title: "Unidades de Medida", url: "/produtos-estoque/unidades-medida", icon: Ruler },
+          { title: "Tipos de Classificação", url: "/produtos-estoque/classificacao-tipos", icon: Tags },
         ],
       },
       { title: "Produtos", url: "/produtos-estoque/produtos", icon: Package },
