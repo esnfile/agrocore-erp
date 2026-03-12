@@ -38,8 +38,9 @@ import {
 import type {
   Contrato, ContratoEntrega, ContratoFixacao,
   PontoEstoque, Moeda,
+  CondicaoDescontoModelo, ContratoCondicao, TipoCondicaoDesconto,
 } from "@/lib/mock-data";
-import { Plus, Pencil, Trash2, Eye } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, Lock } from "lucide-react";
 
 // ---- Schemas ----
 const contratoSchema = z.object({
