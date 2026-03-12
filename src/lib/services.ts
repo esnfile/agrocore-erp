@@ -1245,3 +1245,280 @@ export const pontoEstoqueTipoProdutoService = {
     }
   },
 };
+
+// ============================================================
+// Contratos
+// ============================================================
+export const contratoService = {
+  async listar(empresaId: string, filialId: string): Promise<Contrato[]> {
+    await delay();
+    return mockContratos.filter(
+      (c) => c.deletadoEm === null && c.empresaId === empresaId && c.filialId === filialId
+    );
+  },
+  async listarTodos(grupoId: string): Promise<Contrato[]> {
+    await delay();
+    return mockContratos.filter((c) => c.deletadoEm === null && c.grupoId === grupoId);
+  },
+  async salvar(
+    data: Partial<Contrato>,
+    ctx: { grupoId: string; empresaId: string; filialId: string }
+  ): Promise<Contrato> {
+    await delay(400);
+    const now = new Date().toISOString();
+    const existing = data.id ? mockContratos.find((c) => c.id === data.id && c.deletadoEm === null) : undefined;
+    if (existing) {
+      Object.assign(existing, data, {
+        grupoId: existing.grupoId, empresaId: existing.empresaId, filialId: existing.filialId,
+        criadoEm: existing.criadoEm, criadoPor: existing.criadoPor,
+        atualizadoEm: now, atualizadoPor: "u1", deletadoEm: null, deletadoPor: null,
+      });
+      return existing;
+    }
+    // Convert quantity to base
+    const produto = mockProdutos.find((p) => p.id === data.produtoId);
+    const unidadeNeg = mockUnidadesMedida.find((u) => u.id === data.unidadeNegociacaoId);
+    const unidadeBase = produto ? mockUnidadesMedida.find((u) => u.id === produto.unidadeBaseId) : undefined;
+    let quantidadeBaseTotal = data.quantidadeTotal ?? 0;
+    if (unidadeNeg && unidadeBase && unidadeBase.fatorBase > 0) {
+      quantidadeBaseTotal = ((data.quantidadeTotal ?? 0) * unidadeNeg.fatorBase) / unidadeBase.fatorBase;
+    }
+
+    const novo: Contrato = {
+      id: `ctr${Date.now()}`,
+      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      numeroContrato: data.numeroContrato ?? "",
+      tipoContrato: data.tipoContrato ?? "COMPRA",
+      pessoaId: data.pessoaId ?? "",
+      produtoId: data.produtoId ?? "",
+      unidadeNegociacaoId: data.unidadeNegociacaoId ?? "",
+      quantidadeTotal: data.quantidadeTotal ?? 0,
+      quantidadeEntregue: 0,
+      quantidadeSaldo: data.quantidadeTotal ?? 0,
+      quantidadeBaseTotal,
+      moedaId: data.moedaId ?? "moeda1",
+      precoUnitario: data.precoUnitario ?? 0,
+      tipoPreco: data.tipoPreco ?? "FIXO",
+      dataContrato: data.dataContrato ?? new Date().toISOString().slice(0, 10),
+      dataEntregaInicio: data.dataEntregaInicio ?? "",
+      dataEntregaFim: data.dataEntregaFim ?? "",
+      status: "ABERTO",
+      observacoes: data.observacoes ?? "",
+      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      deletadoEm: null, deletadoPor: null,
+    };
+    mockContratos.push(novo);
+    return novo;
+  },
+  async excluir(id: string): Promise<{ sucesso: boolean; mensagem: string }> {
+    await delay();
+    const now = new Date().toISOString();
+    // Check if has entregas
+    const hasEntregas = mockContratoEntregas.some((e) => e.contratoId === id && e.deletadoEm === null);
+    if (hasEntregas) return { sucesso: false, mensagem: "Não é possível excluir contrato com entregas vinculadas." };
+    const c = mockContratos.find((c) => c.id === id && c.deletadoEm === null);
+    if (c) { c.deletadoEm = now; c.deletadoPor = "u1"; c.atualizadoEm = now; c.atualizadoPor = "u1"; }
+    return { sucesso: true, mensagem: "Contrato excluído com sucesso." };
+  },
+  async numeroExiste(numero: string, excludeId?: string): Promise<boolean> {
+    await delay(100);
+    const t = numero.trim().toUpperCase();
+    return mockContratos.some((c) => c.deletadoEm === null && c.numeroContrato.toUpperCase() === t && c.id !== excludeId);
+  },
+};
+
+// ============================================================
+// Contrato Entregas (Romaneios)
+// ============================================================
+export const contratoEntregaService = {
+  async listarPorContrato(contratoId: string): Promise<ContratoEntrega[]> {
+    await delay();
+    return mockContratoEntregas
+      .filter((e) => e.deletadoEm === null && e.contratoId === contratoId)
+      .sort((a, b) => new Date(b.dataEntrega).getTime() - new Date(a.dataEntrega).getTime());
+  },
+  async salvar(
+    data: Partial<ContratoEntrega>,
+    ctx: { grupoId: string; empresaId: string; filialId: string }
+  ): Promise<{ sucesso: boolean; mensagem: string; entrega?: ContratoEntrega }> {
+    await delay(400);
+    const now = new Date().toISOString();
+
+    const contrato = mockContratos.find((c) => c.id === data.contratoId && c.deletadoEm === null);
+    if (!contrato) return { sucesso: false, mensagem: "Contrato não encontrado." };
+
+    // Convert to base
+    const produto = mockProdutos.find((p) => p.id === contrato.produtoId);
+    const unidadeInf = mockUnidadesMedida.find((u) => u.id === data.unidadeInformadaId);
+    const unidadeBase = produto ? mockUnidadesMedida.find((u) => u.id === produto.unidadeBaseId) : undefined;
+    let quantidadeConvertidaBase = data.quantidadeInformada ?? 0;
+    if (unidadeInf && unidadeBase && unidadeBase.fatorBase > 0) {
+      quantidadeConvertidaBase = ((data.quantidadeInformada ?? 0) * unidadeInf.fatorBase) / unidadeBase.fatorBase;
+    }
+
+    const existing = data.id ? mockContratoEntregas.find((e) => e.id === data.id && e.deletadoEm === null) : undefined;
+
+    if (existing) {
+      // Revert old quantities from contract
+      contrato.quantidadeEntregue -= existing.quantidadeInformada;
+      contrato.quantidadeSaldo += existing.quantidadeInformada;
+
+      Object.assign(existing, data, {
+        quantidadeConvertidaBase,
+        grupoId: existing.grupoId, empresaId: existing.empresaId, filialId: existing.filialId,
+        criadoEm: existing.criadoEm, criadoPor: existing.criadoPor,
+        atualizadoEm: now, atualizadoPor: "u1",
+      });
+
+      // Apply new quantities
+      contrato.quantidadeEntregue += (data.quantidadeInformada ?? 0);
+      contrato.quantidadeSaldo -= (data.quantidadeInformada ?? 0);
+      contrato.status = contrato.quantidadeSaldo <= 0 ? "FINALIZADO" : contrato.quantidadeEntregue > 0 ? "PARCIAL" : "ABERTO";
+      contrato.atualizadoEm = now;
+      contrato.atualizadoPor = "u1";
+
+      return { sucesso: true, mensagem: "Romaneio atualizado.", entrega: existing };
+    }
+
+    // Validate saldo
+    if ((data.quantidadeInformada ?? 0) > contrato.quantidadeSaldo) {
+      return { sucesso: false, mensagem: `Quantidade (${data.quantidadeInformada}) excede o saldo do contrato (${contrato.quantidadeSaldo}).` };
+    }
+
+    const entrega: ContratoEntrega = {
+      id: `ctre${Date.now()}`,
+      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      contratoId: data.contratoId!,
+      dataEntrega: data.dataEntrega ?? now,
+      quantidadeInformada: data.quantidadeInformada ?? 0,
+      unidadeInformadaId: data.unidadeInformadaId ?? "",
+      quantidadeConvertidaBase,
+      pontoEstoqueId: data.pontoEstoqueId ?? "",
+      pesoBruto: data.pesoBruto ?? null,
+      pesoLiquido: data.pesoLiquido ?? null,
+      placaVeiculo: data.placaVeiculo ?? "",
+      nomeMotorista: data.nomeMotorista ?? "",
+      documentoMotorista: data.documentoMotorista ?? "",
+      observacoes: data.observacoes ?? "",
+      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      deletadoEm: null, deletadoPor: null,
+    };
+    mockContratoEntregas.push(entrega);
+
+    // Update contract saldo
+    contrato.quantidadeEntregue += entrega.quantidadeInformada;
+    contrato.quantidadeSaldo -= entrega.quantidadeInformada;
+    contrato.status = contrato.quantidadeSaldo <= 0 ? "FINALIZADO" : "PARCIAL";
+    contrato.atualizadoEm = now;
+    contrato.atualizadoPor = "u1";
+
+    // Create stock movement
+    const tipoMov = contrato.tipoContrato === "COMPRA" ? "ENTRADA" : "SAIDA";
+    const mov: MovimentacaoEstoque = {
+      id: `mov${Date.now()}`,
+      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      produtoId: contrato.produtoId, pontoEstoqueId: entrega.pontoEstoqueId,
+      tipoMovimento: tipoMov,
+      quantidadeInformada: entrega.quantidadeInformada,
+      unidadeMovimentacaoId: entrega.unidadeInformadaId,
+      quantidadeConvertidaBase: entrega.quantidadeConvertidaBase,
+      dataMovimentacao: entrega.dataEntrega,
+      observacao: `Romaneio ${entrega.id} — Contrato ${contrato.numeroContrato}`,
+      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      deletadoEm: null, deletadoPor: null,
+    };
+    mockMovimentacoesEstoque.push(mov);
+
+    // Update estoque
+    const saldoAtual = estoqueService.obterSaldo(contrato.produtoId, entrega.pontoEstoqueId);
+    const qtdAtual = saldoAtual?.quantidadeAtual ?? 0;
+    const novaQtd = tipoMov === "ENTRADA"
+      ? qtdAtual + entrega.quantidadeConvertidaBase
+      : qtdAtual - entrega.quantidadeConvertidaBase;
+    estoqueService.atualizarSaldo(contrato.produtoId, entrega.pontoEstoqueId, novaQtd, ctx);
+
+    return { sucesso: true, mensagem: "Romaneio registrado e estoque atualizado.", entrega };
+  },
+  async excluir(id: string): Promise<{ sucesso: boolean; mensagem: string }> {
+    await delay();
+    const now = new Date().toISOString();
+    const e = mockContratoEntregas.find((e) => e.id === id && e.deletadoEm === null);
+    if (!e) return { sucesso: false, mensagem: "Entrega não encontrada." };
+
+    // Revert contract
+    const contrato = mockContratos.find((c) => c.id === e.contratoId && c.deletadoEm === null);
+    if (contrato) {
+      contrato.quantidadeEntregue -= e.quantidadeInformada;
+      contrato.quantidadeSaldo += e.quantidadeInformada;
+      contrato.status = contrato.quantidadeEntregue <= 0 ? "ABERTO" : "PARCIAL";
+      contrato.atualizadoEm = now;
+      contrato.atualizadoPor = "u1";
+    }
+
+    e.deletadoEm = now; e.deletadoPor = "u1"; e.atualizadoEm = now; e.atualizadoPor = "u1";
+    return { sucesso: true, mensagem: "Romaneio excluído." };
+  },
+};
+
+// ============================================================
+// Contrato Fixações
+// ============================================================
+export const contratoFixacaoService = {
+  async listarPorContrato(contratoId: string): Promise<ContratoFixacao[]> {
+    await delay();
+    return mockContratoFixacoes
+      .filter((f) => f.deletadoEm === null && f.contratoId === contratoId)
+      .sort((a, b) => new Date(b.dataFixacao).getTime() - new Date(a.dataFixacao).getTime());
+  },
+  async salvar(
+    data: Partial<ContratoFixacao>,
+    ctx: { grupoId: string; empresaId: string; filialId: string }
+  ): Promise<{ sucesso: boolean; mensagem: string; fixacao?: ContratoFixacao }> {
+    await delay(400);
+    const now = new Date().toISOString();
+
+    const contrato = mockContratos.find((c) => c.id === data.contratoId && c.deletadoEm === null);
+    if (!contrato) return { sucesso: false, mensagem: "Contrato não encontrado." };
+
+    // Calculate total already fixed
+    const jaFixado = mockContratoFixacoes
+      .filter((f) => f.deletadoEm === null && f.contratoId === data.contratoId && f.id !== data.id)
+      .reduce((sum, f) => sum + f.quantidadeFixada, 0);
+
+    if (jaFixado + (data.quantidadeFixada ?? 0) > contrato.quantidadeTotal) {
+      return { sucesso: false, mensagem: "Quantidade fixada excede o saldo do contrato." };
+    }
+
+    const existing = data.id ? mockContratoFixacoes.find((f) => f.id === data.id && f.deletadoEm === null) : undefined;
+    if (existing) {
+      Object.assign(existing, data, {
+        grupoId: existing.grupoId, empresaId: existing.empresaId, filialId: existing.filialId,
+        criadoEm: existing.criadoEm, criadoPor: existing.criadoPor,
+        atualizadoEm: now, atualizadoPor: "u1",
+      });
+      return { sucesso: true, mensagem: "Fixação atualizada.", fixacao: existing };
+    }
+
+    const fixacao: ContratoFixacao = {
+      id: `ctrf${Date.now()}`,
+      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      contratoId: data.contratoId!,
+      dataFixacao: data.dataFixacao ?? now,
+      quantidadeFixada: data.quantidadeFixada ?? 0,
+      unidadeFixacaoId: data.unidadeFixacaoId ?? "",
+      precoFixado: data.precoFixado ?? 0,
+      moedaId: data.moedaId ?? "moeda1",
+      observacoes: data.observacoes ?? "",
+      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      deletadoEm: null, deletadoPor: null,
+    };
+    mockContratoFixacoes.push(fixacao);
+    return { sucesso: true, mensagem: "Fixação registrada.", fixacao };
+  },
+  async excluir(id: string): Promise<void> {
+    await delay();
+    const now = new Date().toISOString();
+    const f = mockContratoFixacoes.find((f) => f.id === id && f.deletadoEm === null);
+    if (f) { f.deletadoEm = now; f.deletadoPor = "u1"; f.atualizadoEm = now; f.atualizadoPor = "u1"; }
+  },
+};
