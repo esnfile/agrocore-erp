@@ -28,6 +28,8 @@ import {
   contratoService, contratoEntregaService, contratoFixacaoService,
   pontoEstoqueService, moedaService,
   condicaoDescontoModeloService, contratoCondicaoService,
+  classificacaoTipoService, produtoClassificacaoService,
+  classificacaoDescontoService, romaneioClassificacaoService,
 } from "@/lib/services";
 import {
   pessoas as mockPessoas,
@@ -39,6 +41,7 @@ import type {
   Contrato, ContratoEntrega, ContratoFixacao,
   PontoEstoque, Moeda,
   CondicaoDescontoModelo, ContratoCondicao, TipoCondicaoDesconto,
+  ClassificacaoTipo, ProdutoClassificacao, RomaneioClassificacao,
 } from "@/lib/mock-data";
 import { Plus, Pencil, Trash2, Eye, Lock } from "lucide-react";
 
