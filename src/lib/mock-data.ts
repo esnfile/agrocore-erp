@@ -1121,6 +1121,9 @@ export interface ContratoEntrega {
   pontoEstoqueId: string;
   pesoBruto: number | null;
   pesoLiquido: number | null;
+  pesoClassificado: number | null;
+  descontoTotalPercentual: number | null;
+  pesoComercial: number | null;
   placaVeiculo: string;
   nomeMotorista: string;
   documentoMotorista: string;
