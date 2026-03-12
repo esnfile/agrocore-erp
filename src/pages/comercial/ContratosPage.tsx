@@ -259,12 +259,14 @@ export default function ContratosPage() {
   };
 
   const loadSubEntities = async (contratoId: string) => {
-    const [e, f] = await Promise.all([
+    const [e, f, conds] = await Promise.all([
       contratoEntregaService.listarPorContrato(contratoId),
       contratoFixacaoService.listarPorContrato(contratoId),
+      contratoCondicaoService.listarPorContrato(contratoId),
     ]);
     setEntregas(e);
     setFixacoes(f);
+    setCondicoes(conds);
   };
 
   const onSaveContrato = contratoForm.handleSubmit(async (data) => {
