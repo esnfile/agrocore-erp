@@ -200,6 +200,7 @@ export default function ContratosPage() {
       condicaoDescontoModeloService.listar(empresaId, filialId).then(setModelosCondicao);
     }
     moedaService.listar().then(setMoedas);
+    classificacaoTipoService.listarTodos().then(setClassificacaoTipos);
   }, [empresaId, filialId]);
 
   const pessoasAtivas = useMemo(
