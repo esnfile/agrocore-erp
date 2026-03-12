@@ -28,6 +28,8 @@ import {
   contratoService, contratoEntregaService, contratoFixacaoService,
   pontoEstoqueService, moedaService,
   condicaoDescontoModeloService, contratoCondicaoService,
+  classificacaoTipoService, produtoClassificacaoService,
+  classificacaoDescontoService, romaneioClassificacaoService,
 } from "@/lib/services";
 import {
   pessoas as mockPessoas,
@@ -39,6 +41,7 @@ import type {
   Contrato, ContratoEntrega, ContratoFixacao,
   PontoEstoque, Moeda,
   CondicaoDescontoModelo, ContratoCondicao, TipoCondicaoDesconto,
+  ClassificacaoTipo, ProdutoClassificacao, RomaneioClassificacao,
 } from "@/lib/mock-data";
 import { Plus, Pencil, Trash2, Eye, Lock } from "lucide-react";
 
@@ -141,6 +144,12 @@ export default function ContratosPage() {
   const [condOrdem, setCondOrdem] = useState("");
   const [condAutomatico, setCondAutomatico] = useState(false);
 
+  // Classificação de grãos
+  const [classificacaoTipos, setClassificacaoTipos] = useState<ClassificacaoTipo[]>([]);
+  const [produtoClassificacoes, setProdutoClassificacoes] = useState<ProdutoClassificacao[]>([]);
+  const [romaneioClassificacoesMap, setRomaneioClassificacoesMap] = useState<Record<string, RomaneioClassificacao[]>>({});
+  const [classEntregaItens, setClassEntregaItens] = useState<{ classificacaoTipoId: string; valorApurado: string }[]>([]);
+
   // Forms
   const contratoForm = useForm<ContratoForm>({
     resolver: zodResolver(contratoSchema),
@@ -191,6 +200,7 @@ export default function ContratosPage() {
       condicaoDescontoModeloService.listar(empresaId, filialId).then(setModelosCondicao);
     }
     moedaService.listar().then(setMoedas);
+    classificacaoTipoService.listarTodos().then(setClassificacaoTipos);
   }, [empresaId, filialId]);
 
   const pessoasAtivas = useMemo(
@@ -306,6 +316,16 @@ export default function ContratosPage() {
       pontoEstoqueId: "", pesoBruto: undefined, pesoLiquido: undefined,
       placaVeiculo: "", nomeMotorista: "", documentoMotorista: "", observacoes: "",
     });
+    // Load product classifications for this contract's product
+    if (editingContrato?.produtoId) {
+      produtoClassificacaoService.listarPorProduto(editingContrato.produtoId).then((pcs) => {
+        setProdutoClassificacoes(pcs);
+        setClassEntregaItens(pcs.filter((pc) => pc.ativo).map((pc) => ({
+          classificacaoTipoId: pc.classificacaoTipoId,
+          valorApurado: String(pc.valorPadrao),
+        })));
+      });
+    }
     setEntregaModalOpen(true);
   };
 
@@ -330,16 +350,38 @@ export default function ContratosPage() {
     if (!editingContrato) return;
     setSavingEntrega(true);
     try {
+      // Calculate classification
+      const pesoBase = Number(data.pesoLiquido) || Number(data.pesoBruto) || 0;
+      const totalDesc = classEntregaItens.reduce((sum, item) => {
+        return sum + classificacaoDescontoService.buscarDescontoPorFaixa(editingContrato.produtoId, item.classificacaoTipoId, Number(item.valorApurado) || 0);
+      }, 0);
+      const pesoComercial = pesoBase > 0 ? Math.round((pesoBase - (pesoBase * totalDesc / 100)) * 100) / 100 : null;
+
       const result = await contratoEntregaService.salvar(
-        { ...data, contratoId: editingContrato.id, id: editingEntrega?.id },
+        { ...data, contratoId: editingContrato.id, id: editingEntrega?.id,
+          pesoClassificado: pesoBase || null,
+          descontoTotalPercentual: totalDesc > 0 ? totalDesc : null,
+          pesoComercial,
+        },
         { grupoId, empresaId, filialId }
       );
-      if (result.sucesso) {
+      if (result.sucesso && result.entrega) {
+        // Save romaneio classificacoes
+        if (classEntregaItens.length > 0) {
+          await romaneioClassificacaoService.salvarClassificacoes(
+            result.entrega.id,
+            classEntregaItens.map((item) => ({
+              classificacaoTipoId: item.classificacaoTipoId,
+              valorApurado: Number(item.valorApurado) || 0,
+              percentualDesconto: classificacaoDescontoService.buscarDescontoPorFaixa(editingContrato.produtoId, item.classificacaoTipoId, Number(item.valorApurado) || 0),
+            })),
+            { grupoId, empresaId, filialId }
+          );
+        }
         toast({ title: "Sucesso", description: result.mensagem });
         setEntregaModalOpen(false);
         await loadSubEntities(editingContrato.id);
         await loadContratos();
-        // Refresh editing contrato
         const updated = (await contratoService.listar(empresaId, filialId)).find((c) => c.id === editingContrato.id);
         if (updated) setEditingContrato(updated);
       } else {
@@ -754,20 +796,22 @@ export default function ContratosPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Data</TableHead>
-                      <TableHead className="text-right">Quantidade</TableHead>
-                      <TableHead>Unidade</TableHead>
-                      <TableHead className="text-right">Peso Bruto</TableHead>
-                      <TableHead className="text-right">Peso Líquido</TableHead>
-                      <TableHead>Motorista</TableHead>
-                      <TableHead>Placa</TableHead>
-                      {!viewOnly && <TableHead className="text-right">Ações</TableHead>}
+                       <TableHead>Data</TableHead>
+                       <TableHead className="text-right">Quantidade</TableHead>
+                       <TableHead>Unidade</TableHead>
+                       <TableHead className="text-right">Peso Bruto</TableHead>
+                       <TableHead className="text-right">Peso Líquido</TableHead>
+                       <TableHead className="text-right">Peso Comercial</TableHead>
+                       <TableHead className="text-right">Desc. %</TableHead>
+                       <TableHead>Motorista</TableHead>
+                       <TableHead>Placa</TableHead>
+                       {!viewOnly && <TableHead className="text-right">Ações</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {entregas.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={viewOnly ? 7 : 8} className="text-center py-8 text-muted-foreground">
+                         <TableCell colSpan={viewOnly ? 9 : 10} className="text-center py-8 text-muted-foreground">
                           Nenhum romaneio registrado.
                         </TableCell>
                       </TableRow>
@@ -777,8 +821,10 @@ export default function ContratosPage() {
                           <TableCell>{format(new Date(e.dataEntrega), "dd/MM/yyyy HH:mm")}</TableCell>
                           <TableCell className="text-right">{e.quantidadeInformada.toLocaleString("pt-BR")}</TableCell>
                           <TableCell>{getCodigoUnidade(e.unidadeInformadaId)}</TableCell>
-                          <TableCell className="text-right">{e.pesoBruto?.toLocaleString("pt-BR") ?? "—"}</TableCell>
-                          <TableCell className="text-right">{e.pesoLiquido?.toLocaleString("pt-BR") ?? "—"}</TableCell>
+                           <TableCell className="text-right">{e.pesoBruto?.toLocaleString("pt-BR") ?? "—"}</TableCell>
+                           <TableCell className="text-right">{e.pesoLiquido?.toLocaleString("pt-BR") ?? "—"}</TableCell>
+                           <TableCell className="text-right font-medium">{e.pesoComercial?.toLocaleString("pt-BR") ?? "—"}</TableCell>
+                           <TableCell className="text-right">{e.descontoTotalPercentual != null ? `${e.descontoTotalPercentual.toFixed(2)}%` : "—"}</TableCell>
                           <TableCell>{e.nomeMotorista || "—"}</TableCell>
                           <TableCell>{e.placaVeiculo || "—"}</TableCell>
                           {!viewOnly && (
@@ -1096,6 +1142,63 @@ export default function ContratosPage() {
             <Label>Observações</Label>
             <Textarea rows={2} {...entregaForm.register("observacoes")} />
           </div>
+
+          {/* Classificação do Grão */}
+          {classEntregaItens.length > 0 && (
+            <div className="space-y-3 rounded-md border p-4">
+              <h4 className="text-sm font-medium">Classificação do Grão</h4>
+              <div className="overflow-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead className="text-right">Valor Apurado</TableHead>
+                      <TableHead className="text-right">% Desconto</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {classEntregaItens.map((item, idx) => {
+                      const tipo = classificacaoTipos.find((t) => t.id === item.classificacaoTipoId);
+                      const descPct = editingContrato?.produtoId
+                        ? classificacaoDescontoService.buscarDescontoPorFaixa(editingContrato.produtoId, item.classificacaoTipoId, Number(item.valorApurado) || 0)
+                        : 0;
+                      return (
+                        <TableRow key={idx}>
+                          <TableCell>{tipo?.descricao ?? item.classificacaoTipoId}</TableCell>
+                          <TableCell className="text-right">
+                            <Input
+                              type="number" step="0.000001" className="w-[120px] ml-auto"
+                              value={item.valorApurado}
+                              onChange={(e) => {
+                                setClassEntregaItens((prev) => prev.map((it, i) => i === idx ? { ...it, valorApurado: e.target.value } : it));
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell className="text-right font-medium">{descPct.toFixed(2)}%</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+              {(() => {
+                const pesoBase = Number(entregaForm.watch("pesoLiquido")) || Number(entregaForm.watch("pesoBruto")) || 0;
+                const totalDesc = classEntregaItens.reduce((sum, item) => {
+                  return sum + (editingContrato?.produtoId
+                    ? classificacaoDescontoService.buscarDescontoPorFaixa(editingContrato.produtoId, item.classificacaoTipoId, Number(item.valorApurado) || 0)
+                    : 0);
+                }, 0);
+                const pesoComercial = pesoBase > 0 ? pesoBase - (pesoBase * totalDesc / 100) : 0;
+                return (
+                  <div className="grid grid-cols-3 gap-3 rounded-md bg-muted p-3 text-sm">
+                    <div>Peso Base: <strong>{pesoBase.toLocaleString("pt-BR")}</strong></div>
+                    <div>Desconto Total: <strong className="text-destructive">{totalDesc.toFixed(2)}%</strong></div>
+                    <div>Peso Comercial: <strong className="text-primary">{Math.round(pesoComercial * 100) / 100}</strong></div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
         </div>
       </CrudModal>
 

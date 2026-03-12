@@ -27,6 +27,7 @@ import ConsultaEstoquePage from "@/pages/produtos-estoque/ConsultaEstoquePage";
 import PlaceholderPage from "@/pages/PlaceholderPage";
 import ContratosPage from "@/pages/comercial/ContratosPage";
 import ModelosCondicoesPage from "@/pages/comercial/ModelosCondicoesPage";
+import ClassificacaoTiposPage from "@/pages/produtos-estoque/ClassificacaoTiposPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -88,6 +89,7 @@ const App = () => (
               <Route path="/produtos-estoque/movimentacao-estoque" element={<MovimentacaoEstoquePage />} />
               <Route path="/produtos-estoque/consulta-estoque" element={<ConsultaEstoquePage />} />
               <Route path="/produtos-estoque/inventario-estoque" element={<PlaceholderPage />} />
+              <Route path="/produtos-estoque/classificacao-tipos" element={<ClassificacaoTiposPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

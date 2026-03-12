@@ -21,7 +21,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Plus, Pencil, Trash2 } from "lucide-react";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,6 +50,9 @@ import {
   marcaProdutoService,
   unidadeMedidaService,
   tipoProdutoService,
+  classificacaoTipoService,
+  produtoClassificacaoService,
+  classificacaoDescontoService,
 } from "@/lib/services";
 import {
   tabelasPreco as mockTabelasPrecoData,
@@ -67,6 +73,9 @@ import type {
   TipoBaixaEstoque,
   UnidadeMedida,
   TipoProduto,
+  ClassificacaoTipo,
+  ProdutoClassificacao,
+  ClassificacaoDesconto,
 } from "@/lib/mock-data";
 
 // ---- Schema ----
@@ -158,6 +167,17 @@ export default function ProdutosPage() {
   >({});
 
   const [confirmRecalc, setConfirmRecalc] = useState(false);
+
+  // Classification tab state
+  const [classificacaoTipos, setClassificacaoTipos] = useState<ClassificacaoTipo[]>([]);
+  const [produtoClassificacoes, setProdutoClassificacoes] = useState<ProdutoClassificacao[]>([]);
+  const [classificacaoDescontos, setClassificacaoDescontos] = useState<ClassificacaoDesconto[]>([]);
+  const [classModalOpen, setClassModalOpen] = useState(false);
+  const [editingClass, setEditingClass] = useState<ProdutoClassificacao | null>(null);
+  const [classForm, setClassForm] = useState({ classificacaoTipoId: "", valorPadrao: "", limiteTolerancia: "", ativo: true });
+  const [descModalOpen, setDescModalOpen] = useState(false);
+  const [editingDesc, setEditingDesc] = useState<ClassificacaoDesconto | null>(null);
+  const [descForm, setDescForm] = useState({ classificacaoTipoId: "", valorMinimo: "", valorMaximo: "", percentualDesconto: "" });
 
   const {
     register,
@@ -275,6 +295,12 @@ export default function ProdutosPage() {
     });
   }, [empresaAtual, filialAtual]);
 
+  // Load classification types
+  useEffect(() => {
+    if (!empresaAtual || !filialAtual) return;
+    classificacaoTipoService.listar(empresaAtual.id, filialAtual.id).then(setClassificacaoTipos);
+  }, [empresaAtual, filialAtual]);
+
   useEffect(() => {
     if (grupoId) {
       empresaService.listar(grupoId).then(setEmpresasGrupo);
@@ -377,6 +403,8 @@ export default function ProdutosPage() {
         })),
       }))
     );
+    setProdutoClassificacoes([]);
+    setClassificacaoDescontos([]);
     setModalOpen(true);
   };
 
@@ -449,6 +477,15 @@ export default function ProdutosPage() {
       });
     }
     setEmpresaRows(rows);
+
+    // Load classifications
+    const [pcs, cds] = await Promise.all([
+      produtoClassificacaoService.listarPorProduto(row.id),
+      classificacaoDescontoService.listarPorProduto(row.id),
+    ]);
+    setProdutoClassificacoes(pcs);
+    setClassificacaoDescontos(cds);
+
     setModalOpen(true);
   };
 
@@ -654,10 +691,11 @@ export default function ProdutosPage() {
       >
         <Tabs defaultValue="dados" className="w-full">
           <div className="flex justify-between items-center mb-4">
-            <TabsList>
+             <TabsList>
               <TabsTrigger value="dados">Dados Gerais</TabsTrigger>
               <TabsTrigger value="empresas">Empresas Permitidas</TabsTrigger>
               <TabsTrigger value="precos">Tabelas de Preço</TabsTrigger>
+              <TabsTrigger value="classificacao" disabled={!editingId}>Classificação de Qualidade</TabsTrigger>
             </TabsList>
             <div className="flex items-center gap-3">
               <Switch
@@ -1280,7 +1318,210 @@ export default function ProdutosPage() {
               )}
             </div>
           </TabsContent>
+
+          {/* ---- TAB 4: Classificação de Qualidade ---- */}
+          <TabsContent value="classificacao">
+            <div className="space-y-6">
+              {/* GRID 1 — Classificações utilizadas */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-medium">Classificações Utilizadas</h3>
+                  <Button type="button" size="sm" variant="outline" onClick={() => {
+                    setEditingClass(null);
+                    setClassForm({ classificacaoTipoId: "", valorPadrao: "", limiteTolerancia: "", ativo: true });
+                    setClassModalOpen(true);
+                  }}><Plus className="mr-2 h-4 w-4" />Adicionar</Button>
+                </div>
+                <div className="overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Tipo Classificação</TableHead>
+                        <TableHead className="text-right">Valor Padrão</TableHead>
+                        <TableHead className="text-right">Limite Tolerância</TableHead>
+                        <TableHead>Ativo</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {produtoClassificacoes.length === 0 ? (
+                        <TableRow><TableCell colSpan={5} className="text-center py-6 text-muted-foreground">Nenhuma classificação configurada.</TableCell></TableRow>
+                      ) : produtoClassificacoes.map((pc) => (
+                        <TableRow key={pc.id}>
+                          <TableCell>{classificacaoTipos.find((t) => t.id === pc.classificacaoTipoId)?.descricao ?? pc.classificacaoTipoId}</TableCell>
+                          <TableCell className="text-right">{pc.valorPadrao}</TableCell>
+                          <TableCell className="text-right">{pc.limiteTolerancia}</TableCell>
+                          <TableCell><Badge variant={pc.ativo ? "default" : "secondary"}>{pc.ativo ? "Sim" : "Não"}</Badge></TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-1">
+                              <Button variant="ghost" size="icon" onClick={() => {
+                                setEditingClass(pc);
+                                setClassForm({ classificacaoTipoId: pc.classificacaoTipoId, valorPadrao: String(pc.valorPadrao), limiteTolerancia: String(pc.limiteTolerancia), ativo: pc.ativo });
+                                setClassModalOpen(true);
+                              }}><Pencil className="h-4 w-4" /></Button>
+                              <Button variant="ghost" size="icon" onClick={async () => {
+                                await produtoClassificacaoService.excluir(pc.id);
+                                setProdutoClassificacoes((prev) => prev.filter((p) => p.id !== pc.id));
+                                toast({ title: "Excluído", description: "Classificação removida." });
+                              }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+
+              {/* GRID 2 — Tabela de Descontos */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-medium">Tabela de Descontos por Qualidade</h3>
+                  <Button type="button" size="sm" variant="outline" onClick={() => {
+                    setEditingDesc(null);
+                    setDescForm({ classificacaoTipoId: "", valorMinimo: "", valorMaximo: "", percentualDesconto: "" });
+                    setDescModalOpen(true);
+                  }}><Plus className="mr-2 h-4 w-4" />Adicionar</Button>
+                </div>
+                <div className="overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Tipo Classificação</TableHead>
+                        <TableHead className="text-right">Valor Mínimo</TableHead>
+                        <TableHead className="text-right">Valor Máximo</TableHead>
+                        <TableHead className="text-right">% Desconto</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {classificacaoDescontos.length === 0 ? (
+                        <TableRow><TableCell colSpan={5} className="text-center py-6 text-muted-foreground">Nenhuma faixa de desconto configurada.</TableCell></TableRow>
+                      ) : classificacaoDescontos.map((cd) => (
+                        <TableRow key={cd.id}>
+                          <TableCell>{classificacaoTipos.find((t) => t.id === cd.classificacaoTipoId)?.descricao ?? cd.classificacaoTipoId}</TableCell>
+                          <TableCell className="text-right">{cd.valorMinimo}</TableCell>
+                          <TableCell className="text-right">{cd.valorMaximo}</TableCell>
+                          <TableCell className="text-right">{cd.percentualDesconto}%</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-1">
+                              <Button variant="ghost" size="icon" onClick={() => {
+                                setEditingDesc(cd);
+                                setDescForm({ classificacaoTipoId: cd.classificacaoTipoId, valorMinimo: String(cd.valorMinimo), valorMaximo: String(cd.valorMaximo), percentualDesconto: String(cd.percentualDesconto) });
+                                setDescModalOpen(true);
+                              }}><Pencil className="h-4 w-4" /></Button>
+                              <Button variant="ghost" size="icon" onClick={async () => {
+                                await classificacaoDescontoService.excluir(cd.id);
+                                setClassificacaoDescontos((prev) => prev.filter((d) => d.id !== cd.id));
+                                toast({ title: "Excluído", description: "Faixa de desconto removida." });
+                              }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
         </Tabs>
+
+        {/* Classification modal */}
+        {classModalOpen && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50" onClick={() => setClassModalOpen(false)}>
+            <div className="bg-background rounded-lg border p-6 w-full max-w-md space-y-4" onClick={(e) => e.stopPropagation()}>
+              <h3 className="text-lg font-semibold">{editingClass ? "Editar Classificação" : "Nova Classificação"}</h3>
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label>Tipo Classificação <span className="text-destructive">*</span></Label>
+                  <Select value={classForm.classificacaoTipoId} onValueChange={(v) => setClassForm((f) => ({ ...f, classificacaoTipoId: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                    <SelectContent>{classificacaoTipos.filter((t) => t.ativo).map((t) => (
+                      <SelectItem key={t.id} value={t.id}>{t.descricao}</SelectItem>
+                    ))}</SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label>Valor Padrão</Label>
+                    <Input type="number" step="0.000001" value={classForm.valorPadrao} onChange={(e) => setClassForm((f) => ({ ...f, valorPadrao: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Limite Tolerância</Label>
+                    <Input type="number" step="0.000001" value={classForm.limiteTolerancia} onChange={(e) => setClassForm((f) => ({ ...f, limiteTolerancia: e.target.value }))} />
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Switch checked={classForm.ativo} onCheckedChange={(v) => setClassForm((f) => ({ ...f, ativo: v }))} />
+                  <Label>Ativo</Label>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setClassModalOpen(false)}>Cancelar</Button>
+                <Button onClick={async () => {
+                  if (!classForm.classificacaoTipoId || !editingId || !grupoId || !empresaAtual || !filialAtual) return;
+                  await produtoClassificacaoService.salvar(
+                    { id: editingClass?.id, produtoId: editingId, classificacaoTipoId: classForm.classificacaoTipoId, valorPadrao: Number(classForm.valorPadrao) || 0, limiteTolerancia: Number(classForm.limiteTolerancia) || 0, ativo: classForm.ativo },
+                    { grupoId, empresaId: empresaAtual.id, filialId: filialAtual.id }
+                  );
+                  const updated = await produtoClassificacaoService.listarPorProduto(editingId);
+                  setProdutoClassificacoes(updated);
+                  setClassModalOpen(false);
+                  toast({ title: "Sucesso", description: editingClass ? "Classificação atualizada." : "Classificação adicionada." });
+                }}>Salvar</Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Discount range modal */}
+        {descModalOpen && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50" onClick={() => setDescModalOpen(false)}>
+            <div className="bg-background rounded-lg border p-6 w-full max-w-md space-y-4" onClick={(e) => e.stopPropagation()}>
+              <h3 className="text-lg font-semibold">{editingDesc ? "Editar Faixa de Desconto" : "Nova Faixa de Desconto"}</h3>
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label>Tipo Classificação <span className="text-destructive">*</span></Label>
+                  <Select value={descForm.classificacaoTipoId} onValueChange={(v) => setDescForm((f) => ({ ...f, classificacaoTipoId: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                    <SelectContent>{classificacaoTipos.filter((t) => t.ativo).map((t) => (
+                      <SelectItem key={t.id} value={t.id}>{t.descricao}</SelectItem>
+                    ))}</SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1.5">
+                    <Label>Valor Mín.</Label>
+                    <Input type="number" step="0.000001" value={descForm.valorMinimo} onChange={(e) => setDescForm((f) => ({ ...f, valorMinimo: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Valor Máx.</Label>
+                    <Input type="number" step="0.000001" value={descForm.valorMaximo} onChange={(e) => setDescForm((f) => ({ ...f, valorMaximo: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>% Desconto</Label>
+                    <Input type="number" step="0.000001" value={descForm.percentualDesconto} onChange={(e) => setDescForm((f) => ({ ...f, percentualDesconto: e.target.value }))} />
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setDescModalOpen(false)}>Cancelar</Button>
+                <Button onClick={async () => {
+                  if (!descForm.classificacaoTipoId || !editingId || !grupoId || !empresaAtual || !filialAtual) return;
+                  await classificacaoDescontoService.salvar(
+                    { id: editingDesc?.id, produtoId: editingId, classificacaoTipoId: descForm.classificacaoTipoId, valorMinimo: Number(descForm.valorMinimo) || 0, valorMaximo: Number(descForm.valorMaximo) || 0, percentualDesconto: Number(descForm.percentualDesconto) || 0 },
+                    { grupoId, empresaId: empresaAtual.id, filialId: filialAtual.id }
+                  );
+                  const updated = await classificacaoDescontoService.listarPorProduto(editingId);
+                  setClassificacaoDescontos(updated);
+                  setDescModalOpen(false);
+                  toast({ title: "Sucesso", description: editingDesc ? "Faixa atualizada." : "Faixa adicionada." });
+                }}>Salvar</Button>
+              </div>
+            </div>
+          </div>
+        )}
       </CrudModal>
 
       {/* Delete confirmation */}
