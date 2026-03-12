@@ -859,7 +859,8 @@ export default function ContratosPage() {
 
           {/* ABA 4 — Financeiro */}
           <TabsContent value="financeiro">
-            <div className="space-y-4">
+            <div className="space-y-6">
+              {/* Resumo existente */}
               <div className="rounded-md bg-muted p-4 space-y-3">
                 <h3 className="font-semibold text-foreground">Resumo Financeiro (Simulado)</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
@@ -885,6 +886,121 @@ export default function ContratosPage() {
                 <p className="text-xs text-muted-foreground italic">
                   * Valores simulados. O módulo financeiro completo será implementado em versão futura.
                 </p>
+              </div>
+
+              {/* Resumo de Descontos */}
+              <div className="rounded-md bg-muted p-4 space-y-3">
+                <h3 className="font-semibold text-foreground">Simulação de Descontos</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div className="rounded-md bg-card p-3 border">
+                    <p className="text-muted-foreground">Valor Bruto</p>
+                    <p className="text-lg font-bold text-foreground">
+                      {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")} {valorEstimado.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                  <div className="rounded-md bg-card p-3 border">
+                    <p className="text-muted-foreground">Total Descontos</p>
+                    <p className="text-lg font-bold text-destructive">
+                      - {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")} {totalDescontosMock.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                  <div className="rounded-md bg-card p-3 border">
+                    <p className="text-muted-foreground">Valor Líquido Estimado</p>
+                    <p className="text-lg font-bold text-foreground">
+                      {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")} {valorLiquidoEstimado.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground italic">
+                  * Simulação. Cálculo real será implementado em versão futura.
+                </p>
+              </div>
+
+              {/* Condições do Contrato */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-foreground">Condições Financeiras</h3>
+                  <div className="flex gap-2">
+                    {!viewOnly && (
+                      <>
+                        <Select onValueChange={(v) => onApplyModelo(v)}>
+                          <SelectTrigger className="w-[220px]">
+                            <SelectValue placeholder="Aplicar modelo..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {modelosCondicao.filter((m) => m.ativo).map((m) => (
+                              <SelectItem key={m.id} value={m.id}>{m.descricao}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button size="sm" onClick={openNewCondicao}>
+                          <Plus className="mr-2 h-4 w-4" />Adicionar
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className="overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Ordem</TableHead>
+                        <TableHead>Descrição</TableHead>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead className="text-right">Valor</TableHead>
+                        <TableHead>Automático</TableHead>
+                        {!viewOnly && <TableHead className="text-right">Ações</TableHead>}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {condicoes.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={viewOnly ? 5 : 6} className="text-center py-8 text-muted-foreground">
+                            Nenhuma condição vinculada a este contrato.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        condicoes.map((c) => (
+                          <TableRow key={c.id}>
+                            <TableCell>{c.ordemCalculo}</TableCell>
+                            <TableCell className="font-medium">{c.descricao}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">
+                                {c.tipo === "PERCENTUAL" ? "%" : "R$"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {c.tipo === "PERCENTUAL"
+                                ? `${c.valor.toFixed(2)}%`
+                                : `R$ ${c.valor.toFixed(2)}`}
+                            </TableCell>
+                            <TableCell>
+                              {c.automatico ? (
+                                <Badge variant="default" className="gap-1">
+                                  <Lock className="h-3 w-3" /> Sim
+                                </Badge>
+                              ) : (
+                                <Badge variant="secondary">Não</Badge>
+                              )}
+                            </TableCell>
+                            {!viewOnly && (
+                              <TableCell className="text-right">
+                                <div className="flex justify-end gap-1">
+                                  <Button variant="ghost" size="icon" onClick={() => openEditCondicao(c)}>
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" onClick={() => onDeleteCondicao(c.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            )}
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
             </div>
           </TabsContent>
