@@ -1147,6 +1147,66 @@ export default function ContratosPage() {
         </div>
       </CrudModal>
 
+      {/* Condição Modal */}
+      <CrudModal
+        open={condicaoModalOpen}
+        onClose={() => setCondicaoModalOpen(false)}
+        title={editingCondicao ? "Editar Condição" : "Nova Condição"}
+        saving={savingCondicao}
+        onSave={onSaveCondicao}
+        maxWidth="sm:max-w-xl"
+      >
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <Label>Descrição <span className="text-destructive">*</span></Label>
+            <Input
+              value={condDescricao}
+              onChange={(e) => setCondDescricao(e.target.value)}
+              maxLength={150}
+              disabled={editingCondicao?.automatico}
+              placeholder="Ex: FUNRURAL"
+            />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-1.5">
+              <Label>Tipo <span className="text-destructive">*</span></Label>
+              <Select value={condTipo} onValueChange={(v) => setCondTipo(v as TipoCondicaoDesconto)} disabled={editingCondicao?.automatico}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PERCENTUAL">Percentual (%)</SelectItem>
+                  <SelectItem value="VALOR_FIXO">Valor Fixo (R$)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Valor <span className="text-destructive">*</span></Label>
+              <Input
+                type="number"
+                step="0.000001"
+                value={condValor}
+                onChange={(e) => setCondValor(e.target.value)}
+                disabled={editingCondicao?.automatico}
+                placeholder={condTipo === "PERCENTUAL" ? "Ex: 1.50" : "Ex: 2.00"}
+              />
+              {editingCondicao?.automatico && (
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Lock className="h-3 w-3" /> Valor travado (automático)
+                </p>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label>Ordem de Cálculo</Label>
+              <Input
+                type="number"
+                value={condOrdem}
+                onChange={(e) => setCondOrdem(e.target.value)}
+                disabled={editingCondicao?.automatico}
+              />
+            </div>
+          </div>
+        </div>
+      </CrudModal>
+
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
