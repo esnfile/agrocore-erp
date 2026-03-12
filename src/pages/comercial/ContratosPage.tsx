@@ -779,7 +779,7 @@ export default function ContratosPage() {
                   <TableBody>
                     {entregas.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={viewOnly ? 7 : 8} className="text-center py-8 text-muted-foreground">
+                         <TableCell colSpan={viewOnly ? 9 : 10} className="text-center py-8 text-muted-foreground">
                           Nenhum romaneio registrado.
                         </TableCell>
                       </TableRow>
