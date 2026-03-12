@@ -163,6 +163,13 @@ export const modules: Module[] = [
     ],
   },
   {
+    title: "Comercial",
+    icon: FileText,
+    items: [
+      { title: "Contratos", url: "/comercial/contratos", icon: FileText },
+    ],
+  },
+  {
     title: "Financeiro",
     icon: DollarSign,
     items: [

@@ -1072,3 +1072,137 @@ export interface PontoEstoqueTipoProduto {
 }
 
 export const pontoEstoqueTiposProduto: PontoEstoqueTipoProduto[] = [];
+
+// ---- Contratos ----
+export type TipoContrato = "COMPRA" | "VENDA";
+export type TipoPreco = "FIXO" | "A_FIXAR";
+export type StatusContrato = "ABERTO" | "PARCIAL" | "FINALIZADO" | "CANCELADO";
+
+export interface Contrato {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  numeroContrato: string;
+  tipoContrato: TipoContrato;
+  pessoaId: string;
+  produtoId: string;
+  unidadeNegociacaoId: string;
+  quantidadeTotal: number;
+  quantidadeEntregue: number;
+  quantidadeSaldo: number;
+  quantidadeBaseTotal: number;
+  moedaId: string;
+  precoUnitario: number;
+  tipoPreco: TipoPreco;
+  dataContrato: string;
+  dataEntregaInicio: string;
+  dataEntregaFim: string;
+  status: StatusContrato;
+  observacoes: string;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export interface ContratoEntrega {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  contratoId: string;
+  dataEntrega: string;
+  quantidadeInformada: number;
+  unidadeInformadaId: string;
+  quantidadeConvertidaBase: number;
+  pontoEstoqueId: string;
+  pesoBruto: number | null;
+  pesoLiquido: number | null;
+  placaVeiculo: string;
+  nomeMotorista: string;
+  documentoMotorista: string;
+  observacoes: string;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export interface ContratoFixacao {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  contratoId: string;
+  dataFixacao: string;
+  quantidadeFixada: number;
+  unidadeFixacaoId: string;
+  precoFixado: number;
+  moedaId: string;
+  observacoes: string;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export const contratos: Contrato[] = [
+  {
+    id: "ctr1", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    numeroContrato: "CTR-2025-001", tipoContrato: "COMPRA",
+    pessoaId: "p1", produtoId: "prod1",
+    unidadeNegociacaoId: "um1", quantidadeTotal: 100000,
+    quantidadeEntregue: 25000, quantidadeSaldo: 75000,
+    quantidadeBaseTotal: 100000,
+    moedaId: "moeda1", precoUnitario: 120.50,
+    tipoPreco: "FIXO",
+    dataContrato: "2025-03-01",
+    dataEntregaInicio: "2025-04-01", dataEntregaFim: "2025-09-30",
+    status: "PARCIAL", observacoes: "Contrato de compra de fertilizante NPK",
+    criadoEm: "2025-03-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-03-10T14:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "ctr2", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    numeroContrato: "CTR-2025-002", tipoContrato: "VENDA",
+    pessoaId: "p2", produtoId: "prod1",
+    unidadeNegociacaoId: "um2", quantidadeTotal: 500,
+    quantidadeEntregue: 0, quantidadeSaldo: 500,
+    quantidadeBaseTotal: 500000,
+    moedaId: "moeda2", precoUnitario: 25.00,
+    tipoPreco: "A_FIXAR",
+    dataContrato: "2025-03-05",
+    dataEntregaInicio: "2025-05-01", dataEntregaFim: "2025-12-31",
+    status: "ABERTO", observacoes: "Contrato de venda com preço a fixar",
+    criadoEm: "2025-03-05T10:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-03-05T10:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+];
+
+export const contratoEntregas: ContratoEntrega[] = [
+  {
+    id: "ctre1", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    contratoId: "ctr1", dataEntrega: "2025-03-10T14:00:00Z",
+    quantidadeInformada: 25000, unidadeInformadaId: "um1",
+    quantidadeConvertidaBase: 25000,
+    pontoEstoqueId: "pe_est1",
+    pesoBruto: 25500, pesoLiquido: 25000,
+    placaVeiculo: "ABC-1234", nomeMotorista: "José da Silva",
+    documentoMotorista: "123.456.789-00",
+    observacoes: "Primeira entrega",
+    criadoEm: "2025-03-10T14:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-03-10T14:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+];
+
+export const contratoFixacoes: ContratoFixacao[] = [];
