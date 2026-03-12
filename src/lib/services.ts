@@ -31,6 +31,9 @@ import {
   contratos as mockContratos,
   contratoEntregas as mockContratoEntregas,
   contratoFixacoes as mockContratoFixacoes,
+  condicaoDescontoModelos as mockCondicaoDescontoModelos,
+  condicaoDescontoModeloItens as mockCondicaoDescontoModeloItens,
+  contratoCondicoes as mockContratoCondicoes,
 } from "./mock-data";
 import type {
   Empresa, Filial, Grupo, GrupoPessoa, Pessoa,
@@ -41,6 +44,7 @@ import type {
   PontoEstoque, TipoPontoEstoque, Estoque, MovimentacaoEstoque, TipoMovimentoEstoque,
   Moeda, CotacaoMoeda, PontoEstoqueTipoProduto,
   Contrato, ContratoEntrega, ContratoFixacao, TipoContrato, TipoPreco, StatusContrato,
+  CondicaoDescontoModelo, CondicaoDescontoModeloItem, ContratoCondicao, TipoCondicaoDesconto,
 } from "./mock-data";
 
 const delay = (ms = 300) => new Promise((r) => setTimeout(r, ms));

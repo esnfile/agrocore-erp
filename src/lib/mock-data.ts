@@ -1206,3 +1206,130 @@ export const contratoEntregas: ContratoEntrega[] = [
 ];
 
 export const contratoFixacoes: ContratoFixacao[] = [];
+
+// ---- Condições de Desconto — Modelo ----
+export type TipoCondicaoDesconto = "PERCENTUAL" | "VALOR_FIXO";
+
+export interface CondicaoDescontoModelo {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  descricao: string;
+  ativo: boolean;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export interface CondicaoDescontoModeloItem {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  modeloId: string;
+  descricao: string;
+  tipo: TipoCondicaoDesconto;
+  valor: number;
+  ordemCalculo: number;
+  automatico: boolean;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export interface ContratoCondicao {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  contratoId: string;
+  modeloItemId: string | null;
+  descricao: string;
+  tipo: TipoCondicaoDesconto;
+  valor: number;
+  automatico: boolean;
+  ordemCalculo: number;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export const condicaoDescontoModelos: CondicaoDescontoModelo[] = [
+  {
+    id: "cdm1", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    descricao: "Soja Padrão Trading", ativo: true,
+    criadoEm: "2025-01-15T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-01-15T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "cdm2", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    descricao: "Milho Cooperativa", ativo: true,
+    criadoEm: "2025-01-20T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-01-20T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+];
+
+export const condicaoDescontoModeloItens: CondicaoDescontoModeloItem[] = [
+  {
+    id: "cdmi1", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    modeloId: "cdm1", descricao: "FUNRURAL", tipo: "PERCENTUAL", valor: 1.5,
+    ordemCalculo: 1, automatico: true,
+    criadoEm: "2025-01-15T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-01-15T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "cdmi2", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    modeloId: "cdm1", descricao: "Taxa Administrativa", tipo: "PERCENTUAL", valor: 0.2,
+    ordemCalculo: 2, automatico: true,
+    criadoEm: "2025-01-15T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-01-15T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "cdmi3", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    modeloId: "cdm1", descricao: "Desconto Comercial", tipo: "VALOR_FIXO", valor: 2.00,
+    ordemCalculo: 3, automatico: false,
+    criadoEm: "2025-01-15T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-01-15T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "cdmi4", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    modeloId: "cdm2", descricao: "FUNRURAL", tipo: "PERCENTUAL", valor: 1.5,
+    ordemCalculo: 1, automatico: true,
+    criadoEm: "2025-01-20T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-01-20T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "cdmi5", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    modeloId: "cdm2", descricao: "Desconto Armazenagem", tipo: "VALOR_FIXO", valor: 3.50,
+    ordemCalculo: 2, automatico: false,
+    criadoEm: "2025-01-20T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-01-20T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "cdmi6", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    modeloId: "cdm2", descricao: "Prêmio Qualidade", tipo: "PERCENTUAL", valor: 0.5,
+    ordemCalculo: 3, automatico: false,
+    criadoEm: "2025-01-20T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-01-20T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+];
+
+export const contratoCondicoes: ContratoCondicao[] = [];
