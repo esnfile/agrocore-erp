@@ -129,6 +129,18 @@ export default function ContratosPage() {
   const [editingFixacao, setEditingFixacao] = useState<ContratoFixacao | null>(null);
   const [savingFixacao, setSavingFixacao] = useState(false);
 
+  // Condições financeiras
+  const [condicoes, setCondicoes] = useState<ContratoCondicao[]>([]);
+  const [modelosCondicao, setModelosCondicao] = useState<CondicaoDescontoModelo[]>([]);
+  const [condicaoModalOpen, setCondicaoModalOpen] = useState(false);
+  const [editingCondicao, setEditingCondicao] = useState<ContratoCondicao | null>(null);
+  const [savingCondicao, setSavingCondicao] = useState(false);
+  const [condDescricao, setCondDescricao] = useState("");
+  const [condTipo, setCondTipo] = useState<TipoCondicaoDesconto>("PERCENTUAL");
+  const [condValor, setCondValor] = useState("");
+  const [condOrdem, setCondOrdem] = useState("");
+  const [condAutomatico, setCondAutomatico] = useState(false);
+
   // Forms
   const contratoForm = useForm<ContratoForm>({
     resolver: zodResolver(contratoSchema),
