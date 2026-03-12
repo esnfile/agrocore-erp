@@ -1120,6 +1120,63 @@ export default function ContratosPage() {
             <Label>Observações</Label>
             <Textarea rows={2} {...entregaForm.register("observacoes")} />
           </div>
+
+          {/* Classificação do Grão */}
+          {classEntregaItens.length > 0 && (
+            <div className="space-y-3 rounded-md border p-4">
+              <h4 className="text-sm font-medium">Classificação do Grão</h4>
+              <div className="overflow-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead className="text-right">Valor Apurado</TableHead>
+                      <TableHead className="text-right">% Desconto</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {classEntregaItens.map((item, idx) => {
+                      const tipo = classificacaoTipos.find((t) => t.id === item.classificacaoTipoId);
+                      const descPct = editingContrato?.produtoId
+                        ? classificacaoDescontoService.buscarDescontoPorFaixa(editingContrato.produtoId, item.classificacaoTipoId, Number(item.valorApurado) || 0)
+                        : 0;
+                      return (
+                        <TableRow key={idx}>
+                          <TableCell>{tipo?.descricao ?? item.classificacaoTipoId}</TableCell>
+                          <TableCell className="text-right">
+                            <Input
+                              type="number" step="0.000001" className="w-[120px] ml-auto"
+                              value={item.valorApurado}
+                              onChange={(e) => {
+                                setClassEntregaItens((prev) => prev.map((it, i) => i === idx ? { ...it, valorApurado: e.target.value } : it));
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell className="text-right font-medium">{descPct.toFixed(2)}%</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+              {(() => {
+                const pesoBase = Number(entregaForm.watch("pesoLiquido")) || Number(entregaForm.watch("pesoBruto")) || 0;
+                const totalDesc = classEntregaItens.reduce((sum, item) => {
+                  return sum + (editingContrato?.produtoId
+                    ? classificacaoDescontoService.buscarDescontoPorFaixa(editingContrato.produtoId, item.classificacaoTipoId, Number(item.valorApurado) || 0)
+                    : 0);
+                }, 0);
+                const pesoComercial = pesoBase > 0 ? pesoBase - (pesoBase * totalDesc / 100) : 0;
+                return (
+                  <div className="grid grid-cols-3 gap-3 rounded-md bg-muted p-3 text-sm">
+                    <div>Peso Base: <strong>{pesoBase.toLocaleString("pt-BR")}</strong></div>
+                    <div>Desconto Total: <strong className="text-destructive">{totalDesc.toFixed(2)}%</strong></div>
+                    <div>Peso Comercial: <strong className="text-primary">{Math.round(pesoComercial * 100) / 100}</strong></div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
         </div>
       </CrudModal>
 
