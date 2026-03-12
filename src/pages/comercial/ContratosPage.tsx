@@ -188,6 +188,7 @@ export default function ContratosPage() {
   useEffect(() => {
     if (empresaId && filialId) {
       pontoEstoqueService.listar(empresaId, filialId).then(setPontos);
+      condicaoDescontoModeloService.listar(empresaId, filialId).then(setModelosCondicao);
     }
     moedaService.listar().then(setMoedas);
   }, [empresaId, filialId]);
