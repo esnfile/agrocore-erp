@@ -59,6 +59,8 @@ const App = () => (
               <Route path="/armazem/contratos" element={<PlaceholderPage />} />
               <Route path="/armazem/entregas" element={<PlaceholderPage />} />
               <Route path="/armazem/estoque" element={<PlaceholderPage />} />
+              {/* Comercial */}
+              <Route path="/comercial/contratos" element={<ContratosPage />} />
               {/* Financeiro */}
               <Route path="/financeiro/contas-receber" element={<PlaceholderPage />} />
               <Route path="/financeiro/contas-pagar" element={<PlaceholderPage />} />
