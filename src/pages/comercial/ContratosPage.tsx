@@ -316,6 +316,16 @@ export default function ContratosPage() {
       pontoEstoqueId: "", pesoBruto: undefined, pesoLiquido: undefined,
       placaVeiculo: "", nomeMotorista: "", documentoMotorista: "", observacoes: "",
     });
+    // Load product classifications for this contract's product
+    if (editingContrato?.produtoId) {
+      produtoClassificacaoService.listarPorProduto(editingContrato.produtoId).then((pcs) => {
+        setProdutoClassificacoes(pcs);
+        setClassEntregaItens(pcs.filter((pc) => pc.ativo).map((pc) => ({
+          classificacaoTipoId: pc.classificacaoTipoId,
+          valorApurado: String(pc.valorPadrao),
+        })));
+      });
+    }
     setEntregaModalOpen(true);
   };
 
