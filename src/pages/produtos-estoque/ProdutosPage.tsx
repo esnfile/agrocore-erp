@@ -403,6 +403,8 @@ export default function ProdutosPage() {
         })),
       }))
     );
+    setProdutoClassificacoes([]);
+    setClassificacaoDescontos([]);
     setModalOpen(true);
   };
 
