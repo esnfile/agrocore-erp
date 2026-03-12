@@ -1333,3 +1333,185 @@ export const condicaoDescontoModeloItens: CondicaoDescontoModeloItem[] = [
 ];
 
 export const contratoCondicoes: ContratoCondicao[] = [];
+
+// ---- Classificação de Grãos ----
+export type UnidadeClassificacao = "PERCENTUAL" | "KG" | "GRAMAS";
+
+export interface ClassificacaoTipo {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  descricao: string;
+  unidade: UnidadeClassificacao;
+  ativo: boolean;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export interface ProdutoClassificacao {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  produtoId: string;
+  classificacaoTipoId: string;
+  valorPadrao: number;
+  limiteTolerancia: number;
+  ativo: boolean;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export interface ClassificacaoDesconto {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  produtoId: string;
+  classificacaoTipoId: string;
+  valorMinimo: number;
+  valorMaximo: number;
+  percentualDesconto: number;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export interface RomaneioClassificacao {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  romaneioId: string;
+  classificacaoTipoId: string;
+  valorApurado: number;
+  percentualDesconto: number;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export const classificacaoTipos: ClassificacaoTipo[] = [
+  {
+    id: "ct1", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    descricao: "Umidade", unidade: "PERCENTUAL", ativo: true,
+    criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "ct2", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    descricao: "Impureza", unidade: "PERCENTUAL", ativo: true,
+    criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "ct3", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    descricao: "Ardidos", unidade: "PERCENTUAL", ativo: true,
+    criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "ct4", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    descricao: "Quebrados", unidade: "PERCENTUAL", ativo: true,
+    criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "ct5", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    descricao: "Avariados", unidade: "PERCENTUAL", ativo: true,
+    criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+];
+
+export const produtoClassificacoes: ProdutoClassificacao[] = [
+  {
+    id: "pc1", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    produtoId: "prod1", classificacaoTipoId: "ct1",
+    valorPadrao: 14, limiteTolerancia: 14, ativo: true,
+    criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "pc2", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    produtoId: "prod1", classificacaoTipoId: "ct2",
+    valorPadrao: 1, limiteTolerancia: 1, ativo: true,
+    criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+];
+
+export const classificacaoDescontos: ClassificacaoDesconto[] = [
+  {
+    id: "cd1", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    produtoId: "prod1", classificacaoTipoId: "ct1",
+    valorMinimo: 0, valorMaximo: 14, percentualDesconto: 0,
+    criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "cd2", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    produtoId: "prod1", classificacaoTipoId: "ct1",
+    valorMinimo: 14, valorMaximo: 15, percentualDesconto: 1,
+    criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "cd3", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    produtoId: "prod1", classificacaoTipoId: "ct1",
+    valorMinimo: 15, valorMaximo: 16, percentualDesconto: 2,
+    criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "cd4", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    produtoId: "prod1", classificacaoTipoId: "ct2",
+    valorMinimo: 0, valorMaximo: 1, percentualDesconto: 0,
+    criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "cd5", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    produtoId: "prod1", classificacaoTipoId: "ct2",
+    valorMinimo: 1, valorMaximo: 3, percentualDesconto: 0.5,
+    criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "cd6", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    produtoId: "prod1", classificacaoTipoId: "ct2",
+    valorMinimo: 3, valorMaximo: 5, percentualDesconto: 1,
+    criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+];
+
+export const romaneioClassificacoes: RomaneioClassificacao[] = [];
