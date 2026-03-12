@@ -1530,3 +1530,197 @@ export const contratoFixacaoService = {
     if (f) { f.deletadoEm = now; f.deletadoPor = "u1"; f.atualizadoEm = now; f.atualizadoPor = "u1"; }
   },
 };
+
+// ============================================================
+// Condições de Desconto — Modelos
+// ============================================================
+export const condicaoDescontoModeloService = {
+  async listar(empresaId: string, filialId: string): Promise<CondicaoDescontoModelo[]> {
+    await delay();
+    return mockCondicaoDescontoModelos.filter(
+      (m) => m.deletadoEm === null && m.empresaId === empresaId && m.filialId === filialId
+    );
+  },
+  async listarTodos(): Promise<CondicaoDescontoModelo[]> {
+    await delay();
+    return mockCondicaoDescontoModelos.filter((m) => m.deletadoEm === null);
+  },
+  async descricaoExiste(descricao: string, empresaId: string, filialId: string, excludeId?: string): Promise<boolean> {
+    await delay(100);
+    const t = descricao.trim().toLowerCase();
+    return mockCondicaoDescontoModelos.some(
+      (m) => m.deletadoEm === null && m.empresaId === empresaId && m.filialId === filialId &&
+        m.descricao.toLowerCase() === t && m.id !== excludeId
+    );
+  },
+  async salvar(
+    data: Partial<CondicaoDescontoModelo>,
+    ctx: { grupoId: string; empresaId: string; filialId: string }
+  ): Promise<CondicaoDescontoModelo> {
+    await delay(400);
+    const now = new Date().toISOString();
+    const existing = data.id ? mockCondicaoDescontoModelos.find((m) => m.id === data.id && m.deletadoEm === null) : undefined;
+    if (existing) {
+      existing.descricao = (data.descricao ?? existing.descricao).trim();
+      existing.ativo = data.ativo ?? existing.ativo;
+      existing.atualizadoEm = now;
+      existing.atualizadoPor = "u1";
+      return existing;
+    }
+    const novo: CondicaoDescontoModelo = {
+      id: `cdm${Date.now()}`,
+      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      descricao: (data.descricao ?? "").trim(),
+      ativo: data.ativo ?? true,
+      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      deletadoEm: null, deletadoPor: null,
+    };
+    mockCondicaoDescontoModelos.push(novo);
+    return novo;
+  },
+  async excluir(id: string): Promise<void> {
+    await delay();
+    const now = new Date().toISOString();
+    const m = mockCondicaoDescontoModelos.find((m) => m.id === id && m.deletadoEm === null);
+    if (m) { m.deletadoEm = now; m.deletadoPor = "u1"; m.atualizadoEm = now; m.atualizadoPor = "u1"; }
+  },
+  async possuiItens(id: string): Promise<boolean> {
+    await delay(100);
+    return mockCondicaoDescontoModeloItens.some((i) => i.modeloId === id && i.deletadoEm === null);
+  },
+};
+
+// ============================================================
+// Condições de Desconto — Modelo Itens
+// ============================================================
+export const condicaoDescontoModeloItemService = {
+  async listarPorModelo(modeloId: string): Promise<CondicaoDescontoModeloItem[]> {
+    await delay();
+    return mockCondicaoDescontoModeloItens
+      .filter((i) => i.deletadoEm === null && i.modeloId === modeloId)
+      .sort((a, b) => a.ordemCalculo - b.ordemCalculo);
+  },
+  async salvar(
+    data: Partial<CondicaoDescontoModeloItem>,
+    ctx: { grupoId: string; empresaId: string; filialId: string }
+  ): Promise<CondicaoDescontoModeloItem> {
+    await delay(200);
+    const now = new Date().toISOString();
+    const existing = data.id ? mockCondicaoDescontoModeloItens.find((i) => i.id === data.id && i.deletadoEm === null) : undefined;
+    if (existing) {
+      existing.descricao = (data.descricao ?? existing.descricao).trim();
+      existing.tipo = data.tipo ?? existing.tipo;
+      existing.valor = data.valor ?? existing.valor;
+      existing.ordemCalculo = data.ordemCalculo ?? existing.ordemCalculo;
+      existing.automatico = data.automatico ?? existing.automatico;
+      existing.atualizadoEm = now;
+      existing.atualizadoPor = "u1";
+      return existing;
+    }
+    const novo: CondicaoDescontoModeloItem = {
+      id: `cdmi${Date.now()}`,
+      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      modeloId: data.modeloId ?? "",
+      descricao: (data.descricao ?? "").trim(),
+      tipo: data.tipo ?? "PERCENTUAL",
+      valor: data.valor ?? 0,
+      ordemCalculo: data.ordemCalculo ?? 1,
+      automatico: data.automatico ?? false,
+      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      deletadoEm: null, deletadoPor: null,
+    };
+    mockCondicaoDescontoModeloItens.push(novo);
+    return novo;
+  },
+  async excluir(id: string): Promise<void> {
+    await delay();
+    const now = new Date().toISOString();
+    const i = mockCondicaoDescontoModeloItens.find((i) => i.id === id && i.deletadoEm === null);
+    if (i) { i.deletadoEm = now; i.deletadoPor = "u1"; i.atualizadoEm = now; i.atualizadoPor = "u1"; }
+  },
+};
+
+// ============================================================
+// Contrato Condições (vinculadas ao contrato)
+// ============================================================
+export const contratoCondicaoService = {
+  async listarPorContrato(contratoId: string): Promise<ContratoCondicao[]> {
+    await delay();
+    return mockContratoCondicoes
+      .filter((c) => c.deletadoEm === null && c.contratoId === contratoId)
+      .sort((a, b) => a.ordemCalculo - b.ordemCalculo);
+  },
+  async aplicarModelo(
+    contratoId: string,
+    modeloId: string,
+    ctx: { grupoId: string; empresaId: string; filialId: string }
+  ): Promise<ContratoCondicao[]> {
+    await delay(400);
+    const now = new Date().toISOString();
+    // Remove existing conditions for this contract
+    mockContratoCondicoes
+      .filter((c) => c.contratoId === contratoId && c.deletadoEm === null)
+      .forEach((c) => { c.deletadoEm = now; c.deletadoPor = "u1"; });
+
+    // Copy items from modelo
+    const itens = mockCondicaoDescontoModeloItens
+      .filter((i) => i.modeloId === modeloId && i.deletadoEm === null)
+      .sort((a, b) => a.ordemCalculo - b.ordemCalculo);
+
+    const novas: ContratoCondicao[] = itens.map((item, idx) => ({
+      id: `ctrcond${Date.now()}${idx}`,
+      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      contratoId,
+      modeloItemId: item.id,
+      descricao: item.descricao,
+      tipo: item.tipo,
+      valor: item.valor,
+      automatico: item.automatico,
+      ordemCalculo: item.ordemCalculo,
+      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      deletadoEm: null, deletadoPor: null,
+    }));
+    mockContratoCondicoes.push(...novas);
+    return novas;
+  },
+  async salvar(
+    data: Partial<ContratoCondicao>,
+    ctx: { grupoId: string; empresaId: string; filialId: string }
+  ): Promise<ContratoCondicao> {
+    await delay(200);
+    const now = new Date().toISOString();
+    const existing = data.id ? mockContratoCondicoes.find((c) => c.id === data.id && c.deletadoEm === null) : undefined;
+    if (existing) {
+      if (!existing.automatico) {
+        existing.descricao = (data.descricao ?? existing.descricao).trim();
+        existing.tipo = data.tipo ?? existing.tipo;
+        existing.valor = data.valor ?? existing.valor;
+        existing.ordemCalculo = data.ordemCalculo ?? existing.ordemCalculo;
+      }
+      existing.atualizadoEm = now;
+      existing.atualizadoPor = "u1";
+      return existing;
+    }
+    const novo: ContratoCondicao = {
+      id: `ctrcond${Date.now()}`,
+      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      contratoId: data.contratoId ?? "",
+      modeloItemId: data.modeloItemId ?? null,
+      descricao: (data.descricao ?? "").trim(),
+      tipo: data.tipo ?? "PERCENTUAL",
+      valor: data.valor ?? 0,
+      automatico: data.automatico ?? false,
+      ordemCalculo: data.ordemCalculo ?? 1,
+      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      deletadoEm: null, deletadoPor: null,
+    };
+    mockContratoCondicoes.push(novo);
+    return novo;
+  },
+  async excluir(id: string): Promise<void> {
+    await delay();
+    const now = new Date().toISOString();
+    const c = mockContratoCondicoes.find((c) => c.id === id && c.deletadoEm === null);
+    if (c) { c.deletadoEm = now; c.deletadoPor = "u1"; c.atualizadoEm = now; c.atualizadoPor = "u1"; }
+  },
+};
