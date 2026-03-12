@@ -415,11 +415,90 @@ export default function ContratosPage() {
     await loadSubEntities(editingContrato.id);
   };
 
+  // ---- Condições CRUD ----
+  const onApplyModelo = async (modeloId: string) => {
+    if (!editingContrato) return;
+    const novas = await contratoCondicaoService.aplicarModelo(
+      editingContrato.id, modeloId, { grupoId, empresaId, filialId }
+    );
+    setCondicoes(novas);
+    toast({ title: "Sucesso", description: "Condições do modelo aplicadas ao contrato." });
+  };
+
+  const openNewCondicao = () => {
+    setEditingCondicao(null);
+    setCondDescricao("");
+    setCondTipo("PERCENTUAL");
+    setCondValor("");
+    setCondOrdem(String(condicoes.length + 1));
+    setCondAutomatico(false);
+    setCondicaoModalOpen(true);
+  };
+
+  const openEditCondicao = (c: ContratoCondicao) => {
+    setEditingCondicao(c);
+    setCondDescricao(c.descricao);
+    setCondTipo(c.tipo);
+    setCondValor(String(c.valor));
+    setCondOrdem(String(c.ordemCalculo));
+    setCondAutomatico(c.automatico);
+    setCondicaoModalOpen(true);
+  };
+
+  const onSaveCondicao = async () => {
+    if (!condDescricao.trim()) {
+      toast({ title: "Erro", description: "Descrição é obrigatória.", variant: "destructive" });
+      return;
+    }
+    if (!condValor || isNaN(Number(condValor)) || Number(condValor) <= 0) {
+      toast({ title: "Erro", description: "Valor deve ser > 0.", variant: "destructive" });
+      return;
+    }
+    if (!editingContrato) return;
+    setSavingCondicao(true);
+    try {
+      await contratoCondicaoService.salvar(
+        {
+          id: editingCondicao?.id,
+          contratoId: editingContrato.id,
+          descricao: condDescricao,
+          tipo: condTipo,
+          valor: Number(condValor),
+          ordemCalculo: Number(condOrdem) || 1,
+          automatico: condAutomatico,
+        },
+        { grupoId, empresaId, filialId }
+      );
+      toast({ title: "Sucesso", description: editingCondicao ? "Condição atualizada." : "Condição adicionada." });
+      setCondicaoModalOpen(false);
+      const conds = await contratoCondicaoService.listarPorContrato(editingContrato.id);
+      setCondicoes(conds);
+    } catch {
+      toast({ title: "Erro", description: "Falha ao salvar condição.", variant: "destructive" });
+    } finally { setSavingCondicao(false); }
+  };
+
+  const onDeleteCondicao = async (id: string) => {
+    if (!editingContrato) return;
+    await contratoCondicaoService.excluir(id);
+    toast({ title: "Sucesso", description: "Condição excluída." });
+    const conds = await contratoCondicaoService.listarPorContrato(editingContrato.id);
+    setCondicoes(conds);
+  };
+
   // ---- Financeiro tab calculations ----
   const valorEstimado = editingContrato
     ? editingContrato.quantidadeTotal * editingContrato.precoUnitario
     : 0;
   const totalFixado = fixacoes.reduce((s, f) => s + f.quantidadeFixada * f.precoFixado, 0);
+
+  // Mock desconto calculations
+  const totalDescontosMock = condicoes.reduce((sum, c) => {
+    if (c.tipo === "PERCENTUAL") return sum + (valorEstimado * c.valor / 100);
+    return sum + c.valor;
+  }, 0);
+  const valorLiquidoEstimado = valorEstimado - totalDescontosMock;
+
 
   if (!grupoId) {
     return (
