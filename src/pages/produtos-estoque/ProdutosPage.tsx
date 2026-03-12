@@ -691,10 +691,11 @@ export default function ProdutosPage() {
       >
         <Tabs defaultValue="dados" className="w-full">
           <div className="flex justify-between items-center mb-4">
-            <TabsList>
+             <TabsList>
               <TabsTrigger value="dados">Dados Gerais</TabsTrigger>
               <TabsTrigger value="empresas">Empresas Permitidas</TabsTrigger>
               <TabsTrigger value="precos">Tabelas de Preço</TabsTrigger>
+              <TabsTrigger value="classificacao" disabled={!editingId}>Classificação de Qualidade</TabsTrigger>
             </TabsList>
             <div className="flex items-center gap-3">
               <Switch
