@@ -889,6 +889,12 @@ export default function ContratosPage() {
                 </p>
               </div>
 
+            </div>
+          </TabsContent>
+
+          {/* ABA 5 — Condições e Descontos */}
+          <TabsContent value="condicoes">
+            <div className="space-y-6">
               {/* Resumo de Descontos */}
               <div className="rounded-md bg-muted p-4 space-y-3">
                 <h3 className="font-semibold text-foreground">Simulação de Descontos</h3>
