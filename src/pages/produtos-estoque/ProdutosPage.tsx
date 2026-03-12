@@ -477,6 +477,15 @@ export default function ProdutosPage() {
       });
     }
     setEmpresaRows(rows);
+
+    // Load classifications
+    const [pcs, cds] = await Promise.all([
+      produtoClassificacaoService.listarPorProduto(row.id),
+      classificacaoDescontoService.listarPorProduto(row.id),
+    ]);
+    setProdutoClassificacoes(pcs);
+    setClassificacaoDescontos(cds);
+
     setModalOpen(true);
   };
 
