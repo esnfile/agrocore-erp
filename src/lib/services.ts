@@ -28,6 +28,9 @@ import {
   moedas as mockMoedas,
   cotacoesMoeda as mockCotacoesMoeda,
   pontoEstoqueTiposProduto as mockPontoEstoqueTiposProduto,
+  contratos as mockContratos,
+  contratoEntregas as mockContratoEntregas,
+  contratoFixacoes as mockContratoFixacoes,
 } from "./mock-data";
 import type {
   Empresa, Filial, Grupo, GrupoPessoa, Pessoa,
@@ -37,6 +40,7 @@ import type {
   UnidadeMedida, TipoUnidadeMedida,
   PontoEstoque, TipoPontoEstoque, Estoque, MovimentacaoEstoque, TipoMovimentoEstoque,
   Moeda, CotacaoMoeda, PontoEstoqueTipoProduto,
+  Contrato, ContratoEntrega, ContratoFixacao, TipoContrato, TipoPreco, StatusContrato,
 } from "./mock-data";
 
 const delay = (ms = 300) => new Promise((r) => setTimeout(r, ms));
