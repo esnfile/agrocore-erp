@@ -350,16 +350,38 @@ export default function ContratosPage() {
     if (!editingContrato) return;
     setSavingEntrega(true);
     try {
+      // Calculate classification
+      const pesoBase = Number(data.pesoLiquido) || Number(data.pesoBruto) || 0;
+      const totalDesc = classEntregaItens.reduce((sum, item) => {
+        return sum + classificacaoDescontoService.buscarDescontoPorFaixa(editingContrato.produtoId, item.classificacaoTipoId, Number(item.valorApurado) || 0);
+      }, 0);
+      const pesoComercial = pesoBase > 0 ? Math.round((pesoBase - (pesoBase * totalDesc / 100)) * 100) / 100 : null;
+
       const result = await contratoEntregaService.salvar(
-        { ...data, contratoId: editingContrato.id, id: editingEntrega?.id },
+        { ...data, contratoId: editingContrato.id, id: editingEntrega?.id,
+          pesoClassificado: pesoBase || null,
+          descontoTotalPercentual: totalDesc > 0 ? totalDesc : null,
+          pesoComercial,
+        },
         { grupoId, empresaId, filialId }
       );
-      if (result.sucesso) {
+      if (result.sucesso && result.entrega) {
+        // Save romaneio classificacoes
+        if (classEntregaItens.length > 0) {
+          await romaneioClassificacaoService.salvarClassificacoes(
+            result.entrega.id,
+            classEntregaItens.map((item) => ({
+              classificacaoTipoId: item.classificacaoTipoId,
+              valorApurado: Number(item.valorApurado) || 0,
+              percentualDesconto: classificacaoDescontoService.buscarDescontoPorFaixa(editingContrato.produtoId, item.classificacaoTipoId, Number(item.valorApurado) || 0),
+            })),
+            { grupoId, empresaId, filialId }
+          );
+        }
         toast({ title: "Sucesso", description: result.mensagem });
         setEntregaModalOpen(false);
         await loadSubEntities(editingContrato.id);
         await loadContratos();
-        // Refresh editing contrato
         const updated = (await contratoService.listar(empresaId, filialId)).find((c) => c.id === editingContrato.id);
         if (updated) setEditingContrato(updated);
       } else {
