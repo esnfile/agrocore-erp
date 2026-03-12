@@ -47,6 +47,9 @@ import {
   marcaProdutoService,
   unidadeMedidaService,
   tipoProdutoService,
+  classificacaoTipoService,
+  produtoClassificacaoService,
+  classificacaoDescontoService,
 } from "@/lib/services";
 import {
   tabelasPreco as mockTabelasPrecoData,
@@ -67,6 +70,9 @@ import type {
   TipoBaixaEstoque,
   UnidadeMedida,
   TipoProduto,
+  ClassificacaoTipo,
+  ProdutoClassificacao,
+  ClassificacaoDesconto,
 } from "@/lib/mock-data";
 
 // ---- Schema ----
