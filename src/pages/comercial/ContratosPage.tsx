@@ -27,6 +27,7 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import {
   contratoService, contratoEntregaService, contratoFixacaoService,
   pontoEstoqueService, moedaService,
+  condicaoDescontoModeloService, contratoCondicaoService,
 } from "@/lib/services";
 import {
   pessoas as mockPessoas,
