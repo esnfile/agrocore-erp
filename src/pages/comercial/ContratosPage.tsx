@@ -27,6 +27,7 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import {
   contratoService, contratoEntregaService, contratoFixacaoService,
   pontoEstoqueService, moedaService,
+  condicaoDescontoModeloService, contratoCondicaoService,
 } from "@/lib/services";
 import {
   pessoas as mockPessoas,
@@ -37,8 +38,9 @@ import {
 import type {
   Contrato, ContratoEntrega, ContratoFixacao,
   PontoEstoque, Moeda,
+  CondicaoDescontoModelo, ContratoCondicao, TipoCondicaoDesconto,
 } from "@/lib/mock-data";
-import { Plus, Pencil, Trash2, Eye } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, Lock } from "lucide-react";
 
 // ---- Schemas ----
 const contratoSchema = z.object({
@@ -127,6 +129,18 @@ export default function ContratosPage() {
   const [editingFixacao, setEditingFixacao] = useState<ContratoFixacao | null>(null);
   const [savingFixacao, setSavingFixacao] = useState(false);
 
+  // Condições financeiras
+  const [condicoes, setCondicoes] = useState<ContratoCondicao[]>([]);
+  const [modelosCondicao, setModelosCondicao] = useState<CondicaoDescontoModelo[]>([]);
+  const [condicaoModalOpen, setCondicaoModalOpen] = useState(false);
+  const [editingCondicao, setEditingCondicao] = useState<ContratoCondicao | null>(null);
+  const [savingCondicao, setSavingCondicao] = useState(false);
+  const [condDescricao, setCondDescricao] = useState("");
+  const [condTipo, setCondTipo] = useState<TipoCondicaoDesconto>("PERCENTUAL");
+  const [condValor, setCondValor] = useState("");
+  const [condOrdem, setCondOrdem] = useState("");
+  const [condAutomatico, setCondAutomatico] = useState(false);
+
   // Forms
   const contratoForm = useForm<ContratoForm>({
     resolver: zodResolver(contratoSchema),
@@ -174,6 +188,7 @@ export default function ContratosPage() {
   useEffect(() => {
     if (empresaId && filialId) {
       pontoEstoqueService.listar(empresaId, filialId).then(setPontos);
+      condicaoDescontoModeloService.listar(empresaId, filialId).then(setModelosCondicao);
     }
     moedaService.listar().then(setMoedas);
   }, [empresaId, filialId]);
@@ -244,12 +259,14 @@ export default function ContratosPage() {
   };
 
   const loadSubEntities = async (contratoId: string) => {
-    const [e, f] = await Promise.all([
+    const [e, f, conds] = await Promise.all([
       contratoEntregaService.listarPorContrato(contratoId),
       contratoFixacaoService.listarPorContrato(contratoId),
+      contratoCondicaoService.listarPorContrato(contratoId),
     ]);
     setEntregas(e);
     setFixacoes(f);
+    setCondicoes(conds);
   };
 
   const onSaveContrato = contratoForm.handleSubmit(async (data) => {
@@ -398,11 +415,90 @@ export default function ContratosPage() {
     await loadSubEntities(editingContrato.id);
   };
 
+  // ---- Condições CRUD ----
+  const onApplyModelo = async (modeloId: string) => {
+    if (!editingContrato) return;
+    const novas = await contratoCondicaoService.aplicarModelo(
+      editingContrato.id, modeloId, { grupoId, empresaId, filialId }
+    );
+    setCondicoes(novas);
+    toast({ title: "Sucesso", description: "Condições do modelo aplicadas ao contrato." });
+  };
+
+  const openNewCondicao = () => {
+    setEditingCondicao(null);
+    setCondDescricao("");
+    setCondTipo("PERCENTUAL");
+    setCondValor("");
+    setCondOrdem(String(condicoes.length + 1));
+    setCondAutomatico(false);
+    setCondicaoModalOpen(true);
+  };
+
+  const openEditCondicao = (c: ContratoCondicao) => {
+    setEditingCondicao(c);
+    setCondDescricao(c.descricao);
+    setCondTipo(c.tipo);
+    setCondValor(String(c.valor));
+    setCondOrdem(String(c.ordemCalculo));
+    setCondAutomatico(c.automatico);
+    setCondicaoModalOpen(true);
+  };
+
+  const onSaveCondicao = async () => {
+    if (!condDescricao.trim()) {
+      toast({ title: "Erro", description: "Descrição é obrigatória.", variant: "destructive" });
+      return;
+    }
+    if (!condValor || isNaN(Number(condValor)) || Number(condValor) <= 0) {
+      toast({ title: "Erro", description: "Valor deve ser > 0.", variant: "destructive" });
+      return;
+    }
+    if (!editingContrato) return;
+    setSavingCondicao(true);
+    try {
+      await contratoCondicaoService.salvar(
+        {
+          id: editingCondicao?.id,
+          contratoId: editingContrato.id,
+          descricao: condDescricao,
+          tipo: condTipo,
+          valor: Number(condValor),
+          ordemCalculo: Number(condOrdem) || 1,
+          automatico: condAutomatico,
+        },
+        { grupoId, empresaId, filialId }
+      );
+      toast({ title: "Sucesso", description: editingCondicao ? "Condição atualizada." : "Condição adicionada." });
+      setCondicaoModalOpen(false);
+      const conds = await contratoCondicaoService.listarPorContrato(editingContrato.id);
+      setCondicoes(conds);
+    } catch {
+      toast({ title: "Erro", description: "Falha ao salvar condição.", variant: "destructive" });
+    } finally { setSavingCondicao(false); }
+  };
+
+  const onDeleteCondicao = async (id: string) => {
+    if (!editingContrato) return;
+    await contratoCondicaoService.excluir(id);
+    toast({ title: "Sucesso", description: "Condição excluída." });
+    const conds = await contratoCondicaoService.listarPorContrato(editingContrato.id);
+    setCondicoes(conds);
+  };
+
   // ---- Financeiro tab calculations ----
   const valorEstimado = editingContrato
     ? editingContrato.quantidadeTotal * editingContrato.precoUnitario
     : 0;
   const totalFixado = fixacoes.reduce((s, f) => s + f.quantidadeFixada * f.precoFixado, 0);
+
+  // Mock desconto calculations
+  const totalDescontosMock = condicoes.reduce((sum, c) => {
+    if (c.tipo === "PERCENTUAL") return sum + (valorEstimado * c.valor / 100);
+    return sum + c.valor;
+  }, 0);
+  const valorLiquidoEstimado = valorEstimado - totalDescontosMock;
+
 
   if (!grupoId) {
     return (
@@ -763,7 +859,8 @@ export default function ContratosPage() {
 
           {/* ABA 4 — Financeiro */}
           <TabsContent value="financeiro">
-            <div className="space-y-4">
+            <div className="space-y-6">
+              {/* Resumo existente */}
               <div className="rounded-md bg-muted p-4 space-y-3">
                 <h3 className="font-semibold text-foreground">Resumo Financeiro (Simulado)</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
@@ -789,6 +886,121 @@ export default function ContratosPage() {
                 <p className="text-xs text-muted-foreground italic">
                   * Valores simulados. O módulo financeiro completo será implementado em versão futura.
                 </p>
+              </div>
+
+              {/* Resumo de Descontos */}
+              <div className="rounded-md bg-muted p-4 space-y-3">
+                <h3 className="font-semibold text-foreground">Simulação de Descontos</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div className="rounded-md bg-card p-3 border">
+                    <p className="text-muted-foreground">Valor Bruto</p>
+                    <p className="text-lg font-bold text-foreground">
+                      {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")} {valorEstimado.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                  <div className="rounded-md bg-card p-3 border">
+                    <p className="text-muted-foreground">Total Descontos</p>
+                    <p className="text-lg font-bold text-destructive">
+                      - {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")} {totalDescontosMock.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                  <div className="rounded-md bg-card p-3 border">
+                    <p className="text-muted-foreground">Valor Líquido Estimado</p>
+                    <p className="text-lg font-bold text-foreground">
+                      {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")} {valorLiquidoEstimado.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground italic">
+                  * Simulação. Cálculo real será implementado em versão futura.
+                </p>
+              </div>
+
+              {/* Condições do Contrato */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-foreground">Condições Financeiras</h3>
+                  <div className="flex gap-2">
+                    {!viewOnly && (
+                      <>
+                        <Select onValueChange={(v) => onApplyModelo(v)}>
+                          <SelectTrigger className="w-[220px]">
+                            <SelectValue placeholder="Aplicar modelo..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {modelosCondicao.filter((m) => m.ativo).map((m) => (
+                              <SelectItem key={m.id} value={m.id}>{m.descricao}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button size="sm" onClick={openNewCondicao}>
+                          <Plus className="mr-2 h-4 w-4" />Adicionar
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className="overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Ordem</TableHead>
+                        <TableHead>Descrição</TableHead>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead className="text-right">Valor</TableHead>
+                        <TableHead>Automático</TableHead>
+                        {!viewOnly && <TableHead className="text-right">Ações</TableHead>}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {condicoes.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={viewOnly ? 5 : 6} className="text-center py-8 text-muted-foreground">
+                            Nenhuma condição vinculada a este contrato.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        condicoes.map((c) => (
+                          <TableRow key={c.id}>
+                            <TableCell>{c.ordemCalculo}</TableCell>
+                            <TableCell className="font-medium">{c.descricao}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">
+                                {c.tipo === "PERCENTUAL" ? "%" : "R$"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {c.tipo === "PERCENTUAL"
+                                ? `${c.valor.toFixed(2)}%`
+                                : `R$ ${c.valor.toFixed(2)}`}
+                            </TableCell>
+                            <TableCell>
+                              {c.automatico ? (
+                                <Badge variant="default" className="gap-1">
+                                  <Lock className="h-3 w-3" /> Sim
+                                </Badge>
+                              ) : (
+                                <Badge variant="secondary">Não</Badge>
+                              )}
+                            </TableCell>
+                            {!viewOnly && (
+                              <TableCell className="text-right">
+                                <div className="flex justify-end gap-1">
+                                  <Button variant="ghost" size="icon" onClick={() => openEditCondicao(c)}>
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" onClick={() => onDeleteCondicao(c.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            )}
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
             </div>
           </TabsContent>
@@ -931,6 +1143,66 @@ export default function ContratosPage() {
           <div className="space-y-1.5">
             <Label>Observações</Label>
             <Textarea rows={2} {...fixacaoForm.register("observacoes")} />
+          </div>
+        </div>
+      </CrudModal>
+
+      {/* Condição Modal */}
+      <CrudModal
+        open={condicaoModalOpen}
+        onClose={() => setCondicaoModalOpen(false)}
+        title={editingCondicao ? "Editar Condição" : "Nova Condição"}
+        saving={savingCondicao}
+        onSave={onSaveCondicao}
+        maxWidth="sm:max-w-xl"
+      >
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <Label>Descrição <span className="text-destructive">*</span></Label>
+            <Input
+              value={condDescricao}
+              onChange={(e) => setCondDescricao(e.target.value)}
+              maxLength={150}
+              disabled={editingCondicao?.automatico}
+              placeholder="Ex: FUNRURAL"
+            />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-1.5">
+              <Label>Tipo <span className="text-destructive">*</span></Label>
+              <Select value={condTipo} onValueChange={(v) => setCondTipo(v as TipoCondicaoDesconto)} disabled={editingCondicao?.automatico}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PERCENTUAL">Percentual (%)</SelectItem>
+                  <SelectItem value="VALOR_FIXO">Valor Fixo (R$)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Valor <span className="text-destructive">*</span></Label>
+              <Input
+                type="number"
+                step="0.000001"
+                value={condValor}
+                onChange={(e) => setCondValor(e.target.value)}
+                disabled={editingCondicao?.automatico}
+                placeholder={condTipo === "PERCENTUAL" ? "Ex: 1.50" : "Ex: 2.00"}
+              />
+              {editingCondicao?.automatico && (
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Lock className="h-3 w-3" /> Valor travado (automático)
+                </p>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label>Ordem de Cálculo</Label>
+              <Input
+                type="number"
+                value={condOrdem}
+                onChange={(e) => setCondOrdem(e.target.value)}
+                disabled={editingCondicao?.automatico}
+              />
+            </div>
           </div>
         </div>
       </CrudModal>

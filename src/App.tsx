@@ -26,6 +26,7 @@ import MovimentacaoEstoquePage from "@/pages/produtos-estoque/MovimentacaoEstoqu
 import ConsultaEstoquePage from "@/pages/produtos-estoque/ConsultaEstoquePage";
 import PlaceholderPage from "@/pages/PlaceholderPage";
 import ContratosPage from "@/pages/comercial/ContratosPage";
+import ModelosCondicoesPage from "@/pages/comercial/ModelosCondicoesPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -61,6 +62,7 @@ const App = () => (
               <Route path="/armazem/estoque" element={<PlaceholderPage />} />
               {/* Comercial */}
               <Route path="/comercial/contratos" element={<ContratosPage />} />
+              <Route path="/comercial/modelos-condicoes" element={<ModelosCondicoesPage />} />
               {/* Financeiro */}
               <Route path="/financeiro/contas-receber" element={<PlaceholderPage />} />
               <Route path="/financeiro/contas-pagar" element={<PlaceholderPage />} />

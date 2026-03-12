@@ -167,6 +167,13 @@ export const modules: Module[] = [
     icon: FileText,
     items: [
       { title: "Contratos", url: "/comercial/contratos", icon: FileText },
+      {
+        title: "Tabelas",
+        icon: Layers,
+        children: [
+          { title: "Modelos de Condições", url: "/comercial/modelos-condicoes", icon: Table2 },
+        ],
+      },
     ],
   },
   {
