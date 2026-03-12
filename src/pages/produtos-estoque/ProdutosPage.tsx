@@ -295,6 +295,12 @@ export default function ProdutosPage() {
     });
   }, [empresaAtual, filialAtual]);
 
+  // Load classification types
+  useEffect(() => {
+    if (!empresaAtual || !filialAtual) return;
+    classificacaoTipoService.listar(empresaAtual.id, filialAtual.id).then(setClassificacaoTipos);
+  }, [empresaAtual, filialAtual]);
+
   useEffect(() => {
     if (grupoId) {
       empresaService.listar(grupoId).then(setEmpresasGrupo);
