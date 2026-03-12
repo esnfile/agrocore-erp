@@ -168,6 +168,17 @@ export default function ProdutosPage() {
 
   const [confirmRecalc, setConfirmRecalc] = useState(false);
 
+  // Classification tab state
+  const [classificacaoTipos, setClassificacaoTipos] = useState<ClassificacaoTipo[]>([]);
+  const [produtoClassificacoes, setProdutoClassificacoes] = useState<ProdutoClassificacao[]>([]);
+  const [classificacaoDescontos, setClassificacaoDescontos] = useState<ClassificacaoDesconto[]>([]);
+  const [classModalOpen, setClassModalOpen] = useState(false);
+  const [editingClass, setEditingClass] = useState<ProdutoClassificacao | null>(null);
+  const [classForm, setClassForm] = useState({ classificacaoTipoId: "", valorPadrao: "", limiteTolerancia: "", ativo: true });
+  const [descModalOpen, setDescModalOpen] = useState(false);
+  const [editingDesc, setEditingDesc] = useState<ClassificacaoDesconto | null>(null);
+  const [descForm, setDescForm] = useState({ classificacaoTipoId: "", valorMinimo: "", valorMaximo: "", percentualDesconto: "" });
+
   const {
     register,
     handleSubmit,
