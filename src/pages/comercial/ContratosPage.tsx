@@ -144,6 +144,12 @@ export default function ContratosPage() {
   const [condOrdem, setCondOrdem] = useState("");
   const [condAutomatico, setCondAutomatico] = useState(false);
 
+  // Classificação de grãos
+  const [classificacaoTipos, setClassificacaoTipos] = useState<ClassificacaoTipo[]>([]);
+  const [produtoClassificacoes, setProdutoClassificacoes] = useState<ProdutoClassificacao[]>([]);
+  const [romaneioClassificacoesMap, setRomaneioClassificacoesMap] = useState<Record<string, RomaneioClassificacao[]>>({});
+  const [classEntregaItens, setClassEntregaItens] = useState<{ classificacaoTipoId: string; valorApurado: string }[]>([]);
+
   // Forms
   const contratoForm = useForm<ContratoForm>({
     resolver: zodResolver(contratoSchema),
