@@ -27,6 +27,7 @@ import ConsultaEstoquePage from "@/pages/produtos-estoque/ConsultaEstoquePage";
 import PlaceholderPage from "@/pages/PlaceholderPage";
 import ContratosPage from "@/pages/comercial/ContratosPage";
 import ModelosCondicoesPage from "@/pages/comercial/ModelosCondicoesPage";
+import ClassificacaoTiposPage from "@/pages/produtos-estoque/ClassificacaoTiposPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
