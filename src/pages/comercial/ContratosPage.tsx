@@ -789,8 +789,10 @@ export default function ContratosPage() {
                           <TableCell>{format(new Date(e.dataEntrega), "dd/MM/yyyy HH:mm")}</TableCell>
                           <TableCell className="text-right">{e.quantidadeInformada.toLocaleString("pt-BR")}</TableCell>
                           <TableCell>{getCodigoUnidade(e.unidadeInformadaId)}</TableCell>
-                          <TableCell className="text-right">{e.pesoBruto?.toLocaleString("pt-BR") ?? "—"}</TableCell>
-                          <TableCell className="text-right">{e.pesoLiquido?.toLocaleString("pt-BR") ?? "—"}</TableCell>
+                           <TableCell className="text-right">{e.pesoBruto?.toLocaleString("pt-BR") ?? "—"}</TableCell>
+                           <TableCell className="text-right">{e.pesoLiquido?.toLocaleString("pt-BR") ?? "—"}</TableCell>
+                           <TableCell className="text-right font-medium">{e.pesoComercial?.toLocaleString("pt-BR") ?? "—"}</TableCell>
+                           <TableCell className="text-right">{e.descontoTotalPercentual != null ? `${e.descontoTotalPercentual.toFixed(2)}%` : "—"}</TableCell>
                           <TableCell>{e.nomeMotorista || "—"}</TableCell>
                           <TableCell>{e.placaVeiculo || "—"}</TableCell>
                           {!viewOnly && (
