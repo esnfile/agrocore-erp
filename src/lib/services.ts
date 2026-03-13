@@ -1937,3 +1937,178 @@ export const romaneioClassificacaoService = {
     return novas;
   },
 };
+
+// ============================================================
+// Financeiro — Contas
+// ============================================================
+export const financeiroContaService = {
+  async listar(empresaId: string, filialId: string, filtros?: {
+    tipo?: TipoConta;
+    status?: StatusConta;
+    pessoaId?: string;
+    dataInicio?: string;
+    dataFim?: string;
+  }): Promise<FinanceiroConta[]> {
+    await delay();
+    let list = mockFinanceiroContas.filter(
+      (c) => c.deletadoEm === null && c.empresaId === empresaId && c.filialId === filialId
+    );
+    if (filtros?.tipo) list = list.filter((c) => c.tipo === filtros.tipo);
+    if (filtros?.status) list = list.filter((c) => c.status === filtros.status);
+    if (filtros?.pessoaId) list = list.filter((c) => c.pessoaId === filtros.pessoaId);
+    if (filtros?.dataInicio) list = list.filter((c) => c.dataEmissao >= filtros.dataInicio!);
+    if (filtros?.dataFim) list = list.filter((c) => c.dataEmissao <= filtros.dataFim!);
+    return list;
+  },
+  async obterPorId(id: string): Promise<FinanceiroConta | undefined> {
+    await delay();
+    return mockFinanceiroContas.find((c) => c.id === id && c.deletadoEm === null);
+  },
+  async salvar(data: Partial<FinanceiroConta>, ctx: { grupoId: string; empresaId: string; filialId: string }): Promise<FinanceiroConta> {
+    await delay(400);
+    const now = new Date().toISOString();
+    const existing = data.id ? mockFinanceiroContas.find((c) => c.id === data.id && c.deletadoEm === null) : undefined;
+    if (existing) {
+      Object.assign(existing, data, { atualizadoEm: now, atualizadoPor: "u1" });
+      return existing;
+    }
+    const nova: FinanceiroConta = {
+      id: `fc${Date.now()}`,
+      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      tipo: data.tipo ?? "PAGAR",
+      pessoaId: data.pessoaId ?? "",
+      descricao: data.descricao ?? "",
+      dataEmissao: data.dataEmissao ?? new Date().toISOString().slice(0, 10),
+      valorTotal: data.valorTotal ?? 0,
+      status: "ABERTO",
+      origem: data.origem ?? "MANUAL",
+      documentoReferencia: data.documentoReferencia ?? "",
+      observacoes: data.observacoes ?? "",
+      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      deletadoEm: null, deletadoPor: null,
+    };
+    mockFinanceiroContas.push(nova);
+    return nova;
+  },
+  async excluir(id: string): Promise<void> {
+    await delay();
+    const now = new Date().toISOString();
+    const c = mockFinanceiroContas.find((c) => c.id === id && c.deletadoEm === null);
+    if (c) { c.deletadoEm = now; c.deletadoPor = "u1"; c.atualizadoEm = now; c.atualizadoPor = "u1"; }
+  },
+  async atualizarStatus(contaId: string): Promise<void> {
+    await delay(100);
+    const conta = mockFinanceiroContas.find((c) => c.id === contaId && c.deletadoEm === null);
+    if (!conta) return;
+    const parcelas = mockFinanceiroParcelas.filter((p) => p.contaId === contaId && p.deletadoEm === null);
+    if (parcelas.length === 0) { conta.status = "ABERTO"; return; }
+    const todasPagas = parcelas.every((p) => p.status === "PAGO");
+    const algumaPaga = parcelas.some((p) => p.status === "PAGO" || p.status === "PARCIAL");
+    if (todasPagas) conta.status = "PAGO";
+    else if (algumaPaga) conta.status = "PARCIAL";
+    else conta.status = "ABERTO";
+    conta.atualizadoEm = new Date().toISOString();
+    conta.atualizadoPor = "u1";
+  },
+};
+
+// ============================================================
+// Financeiro — Parcelas
+// ============================================================
+export const financeiroParcelaService = {
+  async listarPorConta(contaId: string): Promise<FinanceiroParcela[]> {
+    await delay();
+    return mockFinanceiroParcelas.filter((p) => p.deletadoEm === null && p.contaId === contaId)
+      .sort((a, b) => a.numeroParcela - b.numeroParcela);
+  },
+  async gerarParcelas(
+    contaId: string, numParcelas: number, intervaloDias: number, valorTotal: number,
+    ctx: { grupoId: string; empresaId: string; filialId: string }
+  ): Promise<FinanceiroParcela[]> {
+    await delay(300);
+    const now = new Date().toISOString();
+    // Remove parcelas antigas pendentes
+    mockFinanceiroParcelas
+      .filter((p) => p.contaId === contaId && p.deletadoEm === null && p.status === "PENDENTE")
+      .forEach((p) => { p.deletadoEm = now; p.deletadoPor = "u1"; });
+    const valorParcela = Math.round((valorTotal / numParcelas) * 100) / 100;
+    const novas: FinanceiroParcela[] = [];
+    for (let i = 0; i < numParcelas; i++) {
+      const vencimento = new Date();
+      vencimento.setDate(vencimento.getDate() + intervaloDias * (i + 1));
+      const val = i === numParcelas - 1 ? valorTotal - valorParcela * (numParcelas - 1) : valorParcela;
+      const parcela: FinanceiroParcela = {
+        id: `fp${Date.now()}${i}`,
+        grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+        contaId, numeroParcela: i + 1,
+        dataVencimento: vencimento.toISOString().slice(0, 10),
+        valorParcela: val, valorPago: 0, saldoParcela: val, status: "PENDENTE",
+        criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+        deletadoEm: null, deletadoPor: null,
+      };
+      novas.push(parcela);
+    }
+    mockFinanceiroParcelas.push(...novas);
+    return novas;
+  },
+  async excluirPorConta(contaId: string): Promise<void> {
+    await delay();
+    const now = new Date().toISOString();
+    mockFinanceiroParcelas
+      .filter((p) => p.contaId === contaId && p.deletadoEm === null)
+      .forEach((p) => { p.deletadoEm = now; p.deletadoPor = "u1"; });
+  },
+};
+
+// ============================================================
+// Financeiro — Baixas
+// ============================================================
+export const financeiroBaixaService = {
+  async listarPorConta(contaId: string): Promise<FinanceiroBaixa[]> {
+    await delay();
+    const parcelaIds = mockFinanceiroParcelas
+      .filter((p) => p.contaId === contaId && p.deletadoEm === null)
+      .map((p) => p.id);
+    return mockFinanceiroBaixas.filter((b) => b.deletadoEm === null && parcelaIds.includes(b.parcelaId));
+  },
+  async registrar(
+    data: { parcelaId: string; valorPago: number; formaPagamento: FormaPagamento; dataPagamento: string; observacoes: string },
+    ctx: { grupoId: string; empresaId: string; filialId: string }
+  ): Promise<FinanceiroBaixa> {
+    await delay(400);
+    const now = new Date().toISOString();
+    const baixa: FinanceiroBaixa = {
+      id: `fb${Date.now()}`,
+      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      parcelaId: data.parcelaId,
+      dataPagamento: data.dataPagamento || now,
+      valorPago: data.valorPago,
+      formaPagamento: data.formaPagamento,
+      observacoes: data.observacoes ?? "",
+      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      deletadoEm: null, deletadoPor: null,
+    };
+    mockFinanceiroBaixas.push(baixa);
+    // Atualizar parcela
+    const parcela = mockFinanceiroParcelas.find((p) => p.id === data.parcelaId && p.deletadoEm === null);
+    if (parcela) {
+      parcela.valorPago += data.valorPago;
+      parcela.saldoParcela = parcela.valorParcela - parcela.valorPago;
+      if (parcela.saldoParcela <= 0) {
+        parcela.saldoParcela = 0;
+        parcela.status = "PAGO";
+      } else {
+        parcela.status = "PARCIAL";
+      }
+      parcela.atualizadoEm = now;
+      parcela.atualizadoPor = "u1";
+      // Atualizar status da conta
+      await financeiroContaService.atualizarStatus(parcela.contaId);
+    }
+    return baixa;
+  },
+  async listarTodas(empresaId: string, filialId: string): Promise<FinanceiroBaixa[]> {
+    await delay();
+    return mockFinanceiroBaixas.filter((b) => b.deletadoEm === null && b.empresaId === empresaId && b.filialId === filialId);
+  },
+};
