@@ -1069,144 +1069,157 @@ export default function ContratosPage() {
         onSave={onSaveEntrega}
         maxWidth="sm:max-w-2xl"
       >
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label>Data da Entrega <span className="text-destructive">*</span></Label>
-              <Input type="datetime-local" {...entregaForm.register("dataEntrega")} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Ponto de Estoque <span className="text-destructive">*</span></Label>
-              <Select value={entregaForm.watch("pontoEstoqueId")} onValueChange={(v) => entregaForm.setValue("pontoEstoqueId", v)}>
-                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                <SelectContent>
-                  {pontos.filter((p) => p.ativo).map((p) => (
-                    <SelectItem key={p.id} value={p.id}>{p.descricao}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {entregaForm.formState.errors.pontoEstoqueId && (
-                <p className="text-xs text-destructive">{entregaForm.formState.errors.pontoEstoqueId.message}</p>
-              )}
-            </div>
-          </div>
+        <Tabs defaultValue="geral" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="geral">Geral</TabsTrigger>
+            <TabsTrigger value="classificacao">Classificação do Grão</TabsTrigger>
+          </TabsList>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label>Quantidade <span className="text-destructive">*</span></Label>
-              <Input type="number" step="0.000001" {...entregaForm.register("quantidadeInformada")} />
-              {entregaForm.formState.errors.quantidadeInformada && (
-                <p className="text-xs text-destructive">{entregaForm.formState.errors.quantidadeInformada.message}</p>
-              )}
-            </div>
-            <div className="space-y-1.5">
-              <Label>Unidade <span className="text-destructive">*</span></Label>
-              <Select value={entregaForm.watch("unidadeInformadaId")} onValueChange={(v) => entregaForm.setValue("unidadeInformadaId", v)}>
-                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                <SelectContent>
-                  {unidadesAtivas.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>{u.codigo} — {u.descricao}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label>Peso Bruto</Label>
-              <Input type="number" step="0.000001" {...entregaForm.register("pesoBruto")} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Peso Líquido</Label>
-              <Input type="number" step="0.000001" {...entregaForm.register("pesoLiquido")} />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-1.5">
-              <Label>Placa do Veículo</Label>
-              <Input {...entregaForm.register("placaVeiculo")} maxLength={10} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Motorista</Label>
-              <Input {...entregaForm.register("nomeMotorista")} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Documento Motorista</Label>
-              <Input {...entregaForm.register("documentoMotorista")} maxLength={20} />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label>Observações</Label>
-            <Textarea rows={2} {...entregaForm.register("observacoes")} />
-          </div>
-
-          {/* Classificação do Grão */}
-          {classEntregaItens.length > 0 && (
-            <div className="space-y-3 rounded-md border p-4">
-              <h4 className="text-sm font-medium">Classificação do Grão</h4>
-              <div className="overflow-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead className="text-right">Valor Base</TableHead>
-                      <TableHead className="text-right">Valor Apurado</TableHead>
-                      <TableHead className="text-right">Excedente</TableHead>
-                      <TableHead className="text-right">% Desconto</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {classEntregaItens.map((item, idx) => {
-                      const tipo = classificacaoTipos.find((t) => t.id === item.classificacaoTipoId);
-                      const valorApuradoNum = Number(item.valorApurado) || 0;
-                      const valorBase = tipo?.valorBase ?? 0;
-                      const excedente = valorApuradoNum - valorBase;
-                      const descPct = editingContrato?.produtoId
-                        ? classificacaoDescontoService.buscarDescontoPorFaixa(editingContrato.produtoId, item.classificacaoTipoId, valorApuradoNum)
-                        : 0;
-                      return (
-                        <TableRow key={idx}>
-                          <TableCell>{tipo?.descricao ?? item.classificacaoTipoId}</TableCell>
-                          <TableCell className="text-right text-muted-foreground">{valorBase}</TableCell>
-                          <TableCell className="text-right">
-                            <Input
-                              type="number" step="0.000001" className="w-[120px] ml-auto"
-                              value={item.valorApurado}
-                              onChange={(e) => {
-                                setClassEntregaItens((prev) => prev.map((it, i) => i === idx ? { ...it, valorApurado: e.target.value } : it));
-                              }}
-                            />
-                          </TableCell>
-                          <TableCell className="text-right">{excedente > 0 ? `+${excedente.toFixed(2)}` : excedente.toFixed(2)}</TableCell>
-                          <TableCell className="text-right font-medium">{descPct.toFixed(2)}%</TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+          <TabsContent value="geral">
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label>Data da Entrega <span className="text-destructive">*</span></Label>
+                  <Input type="datetime-local" {...entregaForm.register("dataEntrega")} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Ponto de Estoque <span className="text-destructive">*</span></Label>
+                  <Select value={entregaForm.watch("pontoEstoqueId")} onValueChange={(v) => entregaForm.setValue("pontoEstoqueId", v)}>
+                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                    <SelectContent>
+                      {pontos.filter((p) => p.ativo).map((p) => (
+                        <SelectItem key={p.id} value={p.id}>{p.descricao}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {entregaForm.formState.errors.pontoEstoqueId && (
+                    <p className="text-xs text-destructive">{entregaForm.formState.errors.pontoEstoqueId.message}</p>
+                  )}
+                </div>
               </div>
-              {(() => {
-                const pesoBase = Number(entregaForm.watch("pesoLiquido")) || Number(entregaForm.watch("pesoBruto")) || 0;
-                const totalDesc = classEntregaItens.reduce((sum, item) => {
-                  return sum + (editingContrato?.produtoId
-                    ? classificacaoDescontoService.buscarDescontoPorFaixa(editingContrato.produtoId, item.classificacaoTipoId, Number(item.valorApurado) || 0)
-                    : 0);
-                }, 0);
-                const pesoComercial = pesoBase > 0 ? pesoBase - (pesoBase * totalDesc / 100) : 0;
-                return (
-                  <div className="grid grid-cols-3 gap-3 rounded-md bg-muted p-3 text-sm">
-                    <div>Peso Base: <strong>{pesoBase.toLocaleString("pt-BR")}</strong></div>
-                    <div>Desconto Total: <strong className="text-destructive">{totalDesc.toFixed(2)}%</strong></div>
-                    <div>Peso Comercial: <strong className="text-primary">{Math.round(pesoComercial * 100) / 100}</strong></div>
-                  </div>
-                );
-              })()}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label>Quantidade <span className="text-destructive">*</span></Label>
+                  <Input type="number" step="0.000001" {...entregaForm.register("quantidadeInformada")} />
+                  {entregaForm.formState.errors.quantidadeInformada && (
+                    <p className="text-xs text-destructive">{entregaForm.formState.errors.quantidadeInformada.message}</p>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Unidade <span className="text-destructive">*</span></Label>
+                  <Select value={entregaForm.watch("unidadeInformadaId")} onValueChange={(v) => entregaForm.setValue("unidadeInformadaId", v)}>
+                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                    <SelectContent>
+                      {unidadesAtivas.map((u) => (
+                        <SelectItem key={u.id} value={u.id}>{u.codigo} — {u.descricao}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label>Peso Bruto</Label>
+                  <Input type="number" step="0.000001" {...entregaForm.register("pesoBruto")} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Peso Líquido</Label>
+                  <Input type="number" step="0.000001" {...entregaForm.register("pesoLiquido")} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <Label>Placa do Veículo</Label>
+                  <Input {...entregaForm.register("placaVeiculo")} maxLength={10} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Motorista</Label>
+                  <Input {...entregaForm.register("nomeMotorista")} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Documento Motorista</Label>
+                  <Input {...entregaForm.register("documentoMotorista")} maxLength={20} />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Observações</Label>
+                <Textarea rows={2} {...entregaForm.register("observacoes")} />
+              </div>
             </div>
-          )}
-        </div>
+          </TabsContent>
+
+          <TabsContent value="classificacao">
+            <div className="space-y-4">
+              {classEntregaItens.length > 0 ? (
+                <div className="space-y-3">
+                  <div className="overflow-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Tipo</TableHead>
+                          <TableHead className="text-right">Valor Base</TableHead>
+                          <TableHead className="text-right">Valor Apurado</TableHead>
+                          <TableHead className="text-right">Excedente</TableHead>
+                          <TableHead className="text-right">% Desconto</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {classEntregaItens.map((item, idx) => {
+                          const tipo = classificacaoTipos.find((t) => t.id === item.classificacaoTipoId);
+                          const valorApuradoNum = Number(item.valorApurado) || 0;
+                          const valorBase = tipo?.valorBase ?? 0;
+                          const excedente = valorApuradoNum - valorBase;
+                          const descPct = editingContrato?.produtoId
+                            ? classificacaoDescontoService.buscarDescontoPorFaixa(editingContrato.produtoId, item.classificacaoTipoId, valorApuradoNum)
+                            : 0;
+                          return (
+                            <TableRow key={idx}>
+                              <TableCell>{tipo?.descricao ?? item.classificacaoTipoId}</TableCell>
+                              <TableCell className="text-right text-muted-foreground">{valorBase}</TableCell>
+                              <TableCell className="text-right">
+                                <Input
+                                  type="number" step="0.000001" className="w-[120px] ml-auto"
+                                  value={item.valorApurado}
+                                  onChange={(e) => {
+                                    setClassEntregaItens((prev) => prev.map((it, i) => i === idx ? { ...it, valorApurado: e.target.value } : it));
+                                  }}
+                                />
+                              </TableCell>
+                              <TableCell className="text-right">{excedente > 0 ? `+${excedente.toFixed(2)}` : excedente.toFixed(2)}</TableCell>
+                              <TableCell className="text-right font-medium">{descPct.toFixed(2)}%</TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  {(() => {
+                    const pesoBase = Number(entregaForm.watch("pesoLiquido")) || Number(entregaForm.watch("pesoBruto")) || 0;
+                    const totalDesc = classEntregaItens.reduce((sum, item) => {
+                      return sum + (editingContrato?.produtoId
+                        ? classificacaoDescontoService.buscarDescontoPorFaixa(editingContrato.produtoId, item.classificacaoTipoId, Number(item.valorApurado) || 0)
+                        : 0);
+                    }, 0);
+                    const pesoComercial = pesoBase > 0 ? pesoBase - (pesoBase * totalDesc / 100) : 0;
+                    return (
+                      <div className="grid grid-cols-3 gap-3 rounded-md bg-muted p-3 text-sm">
+                        <div>Peso Base: <strong>{pesoBase.toLocaleString("pt-BR")}</strong></div>
+                        <div>Desconto Total: <strong className="text-destructive">{totalDesc.toFixed(2)}%</strong></div>
+                        <div>Peso Comercial: <strong className="text-primary">{Math.round(pesoComercial * 100) / 100}</strong></div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-6">Nenhuma classificação de qualidade vinculada a este produto.</p>
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
       </CrudModal>
 
       {/* Fixação Modal */}
