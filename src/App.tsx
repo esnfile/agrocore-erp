@@ -67,8 +67,8 @@ const App = () => (
               <Route path="/comercial/contratos" element={<ContratosPage />} />
               <Route path="/comercial/modelos-condicoes" element={<ModelosCondicoesPage />} />
               {/* Financeiro */}
-              <Route path="/financeiro/contas-receber" element={<PlaceholderPage />} />
-              <Route path="/financeiro/contas-pagar" element={<PlaceholderPage />} />
+              <Route path="/financeiro/contas" element={<ContasFinanceiroPage />} />
+              <Route path="/financeiro/fluxo-caixa" element={<FluxoCaixaPage />} />
               {/* Produtos e Estoque — Tabelas */}
               <Route path="/produtos-estoque/tipo-produto" element={<TipoProdutoPage />} />
               <Route path="/produtos-estoque/marca-produto" element={<MarcaProdutoPage />} />
