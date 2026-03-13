@@ -53,6 +53,7 @@ import type {
   Contrato, ContratoEntrega, ContratoFixacao, TipoContrato, TipoPreco, StatusContrato,
   CondicaoDescontoModelo, CondicaoDescontoModeloItem, ContratoCondicao, TipoCondicaoDesconto,
   ClassificacaoTipo, UnidadeClassificacao, ProdutoClassificacao, ClassificacaoDesconto, RomaneioClassificacao,
+  FinanceiroConta, FinanceiroParcela, FinanceiroBaixa, TipoConta, StatusConta, OrigemConta, StatusParcela, FormaPagamento,
 } from "./mock-data";
 
 const delay = (ms = 300) => new Promise((r) => setTimeout(r, ms));
