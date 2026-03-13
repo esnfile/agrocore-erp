@@ -1360,10 +1360,8 @@ export default function ProdutosPage() {
                                 setClassForm({ classificacaoTipoId: pc.classificacaoTipoId, valorPadrao: String(pc.valorPadrao), limiteTolerancia: String(pc.limiteTolerancia), ativo: pc.ativo });
                                 setClassModalOpen(true);
                               }}><Pencil className="h-4 w-4" /></Button>
-                              <Button variant="ghost" size="icon" onClick={async () => {
-                                await produtoClassificacaoService.excluir(pc.id);
-                                setProdutoClassificacoes((prev) => prev.filter((p) => p.id !== pc.id));
-                                toast({ title: "Excluído", description: "Classificação removida." });
+                              <Button variant="ghost" size="icon" onClick={() => {
+                                setDeleteClassTarget(pc);
                               }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                             </div>
                           </TableCell>
