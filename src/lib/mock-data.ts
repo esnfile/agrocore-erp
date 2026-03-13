@@ -1435,7 +1435,7 @@ export const classificacaoTipos: ClassificacaoTipo[] = [
   },
   {
     id: "ct4", grupoId: "g1", empresaId: "e1", filialId: "f1",
-    descricao: "Quebrados", unidade: "PERCENTUAL", ativo: true,
+    descricao: "Quebrados", unidade: "PERCENTUAL", valorBase: null, ativo: true,
     criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1",
     atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1",
     deletadoEm: null, deletadoPor: null,
