@@ -1882,6 +1882,13 @@ export const classificacaoDescontoService = {
     const d = mockClassificacaoDescontos.find((d) => d.id === id && d.deletadoEm === null);
     if (d) { d.deletadoEm = now; d.deletadoPor = "u1"; d.atualizadoEm = now; d.atualizadoPor = "u1"; }
   },
+  async excluirPorProdutoETipo(produtoId: string, classificacaoTipoId: string): Promise<void> {
+    await delay();
+    const now = new Date().toISOString();
+    mockClassificacaoDescontos
+      .filter((d) => d.deletadoEm === null && d.produtoId === produtoId && d.classificacaoTipoId === classificacaoTipoId)
+      .forEach((d) => { d.deletadoEm = now; d.deletadoPor = "u1"; d.atualizadoEm = now; d.atualizadoPor = "u1"; });
+  },
   buscarDescontoPorFaixa(produtoId: string, classificacaoTipoId: string, valor: number): number {
     const faixa = mockClassificacaoDescontos.find(
       (d) => d.deletadoEm === null && d.produtoId === produtoId &&
