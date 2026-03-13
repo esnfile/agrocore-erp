@@ -123,34 +123,46 @@ export const modules: Module[] = [
         ],
       },
       {
-        title: "Tabelas",
-        icon: Layers,
+        title: "Produtos",
+        icon: Package,
         children: [
-          { title: "Tipo de Produto", url: "/produtos-estoque/tipo-produto", icon: Tags },
-          { title: "Marca de Produto", url: "/produtos-estoque/marca-produto", icon: Tags },
+          { title: "Produtos", url: "/produtos-estoque/produtos", icon: Package },
           {
-            title: "Classificação",
+            title: "Estrutura",
             icon: Layers,
             children: [
-              { title: "Divisão", url: "/produtos-estoque/divisao-produto", icon: Component },
-              { title: "Seção", url: "/produtos-estoque/secao-produto", icon: Component },
-              { title: "Grupo", url: "/produtos-estoque/grupo-produto", icon: Component },
-              { title: "Subgrupo", url: "/produtos-estoque/subgrupo-produto", icon: Component },
+              { title: "Tipo de Produto", url: "/produtos-estoque/tipo-produto", icon: Tags },
+              { title: "Marca de Produto", url: "/produtos-estoque/marca-produto", icon: Tags },
+              {
+                title: "Classificação",
+                icon: Layers,
+                children: [
+                  { title: "Divisão", url: "/produtos-estoque/divisao-produto", icon: Component },
+                  { title: "Seção", url: "/produtos-estoque/secao-produto", icon: Component },
+                  { title: "Grupo", url: "/produtos-estoque/grupo-produto", icon: Component },
+                  { title: "Subgrupo", url: "/produtos-estoque/subgrupo-produto", icon: Component },
+                ],
+              },
             ],
           },
           {
-            title: "Custos e Vendas",
-            icon: DollarSign,
+            title: "Configurações",
+            icon: Server,
             children: [
-              { title: "Coeficientes", url: "/produtos-estoque/coeficientes", icon: Calculator },
-              { title: "Tabela de Preços", url: "/produtos-estoque/tabela-precos", icon: Table2 },
+              {
+                title: "Custos e Vendas",
+                icon: DollarSign,
+                children: [
+                  { title: "Coeficientes", url: "/produtos-estoque/coeficientes", icon: Calculator },
+                  { title: "Tabela de Preços", url: "/produtos-estoque/tabela-precos", icon: Table2 },
+                ],
+              },
+              { title: "Unidade de Medidas", url: "/produtos-estoque/unidades-medida", icon: Ruler },
+              { title: "Tipos de Classificação", url: "/produtos-estoque/classificacao-tipos", icon: Tags },
             ],
           },
-          { title: "Unidades de Medida", url: "/produtos-estoque/unidades-medida", icon: Ruler },
-          { title: "Tipos de Classificação", url: "/produtos-estoque/classificacao-tipos", icon: Tags },
         ],
       },
-      { title: "Produtos", url: "/produtos-estoque/produtos", icon: Package },
       {
         title: "Auxiliares",
         icon: Server,
