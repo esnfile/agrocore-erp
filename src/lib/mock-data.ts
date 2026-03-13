@@ -1690,3 +1690,256 @@ export const financeiroBaixas: FinanceiroBaixa[] = [
     deletadoEm: null, deletadoPor: null,
   },
 ];
+
+// ============================================================
+// FINANCEIRO — NOVAS TABELAS
+// ============================================================
+
+// ---- Banco ----
+export interface FinanceiroBanco {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  codigo: string;
+  descricao: string;
+  logoBanco: string;
+  ativo: boolean;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export const financeiroBancos: FinanceiroBanco[] = [
+  { id: "fb_banco1", grupoId: "g1", empresaId: "e1", filialId: "f1", codigo: "001", descricao: "BANCO DO BRASIL", logoBanco: "", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "fb_banco2", grupoId: "g1", empresaId: "e1", filialId: "f1", codigo: "104", descricao: "CAIXA", logoBanco: "", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "fb_banco3", grupoId: "g1", empresaId: "e1", filialId: "f1", codigo: "748", descricao: "SICREDI", logoBanco: "", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+];
+
+// ---- Tipo de Conta ----
+export interface FinanceiroTipoConta {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  descricao: string;
+  ativo: boolean;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export const financeiroTipoContas: FinanceiroTipoConta[] = [
+  { id: "ftc1", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "CAIXA", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "ftc2", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "BANCO", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "ftc3", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "CARTEIRA", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+];
+
+// ---- Conta Financeira ----
+export interface FinanceiroContaFinanceira {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  descricao: string;
+  tipoContaId: string;
+  saldoAtual: number;
+  permiteSaldoNegativo: boolean;
+  ativo: boolean;
+  bancoId: string | null;
+  agencia: string;
+  contaCorrente: string;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export const financeiroContasFinanceiras: FinanceiroContaFinanceira[] = [
+  { id: "fcf1", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "Caixa Matriz", tipoContaId: "ftc1", saldoAtual: 15000, permiteSaldoNegativo: false, ativo: true, bancoId: null, agencia: "", contaCorrente: "", criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "fcf2", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "Banco do Brasil - CC", tipoContaId: "ftc2", saldoAtual: 250000, permiteSaldoNegativo: false, ativo: true, bancoId: "fb_banco1", agencia: "1234-5", contaCorrente: "12345-6", criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "fcf3", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "Sicredi - CC", tipoContaId: "ftc2", saldoAtual: 180000, permiteSaldoNegativo: true, ativo: true, bancoId: "fb_banco3", agencia: "0001", contaCorrente: "98765-4", criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+];
+
+// ---- Tipo de Lançamento ----
+export type TipoMovimentoFinanceiro = "ENTRADA" | "SAIDA" | "TRANSFERENCIA";
+
+export interface FinanceiroTipoLancamento {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  descricao: string;
+  tipoMovimento: TipoMovimentoFinanceiro;
+  tipoConta: string[];
+  origemSistema: boolean;
+  permiteEdicao: boolean;
+  permiteExclusao: boolean;
+  exigeCentroCusto: boolean;
+  ativo: boolean;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export const financeiroTiposLancamento: FinanceiroTipoLancamento[] = [
+  { id: "ftl1", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "BAIXA CONTA RECEBER", tipoMovimento: "ENTRADA", tipoConta: ["CAIXA", "BANCO"], origemSistema: true, permiteEdicao: false, permiteExclusao: false, exigeCentroCusto: false, ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "ftl2", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "BAIXA CONTA PAGAR", tipoMovimento: "SAIDA", tipoConta: ["CAIXA", "BANCO"], origemSistema: true, permiteEdicao: false, permiteExclusao: false, exigeCentroCusto: false, ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "ftl3", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "TRANSFERENCIA ENTRE CONTAS", tipoMovimento: "TRANSFERENCIA", tipoConta: ["CAIXA", "BANCO", "CARTEIRA"], origemSistema: true, permiteEdicao: false, permiteExclusao: false, exigeCentroCusto: false, ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "ftl4", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "ADIANTAMENTO DE CLIENTE", tipoMovimento: "ENTRADA", tipoConta: ["CAIXA", "BANCO"], origemSistema: false, permiteEdicao: true, permiteExclusao: true, exigeCentroCusto: false, ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "ftl5", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "ADIANTAMENTO A FORNECEDOR", tipoMovimento: "SAIDA", tipoConta: ["CAIXA", "BANCO"], origemSistema: false, permiteEdicao: true, permiteExclusao: true, exigeCentroCusto: false, ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "ftl6", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "LANCAMENTO MANUAL RECEITA", tipoMovimento: "ENTRADA", tipoConta: ["CAIXA", "BANCO", "CARTEIRA"], origemSistema: false, permiteEdicao: true, permiteExclusao: true, exigeCentroCusto: true, ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "ftl7", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "LANCAMENTO MANUAL DESPESA", tipoMovimento: "SAIDA", tipoConta: ["CAIXA", "BANCO", "CARTEIRA"], origemSistema: false, permiteEdicao: true, permiteExclusao: true, exigeCentroCusto: true, ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+];
+
+// ---- Forma de Pagamento (tabela) ----
+export type TipoFormaPagamento = "DINHEIRO" | "BANCARIO" | "ELETRONICO";
+
+export interface FinanceiroFormaPagto {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  descricao: string;
+  tipo: TipoFormaPagamento;
+  ativo: boolean;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export const financeiroFormasPagto: FinanceiroFormaPagto[] = [
+  { id: "ffp1", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "Dinheiro", tipo: "DINHEIRO", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "ffp2", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "PIX", tipo: "ELETRONICO", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "ffp3", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "Transferência", tipo: "BANCARIO", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "ffp4", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "TED", tipo: "BANCARIO", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "ffp5", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "DOC", tipo: "BANCARIO", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "ffp6", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "Cheque", tipo: "BANCARIO", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "ffp7", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "Boleto", tipo: "BANCARIO", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "ffp8", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "Cartão Débito", tipo: "ELETRONICO", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "ffp9", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "Cartão Crédito", tipo: "ELETRONICO", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+];
+
+// ---- Plano de Contas ----
+export type TipoPlanoConta = "RECEITA" | "DESPESA";
+
+export interface FinanceiroPlanoConta {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  codigo: string;
+  descricao: string;
+  tipo: TipoPlanoConta;
+  ativo: boolean;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export const financeiroPlanoContas: FinanceiroPlanoConta[] = [
+  { id: "fpc1", grupoId: "g1", empresaId: "e1", filialId: "f1", codigo: "1.1", descricao: "Receita de Vendas", tipo: "RECEITA", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "fpc2", grupoId: "g1", empresaId: "e1", filialId: "f1", codigo: "1.2", descricao: "Receita de Serviços", tipo: "RECEITA", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "fpc3", grupoId: "g1", empresaId: "e1", filialId: "f1", codigo: "2.1", descricao: "Despesa com Insumos", tipo: "DESPESA", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "fpc4", grupoId: "g1", empresaId: "e1", filialId: "f1", codigo: "2.2", descricao: "Despesa com Frete", tipo: "DESPESA", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "fpc5", grupoId: "g1", empresaId: "e1", filialId: "f1", codigo: "2.3", descricao: "Despesa Administrativa", tipo: "DESPESA", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "fpc6", grupoId: "g1", empresaId: "e1", filialId: "f1", codigo: "1.3", descricao: "Receita Financeira", tipo: "RECEITA", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+];
+
+// ---- Centro de Custo ----
+export interface FinanceiroCentroCusto {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  descricao: string;
+  ativo: boolean;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export const financeiroCentrosCusto: FinanceiroCentroCusto[] = [
+  { id: "fcc1", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "Lavoura Soja", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "fcc2", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "Lavoura Milho", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "fcc3", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "Armazém", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "fcc4", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "Administrativo", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "fcc5", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "Transporte", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "fcc6", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "Comercial", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+];
+
+// ---- Movimentação Financeira ----
+export interface FinanceiroMovimentacao {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  contaFinanceiraId: string;
+  tipoLancamentoId: string;
+  tipoMovimento: TipoMovimentoFinanceiro;
+  formaPagamentoId: string;
+  planoContaId: string | null;
+  centroCustoId: string | null;
+  dataMovimento: string;
+  valor: number;
+  numeroDocumento: string;
+  historico: string;
+  contaOrigemId: string | null;
+  contaDestinoId: string | null;
+  parcelaId: string | null;
+  pessoaId: string | null;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export const financeiroMovimentacoes: FinanceiroMovimentacao[] = [];
+
+// ---- Adiantamento ----
+export type StatusAdiantamento = "ABERTO" | "PARCIAL" | "LIQUIDADO" | "CANCELADO";
+
+export interface FinanceiroAdiantamento {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  pessoaId: string;
+  contratoId: string | null;
+  movimentacaoFinanceiraId: string;
+  dataAdiantamento: string;
+  valorAdiantamento: number;
+  saldoUtilizado: number;
+  saldoRestante: number;
+  status: StatusAdiantamento;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export const financeiroAdiantamentos: FinanceiroAdiantamento[] = [];
