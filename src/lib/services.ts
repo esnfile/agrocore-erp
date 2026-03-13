@@ -38,6 +38,9 @@ import {
   produtoClassificacoes as mockProdutoClassificacoes,
   classificacaoDescontos as mockClassificacaoDescontos,
   romaneioClassificacoes as mockRomaneioClassificacoes,
+  financeiroContas as mockFinanceiroContas,
+  financeiroParcelas as mockFinanceiroParcelas,
+  financeiroBaixas as mockFinanceiroBaixas,
 } from "./mock-data";
 import type {
   Empresa, Filial, Grupo, GrupoPessoa, Pessoa,
