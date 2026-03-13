@@ -193,8 +193,8 @@ export const modules: Module[] = [
     title: "Financeiro",
     icon: DollarSign,
     items: [
-      { title: "Contas a Receber", url: "/financeiro/contas-receber", icon: ArrowDownCircle },
-      { title: "Contas a Pagar", url: "/financeiro/contas-pagar", icon: ArrowUpCircle },
+      { title: "Contas", url: "/financeiro/contas", icon: FileText },
+      { title: "Fluxo de Caixa", url: "/financeiro/fluxo-caixa", icon: BarChart3 },
     ],
   },
 ];

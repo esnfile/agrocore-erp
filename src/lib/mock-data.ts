@@ -1520,3 +1520,173 @@ export const classificacaoDescontos: ClassificacaoDesconto[] = [
 ];
 
 export const romaneioClassificacoes: RomaneioClassificacao[] = [];
+
+// ============================================================
+// FINANCEIRO
+// ============================================================
+
+export type TipoConta = "PAGAR" | "RECEBER";
+export type StatusConta = "ABERTO" | "PARCIAL" | "PAGO" | "CANCELADO";
+export type OrigemConta = "MANUAL" | "CONTRATO" | "ROMANEIO" | "FIXACAO";
+export type StatusParcela = "PENDENTE" | "PARCIAL" | "PAGO";
+export type FormaPagamento = "DINHEIRO" | "PIX" | "TRANSFERENCIA" | "BOLETO" | "OUTROS";
+
+export interface FinanceiroConta {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  tipo: TipoConta;
+  pessoaId: string;
+  descricao: string;
+  dataEmissao: string;
+  valorTotal: number;
+  status: StatusConta;
+  origem: OrigemConta;
+  documentoReferencia: string;
+  observacoes: string;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export interface FinanceiroParcela {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  contaId: string;
+  numeroParcela: number;
+  dataVencimento: string;
+  valorParcela: number;
+  valorPago: number;
+  saldoParcela: number;
+  status: StatusParcela;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export interface FinanceiroBaixa {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  parcelaId: string;
+  dataPagamento: string;
+  valorPago: number;
+  formaPagamento: FormaPagamento;
+  observacoes: string;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export const financeiroContas: FinanceiroConta[] = [
+  {
+    id: "fc1", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    tipo: "PAGAR", pessoaId: "p2", descricao: "Compra de insumos agrícolas",
+    dataEmissao: "2025-01-10", valorTotal: 25000, status: "ABERTO",
+    origem: "MANUAL", documentoReferencia: "NF-001234", observacoes: "",
+    criadoEm: "2025-01-10T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-01-10T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "fc2", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    tipo: "RECEBER", pessoaId: "p1", descricao: "Venda de soja safra 2025",
+    dataEmissao: "2025-02-01", valorTotal: 180000, status: "PARCIAL",
+    origem: "MANUAL", documentoReferencia: "CT-0001", observacoes: "Referente contrato de venda",
+    criadoEm: "2025-02-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-02-15T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "fc3", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    tipo: "PAGAR", pessoaId: "p1", descricao: "Frete transporte grãos",
+    dataEmissao: "2025-01-20", valorTotal: 8500, status: "PAGO",
+    origem: "MANUAL", documentoReferencia: "CTE-5678", observacoes: "",
+    criadoEm: "2025-01-20T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-02-20T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+];
+
+export const financeiroParcelas: FinanceiroParcela[] = [
+  {
+    id: "fp1", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    contaId: "fc1", numeroParcela: 1, dataVencimento: "2025-02-10",
+    valorParcela: 12500, valorPago: 0, saldoParcela: 12500, status: "PENDENTE",
+    criadoEm: "2025-01-10T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-01-10T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "fp2", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    contaId: "fc1", numeroParcela: 2, dataVencimento: "2025-03-10",
+    valorParcela: 12500, valorPago: 0, saldoParcela: 12500, status: "PENDENTE",
+    criadoEm: "2025-01-10T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-01-10T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "fp3", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    contaId: "fc2", numeroParcela: 1, dataVencimento: "2025-03-01",
+    valorParcela: 60000, valorPago: 60000, saldoParcela: 0, status: "PAGO",
+    criadoEm: "2025-02-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-03-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "fp4", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    contaId: "fc2", numeroParcela: 2, dataVencimento: "2025-04-01",
+    valorParcela: 60000, valorPago: 0, saldoParcela: 60000, status: "PENDENTE",
+    criadoEm: "2025-02-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-02-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "fp5", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    contaId: "fc2", numeroParcela: 3, dataVencimento: "2025-05-01",
+    valorParcela: 60000, valorPago: 0, saldoParcela: 60000, status: "PENDENTE",
+    criadoEm: "2025-02-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-02-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "fp6", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    contaId: "fc3", numeroParcela: 1, dataVencimento: "2025-02-20",
+    valorParcela: 8500, valorPago: 8500, saldoParcela: 0, status: "PAGO",
+    criadoEm: "2025-01-20T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-02-20T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+];
+
+export const financeiroBaixas: FinanceiroBaixa[] = [
+  {
+    id: "fb1", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    parcelaId: "fp3", dataPagamento: "2025-03-01T10:00:00Z",
+    valorPago: 60000, formaPagamento: "TRANSFERENCIA", observacoes: "Pagamento via TED",
+    criadoEm: "2025-03-01T10:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-03-01T10:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "fb2", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    parcelaId: "fp6", dataPagamento: "2025-02-20T14:00:00Z",
+    valorPago: 8500, formaPagamento: "PIX", observacoes: "",
+    criadoEm: "2025-02-20T14:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-02-20T14:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+];

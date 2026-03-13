@@ -28,6 +28,8 @@ import PlaceholderPage from "@/pages/PlaceholderPage";
 import ContratosPage from "@/pages/comercial/ContratosPage";
 import ModelosCondicoesPage from "@/pages/comercial/ModelosCondicoesPage";
 import ClassificacaoTiposPage from "@/pages/produtos-estoque/ClassificacaoTiposPage";
+import ContasFinanceiroPage from "@/pages/financeiro/ContasPage";
+import FluxoCaixaPage from "@/pages/financeiro/FluxoCaixaPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -65,8 +67,8 @@ const App = () => (
               <Route path="/comercial/contratos" element={<ContratosPage />} />
               <Route path="/comercial/modelos-condicoes" element={<ModelosCondicoesPage />} />
               {/* Financeiro */}
-              <Route path="/financeiro/contas-receber" element={<PlaceholderPage />} />
-              <Route path="/financeiro/contas-pagar" element={<PlaceholderPage />} />
+              <Route path="/financeiro/contas" element={<ContasFinanceiroPage />} />
+              <Route path="/financeiro/fluxo-caixa" element={<FluxoCaixaPage />} />
               {/* Produtos e Estoque — Tabelas */}
               <Route path="/produtos-estoque/tipo-produto" element={<TipoProdutoPage />} />
               <Route path="/produtos-estoque/marca-produto" element={<MarcaProdutoPage />} />
