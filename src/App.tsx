@@ -28,6 +28,8 @@ import PlaceholderPage from "@/pages/PlaceholderPage";
 import ContratosPage from "@/pages/comercial/ContratosPage";
 import ModelosCondicoesPage from "@/pages/comercial/ModelosCondicoesPage";
 import ClassificacaoTiposPage from "@/pages/produtos-estoque/ClassificacaoTiposPage";
+import ContasFinanceiroPage from "@/pages/financeiro/ContasPage";
+import FluxoCaixaPage from "@/pages/financeiro/FluxoCaixaPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
