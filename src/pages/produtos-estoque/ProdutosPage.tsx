@@ -1484,7 +1484,7 @@ export default function ProdutosPage() {
                   <Label>Tipo Classificação <span className="text-destructive">*</span></Label>
                   <Select value={descForm.classificacaoTipoId} onValueChange={(v) => setDescForm((f) => ({ ...f, classificacaoTipoId: v }))}>
                     <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                    <SelectContent>{classificacaoTipos.filter((t) => t.ativo).map((t) => (
+                    <SelectContent>{classificacaoTipos.filter((t) => t.ativo && produtoClassificacoes.some((pc) => pc.classificacaoTipoId === t.id)).map((t) => (
                       <SelectItem key={t.id} value={t.id}>{t.descricao}</SelectItem>
                     ))}</SelectContent>
                   </Select>
