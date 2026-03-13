@@ -1348,6 +1348,7 @@ export interface ClassificacaoTipo {
   filialId: string;
   descricao: string;
   unidade: UnidadeClassificacao;
+  valorBase: number | null;
   ativo: boolean;
   criadoEm: string;
   criadoPor: string;
