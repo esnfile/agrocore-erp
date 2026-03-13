@@ -1765,6 +1765,7 @@ export const classificacaoTipoService = {
     if (existing) {
       existing.descricao = (data.descricao ?? existing.descricao).trim();
       existing.unidade = data.unidade ?? existing.unidade;
+      existing.valorBase = data.valorBase !== undefined ? data.valorBase : existing.valorBase;
       existing.ativo = data.ativo ?? existing.ativo;
       existing.atualizadoEm = now;
       existing.atualizadoPor = "u1";
@@ -1775,6 +1776,7 @@ export const classificacaoTipoService = {
       grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
       descricao: (data.descricao ?? "").trim(),
       unidade: data.unidade ?? "PERCENTUAL",
+      valorBase: data.valorBase ?? null,
       ativo: data.ativo ?? true,
       criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
       deletadoEm: null, deletadoPor: null,
@@ -1879,6 +1881,13 @@ export const classificacaoDescontoService = {
     const now = new Date().toISOString();
     const d = mockClassificacaoDescontos.find((d) => d.id === id && d.deletadoEm === null);
     if (d) { d.deletadoEm = now; d.deletadoPor = "u1"; d.atualizadoEm = now; d.atualizadoPor = "u1"; }
+  },
+  async excluirPorProdutoETipo(produtoId: string, classificacaoTipoId: string): Promise<void> {
+    await delay();
+    const now = new Date().toISOString();
+    mockClassificacaoDescontos
+      .filter((d) => d.deletadoEm === null && d.produtoId === produtoId && d.classificacaoTipoId === classificacaoTipoId)
+      .forEach((d) => { d.deletadoEm = now; d.deletadoPor = "u1"; d.atualizadoEm = now; d.atualizadoPor = "u1"; });
   },
   buscarDescontoPorFaixa(produtoId: string, classificacaoTipoId: string, valor: number): number {
     const faixa = mockClassificacaoDescontos.find(

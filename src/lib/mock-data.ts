@@ -1348,6 +1348,7 @@ export interface ClassificacaoTipo {
   filialId: string;
   descricao: string;
   unidade: UnidadeClassificacao;
+  valorBase: number | null;
   ativo: boolean;
   criadoEm: string;
   criadoPor: string;
@@ -1413,35 +1414,35 @@ export interface RomaneioClassificacao {
 export const classificacaoTipos: ClassificacaoTipo[] = [
   {
     id: "ct1", grupoId: "g1", empresaId: "e1", filialId: "f1",
-    descricao: "Umidade", unidade: "PERCENTUAL", ativo: true,
+    descricao: "Umidade", unidade: "PERCENTUAL", valorBase: 14, ativo: true,
     criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1",
     atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1",
     deletadoEm: null, deletadoPor: null,
   },
   {
     id: "ct2", grupoId: "g1", empresaId: "e1", filialId: "f1",
-    descricao: "Impureza", unidade: "PERCENTUAL", ativo: true,
+    descricao: "Impureza", unidade: "PERCENTUAL", valorBase: 1, ativo: true,
     criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1",
     atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1",
     deletadoEm: null, deletadoPor: null,
   },
   {
     id: "ct3", grupoId: "g1", empresaId: "e1", filialId: "f1",
-    descricao: "Ardidos", unidade: "PERCENTUAL", ativo: true,
+    descricao: "Ardidos", unidade: "PERCENTUAL", valorBase: 8, ativo: true,
     criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1",
     atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1",
     deletadoEm: null, deletadoPor: null,
   },
   {
     id: "ct4", grupoId: "g1", empresaId: "e1", filialId: "f1",
-    descricao: "Quebrados", unidade: "PERCENTUAL", ativo: true,
+    descricao: "Quebrados", unidade: "PERCENTUAL", valorBase: null, ativo: true,
     criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1",
     atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1",
     deletadoEm: null, deletadoPor: null,
   },
   {
     id: "ct5", grupoId: "g1", empresaId: "e1", filialId: "f1",
-    descricao: "Avariados", unidade: "PERCENTUAL", ativo: true,
+    descricao: "Avariados", unidade: "PERCENTUAL", valorBase: null, ativo: true,
     criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1",
     atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1",
     deletadoEm: null, deletadoPor: null,

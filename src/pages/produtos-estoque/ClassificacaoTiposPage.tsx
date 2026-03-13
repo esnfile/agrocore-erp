@@ -25,6 +25,7 @@ import type { ClassificacaoTipo, UnidadeClassificacao } from "@/lib/mock-data";
 const schema = z.object({
   descricao: z.string().min(1, "Descrição é obrigatória").max(100).transform((v) => v.trim()),
   unidade: z.enum(["PERCENTUAL", "KG", "GRAMAS"]),
+  valorBase: z.string().optional().default(""),
   ativo: z.boolean(),
 });
 type FormData = z.infer<typeof schema>;
@@ -52,6 +53,7 @@ export default function ClassificacaoTiposPage() {
       const map: Record<string, string> = { PERCENTUAL: "%", KG: "Kg", GRAMAS: "g" };
       return map[r.unidade] ?? r.unidade;
     }},
+    { key: "valorBase", header: "Valor Base", render: (r) => r.valorBase != null ? String(r.valorBase) : "—" },
     { key: "ativo", header: "Status", render: (r) => (
       <Badge variant={r.ativo ? "default" : "secondary"}>{r.ativo ? "Ativo" : "Inativo"}</Badge>
     )},
@@ -70,13 +72,13 @@ export default function ClassificacaoTiposPage() {
 
   const openNew = () => {
     setEditingId(null);
-    reset({ descricao: "", unidade: "PERCENTUAL", ativo: true });
+    reset({ descricao: "", unidade: "PERCENTUAL", valorBase: "", ativo: true });
     setModalOpen(true);
   };
 
   const openEdit = (row: ClassificacaoTipo) => {
     setEditingId(row.id);
-    reset({ descricao: row.descricao, unidade: row.unidade, ativo: row.ativo });
+    reset({ descricao: row.descricao, unidade: row.unidade, valorBase: row.valorBase != null ? String(row.valorBase) : "", ativo: row.ativo });
     setModalOpen(true);
   };
 
@@ -86,8 +88,9 @@ export default function ClassificacaoTiposPage() {
     if (dup) { setError("descricao", { message: "Já existe tipo com esta descrição" }); return; }
     setSaving(true);
     try {
+      const valorBaseNum = formData.valorBase !== "" ? Number(formData.valorBase) : null;
       await classificacaoTipoService.salvar(
-        { id: editingId ?? undefined, ...formData },
+        { id: editingId ?? undefined, descricao: formData.descricao, unidade: formData.unidade, valorBase: valorBaseNum, ativo: formData.ativo },
         { grupoId, empresaId, filialId }
       );
       toast({ title: editingId ? "Atualizado" : "Criado", description: `"${formData.descricao}" salvo com sucesso.` });
@@ -109,7 +112,7 @@ export default function ClassificacaoTiposPage() {
   if (!grupoId) {
     return (
       <>
-        <PageHeader title="Tipos de Classificação" description="Tipos de análise para classificação de grãos" />
+        <PageHeader title="Controle de Qualidade" description="Tipos de análise para classificação de grãos" />
         <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
           Selecione um Grupo para visualizar.
         </div>
@@ -119,7 +122,7 @@ export default function ClassificacaoTiposPage() {
 
   return (
     <>
-      <PageHeader title="Tipos de Classificação" description="Tipos de análise para classificação de grãos (Umidade, Impureza, etc.)" />
+      <PageHeader title="Controle de Qualidade" description="Tipos de análise para classificação de grãos (Umidade, Impureza, etc.)" />
       <DataTable columns={columns} data={data} loading={loading} searchPlaceholder="Buscar..." onNew={openNew} onEdit={openEdit} onDelete={(r) => setDeleteTarget(r)} />
 
       <CrudModal open={modalOpen} onClose={() => setModalOpen(false)} title={editingId ? "Editar Tipo" : "Novo Tipo"} saving={saving} onSave={onSave}>
@@ -129,16 +132,23 @@ export default function ClassificacaoTiposPage() {
             <Input maxLength={100} {...register("descricao")} />
             {errors.descricao && <p className="text-xs text-destructive">{errors.descricao.message}</p>}
           </div>
-          <div className="space-y-1.5">
-            <Label>Unidade <span className="text-destructive">*</span></Label>
-            <Select value={watch("unidade")} onValueChange={(v) => setValue("unidade", v as UnidadeClassificacao)}>
-              <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="PERCENTUAL">Percentual (%)</SelectItem>
-                <SelectItem value="KG">Quilograma (Kg)</SelectItem>
-                <SelectItem value="GRAMAS">Gramas (g)</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label>Unidade <span className="text-destructive">*</span></Label>
+              <Select value={watch("unidade")} onValueChange={(v) => setValue("unidade", v as UnidadeClassificacao)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PERCENTUAL">Percentual (%)</SelectItem>
+                  <SelectItem value="KG">Quilograma (Kg)</SelectItem>
+                  <SelectItem value="GRAMAS">Gramas (g)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Valor Base</Label>
+              <Input type="number" step="0.000001" placeholder="Ex: 14" {...register("valorBase")} />
+              <p className="text-xs text-muted-foreground">Valor padrão aceitável para esta análise</p>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <Switch id="ativo" checked={ativoValue} onCheckedChange={(v) => setValue("ativo", v)} />
