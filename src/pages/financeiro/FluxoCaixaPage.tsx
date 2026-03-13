@@ -22,7 +22,9 @@ interface FluxoItem {
 }
 
 export default function FluxoCaixaPage() {
-  const { empresaId, filialId } = useOrganization();
+  const { empresaAtual, filialAtual } = useOrganization();
+  const empresaId = empresaAtual?.id ?? "";
+  const filialId = filialAtual?.id ?? "";
 
   const [contas, setContas] = useState<FinanceiroConta[]>([]);
   const [parcelas, setParcelas] = useState<FinanceiroParcela[]>([]);

@@ -32,7 +32,10 @@ const statusParcelaColors: Record<string, string> = {
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 export default function ContasPage() {
-  const { grupoId, empresaId, filialId } = useOrganization();
+  const { grupoAtual, empresaAtual, filialAtual } = useOrganization();
+  const grupoId = grupoAtual?.id ?? "";
+  const empresaId = empresaAtual?.id ?? "";
+  const filialId = filialAtual?.id ?? "";
   const { toast } = useToast();
 
   const [contas, setContas] = useState<FinanceiroConta[]>([]);
