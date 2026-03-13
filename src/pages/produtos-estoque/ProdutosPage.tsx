@@ -178,6 +178,7 @@ export default function ProdutosPage() {
   const [descModalOpen, setDescModalOpen] = useState(false);
   const [editingDesc, setEditingDesc] = useState<ClassificacaoDesconto | null>(null);
   const [descForm, setDescForm] = useState({ classificacaoTipoId: "", valorMinimo: "", valorMaximo: "", percentualDesconto: "" });
+  const [deleteClassTarget, setDeleteClassTarget] = useState<ProdutoClassificacao | null>(null);
 
   const {
     register,
