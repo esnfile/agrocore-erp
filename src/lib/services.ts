@@ -41,6 +41,15 @@ import {
   financeiroContas as mockFinanceiroContas,
   financeiroParcelas as mockFinanceiroParcelas,
   financeiroBaixas as mockFinanceiroBaixas,
+  financeiroBancos as mockFinanceiroBancos,
+  financeiroTipoContas as mockFinanceiroTipoContas,
+  financeiroContasFinanceiras as mockFinanceiroContasFinanceiras,
+  financeiroTiposLancamento as mockFinanceiroTiposLancamento,
+  financeiroFormasPagto as mockFinanceiroFormasPagto,
+  financeiroPlanoContas as mockFinanceiroPlanoContas,
+  financeiroCentrosCusto as mockFinanceiroCentrosCusto,
+  financeiroMovimentacoes as mockFinanceiroMovimentacoes,
+  financeiroAdiantamentos as mockFinanceiroAdiantamentos,
 } from "./mock-data";
 import type {
   Empresa, Filial, Grupo, GrupoPessoa, Pessoa,
@@ -54,6 +63,10 @@ import type {
   CondicaoDescontoModelo, CondicaoDescontoModeloItem, ContratoCondicao, TipoCondicaoDesconto,
   ClassificacaoTipo, UnidadeClassificacao, ProdutoClassificacao, ClassificacaoDesconto, RomaneioClassificacao,
   FinanceiroConta, FinanceiroParcela, FinanceiroBaixa, TipoConta, StatusConta, OrigemConta, StatusParcela, FormaPagamento,
+  FinanceiroBanco, FinanceiroTipoConta, FinanceiroContaFinanceira, FinanceiroTipoLancamento,
+  FinanceiroFormaPagto, TipoFormaPagamento, FinanceiroPlanoConta, TipoPlanoConta,
+  FinanceiroCentroCusto, FinanceiroMovimentacao, TipoMovimentoFinanceiro,
+  FinanceiroAdiantamento, StatusAdiantamento,
 } from "./mock-data";
 
 const delay = (ms = 300) => new Promise((r) => setTimeout(r, ms));
