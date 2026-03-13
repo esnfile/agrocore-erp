@@ -1523,6 +1523,33 @@ export default function ProdutosPage() {
         )}
       </CrudModal>
 
+      {/* Cascade delete classification confirmation */}
+      <AlertDialog open={!!deleteClassTarget} onOpenChange={(v) => !v && setDeleteClassTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ao remover esta classificação, todos os descontos configurados para ela neste produto também serão excluídos. Deseja continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async () => {
+                if (!deleteClassTarget || !editingId) return;
+                await classificacaoDescontoService.excluirPorProdutoETipo(editingId, deleteClassTarget.classificacaoTipoId);
+                await produtoClassificacaoService.excluir(deleteClassTarget.id);
+                setProdutoClassificacoes((prev) => prev.filter((p) => p.id !== deleteClassTarget.id));
+                setClassificacaoDescontos((prev) => prev.filter((d) => d.classificacaoTipoId !== deleteClassTarget.classificacaoTipoId));
+                setDeleteClassTarget(null);
+                toast({ title: "Excluído", description: "Classificação e descontos vinculados removidos." });
+              }}
+            >Confirmar exclusão</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Delete confirmation */}
       <AlertDialog
         open={!!deleteTarget}

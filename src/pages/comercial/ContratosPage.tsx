@@ -1152,19 +1152,25 @@ export default function ContratosPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Tipo</TableHead>
+                      <TableHead className="text-right">Valor Base</TableHead>
                       <TableHead className="text-right">Valor Apurado</TableHead>
+                      <TableHead className="text-right">Excedente</TableHead>
                       <TableHead className="text-right">% Desconto</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {classEntregaItens.map((item, idx) => {
                       const tipo = classificacaoTipos.find((t) => t.id === item.classificacaoTipoId);
+                      const valorApuradoNum = Number(item.valorApurado) || 0;
+                      const valorBase = tipo?.valorBase ?? 0;
+                      const excedente = valorApuradoNum - valorBase;
                       const descPct = editingContrato?.produtoId
-                        ? classificacaoDescontoService.buscarDescontoPorFaixa(editingContrato.produtoId, item.classificacaoTipoId, Number(item.valorApurado) || 0)
+                        ? classificacaoDescontoService.buscarDescontoPorFaixa(editingContrato.produtoId, item.classificacaoTipoId, valorApuradoNum)
                         : 0;
                       return (
                         <TableRow key={idx}>
                           <TableCell>{tipo?.descricao ?? item.classificacaoTipoId}</TableCell>
+                          <TableCell className="text-right text-muted-foreground">{valorBase}</TableCell>
                           <TableCell className="text-right">
                             <Input
                               type="number" step="0.000001" className="w-[120px] ml-auto"
@@ -1174,6 +1180,7 @@ export default function ContratosPage() {
                               }}
                             />
                           </TableCell>
+                          <TableCell className="text-right">{excedente > 0 ? `+${excedente.toFixed(2)}` : excedente.toFixed(2)}</TableCell>
                           <TableCell className="text-right font-medium">{descPct.toFixed(2)}%</TableCell>
                         </TableRow>
                       );
