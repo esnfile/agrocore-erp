@@ -1765,6 +1765,7 @@ export const classificacaoTipoService = {
     if (existing) {
       existing.descricao = (data.descricao ?? existing.descricao).trim();
       existing.unidade = data.unidade ?? existing.unidade;
+      existing.valorBase = data.valorBase !== undefined ? data.valorBase : existing.valorBase;
       existing.ativo = data.ativo ?? existing.ativo;
       existing.atualizadoEm = now;
       existing.atualizadoPor = "u1";
@@ -1775,6 +1776,7 @@ export const classificacaoTipoService = {
       grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
       descricao: (data.descricao ?? "").trim(),
       unidade: data.unidade ?? "PERCENTUAL",
+      valorBase: data.valorBase ?? null,
       ativo: data.ativo ?? true,
       criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
       deletadoEm: null, deletadoPor: null,
