@@ -41,6 +41,15 @@ import {
   financeiroContas as mockFinanceiroContas,
   financeiroParcelas as mockFinanceiroParcelas,
   financeiroBaixas as mockFinanceiroBaixas,
+  financeiroBancos as mockFinanceiroBancos,
+  financeiroTipoContas as mockFinanceiroTipoContas,
+  financeiroContasFinanceiras as mockFinanceiroContasFinanceiras,
+  financeiroTiposLancamento as mockFinanceiroTiposLancamento,
+  financeiroFormasPagto as mockFinanceiroFormasPagto,
+  financeiroPlanoContas as mockFinanceiroPlanoContas,
+  financeiroCentrosCusto as mockFinanceiroCentrosCusto,
+  financeiroMovimentacoes as mockFinanceiroMovimentacoes,
+  financeiroAdiantamentos as mockFinanceiroAdiantamentos,
 } from "./mock-data";
 import type {
   Empresa, Filial, Grupo, GrupoPessoa, Pessoa,
@@ -54,6 +63,10 @@ import type {
   CondicaoDescontoModelo, CondicaoDescontoModeloItem, ContratoCondicao, TipoCondicaoDesconto,
   ClassificacaoTipo, UnidadeClassificacao, ProdutoClassificacao, ClassificacaoDesconto, RomaneioClassificacao,
   FinanceiroConta, FinanceiroParcela, FinanceiroBaixa, TipoConta, StatusConta, OrigemConta, StatusParcela, FormaPagamento,
+  FinanceiroBanco, FinanceiroTipoConta, FinanceiroContaFinanceira, FinanceiroTipoLancamento,
+  FinanceiroFormaPagto, TipoFormaPagamento, FinanceiroPlanoConta, TipoPlanoConta,
+  FinanceiroCentroCusto, FinanceiroMovimentacao, TipoMovimentoFinanceiro,
+  FinanceiroAdiantamento, StatusAdiantamento,
 } from "./mock-data";
 
 const delay = (ms = 300) => new Promise((r) => setTimeout(r, ms));
@@ -2110,5 +2123,303 @@ export const financeiroBaixaService = {
   async listarTodas(empresaId: string, filialId: string): Promise<FinanceiroBaixa[]> {
     await delay();
     return mockFinanceiroBaixas.filter((b) => b.deletadoEm === null && b.empresaId === empresaId && b.filialId === filialId);
+  },
+};
+
+// ============================================================
+// Financeiro — Bancos
+// ============================================================
+export const financeiroBancoService = createSimpleCrudService<FinanceiroBanco>(mockFinanceiroBancos as any, "fb_banco");
+
+// ============================================================
+// Financeiro — Tipo de Contas
+// ============================================================
+export const financeiroTipoContaService = createSimpleCrudService<FinanceiroTipoConta>(mockFinanceiroTipoContas as any, "ftc");
+
+// ============================================================
+// Financeiro — Contas Financeiras
+// ============================================================
+export const financeiroContaFinanceiraService = {
+  async listar(empresaId: string, filialId: string): Promise<FinanceiroContaFinanceira[]> {
+    await delay();
+    return mockFinanceiroContasFinanceiras.filter((c) => c.deletadoEm === null && c.empresaId === empresaId && c.filialId === filialId);
+  },
+  async listarTodos(): Promise<FinanceiroContaFinanceira[]> {
+    await delay();
+    return mockFinanceiroContasFinanceiras.filter((c) => c.deletadoEm === null);
+  },
+  async descricaoExiste(descricao: string, empresaId: string, filialId: string, excludeId?: string): Promise<boolean> {
+    await delay(100);
+    const t = descricao.trim().toLowerCase();
+    return mockFinanceiroContasFinanceiras.some(
+      (c) => c.deletadoEm === null && c.empresaId === empresaId && c.filialId === filialId && c.descricao.toLowerCase() === t && c.id !== excludeId
+    );
+  },
+  async salvar(data: Partial<FinanceiroContaFinanceira>, ctx: { grupoId: string; empresaId: string; filialId: string }): Promise<FinanceiroContaFinanceira> {
+    await delay(400);
+    const now = new Date().toISOString();
+    const existing = data.id ? mockFinanceiroContasFinanceiras.find((c) => c.id === data.id && c.deletadoEm === null) : undefined;
+    if (existing) {
+      existing.descricao = (data.descricao ?? existing.descricao).trim();
+      existing.tipoContaId = data.tipoContaId ?? existing.tipoContaId;
+      existing.permiteSaldoNegativo = data.permiteSaldoNegativo ?? existing.permiteSaldoNegativo;
+      existing.ativo = data.ativo ?? existing.ativo;
+      existing.bancoId = data.bancoId !== undefined ? data.bancoId : existing.bancoId;
+      existing.agencia = data.agencia ?? existing.agencia;
+      existing.contaCorrente = data.contaCorrente ?? existing.contaCorrente;
+      existing.atualizadoEm = now;
+      existing.atualizadoPor = "u1";
+      return existing;
+    }
+    const novo: FinanceiroContaFinanceira = {
+      id: `fcf${Date.now()}`,
+      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      descricao: (data.descricao ?? "").trim(),
+      tipoContaId: data.tipoContaId ?? "",
+      saldoAtual: data.saldoAtual ?? 0,
+      permiteSaldoNegativo: data.permiteSaldoNegativo ?? false,
+      ativo: data.ativo ?? true,
+      bancoId: data.bancoId ?? null,
+      agencia: data.agencia ?? "",
+      contaCorrente: data.contaCorrente ?? "",
+      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      deletadoEm: null, deletadoPor: null,
+    };
+    mockFinanceiroContasFinanceiras.push(novo);
+    return novo;
+  },
+  async excluir(id: string): Promise<void> {
+    await delay();
+    const now = new Date().toISOString();
+    const c = mockFinanceiroContasFinanceiras.find((c) => c.id === id && c.deletadoEm === null);
+    if (c) { c.deletadoEm = now; c.deletadoPor = "u1"; c.atualizadoEm = now; c.atualizadoPor = "u1"; }
+  },
+  atualizarSaldo(id: string, delta: number): void {
+    const c = mockFinanceiroContasFinanceiras.find((c) => c.id === id && c.deletadoEm === null);
+    if (c) {
+      c.saldoAtual += delta;
+      c.atualizadoEm = new Date().toISOString();
+      c.atualizadoPor = "u1";
+    }
+  },
+};
+
+// ============================================================
+// Financeiro — Tipos de Lançamento
+// ============================================================
+export const financeiroTipoLancamentoService = {
+  async listar(empresaId: string, filialId: string): Promise<FinanceiroTipoLancamento[]> {
+    await delay();
+    return mockFinanceiroTiposLancamento.filter((t) => t.deletadoEm === null && t.empresaId === empresaId && t.filialId === filialId);
+  },
+  async listarTodos(): Promise<FinanceiroTipoLancamento[]> {
+    await delay();
+    return mockFinanceiroTiposLancamento.filter((t) => t.deletadoEm === null);
+  },
+  async descricaoExiste(descricao: string, empresaId: string, filialId: string, excludeId?: string): Promise<boolean> {
+    await delay(100);
+    const t = descricao.trim().toLowerCase();
+    return mockFinanceiroTiposLancamento.some(
+      (tl) => tl.deletadoEm === null && tl.empresaId === empresaId && tl.filialId === filialId && tl.descricao.toLowerCase() === t && tl.id !== excludeId
+    );
+  },
+  async salvar(data: Partial<FinanceiroTipoLancamento>, ctx: { grupoId: string; empresaId: string; filialId: string }): Promise<FinanceiroTipoLancamento> {
+    await delay(400);
+    const now = new Date().toISOString();
+    const existing = data.id ? mockFinanceiroTiposLancamento.find((t) => t.id === data.id && t.deletadoEm === null) : undefined;
+    if (existing) {
+      if (!existing.permiteEdicao) throw new Error("Tipo de lançamento de sistema não pode ser editado.");
+      existing.descricao = (data.descricao ?? existing.descricao).trim();
+      existing.tipoMovimento = data.tipoMovimento ?? existing.tipoMovimento;
+      existing.tipoConta = data.tipoConta ?? existing.tipoConta;
+      existing.exigeCentroCusto = data.exigeCentroCusto ?? existing.exigeCentroCusto;
+      existing.ativo = data.ativo ?? existing.ativo;
+      existing.atualizadoEm = now;
+      existing.atualizadoPor = "u1";
+      return existing;
+    }
+    const novo: FinanceiroTipoLancamento = {
+      id: `ftl${Date.now()}`,
+      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      descricao: (data.descricao ?? "").trim(),
+      tipoMovimento: data.tipoMovimento ?? "ENTRADA",
+      tipoConta: data.tipoConta ?? [],
+      origemSistema: false,
+      permiteEdicao: true,
+      permiteExclusao: true,
+      exigeCentroCusto: data.exigeCentroCusto ?? false,
+      ativo: data.ativo ?? true,
+      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      deletadoEm: null, deletadoPor: null,
+    };
+    mockFinanceiroTiposLancamento.push(novo);
+    return novo;
+  },
+  async excluir(id: string): Promise<{ sucesso: boolean; mensagem: string }> {
+    await delay();
+    const t = mockFinanceiroTiposLancamento.find((t) => t.id === id && t.deletadoEm === null);
+    if (!t) return { sucesso: false, mensagem: "Não encontrado." };
+    if (!t.permiteExclusao) return { sucesso: false, mensagem: "Tipo de lançamento de sistema não pode ser excluído." };
+    const now = new Date().toISOString();
+    t.deletadoEm = now; t.deletadoPor = "u1"; t.atualizadoEm = now; t.atualizadoPor = "u1";
+    return { sucesso: true, mensagem: "Excluído com sucesso." };
+  },
+};
+
+// ============================================================
+// Financeiro — Formas de Pagamento
+// ============================================================
+export const financeiroFormaPagtoService = createSimpleCrudService<FinanceiroFormaPagto>(mockFinanceiroFormasPagto as any, "ffp");
+
+// ============================================================
+// Financeiro — Plano de Contas
+// ============================================================
+export const financeiroPlanoContaService = createSimpleCrudService<FinanceiroPlanoConta>(mockFinanceiroPlanoContas as any, "fpc");
+
+// ============================================================
+// Financeiro — Centros de Custo
+// ============================================================
+export const financeiroCentroCustoService = createSimpleCrudService<FinanceiroCentroCusto>(mockFinanceiroCentrosCusto as any, "fcc");
+
+// ============================================================
+// Financeiro — Movimentações
+// ============================================================
+export const financeiroMovimentacaoService = {
+  async listar(empresaId: string, filialId: string): Promise<FinanceiroMovimentacao[]> {
+    await delay();
+    return mockFinanceiroMovimentacoes
+      .filter((m) => m.deletadoEm === null && m.empresaId === empresaId && m.filialId === filialId)
+      .sort((a, b) => new Date(b.dataMovimento).getTime() - new Date(a.dataMovimento).getTime());
+  },
+  async listarPorParcela(parcelaId: string): Promise<FinanceiroMovimentacao[]> {
+    await delay();
+    return mockFinanceiroMovimentacoes.filter((m) => m.deletadoEm === null && m.parcelaId === parcelaId);
+  },
+  async listarPorConta(contaId: string): Promise<FinanceiroMovimentacao[]> {
+    await delay();
+    const parcelaIds = mockFinanceiroParcelas.filter((p) => p.contaId === contaId && p.deletadoEm === null).map((p) => p.id);
+    return mockFinanceiroMovimentacoes.filter((m) => m.deletadoEm === null && m.parcelaId && parcelaIds.includes(m.parcelaId));
+  },
+  async registrar(
+    data: {
+      contaFinanceiraId: string;
+      tipoLancamentoId: string;
+      formaPagamentoId: string;
+      planoContaId?: string | null;
+      centroCustoId?: string | null;
+      dataMovimento: string;
+      valor: number;
+      numeroDocumento: string;
+      historico: string;
+      contaOrigemId?: string | null;
+      contaDestinoId?: string | null;
+      parcelaId?: string | null;
+      pessoaId?: string | null;
+    },
+    ctx: { grupoId: string; empresaId: string; filialId: string }
+  ): Promise<{ sucesso: boolean; mensagem: string; movimentacao?: FinanceiroMovimentacao }> {
+    await delay(400);
+    const now = new Date().toISOString();
+
+    // Get tipo lancamento
+    const tipoLanc = mockFinanceiroTiposLancamento.find((t) => t.id === data.tipoLancamentoId && t.deletadoEm === null);
+    if (!tipoLanc) return { sucesso: false, mensagem: "Tipo de lançamento não encontrado." };
+
+    const tipoMovimento = tipoLanc.tipoMovimento;
+
+    // Handle transfer
+    if (tipoMovimento === "TRANSFERENCIA") {
+      if (!data.contaOrigemId || !data.contaDestinoId) return { sucesso: false, mensagem: "Informe conta origem e destino." };
+      const contaOrigem = mockFinanceiroContasFinanceiras.find((c) => c.id === data.contaOrigemId && c.deletadoEm === null);
+      const contaDestino = mockFinanceiroContasFinanceiras.find((c) => c.id === data.contaDestinoId && c.deletadoEm === null);
+      if (!contaOrigem || !contaDestino) return { sucesso: false, mensagem: "Conta origem ou destino não encontrada." };
+      if (!contaOrigem.permiteSaldoNegativo && contaOrigem.saldoAtual - data.valor < 0) {
+        return { sucesso: false, mensagem: "Saldo insuficiente na conta origem." };
+      }
+      contaOrigem.saldoAtual -= data.valor;
+      contaDestino.saldoAtual += data.valor;
+    } else {
+      // ENTRADA or SAIDA
+      const contaFin = mockFinanceiroContasFinanceiras.find((c) => c.id === data.contaFinanceiraId && c.deletadoEm === null);
+      if (!contaFin) return { sucesso: false, mensagem: "Conta financeira não encontrada." };
+      if (tipoMovimento === "ENTRADA") {
+        contaFin.saldoAtual += data.valor;
+      } else {
+        if (!contaFin.permiteSaldoNegativo && contaFin.saldoAtual - data.valor < 0) {
+          return { sucesso: false, mensagem: "Saldo insuficiente. Conta não permite saldo negativo." };
+        }
+        contaFin.saldoAtual -= data.valor;
+      }
+    }
+
+    const mov: FinanceiroMovimentacao = {
+      id: `fmov${Date.now()}`,
+      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      contaFinanceiraId: data.contaFinanceiraId,
+      tipoLancamentoId: data.tipoLancamentoId,
+      tipoMovimento,
+      formaPagamentoId: data.formaPagamentoId,
+      planoContaId: data.planoContaId ?? null,
+      centroCustoId: data.centroCustoId ?? null,
+      dataMovimento: data.dataMovimento,
+      valor: data.valor,
+      numeroDocumento: data.numeroDocumento,
+      historico: data.historico,
+      contaOrigemId: data.contaOrigemId ?? null,
+      contaDestinoId: data.contaDestinoId ?? null,
+      parcelaId: data.parcelaId ?? null,
+      pessoaId: data.pessoaId ?? null,
+      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      deletadoEm: null, deletadoPor: null,
+    };
+    mockFinanceiroMovimentacoes.push(mov);
+
+    // If baixa conta pagar/receber — update parcela
+    if (data.parcelaId) {
+      const parcela = mockFinanceiroParcelas.find((p) => p.id === data.parcelaId && p.deletadoEm === null);
+      if (parcela) {
+        parcela.valorPago += data.valor;
+        parcela.saldoParcela = parcela.valorParcela - parcela.valorPago;
+        if (parcela.saldoParcela <= 0) { parcela.saldoParcela = 0; parcela.status = "PAGO"; }
+        else { parcela.status = "PARCIAL"; }
+        parcela.atualizadoEm = now; parcela.atualizadoPor = "u1";
+        await financeiroContaService.atualizarStatus(parcela.contaId);
+      }
+    }
+
+    // If adiantamento a fornecedor
+    if (tipoLanc.descricao === "ADIANTAMENTO A FORNECEDOR" && data.pessoaId) {
+      const adiant: FinanceiroAdiantamento = {
+        id: `fad${Date.now()}`,
+        grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+        pessoaId: data.pessoaId,
+        contratoId: null,
+        movimentacaoFinanceiraId: mov.id,
+        dataAdiantamento: data.dataMovimento,
+        valorAdiantamento: data.valor,
+        saldoUtilizado: 0,
+        saldoRestante: data.valor,
+        status: "ABERTO",
+        criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+        deletadoEm: null, deletadoPor: null,
+      };
+      mockFinanceiroAdiantamentos.push(adiant);
+    }
+
+    return { sucesso: true, mensagem: "Movimentação registrada com sucesso.", movimentacao: mov };
+  },
+};
+
+// ============================================================
+// Financeiro — Adiantamentos
+// ============================================================
+export const financeiroAdiantamentoService = {
+  async listar(empresaId: string, filialId: string): Promise<FinanceiroAdiantamento[]> {
+    await delay();
+    return mockFinanceiroAdiantamentos.filter((a) => a.deletadoEm === null && a.empresaId === empresaId && a.filialId === filialId);
+  },
+  async listarPorPessoa(pessoaId: string): Promise<FinanceiroAdiantamento[]> {
+    await delay();
+    return mockFinanceiroAdiantamentos.filter((a) => a.deletadoEm === null && a.pessoaId === pessoaId);
   },
 };

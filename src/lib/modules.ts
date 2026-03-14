@@ -194,6 +194,21 @@ export const modules: Module[] = [
     icon: DollarSign,
     items: [
       { title: "Contas", url: "/financeiro/contas", icon: FileText },
+      { title: "Caixa e Bancos", url: "/financeiro/movimentacoes", icon: DollarSign },
+      { title: "Adiantamentos", url: "/financeiro/adiantamentos", icon: ArrowDownCircle },
+      {
+        title: "Tabelas",
+        icon: Layers,
+        children: [
+          { title: "Bancos", url: "/financeiro/bancos", icon: Building2 },
+          { title: "Tipo de Contas", url: "/financeiro/tipo-contas", icon: Tags },
+          { title: "Contas Financeiras", url: "/financeiro/contas-financeiras", icon: DollarSign },
+          { title: "Tipos de Lançamento", url: "/financeiro/tipos-lancamento", icon: Tags },
+          { title: "Formas de Pagamento", url: "/financeiro/formas-pagamento", icon: Tags },
+          { title: "Plano de Contas", url: "/financeiro/plano-contas", icon: Layers },
+          { title: "Centros de Custo", url: "/financeiro/centros-custo", icon: Tags },
+        ],
+      },
       { title: "Fluxo de Caixa", url: "/financeiro/fluxo-caixa", icon: BarChart3 },
     ],
   },
