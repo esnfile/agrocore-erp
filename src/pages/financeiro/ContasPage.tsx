@@ -12,9 +12,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Eye, DollarSign, Search } from "lucide-react";
-import { financeiroContaService, financeiroParcelaService, financeiroBaixaService, pessoaService } from "@/lib/services";
-import type { FinanceiroConta, FinanceiroParcela, FinanceiroBaixa, TipoConta, StatusConta, FormaPagamento, Pessoa } from "@/lib/mock-data";
+import { Plus, Pencil, Trash2, Eye, Search, AlertTriangle } from "lucide-react";
+import { financeiroContaService, financeiroParcelaService, financeiroMovimentacaoService, financeiroContaFinanceiraService, financeiroFormaPagtoService, financeiroTipoLancamentoService, pessoaService } from "@/lib/services";
+import type { FinanceiroConta, FinanceiroParcela, FinanceiroMovimentacao, TipoConta, StatusConta, Pessoa } from "@/lib/mock-data";
 
 const statusColors: Record<StatusConta, string> = {
   ABERTO: "bg-warning/20 text-warning border-warning/30",
@@ -30,6 +30,17 @@ const statusParcelaColors: Record<string, string> = {
 };
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+type Frequencia = "MENSAL" | "TRIMESTRAL" | "SEMESTRAL" | "ANUAL" | "PERSONALIZADO";
+const frequenciaDias: Record<Exclude<Frequencia, "PERSONALIZADO">, number> = {
+  MENSAL: 30, TRIMESTRAL: 90, SEMESTRAL: 180, ANUAL: 365,
+};
+
+interface ParcelaEditavel {
+  numeroParcela: number;
+  dataVencimento: string;
+  valorParcela: number;
+}
 
 export default function ContasPage() {
   const { grupoAtual, empresaAtual, filialAtual } = useOrganization();
@@ -63,31 +74,44 @@ export default function ContasPage() {
   const [observacoes, setObservacoes] = useState("");
   const [origem, setOrigem] = useState<string>("MANUAL");
 
-  // Parcelas & Baixas
+  // Parcelas & Movimentações (histórico)
   const [parcelas, setParcelas] = useState<FinanceiroParcela[]>([]);
-  const [baixas, setBaixas] = useState<FinanceiroBaixa[]>([]);
+  const [movimentacoes, setMovimentacoes] = useState<FinanceiroMovimentacao[]>([]);
 
-  // Gerar parcelas modal
+  // Gerar parcelas
   const [gerarParcelasOpen, setGerarParcelasOpen] = useState(false);
   const [numParcelas, setNumParcelas] = useState("1");
-  const [intervaloDias, setIntervaloDias] = useState("30");
+  const [frequencia, setFrequencia] = useState<Frequencia>("MENSAL");
+  const [diasPersonalizado, setDiasPersonalizado] = useState("30");
+  const [dataPrimeiraParcela, setDataPrimeiraParcela] = useState(new Date().toISOString().slice(0, 10));
+  const [parcelasEditaveis, setParcelasEditaveis] = useState<ParcelaEditavel[]>([]);
+  const [parcelasGeradas, setParcelasGeradas] = useState(false);
 
-  // Registrar pagamento modal
-  const [pagamentoOpen, setPagamentoOpen] = useState(false);
-  const [pagParcelaId, setPagParcelaId] = useState("");
-  const [pagValor, setPagValor] = useState("");
-  const [pagData, setPagData] = useState(new Date().toISOString().slice(0, 10));
-  const [pagForma, setPagForma] = useState<FormaPagamento>("PIX");
-  const [pagObs, setPagObs] = useState("");
+  // Lookups for movimentações tab
+  const [contasFinanceirasMap, setContasFinanceirasMap] = useState<Record<string, string>>({});
+  const [formasPagtoMap, setFormasPagtoMap] = useState<Record<string, string>>({});
+  const [tiposLancMap, setTiposLancMap] = useState<Record<string, string>>({});
 
   const carregar = useCallback(async () => {
     setLoading(true);
-    const [c, p] = await Promise.all([
+    const [c, p, cfs, fps, tls] = await Promise.all([
       financeiroContaService.listar(empresaId, filialId),
       pessoaService.listar(empresaId, filialId),
+      financeiroContaFinanceiraService.listar(empresaId, filialId),
+      financeiroFormaPagtoService.listar(empresaId, filialId),
+      financeiroTipoLancamentoService.listar(empresaId, filialId),
     ]);
     setContas(c);
     setPessoas(p);
+    const cfMap: Record<string, string> = {};
+    cfs.forEach((cf) => { cfMap[cf.id] = cf.descricao; });
+    setContasFinanceirasMap(cfMap);
+    const fpMap: Record<string, string> = {};
+    fps.forEach((fp) => { fpMap[fp.id] = fp.descricao; });
+    setFormasPagtoMap(fpMap);
+    const tlMap: Record<string, string> = {};
+    tls.forEach((tl) => { tlMap[tl.id] = tl.descricao; });
+    setTiposLancMap(tlMap);
     setLoading(false);
   }, [empresaId, filialId]);
 
@@ -111,8 +135,8 @@ export default function ContasPage() {
     setTipo("PAGAR"); setPessoaId(""); setDescricao("");
     setDataEmissao(new Date().toISOString().slice(0, 10));
     setValorTotal(""); setDocumentoReferencia(""); setObservacoes("");
-    setOrigem("MANUAL"); setParcelas([]); setBaixas([]);
-    setEditId(null);
+    setOrigem("MANUAL"); setParcelas([]); setMovimentacoes([]);
+    setEditId(null); setParcelasEditaveis([]); setParcelasGeradas(false);
   };
 
   const openNew = () => { resetForm(); setModalMode("new"); setModalOpen(true); };
@@ -123,11 +147,12 @@ export default function ContasPage() {
     setDataEmissao(conta.dataEmissao); setValorTotal(String(conta.valorTotal));
     setDocumentoReferencia(conta.documentoReferencia); setObservacoes(conta.observacoes);
     setOrigem(conta.origem);
-    const [p, b] = await Promise.all([
+    const [p, m] = await Promise.all([
       financeiroParcelaService.listarPorConta(conta.id),
-      financeiroBaixaService.listarPorConta(conta.id),
+      financeiroMovimentacaoService.listarPorConta(conta.id),
     ]);
-    setParcelas(p); setBaixas(b);
+    setParcelas(p); setMovimentacoes(m);
+    setParcelasEditaveis([]); setParcelasGeradas(false);
     setModalMode("edit"); setModalOpen(true);
   };
 
@@ -160,40 +185,52 @@ export default function ContasPage() {
     setDeleteId(null); carregar();
   };
 
-  const handleGerarParcelas = async () => {
-    if (!editId) return;
-    setSaving(true);
-    try {
-      const novas = await financeiroParcelaService.gerarParcelas(
-        editId, parseInt(numParcelas), parseInt(intervaloDias), parseFloat(valorTotal),
-        { grupoId, empresaId, filialId }
-      );
-      setParcelas(novas);
-      toast({ title: `${novas.length} parcela(s) gerada(s)` });
-      setGerarParcelasOpen(false);
-    } finally { setSaving(false); }
+  // --- Geração de parcelas avançada ---
+  const intervaloDiasCalculado = frequencia === "PERSONALIZADO"
+    ? parseInt(diasPersonalizado) || 30
+    : frequenciaDias[frequencia];
+
+  const handlePreviewParcelas = () => {
+    const n = parseInt(numParcelas);
+    const vt = parseFloat(valorTotal);
+    if (!n || n < 1 || !vt || vt <= 0) {
+      toast({ title: "Informe quantidade e valor total válidos", variant: "destructive" }); return;
+    }
+    const valorBase = Math.round((vt / n) * 100) / 100;
+    const novas: ParcelaEditavel[] = [];
+    for (let i = 0; i < n; i++) {
+      const d = new Date(dataPrimeiraParcela);
+      d.setDate(d.getDate() + intervaloDiasCalculado * i);
+      const val = i === n - 1 ? vt - valorBase * (n - 1) : valorBase;
+      novas.push({ numeroParcela: i + 1, dataVencimento: d.toISOString().slice(0, 10), valorParcela: Math.round(val * 100) / 100 });
+    }
+    setParcelasEditaveis(novas);
+    setParcelasGeradas(true);
   };
 
-  const handleRegistrarPagamento = async () => {
-    if (!pagParcelaId || !pagValor) {
-      toast({ title: "Preencha os campos obrigatórios", variant: "destructive" }); return;
+  const somaParcelas = parcelasEditaveis.reduce((s, p) => s + p.valorParcela, 0);
+  const somaValida = Math.abs(somaParcelas - (parseFloat(valorTotal) || 0)) < 0.01;
+
+  const handleSalvarParcelas = async () => {
+    if (!editId) return;
+    if (!somaValida) {
+      toast({ title: "Soma das parcelas difere do valor total da conta", description: `Soma: ${fmt(somaParcelas)} — Valor total: ${fmt(parseFloat(valorTotal) || 0)}`, variant: "destructive" });
+      return;
     }
     setSaving(true);
     try {
-      await financeiroBaixaService.registrar({
-        parcelaId: pagParcelaId, valorPago: parseFloat(pagValor),
-        formaPagamento: pagForma, dataPagamento: pagData, observacoes: pagObs,
-      }, { grupoId, empresaId, filialId });
-      // Reload parcelas e baixas
-      const [p, b] = await Promise.all([
-        financeiroParcelaService.listarPorConta(editId!),
-        financeiroBaixaService.listarPorConta(editId!),
-      ]);
-      setParcelas(p); setBaixas(b);
-      toast({ title: "Pagamento registrado" });
-      setPagamentoOpen(false); setPagParcelaId(""); setPagValor(""); setPagObs("");
-      carregar();
+      const novas = await financeiroParcelaService.gerarParcelasCustomizadas(
+        editId, parcelasEditaveis, { grupoId, empresaId, filialId }
+      );
+      setParcelas(novas);
+      toast({ title: `${novas.length} parcela(s) salva(s)` });
+      setGerarParcelasOpen(false);
+      setParcelasEditaveis([]); setParcelasGeradas(false);
     } finally { setSaving(false); }
+  };
+
+  const updateParcelaEditavel = (idx: number, field: "dataVencimento" | "valorParcela", value: string) => {
+    setParcelasEditaveis((prev) => prev.map((p, i) => i === idx ? { ...p, [field]: field === "valorParcela" ? parseFloat(value) || 0 : value } : p));
   };
 
   const isReadonly = modalMode === "view";
@@ -375,7 +412,15 @@ export default function ContasPage() {
           <TabsContent value="parcelas" className="mt-4">
             {!isReadonly && editId && (
               <div className="flex justify-end mb-3">
-                <Button size="sm" variant="outline" onClick={() => { setNumParcelas("1"); setIntervaloDias("30"); setGerarParcelasOpen(true); }}>
+                <Button size="sm" variant="outline" onClick={() => {
+                  setNumParcelas("1");
+                  setFrequencia("MENSAL");
+                  setDiasPersonalizado("30");
+                  setDataPrimeiraParcela(new Date().toISOString().slice(0, 10));
+                  setParcelasEditaveis([]);
+                  setParcelasGeradas(false);
+                  setGerarParcelasOpen(true);
+                }}>
                   <Plus className="h-4 w-4 mr-1" />Gerar Parcelas
                 </Button>
               </div>
@@ -410,47 +455,44 @@ export default function ContasPage() {
             </div>
           </TabsContent>
 
+          {/* Aba Pagamentos — somente leitura, histórico de movimentações */}
           <TabsContent value="pagamentos" className="mt-4">
-            {!isReadonly && editId && parcelas.some((p) => p.status !== "PAGO") && (
-              <div className="flex justify-end mb-3">
-                <Button size="sm" variant="outline" onClick={() => {
-                  const pendente = parcelas.find((p) => p.status !== "PAGO");
-                  setPagParcelaId(pendente?.id ?? "");
-                  setPagValor(pendente ? String(pendente.saldoParcela) : "");
-                  setPagData(new Date().toISOString().slice(0, 10));
-                  setPagForma("PIX"); setPagObs("");
-                  setPagamentoOpen(true);
-                }}>
-                  <DollarSign className="h-4 w-4 mr-1" />Registrar Pagamento
-                </Button>
-              </div>
-            )}
+            <p className="text-sm text-muted-foreground mb-3">
+              Histórico de movimentações financeiras vinculadas a esta conta. Para registrar pagamentos, utilize <strong>Caixa e Bancos</strong>.
+            </p>
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Data</TableHead>
-                    <TableHead>Parcela</TableHead>
-                    <TableHead className="text-right">Valor Pago</TableHead>
-                    <TableHead>Forma</TableHead>
-                    <TableHead>Observações</TableHead>
+                    <TableHead>Conta Financeira</TableHead>
+                    <TableHead>Forma de Pagamento</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                    <TableHead>Nº Documento</TableHead>
+                    <TableHead>Tipo Movimento</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {baixas.length === 0 ? (
-                    <TableRow><TableCell colSpan={5} className="text-center py-6 text-muted-foreground">Nenhum pagamento registrado</TableCell></TableRow>
-                  ) : baixas.map((b) => {
-                    const par = parcelas.find((p) => p.id === b.parcelaId);
-                    return (
-                      <TableRow key={b.id}>
-                        <TableCell>{new Date(b.dataPagamento).toLocaleDateString("pt-BR")}</TableCell>
-                        <TableCell>{par ? `${par.numeroParcela}ª` : "—"}</TableCell>
-                        <TableCell className="text-right font-mono">{fmt(b.valorPago)}</TableCell>
-                        <TableCell>{b.formaPagamento}</TableCell>
-                        <TableCell className="text-muted-foreground">{b.observacoes || "—"}</TableCell>
-                      </TableRow>
-                    );
-                  })}
+                  {movimentacoes.length === 0 ? (
+                    <TableRow><TableCell colSpan={6} className="text-center py-6 text-muted-foreground">Nenhum pagamento registrado</TableCell></TableRow>
+                  ) : movimentacoes.map((m) => (
+                    <TableRow key={m.id}>
+                      <TableCell>{new Date(m.dataMovimento).toLocaleDateString("pt-BR")}</TableCell>
+                      <TableCell>{contasFinanceirasMap[m.contaFinanceiraId] ?? "—"}</TableCell>
+                      <TableCell>{formasPagtoMap[m.formaPagamentoId] ?? "—"}</TableCell>
+                      <TableCell className="text-right font-mono">{fmt(m.valor)}</TableCell>
+                      <TableCell>{m.numeroDocumento || "—"}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={
+                          m.tipoMovimento === "ENTRADA" ? "border-success/50 text-success" :
+                          m.tipoMovimento === "SAIDA" ? "border-destructive/50 text-destructive" :
+                          "border-blue-400/50 text-blue-600"
+                        }>
+                          {m.tipoMovimento}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </div>
@@ -458,72 +500,98 @@ export default function ContasPage() {
         </Tabs>
       </CrudModal>
 
-      {/* Modal Gerar Parcelas */}
-      <CrudModal open={gerarParcelasOpen} onClose={() => setGerarParcelasOpen(false)} title="Gerar Parcelas" saving={saving} onSave={handleGerarParcelas} maxWidth="sm:max-w-md">
+      {/* Modal Gerar Parcelas — Avançado */}
+      <CrudModal
+        open={gerarParcelasOpen}
+        onClose={() => setGerarParcelasOpen(false)}
+        title="Gerar Parcelas"
+        saving={saving}
+        onSave={parcelasGeradas ? handleSalvarParcelas : undefined}
+        maxWidth="sm:max-w-2xl"
+      >
         <div className="space-y-4">
-          <div>
-            <Label>Número de Parcelas</Label>
-            <Input type="number" min="1" value={numParcelas} onChange={(e) => setNumParcelas(e.target.value)} />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Quantidade de Parcelas</Label>
+              <Input type="number" min="1" value={numParcelas} onChange={(e) => { setNumParcelas(e.target.value); setParcelasGeradas(false); }} />
+            </div>
+            <div>
+              <Label>Data da Primeira Parcela</Label>
+              <Input type="date" value={dataPrimeiraParcela} onChange={(e) => { setDataPrimeiraParcela(e.target.value); setParcelasGeradas(false); }} />
+            </div>
           </div>
-          <div>
-            <Label>Intervalo (dias)</Label>
-            <Input type="number" min="1" value={intervaloDias} onChange={(e) => setIntervaloDias(e.target.value)} />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Frequência</Label>
+              <Select value={frequencia} onValueChange={(v) => { setFrequencia(v as Frequencia); setParcelasGeradas(false); }}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="MENSAL">Mensal (30 dias)</SelectItem>
+                  <SelectItem value="TRIMESTRAL">Trimestral (90 dias)</SelectItem>
+                  <SelectItem value="SEMESTRAL">Semestral (180 dias)</SelectItem>
+                  <SelectItem value="ANUAL">Anual (365 dias)</SelectItem>
+                  <SelectItem value="PERSONALIZADO">Personalizado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {frequencia === "PERSONALIZADO" && (
+              <div>
+                <Label>Intervalo (dias)</Label>
+                <Input type="number" min="1" value={diasPersonalizado} onChange={(e) => { setDiasPersonalizado(e.target.value); setParcelasGeradas(false); }} />
+              </div>
+            )}
           </div>
           <div>
             <Label>Valor Total</Label>
             <Input value={fmt(parseFloat(valorTotal) || 0)} disabled />
           </div>
-          {parseInt(numParcelas) > 0 && parseFloat(valorTotal) > 0 && (
-            <p className="text-sm text-muted-foreground">
-              {numParcelas} parcela(s) de {fmt(parseFloat(valorTotal) / parseInt(numParcelas))}
-            </p>
-          )}
-        </div>
-      </CrudModal>
 
-      {/* Modal Registrar Pagamento */}
-      <CrudModal open={pagamentoOpen} onClose={() => setPagamentoOpen(false)} title="Registrar Pagamento" saving={saving} onSave={handleRegistrarPagamento} maxWidth="sm:max-w-md">
-        <div className="space-y-4">
-          <div>
-            <Label>Parcela</Label>
-            <Select value={pagParcelaId} onValueChange={(v) => {
-              setPagParcelaId(v);
-              const p = parcelas.find((p) => p.id === v);
-              if (p) setPagValor(String(p.saldoParcela));
-            }}>
-              <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-              <SelectContent>
-                {parcelas.filter((p) => p.status !== "PAGO").map((p) => (
-                  <SelectItem key={p.id} value={p.id}>{p.numeroParcela}ª — Saldo: {fmt(p.saldoParcela)}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label>Data Pagamento</Label>
-            <Input type="date" value={pagData} onChange={(e) => setPagData(e.target.value)} />
-          </div>
-          <div>
-            <Label>Valor Pago *</Label>
-            <Input type="number" step="0.01" value={pagValor} onChange={(e) => setPagValor(e.target.value)} />
-          </div>
-          <div>
-            <Label>Forma de Pagamento</Label>
-            <Select value={pagForma} onValueChange={(v) => setPagForma(v as FormaPagamento)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="DINHEIRO">Dinheiro</SelectItem>
-                <SelectItem value="PIX">Pix</SelectItem>
-                <SelectItem value="TRANSFERENCIA">Transferência</SelectItem>
-                <SelectItem value="BOLETO">Boleto</SelectItem>
-                <SelectItem value="OUTROS">Outros</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label>Observações</Label>
-            <Textarea value={pagObs} onChange={(e) => setPagObs(e.target.value)} rows={2} />
-          </div>
+          <Button variant="outline" className="w-full" onClick={handlePreviewParcelas}>
+            Gerar Pré-visualização
+          </Button>
+
+          {parcelasGeradas && parcelasEditaveis.length > 0 && (
+            <>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-20">Parcela</TableHead>
+                      <TableHead>Data Vencimento</TableHead>
+                      <TableHead className="text-right">Valor</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {parcelasEditaveis.map((p, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell className="font-mono">{p.numeroParcela}</TableCell>
+                        <TableCell>
+                          <Input type="date" value={p.dataVencimento} onChange={(e) => updateParcelaEditavel(idx, "dataVencimento", e.target.value)} className="w-40" />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Input type="number" step="0.01" value={p.valorParcela} onChange={(e) => updateParcelaEditavel(idx, "valorParcela", e.target.value)} className="w-32 text-right ml-auto" />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <div className={`flex items-center justify-between p-3 rounded-md border ${somaValida ? "border-success/50 bg-success/10" : "border-destructive/50 bg-destructive/10"}`}>
+                <div className="flex items-center gap-2">
+                  {!somaValida && <AlertTriangle className="h-4 w-4 text-destructive" />}
+                  <span className="text-sm font-medium">
+                    Soma das parcelas: {fmt(somaParcelas)}
+                  </span>
+                </div>
+                <span className="text-sm text-muted-foreground">
+                  Valor total: {fmt(parseFloat(valorTotal) || 0)}
+                </span>
+              </div>
+              {!somaValida && (
+                <p className="text-sm text-destructive">A soma das parcelas deve ser igual ao valor total da conta para salvar.</p>
+              )}
+            </>
+          )}
         </div>
       </CrudModal>
 
