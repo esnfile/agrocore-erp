@@ -2064,6 +2064,33 @@ export const financeiroParcelaService = {
     mockFinanceiroParcelas.push(...novas);
     return novas;
   },
+  async gerarParcelasCustomizadas(
+    contaId: string,
+    parcelasInput: { numeroParcela: number; dataVencimento: string; valorParcela: number }[],
+    ctx: { grupoId: string; empresaId: string; filialId: string }
+  ): Promise<FinanceiroParcela[]> {
+    await delay(300);
+    const now = new Date().toISOString();
+    // Remove parcelas antigas pendentes
+    mockFinanceiroParcelas
+      .filter((p) => p.contaId === contaId && p.deletadoEm === null && p.status === "PENDENTE")
+      .forEach((p) => { p.deletadoEm = now; p.deletadoPor = "u1"; });
+    const novas: FinanceiroParcela[] = [];
+    for (const input of parcelasInput) {
+      const parcela: FinanceiroParcela = {
+        id: `fp${Date.now()}${input.numeroParcela}`,
+        grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+        contaId, numeroParcela: input.numeroParcela,
+        dataVencimento: input.dataVencimento,
+        valorParcela: input.valorParcela, valorPago: 0, saldoParcela: input.valorParcela, status: "PENDENTE",
+        criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+        deletadoEm: null, deletadoPor: null,
+      };
+      novas.push(parcela);
+    }
+    mockFinanceiroParcelas.push(...novas);
+    return novas;
+  },
   async excluirPorConta(contaId: string): Promise<void> {
     await delay();
     const now = new Date().toISOString();
