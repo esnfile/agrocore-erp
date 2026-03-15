@@ -39,6 +39,9 @@ import PlanoContasPage from "@/pages/financeiro/PlanoContasPage";
 import CentrosCustoPage from "@/pages/financeiro/CentrosCustoPage";
 import MovimentacoesPage from "@/pages/financeiro/MovimentacoesPage";
 import AdiantamentosPage from "@/pages/financeiro/AdiantamentosPage";
+import RomaneiosPage from "@/pages/romaneios/RomaneiosPage";
+import MotoristasPage from "@/pages/romaneios/MotoristasPage";
+import VeiculosPage from "@/pages/romaneios/VeiculosPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
