@@ -279,14 +279,17 @@ export default function ContratosPage() {
   };
 
   const loadSubEntities = async (contratoId: string) => {
-    const [e, f, conds] = await Promise.all([
+    const [e, f, conds, liqs] = await Promise.all([
       contratoEntregaService.listarPorContrato(contratoId),
       contratoFixacaoService.listarPorContrato(contratoId),
       contratoCondicaoService.listarPorContrato(contratoId),
+      contratoLiquidacaoService.listarPorContrato(contratoId),
     ]);
     setEntregas(e);
     setFixacoes(f);
     setCondicoes(conds);
+    const activeLiq = liqs.find((l) => l.status === "PREVIA" || l.status === "CONFIRMADA");
+    setLiquidacao(activeLiq || null);
   };
 
   const onSaveContrato = contratoForm.handleSubmit(async (data) => {
