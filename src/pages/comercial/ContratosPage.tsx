@@ -96,6 +96,7 @@ function StatusBadge({ status }: { status: string }) {
     PARCIAL: { label: "Parcial", variant: "secondary" },
     FINALIZADO: { label: "Finalizado", variant: "outline" },
     CANCELADO: { label: "Cancelado", variant: "destructive" },
+    LIQUIDADO: { label: "Liquidado", variant: "outline" },
   };
   const s = map[status] ?? { label: status, variant: "outline" as const };
   return <Badge variant={s.variant}>{s.label}</Badge>;
