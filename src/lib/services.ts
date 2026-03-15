@@ -25,6 +25,7 @@ import {
   pontosEstoque as mockPontosEstoque,
   estoques as mockEstoques,
   movimentacoesEstoque as mockMovimentacoesEstoque,
+  estoquesTransito as mockEstoquesTransito,
   moedas as mockMoedas,
   cotacoesMoeda as mockCotacoesMoeda,
   pontoEstoqueTiposProduto as mockPontoEstoqueTiposProduto,
