@@ -1108,6 +1108,7 @@ export const movimentacaoEstoqueService = {
       quantidadeConvertidaBase,
       dataMovimentacao: data.dataMovimentacao,
       observacao: data.observacao,
+      contratoId: null, romaneioId: null,
       criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
       deletadoEm: null, deletadoPor: null,
     };
