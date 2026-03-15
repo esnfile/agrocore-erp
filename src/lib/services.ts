@@ -2573,6 +2573,7 @@ export const romaneioService = {
       motoristaDocumento: data.motoristaDocumento || "",
       veiculoId: data.veiculoId || null,
       placaVeiculo: data.placaVeiculo || "",
+      pontoEstoqueId: data.pontoEstoqueId || null,
       status,
       pesoBruto: 0, pesoTara: 0, pesoLiquido: 0,
       observacao: data.observacao || "",
@@ -2582,6 +2583,188 @@ export const romaneioService = {
     mockRomaneios.push(novo);
     return novo;
   },
+  async excluir(id: string): Promise<void> {
+    await delay();
+    const r = mockRomaneios.find((x) => x.id === id);
+    if (r) { r.deletadoEm = new Date().toISOString(); r.deletadoPor = "u1"; }
+  },
+  async cancelar(id: string): Promise<void> {
+    await delay();
+    const r = mockRomaneios.find((x) => x.id === id && x.deletadoEm === null);
+    if (r) { r.status = "CANCELADO"; r.atualizadoEm = new Date().toISOString(); r.atualizadoPor = "u1"; }
+  },
+  async finalizar(id: string): Promise<{ sucesso: boolean; mensagem: string }> {
+    await delay();
+    const r = mockRomaneios.find((x) => x.id === id && x.deletadoEm === null);
+    if (!r) return { sucesso: false, mensagem: "Romaneio não encontrado." };
+    const now = new Date().toISOString();
+
+    if (r.pesoLiquido <= 0) return { sucesso: false, mensagem: "Peso líquido deve ser maior que zero." };
+    if (!r.contratoId) return { sucesso: false, mensagem: "Romaneio sem contrato não pode ser finalizado. Vincule a um contrato primeiro." };
+    if (!r.pontoEstoqueId) return { sucesso: false, mensagem: "Selecione um ponto de estoque antes de finalizar." };
+
+    const contrato = mockContratos.find((c) => c.id === r.contratoId && c.deletadoEm === null);
+    if (!contrato) return { sucesso: false, mensagem: "Contrato não encontrado." };
+
+    const ctx = { grupoId: r.grupoId, empresaId: r.empresaId, filialId: r.filialId };
+    const tipoMov: "ENTRADA" | "SAIDA" = contrato.tipoContrato === "COMPRA" ? "ENTRADA" : "SAIDA";
+
+    // 1. Update estoque em trânsito
+    estoqueTransitoService.registrarMovimento(contrato.id, r.pesoLiquido);
+
+    // 2. Create stock movement
+    const produto = mockProdutos.find((p) => p.id === r.produtoId);
+    const unidadeBaseId = produto?.unidadeBaseId || "um1";
+    const mov: MovimentacaoEstoque = {
+      id: `mov${Date.now()}`,
+      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      produtoId: r.produtoId, pontoEstoqueId: r.pontoEstoqueId,
+      tipoMovimento: tipoMov,
+      quantidadeInformada: r.pesoLiquido,
+      unidadeMovimentacaoId: unidadeBaseId,
+      quantidadeConvertidaBase: r.pesoLiquido,
+      dataMovimentacao: now,
+      observacao: `Romaneio ${r.id.substring(0, 8)} — Contrato ${contrato.numeroContrato}`,
+      contratoId: contrato.id, romaneioId: r.id,
+      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      deletadoEm: null, deletadoPor: null,
+    };
+    mockMovimentacoesEstoque.push(mov);
+
+    // 3. Update estoque saldo
+    const saldoAtual = estoqueService.obterSaldo(r.produtoId, r.pontoEstoqueId);
+    const qtdAtual = saldoAtual?.quantidadeAtual ?? 0;
+    const novaQtd = tipoMov === "ENTRADA" ? qtdAtual + r.pesoLiquido : qtdAtual - r.pesoLiquido;
+    estoqueService.atualizarSaldo(r.produtoId, r.pontoEstoqueId, novaQtd, ctx);
+
+    // 4. Update contract saldo
+    contrato.quantidadeEntregue += r.pesoLiquido;
+    contrato.quantidadeSaldo = contrato.quantidadeTotal - contrato.quantidadeEntregue;
+    if (contrato.quantidadeSaldo <= 0) contrato.status = "FINALIZADO";
+    else if (contrato.quantidadeEntregue > 0) contrato.status = "PARCIAL";
+    contrato.atualizadoEm = now; contrato.atualizadoPor = "u1";
+
+    // 5. Finalize romaneio
+    r.status = "FINALIZADO";
+    r.atualizadoEm = now; r.atualizadoPor = "u1";
+
+    return { sucesso: true, mensagem: "Romaneio finalizado. Estoque atualizado." };
+  },
+  async vincularContrato(romaneioId: string, contratoId: string): Promise<{ sucesso: boolean; mensagem: string }> {
+    await delay();
+    const r = mockRomaneios.find((x) => x.id === romaneioId && x.deletadoEm === null);
+    if (!r) return { sucesso: false, mensagem: "Romaneio não encontrado." };
+    if (r.status !== "AGUARDANDO_CONTRATO") return { sucesso: false, mensagem: "Apenas romaneios aguardando contrato podem ser vinculados." };
+    const contrato = mockContratos.find((c) => c.id === contratoId && c.deletadoEm === null);
+    if (!contrato) return { sucesso: false, mensagem: "Contrato não encontrado." };
+
+    const now = new Date().toISOString();
+    r.contratoId = contratoId;
+    r.status = "ABERTO";
+    r.atualizadoEm = now; r.atualizadoPor = "u1";
+    return { sucesso: true, mensagem: "Contrato vinculado ao romaneio." };
+  },
+  recalcularPesos(romaneioId: string) {
+    const pesagens = mockRomaneioPesagens.filter((p) => p.romaneioId === romaneioId);
+    if (pesagens.length === 0) return;
+    const pesos = pesagens.map((p) => p.peso);
+    const bruto = Math.max(...pesos);
+    const tara = Math.min(...pesos);
+    const liquido = bruto - tara;
+    const rom = mockRomaneios.find((r) => r.id === romaneioId);
+    if (rom) {
+      rom.pesoBruto = bruto;
+      rom.pesoTara = tara;
+      rom.pesoLiquido = liquido;
+      rom.atualizadoEm = new Date().toISOString();
+      rom.atualizadoPor = "u1";
+    }
+  },
+};
+
+// ============================================================
+// Romaneio Pesagens
+// ============================================================
+export const romaneioPesagemService = {
+  async listarPorRomaneio(romaneioId: string): Promise<RomaneioPesagem[]> {
+    await delay();
+    return mockRomaneioPesagens.filter((p) => p.romaneioId === romaneioId);
+  },
+  async salvar(data: { romaneioId: string; tipoPesagem: TipoPesagem; peso: number }, ctx: { grupoId: string; empresaId: string; filialId: string }): Promise<RomaneioPesagem> {
+    await delay();
+    const now = new Date().toISOString();
+    const novo: RomaneioPesagem = {
+      id: `rpes${Date.now()}`, grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      romaneioId: data.romaneioId,
+      tipoPesagem: data.tipoPesagem,
+      peso: data.peso,
+      dataHora: now,
+      criadoEm: now, criadoPor: "u1",
+    };
+    mockRomaneioPesagens.push(novo);
+    romaneioService.recalcularPesos(data.romaneioId);
+    return novo;
+  },
+  async excluir(id: string): Promise<void> {
+    await delay();
+    const idx = mockRomaneioPesagens.findIndex((p) => p.id === id);
+    if (idx >= 0) {
+      const romaneioId = mockRomaneioPesagens[idx].romaneioId;
+      mockRomaneioPesagens.splice(idx, 1);
+      romaneioService.recalcularPesos(romaneioId);
+    }
+  },
+};
+
+// ============================================================
+// Estoque em Trânsito
+// ============================================================
+export const estoqueTransitoService = {
+  async listar(empresaId: string, filialId: string): Promise<EstoqueTransito[]> {
+    await delay();
+    return mockEstoquesTransito.filter((t) => t.deletadoEm === null && t.empresaId === empresaId && t.filialId === filialId);
+  },
+  async listarPorContrato(contratoId: string): Promise<EstoqueTransito | undefined> {
+    await delay();
+    return mockEstoquesTransito.find((t) => t.contratoId === contratoId && t.deletadoEm === null);
+  },
+  criarParaContrato(contrato: Contrato, ctx: { grupoId: string; empresaId: string; filialId: string }) {
+    const now = new Date().toISOString();
+    const tipoMov: "ENTRADA" | "SAIDA" = contrato.tipoContrato === "COMPRA" ? "ENTRADA" : "SAIDA";
+    const novo: EstoqueTransito = {
+      id: `etrans${Date.now()}`,
+      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      contratoId: contrato.id,
+      produtoId: contrato.produtoId,
+      tipoMovimento: tipoMov,
+      quantidadeContratada: contrato.quantidadeTotal,
+      quantidadeMovimentada: 0,
+      quantidadeSaldo: contrato.quantidadeTotal,
+      status: "ATIVO",
+      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      deletadoEm: null, deletadoPor: null,
+    };
+    mockEstoquesTransito.push(novo);
+    return novo;
+  },
+  registrarMovimento(contratoId: string, quantidade: number) {
+    const transito = mockEstoquesTransito.find((t) => t.contratoId === contratoId && t.deletadoEm === null && t.status === "ATIVO");
+    if (!transito) return;
+    const now = new Date().toISOString();
+    transito.quantidadeMovimentada += quantidade;
+    transito.quantidadeSaldo = transito.quantidadeContratada - transito.quantidadeMovimentada;
+    if (transito.quantidadeSaldo <= 0) {
+      transito.quantidadeSaldo = 0;
+      transito.status = "FINALIZADO";
+    }
+    transito.atualizadoEm = now; transito.atualizadoPor = "u1";
+  },
+  obterSaldoTransitoProduto(produtoId: string, empresaId: string, filialId: string): number {
+    return mockEstoquesTransito
+      .filter((t) => t.deletadoEm === null && t.status === "ATIVO" && t.produtoId === produtoId && t.empresaId === empresaId && t.filialId === filialId)
+      .reduce((sum, t) => sum + t.quantidadeSaldo, 0);
+  },
+};
   async excluir(id: string): Promise<void> {
     await delay();
     const r = mockRomaneios.find((x) => x.id === id);
