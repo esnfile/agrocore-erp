@@ -192,6 +192,21 @@ export const modules: Module[] = [
     ],
   },
   {
+    title: "Romaneios",
+    icon: ClipboardList,
+    items: [
+      { title: "Romaneios", url: "/romaneios", icon: Scale },
+      {
+        title: "Cadastros",
+        icon: Layers,
+        children: [
+          { title: "Motoristas", url: "/romaneios/motoristas", icon: Contact },
+          { title: "Veículos", url: "/romaneios/veiculos", icon: Truck },
+        ],
+      },
+    ],
+  },
+  {
     title: "Financeiro",
     icon: DollarSign,
     items: [

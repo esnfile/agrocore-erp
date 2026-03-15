@@ -89,6 +89,10 @@ const App = () => (
               <Route path="/financeiro/centros-custo" element={<CentrosCustoPage />} />
               <Route path="/financeiro/movimentacoes" element={<MovimentacoesPage />} />
               <Route path="/financeiro/adiantamentos" element={<AdiantamentosPage />} />
+              {/* Romaneios */}
+              <Route path="/romaneios" element={<RomaneiosPage />} />
+              <Route path="/romaneios/motoristas" element={<MotoristasPage />} />
+              <Route path="/romaneios/veiculos" element={<VeiculosPage />} />
               {/* Produtos e Estoque — Tabelas */}
               <Route path="/produtos-estoque/tipo-produto" element={<TipoProdutoPage />} />
               <Route path="/produtos-estoque/marca-produto" element={<MarcaProdutoPage />} />
