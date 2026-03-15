@@ -33,11 +33,9 @@ import {
   romaneioService, romaneioPesagemService,
   motoristaService, veiculoService, contratoService,
 } from "@/lib/services";
-import {
-  produtos as mockProdutos,
-} from "@/lib/mock-data";
+import { produtos as mockProdutos } from "@/lib/mock-data";
 import type { Romaneio, RomaneioPesagem, Motorista, Veiculo, Contrato, TipoPesagem } from "@/lib/mock-data";
-import { Plus, Eye, Scale, XCircle, CheckCircle, Search } from "lucide-react";
+import { Plus, Eye, Scale, XCircle, CheckCircle } from "lucide-react";
 
 const romaneioSchema = z.object({
   produtoId: z.string().min(1, "Produto é obrigatório"),
@@ -55,7 +53,6 @@ const statusColors: Record<string, "default" | "secondary" | "destructive" | "ou
   AGUARDANDO_CONTRATO: "secondary",
   CANCELADO: "destructive",
 };
-
 const statusLabels: Record<string, string> = {
   ABERTO: "Aberto",
   FINALIZADO: "Finalizado",
@@ -68,25 +65,22 @@ export default function RomaneiosPage() {
   const [romaneios, setRomaneios] = useState<Romaneio[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  // Detail view
   const [selected, setSelected] = useState<Romaneio | null>(null);
   const [pesagens, setPesagens] = useState<RomaneioPesagem[]>([]);
   const [detailOpen, setDetailOpen] = useState(false);
 
-  // Pesagem dialog
   const [pesagemOpen, setPesagemOpen] = useState(false);
   const [pesagemTipo, setPesagemTipo] = useState<TipoPesagem>("ENTRADA");
   const [pesagemPeso, setPesagemPeso] = useState("");
 
-  // Quick search
   const [motoristaSuggestions, setMotoristaSuggestions] = useState<Motorista[]>([]);
   const [veiculoSuggestions, setVeiculoSuggestions] = useState<Veiculo[]>([]);
   const [showMotSugg, setShowMotSugg] = useState(false);
   const [showVeicSugg, setShowVeicSugg] = useState(false);
 
-  // Quick register dialogs
   const [quickMotOpen, setQuickMotOpen] = useState(false);
   const [quickMotNome, setQuickMotNome] = useState("");
   const [quickMotDoc, setQuickMotDoc] = useState("");
@@ -127,7 +121,6 @@ export default function RomaneiosPage() {
     setModalOpen(true);
   };
 
-  // Motorista search
   const searchMotorista = async (termo: string) => {
     form.setValue("motoristaNome", termo);
     if (!ctx || termo.length < 2) { setShowMotSugg(false); return; }
@@ -135,14 +128,8 @@ export default function RomaneiosPage() {
     setMotoristaSuggestions(results);
     setShowMotSugg(results.length > 0);
   };
+  const selectMotorista = (m: Motorista) => { form.setValue("motoristaNome", m.nome); form.setValue("motoristaDocumento", m.documento); setShowMotSugg(false); };
 
-  const selectMotorista = (m: Motorista) => {
-    form.setValue("motoristaNome", m.nome);
-    form.setValue("motoristaDocumento", m.documento);
-    setShowMotSugg(false);
-  };
-
-  // Veículo search
   const searchVeiculo = async (termo: string) => {
     form.setValue("placaVeiculo", termo.toUpperCase());
     if (!ctx || termo.length < 2) { setShowVeicSugg(false); return; }
@@ -150,37 +137,30 @@ export default function RomaneiosPage() {
     setVeiculoSuggestions(results);
     setShowVeicSugg(results.length > 0);
   };
+  const selectVeiculo = (v: Veiculo) => { form.setValue("placaVeiculo", v.placa); setShowVeicSugg(false); };
 
-  const selectVeiculo = (v: Veiculo) => {
-    form.setValue("placaVeiculo", v.placa);
-    setShowVeicSugg(false);
-  };
-
-  // Quick register motorista
   const quickRegisterMotorista = async () => {
     if (!ctx || !quickMotNome) return;
     const m = await motoristaService.salvar({ nome: quickMotNome, documento: quickMotDoc }, ctx);
     form.setValue("motoristaNome", m.nome);
     form.setValue("motoristaDocumento", m.documento);
-    setQuickMotOpen(false);
-    setQuickMotNome("");
-    setQuickMotDoc("");
+    setQuickMotOpen(false); setQuickMotNome(""); setQuickMotDoc("");
     toast({ title: "Motorista cadastrado rapidamente" });
   };
 
-  // Quick register veículo
   const quickRegisterVeiculo = async () => {
     if (!ctx || !quickVeicPlaca) return;
     const v = await veiculoService.salvar({ placa: quickVeicPlaca.toUpperCase(), tipoVeiculo: quickVeicTipo }, ctx);
     form.setValue("placaVeiculo", v.placa);
-    setQuickVeicOpen(false);
-    setQuickVeicPlaca("");
-    setQuickVeicTipo("");
+    setQuickVeicOpen(false); setQuickVeicPlaca(""); setQuickVeicTipo("");
     toast({ title: "Veículo cadastrado rapidamente" });
   };
 
-  const onSubmit = async (data: RomaneioFormData) => {
-    if (!ctx) return;
+  const onSubmit = async () => {
+    const valid = await form.trigger();
+    if (!valid || !ctx) return;
+    const data = form.getValues();
+    setSaving(true);
     await romaneioService.salvar({
       produtoId: data.produtoId,
       contratoId: data.contratoId || null,
@@ -190,6 +170,7 @@ export default function RomaneiosPage() {
       observacao: data.observacao,
     }, ctx);
     toast({ title: "Romaneio criado com sucesso" });
+    setSaving(false);
     setModalOpen(false);
     load();
   };
@@ -216,8 +197,7 @@ export default function RomaneiosPage() {
     if (isNaN(peso) || peso <= 0) { toast({ title: "Peso inválido", variant: "destructive" }); return; }
     await romaneioPesagemService.salvar({ romaneioId: selected.id, tipoPesagem: pesagemTipo, peso }, ctx);
     toast({ title: `Pesagem de ${pesagemTipo === "ENTRADA" ? "entrada" : "saída"} registrada` });
-    setPesagemOpen(false);
-    setPesagemPeso("");
+    setPesagemOpen(false); setPesagemPeso("");
     refreshDetail();
   };
 
@@ -252,41 +232,31 @@ export default function RomaneiosPage() {
   };
 
   const columns: Column<Romaneio>[] = [
-    { header: "ID", accessor: "id", render: (v) => v.substring(0, 8) },
-    { header: "Produto", accessor: "produtoId", render: (v) => getProdutoNome(v) },
-    { header: "Contrato", accessor: "contratoId", render: (v) => getContratoNum(v) },
-    { header: "Motorista", accessor: "motoristaNome" },
-    { header: "Placa", accessor: "placaVeiculo" },
-    { header: "Peso Líq. (ton)", accessor: "pesoLiquido", render: (v) => v > 0 ? v.toFixed(3) : "—" },
-    {
-      header: "Status", accessor: "status",
-      render: (v) => <Badge variant={statusColors[v] || "default"}>{statusLabels[v] || v}</Badge>,
-    },
-    {
-      header: "Data", accessor: "criadoEm",
-      render: (v) => format(new Date(v), "dd/MM/yyyy HH:mm"),
-    },
+    { key: "id", header: "ID", render: (row) => row.id.substring(0, 8) },
+    { key: "produtoId", header: "Produto", render: (row) => getProdutoNome(row.produtoId) },
+    { key: "contratoId", header: "Contrato", render: (row) => getContratoNum(row.contratoId) },
+    { key: "motoristaNome", header: "Motorista", render: (row) => row.motoristaNome },
+    { key: "placaVeiculo", header: "Placa", render: (row) => row.placaVeiculo },
+    { key: "pesoLiquido", header: "Peso Líq. (ton)", render: (row) => row.pesoLiquido > 0 ? row.pesoLiquido.toFixed(3) : "—" },
+    { key: "status", header: "Status", render: (row) => <Badge variant={statusColors[row.status] || "default"}>{statusLabels[row.status] || row.status}</Badge> },
+    { key: "criadoEm", header: "Data", render: (row) => format(new Date(row.criadoEm), "dd/MM/yyyy HH:mm") },
   ];
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Romaneios" description="Gestão de romaneios e pesagens" onNew={openNew} />
+      <PageHeader title="Romaneios" description="Gestão de romaneios e pesagens" />
 
       <DataTable
         columns={columns}
         data={romaneios}
         loading={loading}
+        onNew={openNew}
         onEdit={(item) => openDetail(item)}
-        onDelete={(item) => item.status !== "FINALIZADO" && setDeleteId(item.id)}
-        actions={(item) => (
-          <Button variant="ghost" size="icon" onClick={() => openDetail(item)} title="Detalhes">
-            <Eye className="h-4 w-4" />
-          </Button>
-        )}
+        onDelete={(item) => item.status !== "FINALIZADO" ? setDeleteId(item.id) : undefined}
       />
 
       {/* New Romaneio Modal */}
-      <CrudModal open={modalOpen} onOpenChange={setModalOpen} title="Novo Romaneio" onSubmit={form.handleSubmit(onSubmit)}>
+      <CrudModal open={modalOpen} onClose={() => setModalOpen(false)} title="Novo Romaneio" saving={saving} onSave={onSubmit}>
         <div className="space-y-4">
           <div>
             <Label>Produto *</Label>
@@ -305,7 +275,7 @@ export default function RomaneiosPage() {
               <SelectTrigger><SelectValue placeholder="Sem contrato (avulso)" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">Sem contrato (avulso)</SelectItem>
-                {contratos.filter((c) => c.status === "ATIVO" || c.status === "PARCIALMENTE_ENTREGUE").map((c) => (
+                {contratos.filter((c) => c.status === "ABERTO" || c.status === "PARCIAL").map((c) => (
                   <SelectItem key={c.id} value={c.id}>{c.numeroContrato} — {c.tipoContrato}</SelectItem>
                 ))}
               </SelectContent>
@@ -327,7 +297,7 @@ export default function RomaneiosPage() {
                   {showMotSugg && (
                     <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-md max-h-40 overflow-y-auto">
                       {motoristaSuggestions.map((m) => (
-                        <button key={m.id} className="w-full text-left px-3 py-2 text-sm hover:bg-accent" onClick={() => selectMotorista(m)}>
+                        <button key={m.id} type="button" className="w-full text-left px-3 py-2 text-sm hover:bg-accent" onClick={() => selectMotorista(m)}>
                           {m.nome} {m.documento && `— ${m.documento}`}
                         </button>
                       ))}
@@ -342,10 +312,7 @@ export default function RomaneiosPage() {
             {form.formState.errors.motoristaNome && <p className="text-sm text-destructive mt-1">{form.formState.errors.motoristaNome.message}</p>}
           </div>
 
-          <div>
-            <Label>Documento do Motorista</Label>
-            <Input {...form.register("motoristaDocumento")} />
-          </div>
+          <div><Label>Documento do Motorista</Label><Input {...form.register("motoristaDocumento")} /></div>
 
           {/* Veículo with search */}
           <div className="relative">
@@ -362,7 +329,7 @@ export default function RomaneiosPage() {
                   {showVeicSugg && (
                     <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-md max-h-40 overflow-y-auto">
                       {veiculoSuggestions.map((v) => (
-                        <button key={v.id} className="w-full text-left px-3 py-2 text-sm hover:bg-accent" onClick={() => selectVeiculo(v)}>
+                        <button key={v.id} type="button" className="w-full text-left px-3 py-2 text-sm hover:bg-accent" onClick={() => selectVeiculo(v)}>
                           {v.placa} {v.tipoVeiculo && `— ${v.tipoVeiculo}`}
                         </button>
                       ))}
@@ -377,10 +344,7 @@ export default function RomaneiosPage() {
             {form.formState.errors.placaVeiculo && <p className="text-sm text-destructive mt-1">{form.formState.errors.placaVeiculo.message}</p>}
           </div>
 
-          <div>
-            <Label>Observação</Label>
-            <Textarea {...form.register("observacao")} rows={2} />
-          </div>
+          <div><Label>Observação</Label><Textarea {...form.register("observacao")} rows={2} /></div>
         </div>
       </CrudModal>
 
@@ -399,59 +363,26 @@ export default function RomaneiosPage() {
 
               <TabsContent value="geral" className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <Card>
-                    <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Produto</CardTitle></CardHeader>
-                    <CardContent><p className="font-medium">{getProdutoNome(selected.produtoId)}</p></CardContent>
-                  </Card>
-                  <Card>
-                    <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Contrato</CardTitle></CardHeader>
-                    <CardContent><p className="font-medium">{getContratoNum(selected.contratoId)}</p></CardContent>
-                  </Card>
-                  <Card>
-                    <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Motorista</CardTitle></CardHeader>
-                    <CardContent><p className="font-medium">{selected.motoristaNome}</p><p className="text-sm text-muted-foreground">{selected.motoristaDocumento || "—"}</p></CardContent>
-                  </Card>
-                  <Card>
-                    <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Veículo</CardTitle></CardHeader>
-                    <CardContent><p className="font-medium">{selected.placaVeiculo}</p></CardContent>
-                  </Card>
+                  <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Produto</CardTitle></CardHeader><CardContent><p className="font-medium">{getProdutoNome(selected.produtoId)}</p></CardContent></Card>
+                  <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Contrato</CardTitle></CardHeader><CardContent><p className="font-medium">{getContratoNum(selected.contratoId)}</p></CardContent></Card>
+                  <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Motorista</CardTitle></CardHeader><CardContent><p className="font-medium">{selected.motoristaNome}</p><p className="text-sm text-muted-foreground">{selected.motoristaDocumento || "—"}</p></CardContent></Card>
+                  <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Veículo</CardTitle></CardHeader><CardContent><p className="font-medium">{selected.placaVeiculo}</p></CardContent></Card>
                 </div>
-
                 <div className="grid grid-cols-3 gap-4">
-                  <Card>
-                    <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Peso Bruto</CardTitle></CardHeader>
-                    <CardContent><p className="text-xl font-bold">{selected.pesoBruto > 0 ? `${selected.pesoBruto.toFixed(3)} ton` : "—"}</p></CardContent>
-                  </Card>
-                  <Card>
-                    <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Peso Tara</CardTitle></CardHeader>
-                    <CardContent><p className="text-xl font-bold">{selected.pesoTara > 0 ? `${selected.pesoTara.toFixed(3)} ton` : "—"}</p></CardContent>
-                  </Card>
-                  <Card>
-                    <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Peso Líquido</CardTitle></CardHeader>
-                    <CardContent><p className="text-xl font-bold text-primary">{selected.pesoLiquido > 0 ? `${selected.pesoLiquido.toFixed(3)} ton` : "—"}</p></CardContent>
-                  </Card>
+                  <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Peso Bruto</CardTitle></CardHeader><CardContent><p className="text-xl font-bold">{selected.pesoBruto > 0 ? `${selected.pesoBruto.toFixed(3)} ton` : "—"}</p></CardContent></Card>
+                  <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Peso Tara</CardTitle></CardHeader><CardContent><p className="text-xl font-bold">{selected.pesoTara > 0 ? `${selected.pesoTara.toFixed(3)} ton` : "—"}</p></CardContent></Card>
+                  <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Peso Líquido</CardTitle></CardHeader><CardContent><p className="text-xl font-bold text-primary">{selected.pesoLiquido > 0 ? `${selected.pesoLiquido.toFixed(3)} ton` : "—"}</p></CardContent></Card>
                 </div>
-
                 <div className="flex items-center gap-2">
                   <Badge variant={statusColors[selected.status]}>{statusLabels[selected.status]}</Badge>
                   <span className="text-sm text-muted-foreground">Criado em {format(new Date(selected.criadoEm), "dd/MM/yyyy HH:mm")}</span>
                 </div>
-
                 {selected.observacao && (
-                  <Card>
-                    <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Observação</CardTitle></CardHeader>
-                    <CardContent><p>{selected.observacao}</p></CardContent>
-                  </Card>
+                  <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Observação</CardTitle></CardHeader><CardContent><p>{selected.observacao}</p></CardContent></Card>
                 )}
-
-                {selected.status === "ABERTO" && (
+                {(selected.status === "ABERTO" || selected.status === "AGUARDANDO_CONTRATO") && (
                   <div className="flex gap-2 pt-4">
-                    <Button onClick={finalizarRomaneio} className="gap-2"><CheckCircle className="h-4 w-4" /> Finalizar</Button>
-                    <Button variant="destructive" onClick={cancelarRomaneio} className="gap-2"><XCircle className="h-4 w-4" /> Cancelar</Button>
-                  </div>
-                )}
-                {selected.status === "AGUARDANDO_CONTRATO" && (
-                  <div className="flex gap-2 pt-4">
+                    {selected.status === "ABERTO" && <Button onClick={finalizarRomaneio} className="gap-2"><CheckCircle className="h-4 w-4" /> Finalizar</Button>}
                     <Button variant="destructive" onClick={cancelarRomaneio} className="gap-2"><XCircle className="h-4 w-4" /> Cancelar</Button>
                   </div>
                 )}
@@ -461,27 +392,18 @@ export default function RomaneiosPage() {
                 {(selected.status === "ABERTO" || selected.status === "AGUARDANDO_CONTRATO") && (
                   <Button onClick={() => setPesagemOpen(true)} className="gap-2"><Scale className="h-4 w-4" /> Registrar Pesagem</Button>
                 )}
-
                 <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead>Peso (ton)</TableHead>
-                      <TableHead>Data/Hora</TableHead>
-                    </TableRow>
-                  </TableHeader>
+                  <TableHeader><TableRow><TableHead>Tipo</TableHead><TableHead>Peso (ton)</TableHead><TableHead>Data/Hora</TableHead></TableRow></TableHeader>
                   <TableBody>
                     {pesagens.length === 0 ? (
                       <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">Nenhuma pesagem registrada</TableCell></TableRow>
-                    ) : (
-                      pesagens.map((p) => (
-                        <TableRow key={p.id}>
-                          <TableCell><Badge variant={p.tipoPesagem === "ENTRADA" ? "default" : "secondary"}>{p.tipoPesagem}</Badge></TableCell>
-                          <TableCell className="font-mono">{p.peso.toFixed(3)}</TableCell>
-                          <TableCell>{format(new Date(p.dataHora), "dd/MM/yyyy HH:mm:ss")}</TableCell>
-                        </TableRow>
-                      ))
-                    )}
+                    ) : pesagens.map((p) => (
+                      <TableRow key={p.id}>
+                        <TableCell><Badge variant={p.tipoPesagem === "ENTRADA" ? "default" : "secondary"}>{p.tipoPesagem}</Badge></TableCell>
+                        <TableCell className="font-mono">{p.peso.toFixed(3)}</TableCell>
+                        <TableCell>{format(new Date(p.dataHora), "dd/MM/yyyy HH:mm:ss")}</TableCell>
+                      </TableRow>
+                    ))}
                   </TableBody>
                 </Table>
               </TabsContent>
@@ -517,7 +439,7 @@ export default function RomaneiosPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Quick Motorista Register */}
+      {/* Quick Motorista */}
       <Dialog open={quickMotOpen} onOpenChange={setQuickMotOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>Cadastro Rápido — Motorista</DialogTitle></DialogHeader>
@@ -532,7 +454,7 @@ export default function RomaneiosPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Quick Veículo Register */}
+      {/* Quick Veículo */}
       <Dialog open={quickVeicOpen} onOpenChange={setQuickVeicOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>Cadastro Rápido — Veículo</DialogTitle></DialogHeader>

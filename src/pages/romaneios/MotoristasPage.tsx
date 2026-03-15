@@ -29,17 +29,11 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 const columns: Column<Motorista>[] = [
-  { header: "Nome", accessor: "nome" },
-  { header: "Documento", accessor: "documento" },
-  { header: "Telefone", accessor: "telefone" },
-  {
-    header: "Status", accessor: "ativo",
-    render: (v) => <Badge variant={v ? "default" : "secondary"}>{v ? "Ativo" : "Inativo"}</Badge>,
-  },
-  {
-    header: "Criado em", accessor: "criadoEm",
-    render: (v) => format(new Date(v), "dd/MM/yyyy HH:mm"),
-  },
+  { key: "nome", header: "Nome", render: (row) => row.nome },
+  { key: "documento", header: "Documento", render: (row) => row.documento || "—" },
+  { key: "telefone", header: "Telefone", render: (row) => row.telefone || "—" },
+  { key: "ativo", header: "Status", render: (row) => <Badge variant={row.ativo ? "default" : "secondary"}>{row.ativo ? "Ativo" : "Inativo"}</Badge> },
+  { key: "criadoEm", header: "Criado em", render: (row) => format(new Date(row.criadoEm), "dd/MM/yyyy HH:mm") },
 ];
 
 export default function MotoristasPage() {
@@ -49,6 +43,7 @@ export default function MotoristasPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Motorista | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const form = useForm<FormData>({ resolver: zodResolver(schema), defaultValues: { nome: "", documento: "", telefone: "", ativo: true } });
 
@@ -65,10 +60,14 @@ export default function MotoristasPage() {
   const openNew = () => { setEditing(null); form.reset({ nome: "", documento: "", telefone: "", ativo: true }); setModalOpen(true); };
   const openEdit = (item: Motorista) => { setEditing(item); form.reset({ nome: item.nome, documento: item.documento, telefone: item.telefone, ativo: item.ativo }); setModalOpen(true); };
 
-  const onSubmit = async (data: FormData) => {
-    if (!grupoAtual || !empresaAtual || !filialAtual) return;
+  const onSubmit = async () => {
+    const valid = await form.trigger();
+    if (!valid || !grupoAtual || !empresaAtual || !filialAtual) return;
+    const data = form.getValues();
+    setSaving(true);
     await motoristaService.salvar({ ...data, id: editing?.id }, { grupoId: grupoAtual.id, empresaId: empresaAtual.id, filialId: filialAtual.id });
     toast({ title: editing ? "Motorista atualizado" : "Motorista cadastrado" });
+    setSaving(false);
     setModalOpen(false);
     load();
   };
@@ -83,9 +82,9 @@ export default function MotoristasPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Motoristas" description="Cadastro de motoristas para romaneios" onNew={openNew} />
-      <DataTable columns={columns} data={items} loading={loading} onEdit={openEdit} onDelete={(item) => setDeleteId(item.id)} />
-      <CrudModal open={modalOpen} onOpenChange={setModalOpen} title={editing ? "Editar Motorista" : "Novo Motorista"} onSubmit={form.handleSubmit(onSubmit)}>
+      <PageHeader title="Motoristas" description="Cadastro de motoristas para romaneios" />
+      <DataTable columns={columns} data={items} loading={loading} onNew={openNew} onEdit={openEdit} onDelete={(item) => setDeleteId(item.id)} />
+      <CrudModal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? "Editar Motorista" : "Novo Motorista"} saving={saving} onSave={onSubmit}>
         <div className="space-y-4">
           <div><Label>Nome *</Label><Input {...form.register("nome")} />{form.formState.errors.nome && <p className="text-sm text-destructive mt-1">{form.formState.errors.nome.message}</p>}</div>
           <div><Label>Documento</Label><Input {...form.register("documento")} /></div>
