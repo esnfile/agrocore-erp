@@ -1596,6 +1596,27 @@ export default function ContratosPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Confirm Liquidação Dialog */}
+      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Liquidação</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ao confirmar a liquidação, o contrato será encerrado com status <strong>LIQUIDADO</strong>,
+              o estoque em trânsito será zerado e os títulos financeiros serão ajustados.
+              <br /><br />
+              <strong>Esta ação não pode ser desfeita.</strong>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={onConfirmarLiquidacao}>
+              Confirmar Liquidação
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
