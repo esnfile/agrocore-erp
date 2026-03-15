@@ -30,6 +30,7 @@ import {
   condicaoDescontoModeloService, contratoCondicaoService,
   classificacaoTipoService, produtoClassificacaoService,
   classificacaoDescontoService, romaneioClassificacaoService,
+  contratoLiquidacaoService,
 } from "@/lib/services";
 import {
   pessoas as mockPessoas,
