@@ -59,6 +59,7 @@ import type {
   Produto, ProdutoEmpresa, ProdutoEmpresaTabelaPreco, TipoBaixaEstoque,
   UnidadeMedida, TipoUnidadeMedida,
   PontoEstoque, TipoPontoEstoque, Estoque, MovimentacaoEstoque, TipoMovimentoEstoque,
+  EstoqueTransito, StatusEstoqueTransito,
   Moeda, CotacaoMoeda, PontoEstoqueTipoProduto,
   Contrato, ContratoEntrega, ContratoFixacao, TipoContrato, TipoPreco, StatusContrato,
   CondicaoDescontoModelo, CondicaoDescontoModeloItem, ContratoCondicao, TipoCondicaoDesconto,
