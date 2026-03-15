@@ -45,7 +45,7 @@ import type {
   ClassificacaoTipo, ProdutoClassificacao, RomaneioClassificacao,
   ContratoLiquidacao,
 } from "@/lib/mock-data";
-import { Plus, Pencil, Trash2, Eye, Lock } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, Lock, FileCheck, AlertTriangle } from "lucide-react";
 
 // ---- Schemas ----
 const contratoSchema = z.object({
