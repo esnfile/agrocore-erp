@@ -39,6 +39,9 @@ import PlanoContasPage from "@/pages/financeiro/PlanoContasPage";
 import CentrosCustoPage from "@/pages/financeiro/CentrosCustoPage";
 import MovimentacoesPage from "@/pages/financeiro/MovimentacoesPage";
 import AdiantamentosPage from "@/pages/financeiro/AdiantamentosPage";
+import RomaneiosPage from "@/pages/romaneios/RomaneiosPage";
+import MotoristasPage from "@/pages/romaneios/MotoristasPage";
+import VeiculosPage from "@/pages/romaneios/VeiculosPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -86,6 +89,10 @@ const App = () => (
               <Route path="/financeiro/centros-custo" element={<CentrosCustoPage />} />
               <Route path="/financeiro/movimentacoes" element={<MovimentacoesPage />} />
               <Route path="/financeiro/adiantamentos" element={<AdiantamentosPage />} />
+              {/* Romaneios */}
+              <Route path="/romaneios" element={<RomaneiosPage />} />
+              <Route path="/romaneios/motoristas" element={<MotoristasPage />} />
+              <Route path="/romaneios/veiculos" element={<VeiculosPage />} />
               {/* Produtos e Estoque — Tabelas */}
               <Route path="/produtos-estoque/tipo-produto" element={<TipoProdutoPage />} />
               <Route path="/produtos-estoque/marca-produto" element={<MarcaProdutoPage />} />

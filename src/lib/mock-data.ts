@@ -1943,3 +1943,99 @@ export interface FinanceiroAdiantamento {
 }
 
 export const financeiroAdiantamentos: FinanceiroAdiantamento[] = [];
+
+// ============================================================
+// Motoristas
+// ============================================================
+export interface Motorista {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  nome: string;
+  documento: string;
+  telefone: string;
+  ativo: boolean;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export const motoristas: Motorista[] = [];
+
+// ============================================================
+// Veículos
+// ============================================================
+export interface Veiculo {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  placa: string;
+  tipoVeiculo: string;
+  transportadora: string;
+  ativo: boolean;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export const veiculos: Veiculo[] = [];
+
+// ============================================================
+// Romaneios
+// ============================================================
+export type StatusRomaneio = "ABERTO" | "FINALIZADO" | "AGUARDANDO_CONTRATO" | "CANCELADO";
+
+export interface Romaneio {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  contratoId: string | null;
+  produtoId: string;
+  motoristaId: string | null;
+  motoristaNome: string;
+  motoristaDocumento: string;
+  veiculoId: string | null;
+  placaVeiculo: string;
+  status: StatusRomaneio;
+  pesoBruto: number;
+  pesoTara: number;
+  pesoLiquido: number;
+  observacao: string;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export const romaneios: Romaneio[] = [];
+
+// ============================================================
+// Romaneio Pesagens
+// ============================================================
+export type TipoPesagem = "ENTRADA" | "SAIDA";
+
+export interface RomaneioPesagem {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  romaneioId: string;
+  tipoPesagem: TipoPesagem;
+  peso: number;
+  dataHora: string;
+  criadoEm: string;
+  criadoPor: string;
+}
+
+export const romaneioPesagens: RomaneioPesagem[] = [];

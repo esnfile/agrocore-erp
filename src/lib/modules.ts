@@ -24,6 +24,8 @@ import {
   Calculator,
   Table2,
   Ruler,
+  Scale,
+  ClipboardList,
   type LucideIcon,
 } from "lucide-react";
 
@@ -185,6 +187,21 @@ export const modules: Module[] = [
         icon: Layers,
         children: [
           { title: "Modelos de Condições", url: "/comercial/modelos-condicoes", icon: Table2 },
+        ],
+      },
+    ],
+  },
+  {
+    title: "Romaneios",
+    icon: ClipboardList,
+    items: [
+      { title: "Romaneios", url: "/romaneios", icon: Scale },
+      {
+        title: "Cadastros",
+        icon: Layers,
+        children: [
+          { title: "Motoristas", url: "/romaneios/motoristas", icon: Contact },
+          { title: "Veículos", url: "/romaneios/veiculos", icon: Truck },
         ],
       },
     ],

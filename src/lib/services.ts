@@ -2450,3 +2450,193 @@ export const financeiroAdiantamentoService = {
     return mockFinanceiroAdiantamentos.filter((a) => a.deletadoEm === null && a.pessoaId === pessoaId);
   },
 };
+
+// ============================================================
+// Motoristas
+// ============================================================
+import {
+  motoristas as mockMotoristas,
+  veiculos as mockVeiculos,
+  romaneios as mockRomaneios,
+  romaneioPesagens as mockRomaneioPesagens,
+} from "./mock-data";
+import type { Motorista, Veiculo, Romaneio, StatusRomaneio, RomaneioPesagem, TipoPesagem } from "./mock-data";
+
+export const motoristaService = {
+  async listar(empresaId: string, filialId: string): Promise<Motorista[]> {
+    await delay();
+    return mockMotoristas.filter((m) => m.deletadoEm === null && m.empresaId === empresaId && m.filialId === filialId);
+  },
+  async buscarPorNome(empresaId: string, filialId: string, termo: string): Promise<Motorista[]> {
+    await delay();
+    const t = termo.toLowerCase();
+    return mockMotoristas.filter((m) => m.deletadoEm === null && m.empresaId === empresaId && m.filialId === filialId && m.nome.toLowerCase().includes(t));
+  },
+  async salvar(data: Partial<Motorista>, ctx: { grupoId: string; empresaId: string; filialId: string }): Promise<Motorista> {
+    await delay();
+    const now = new Date().toISOString();
+    if (data.id) {
+      const existing = mockMotoristas.find((m) => m.id === data.id);
+      if (existing) { Object.assign(existing, data, { atualizadoEm: now, atualizadoPor: "u1" }); return existing; }
+    }
+    const novo: Motorista = {
+      id: `mot${Date.now()}`, grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      nome: data.nome || "", documento: data.documento || "", telefone: data.telefone || "",
+      ativo: data.ativo ?? true,
+      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      deletadoEm: null, deletadoPor: null,
+    };
+    mockMotoristas.push(novo);
+    return novo;
+  },
+  async excluir(id: string): Promise<void> {
+    await delay();
+    const m = mockMotoristas.find((x) => x.id === id);
+    if (m) { m.deletadoEm = new Date().toISOString(); m.deletadoPor = "u1"; }
+  },
+};
+
+// ============================================================
+// Veículos
+// ============================================================
+export const veiculoService = {
+  async listar(empresaId: string, filialId: string): Promise<Veiculo[]> {
+    await delay();
+    return mockVeiculos.filter((v) => v.deletadoEm === null && v.empresaId === empresaId && v.filialId === filialId);
+  },
+  async buscarPorPlaca(empresaId: string, filialId: string, termo: string): Promise<Veiculo[]> {
+    await delay();
+    const t = termo.toUpperCase();
+    return mockVeiculos.filter((v) => v.deletadoEm === null && v.empresaId === empresaId && v.filialId === filialId && v.placa.toUpperCase().includes(t));
+  },
+  async salvar(data: Partial<Veiculo>, ctx: { grupoId: string; empresaId: string; filialId: string }): Promise<Veiculo> {
+    await delay();
+    const now = new Date().toISOString();
+    if (data.id) {
+      const existing = mockVeiculos.find((v) => v.id === data.id);
+      if (existing) { Object.assign(existing, data, { atualizadoEm: now, atualizadoPor: "u1" }); return existing; }
+    }
+    const novo: Veiculo = {
+      id: `veic${Date.now()}`, grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      placa: data.placa || "", tipoVeiculo: data.tipoVeiculo || "", transportadora: data.transportadora || "",
+      ativo: data.ativo ?? true,
+      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      deletadoEm: null, deletadoPor: null,
+    };
+    mockVeiculos.push(novo);
+    return novo;
+  },
+  async excluir(id: string): Promise<void> {
+    await delay();
+    const v = mockVeiculos.find((x) => x.id === id);
+    if (v) { v.deletadoEm = new Date().toISOString(); v.deletadoPor = "u1"; }
+  },
+};
+
+// ============================================================
+// Romaneios
+// ============================================================
+export const romaneioService = {
+  async listar(empresaId: string, filialId: string): Promise<Romaneio[]> {
+    await delay();
+    return mockRomaneios.filter((r) => r.deletadoEm === null && r.empresaId === empresaId && r.filialId === filialId);
+  },
+  async obterPorId(id: string): Promise<Romaneio | undefined> {
+    await delay();
+    return mockRomaneios.find((r) => r.id === id && r.deletadoEm === null);
+  },
+  async salvar(data: Partial<Romaneio>, ctx: { grupoId: string; empresaId: string; filialId: string }): Promise<Romaneio> {
+    await delay();
+    const now = new Date().toISOString();
+    if (data.id) {
+      const existing = mockRomaneios.find((r) => r.id === data.id);
+      if (existing) {
+        Object.assign(existing, data, { atualizadoEm: now, atualizadoPor: "u1" });
+        return existing;
+      }
+    }
+    const status: StatusRomaneio = data.contratoId ? "ABERTO" : "AGUARDANDO_CONTRATO";
+    const novo: Romaneio = {
+      id: `rom${Date.now()}`, grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      contratoId: data.contratoId || null,
+      produtoId: data.produtoId || "",
+      motoristaId: data.motoristaId || null,
+      motoristaNome: data.motoristaNome || "",
+      motoristaDocumento: data.motoristaDocumento || "",
+      veiculoId: data.veiculoId || null,
+      placaVeiculo: data.placaVeiculo || "",
+      status,
+      pesoBruto: 0, pesoTara: 0, pesoLiquido: 0,
+      observacao: data.observacao || "",
+      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      deletadoEm: null, deletadoPor: null,
+    };
+    mockRomaneios.push(novo);
+    return novo;
+  },
+  async excluir(id: string): Promise<void> {
+    await delay();
+    const r = mockRomaneios.find((x) => x.id === id);
+    if (r) { r.deletadoEm = new Date().toISOString(); r.deletadoPor = "u1"; }
+  },
+  async cancelar(id: string): Promise<void> {
+    await delay();
+    const r = mockRomaneios.find((x) => x.id === id && x.deletadoEm === null);
+    if (r) { r.status = "CANCELADO"; r.atualizadoEm = new Date().toISOString(); r.atualizadoPor = "u1"; }
+  },
+  async finalizar(id: string): Promise<void> {
+    await delay();
+    const r = mockRomaneios.find((x) => x.id === id && x.deletadoEm === null);
+    if (r) { r.status = "FINALIZADO"; r.atualizadoEm = new Date().toISOString(); r.atualizadoPor = "u1"; }
+  },
+  recalcularPesos(romaneioId: string) {
+    const pesagens = mockRomaneioPesagens.filter((p) => p.romaneioId === romaneioId);
+    if (pesagens.length === 0) return;
+    const pesos = pesagens.map((p) => p.peso);
+    const bruto = Math.max(...pesos);
+    const tara = Math.min(...pesos);
+    const liquido = bruto - tara;
+    const rom = mockRomaneios.find((r) => r.id === romaneioId);
+    if (rom) {
+      rom.pesoBruto = bruto;
+      rom.pesoTara = tara;
+      rom.pesoLiquido = liquido;
+      rom.atualizadoEm = new Date().toISOString();
+      rom.atualizadoPor = "u1";
+    }
+  },
+};
+
+// ============================================================
+// Romaneio Pesagens
+// ============================================================
+export const romaneioPesagemService = {
+  async listarPorRomaneio(romaneioId: string): Promise<RomaneioPesagem[]> {
+    await delay();
+    return mockRomaneioPesagens.filter((p) => p.romaneioId === romaneioId);
+  },
+  async salvar(data: { romaneioId: string; tipoPesagem: TipoPesagem; peso: number }, ctx: { grupoId: string; empresaId: string; filialId: string }): Promise<RomaneioPesagem> {
+    await delay();
+    const now = new Date().toISOString();
+    const novo: RomaneioPesagem = {
+      id: `rpes${Date.now()}`, grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      romaneioId: data.romaneioId,
+      tipoPesagem: data.tipoPesagem,
+      peso: data.peso,
+      dataHora: now,
+      criadoEm: now, criadoPor: "u1",
+    };
+    mockRomaneioPesagens.push(novo);
+    romaneioService.recalcularPesos(data.romaneioId);
+    return novo;
+  },
+  async excluir(id: string): Promise<void> {
+    await delay();
+    const idx = mockRomaneioPesagens.findIndex((p) => p.id === id);
+    if (idx >= 0) {
+      const romaneioId = mockRomaneioPesagens[idx].romaneioId;
+      mockRomaneioPesagens.splice(idx, 1);
+      romaneioService.recalcularPesos(romaneioId);
+    }
+  },
+};
