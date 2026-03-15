@@ -32,10 +32,11 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import {
   romaneioService, romaneioPesagemService,
   motoristaService, veiculoService, contratoService,
+  pontoEstoqueService,
 } from "@/lib/services";
 import { produtos as mockProdutos } from "@/lib/mock-data";
-import type { Romaneio, RomaneioPesagem, Motorista, Veiculo, Contrato, TipoPesagem } from "@/lib/mock-data";
-import { Plus, Eye, Scale, XCircle, CheckCircle } from "lucide-react";
+import type { Romaneio, RomaneioPesagem, Motorista, Veiculo, Contrato, TipoPesagem, PontoEstoque } from "@/lib/mock-data";
+import { Plus, Scale, XCircle, CheckCircle, Link2 } from "lucide-react";
 
 const romaneioSchema = z.object({
   produtoId: z.string().min(1, "Produto é obrigatório"),
@@ -43,6 +44,7 @@ const romaneioSchema = z.object({
   motoristaNome: z.string().min(1, "Nome do motorista é obrigatório"),
   motoristaDocumento: z.string().optional().default(""),
   placaVeiculo: z.string().min(1, "Placa é obrigatória"),
+  pontoEstoqueId: z.string().optional().default(""),
   observacao: z.string().optional().default(""),
 });
 type RomaneioFormData = z.infer<typeof romaneioSchema>;
@@ -89,10 +91,19 @@ export default function RomaneiosPage() {
   const [quickVeicTipo, setQuickVeicTipo] = useState("");
 
   const [contratos, setContratos] = useState<Contrato[]>([]);
+  const [pontosEstoque, setPontosEstoque] = useState<PontoEstoque[]>([]);
+
+  // Vincular contrato modal
+  const [vincularOpen, setVincularOpen] = useState(false);
+  const [vincularContratoId, setVincularContratoId] = useState("");
+
+  // Selecionar ponto estoque no detail
+  const [editPontoOpen, setEditPontoOpen] = useState(false);
+  const [editPontoId, setEditPontoId] = useState("");
 
   const form = useForm<RomaneioFormData>({
     resolver: zodResolver(romaneioSchema),
-    defaultValues: { produtoId: "", contratoId: "", motoristaNome: "", motoristaDocumento: "", placaVeiculo: "", observacao: "" },
+    defaultValues: { produtoId: "", contratoId: "", motoristaNome: "", motoristaDocumento: "", placaVeiculo: "", pontoEstoqueId: "", observacao: "" },
   });
 
   const ctx = grupoAtual && empresaAtual && filialAtual
@@ -112,12 +123,13 @@ export default function RomaneiosPage() {
   useEffect(() => {
     if (!empresaAtual || !filialAtual) return;
     contratoService.listar(empresaAtual.id, filialAtual.id).then(setContratos);
+    pontoEstoqueService.listar(empresaAtual.id, filialAtual.id).then(setPontosEstoque);
   }, [empresaAtual, filialAtual]);
 
   const produtos = mockProdutos.filter((p) => p.deletadoEm === null);
 
   const openNew = () => {
-    form.reset({ produtoId: "", contratoId: "", motoristaNome: "", motoristaDocumento: "", placaVeiculo: "", observacao: "" });
+    form.reset({ produtoId: "", contratoId: "", motoristaNome: "", motoristaDocumento: "", placaVeiculo: "", pontoEstoqueId: "", observacao: "" });
     setModalOpen(true);
   };
 
@@ -167,6 +179,7 @@ export default function RomaneiosPage() {
       motoristaNome: data.motoristaNome,
       motoristaDocumento: data.motoristaDocumento,
       placaVeiculo: data.placaVeiculo,
+      pontoEstoqueId: data.pontoEstoqueId || null,
       observacao: data.observacao,
     }, ctx);
     toast({ title: "Romaneio criado com sucesso" });
@@ -204,8 +217,12 @@ export default function RomaneiosPage() {
   const finalizarRomaneio = async () => {
     if (!selected) return;
     if (pesagens.length < 2) { toast({ title: "É necessário pelo menos 2 pesagens (entrada e saída)", variant: "destructive" }); return; }
-    await romaneioService.finalizar(selected.id);
-    toast({ title: "Romaneio finalizado" });
+    const result = await romaneioService.finalizar(selected.id);
+    if (result.sucesso) {
+      toast({ title: result.mensagem });
+    } else {
+      toast({ title: result.mensagem, variant: "destructive" });
+    }
     refreshDetail();
   };
 
@@ -213,6 +230,26 @@ export default function RomaneiosPage() {
     if (!selected) return;
     await romaneioService.cancelar(selected.id);
     toast({ title: "Romaneio cancelado" });
+    refreshDetail();
+  };
+
+  const vincularContratoAoRomaneio = async () => {
+    if (!selected || !vincularContratoId) return;
+    const result = await romaneioService.vincularContrato(selected.id, vincularContratoId);
+    if (result.sucesso) {
+      toast({ title: result.mensagem });
+      setVincularOpen(false); setVincularContratoId("");
+      refreshDetail();
+    } else {
+      toast({ title: result.mensagem, variant: "destructive" });
+    }
+  };
+
+  const salvarPontoEstoque = async () => {
+    if (!selected || !editPontoId || !ctx) return;
+    await romaneioService.salvar({ id: selected.id, pontoEstoqueId: editPontoId }, ctx);
+    toast({ title: "Ponto de estoque atualizado" });
+    setEditPontoOpen(false);
     refreshDetail();
   };
 
@@ -229,6 +266,11 @@ export default function RomaneiosPage() {
     if (!id) return "—";
     const c = contratos.find((ct) => ct.id === id);
     return c ? c.numeroContrato : id;
+  };
+  const getPontoNome = (id: string | null) => {
+    if (!id) return "Não definido";
+    const p = pontosEstoque.find((pe) => pe.id === id);
+    return p ? p.descricao : id;
   };
 
   const columns: Column<Romaneio>[] = [
@@ -277,6 +319,19 @@ export default function RomaneiosPage() {
                 <SelectItem value="none">Sem contrato (avulso)</SelectItem>
                 {contratos.filter((c) => c.status === "ABERTO" || c.status === "PARCIAL").map((c) => (
                   <SelectItem key={c.id} value={c.id}>{c.numeroContrato} — {c.tipoContrato}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label>Ponto de Estoque</Label>
+            <Select value={form.watch("pontoEstoqueId") || "none"} onValueChange={(v) => form.setValue("pontoEstoqueId", v === "none" ? "" : v)}>
+              <SelectTrigger><SelectValue placeholder="Selecione (obrigatório p/ finalizar)" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Nenhum</SelectItem>
+                {pontosEstoque.filter((p) => p.ativo).map((p) => (
+                  <SelectItem key={p.id} value={p.id}>{p.descricao} ({p.tipo})</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -368,6 +423,23 @@ export default function RomaneiosPage() {
                   <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Motorista</CardTitle></CardHeader><CardContent><p className="font-medium">{selected.motoristaNome}</p><p className="text-sm text-muted-foreground">{selected.motoristaDocumento || "—"}</p></CardContent></Card>
                   <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Veículo</CardTitle></CardHeader><CardContent><p className="font-medium">{selected.placaVeiculo}</p></CardContent></Card>
                 </div>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-sm font-medium text-muted-foreground">Ponto de Estoque</CardTitle>
+                      {(selected.status === "ABERTO" || selected.status === "AGUARDANDO_CONTRATO") && (
+                        <Button variant="ghost" size="sm" onClick={() => { setEditPontoId(selected.pontoEstoqueId || ""); setEditPontoOpen(true); }}>Alterar</Button>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className={`font-medium ${!selected.pontoEstoqueId ? "text-destructive" : ""}`}>
+                      {getPontoNome(selected.pontoEstoqueId)}
+                    </p>
+                  </CardContent>
+                </Card>
+
                 <div className="grid grid-cols-3 gap-4">
                   <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Peso Bruto</CardTitle></CardHeader><CardContent><p className="text-xl font-bold">{selected.pesoBruto > 0 ? `${selected.pesoBruto.toFixed(3)} ton` : "—"}</p></CardContent></Card>
                   <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Peso Tara</CardTitle></CardHeader><CardContent><p className="text-xl font-bold">{selected.pesoTara > 0 ? `${selected.pesoTara.toFixed(3)} ton` : "—"}</p></CardContent></Card>
@@ -381,7 +453,12 @@ export default function RomaneiosPage() {
                   <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Observação</CardTitle></CardHeader><CardContent><p>{selected.observacao}</p></CardContent></Card>
                 )}
                 {(selected.status === "ABERTO" || selected.status === "AGUARDANDO_CONTRATO") && (
-                  <div className="flex gap-2 pt-4">
+                  <div className="flex gap-2 pt-4 flex-wrap">
+                    {selected.status === "AGUARDANDO_CONTRATO" && (
+                      <Button variant="outline" onClick={() => { setVincularContratoId(""); setVincularOpen(true); }} className="gap-2">
+                        <Link2 className="h-4 w-4" /> Vincular Contrato
+                      </Button>
+                    )}
                     {selected.status === "ABERTO" && <Button onClick={finalizarRomaneio} className="gap-2"><CheckCircle className="h-4 w-4" /> Finalizar</Button>}
                     <Button variant="destructive" onClick={cancelarRomaneio} className="gap-2"><XCircle className="h-4 w-4" /> Cancelar</Button>
                   </div>
@@ -435,6 +512,54 @@ export default function RomaneiosPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setPesagemOpen(false)}>Cancelar</Button>
             <Button onClick={addPesagem}>Registrar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Vincular Contrato Dialog */}
+      <Dialog open={vincularOpen} onOpenChange={setVincularOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Vincular Contrato</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Contrato</Label>
+              <Select value={vincularContratoId} onValueChange={setVincularContratoId}>
+                <SelectTrigger><SelectValue placeholder="Selecione o contrato" /></SelectTrigger>
+                <SelectContent>
+                  {contratos.filter((c) => c.status === "ABERTO" || c.status === "PARCIAL").map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.numeroContrato} — {c.tipoContrato}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setVincularOpen(false)}>Cancelar</Button>
+            <Button onClick={vincularContratoAoRomaneio} disabled={!vincularContratoId}>Vincular</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Editar Ponto de Estoque Dialog */}
+      <Dialog open={editPontoOpen} onOpenChange={setEditPontoOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Selecionar Ponto de Estoque</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Ponto de Estoque</Label>
+              <Select value={editPontoId} onValueChange={setEditPontoId}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {pontosEstoque.filter((p) => p.ativo).map((p) => (
+                    <SelectItem key={p.id} value={p.id}>{p.descricao} ({p.tipo})</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditPontoOpen(false)}>Cancelar</Button>
+            <Button onClick={salvarPontoEstoque} disabled={!editPontoId}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

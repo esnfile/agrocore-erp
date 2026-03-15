@@ -954,6 +954,8 @@ export interface MovimentacaoEstoque {
   quantidadeConvertidaBase: number;
   dataMovimentacao: string;
   observacao: string;
+  contratoId: string | null;
+  romaneioId: string | null;
   criadoEm: string;
   criadoPor: string;
   atualizadoEm: string;
@@ -963,6 +965,31 @@ export interface MovimentacaoEstoque {
 }
 
 export const movimentacoesEstoque: MovimentacaoEstoque[] = [];
+
+// ---- Estoque em Trânsito ----
+export type StatusEstoqueTransito = "ATIVO" | "FINALIZADO" | "CANCELADO";
+
+export interface EstoqueTransito {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  contratoId: string;
+  produtoId: string;
+  tipoMovimento: "ENTRADA" | "SAIDA";
+  quantidadeContratada: number;
+  quantidadeMovimentada: number;
+  quantidadeSaldo: number;
+  status: StatusEstoqueTransito;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export const estoquesTransito: EstoqueTransito[] = [];
 
 // ---- Moeda ----
 export interface Moeda {
@@ -2005,6 +2032,7 @@ export interface Romaneio {
   motoristaDocumento: string;
   veiculoId: string | null;
   placaVeiculo: string;
+  pontoEstoqueId: string | null;
   status: StatusRomaneio;
   pesoBruto: number;
   pesoTara: number;
