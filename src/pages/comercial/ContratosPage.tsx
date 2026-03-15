@@ -43,6 +43,7 @@ import type {
   PontoEstoque, Moeda,
   CondicaoDescontoModelo, ContratoCondicao, TipoCondicaoDesconto,
   ClassificacaoTipo, ProdutoClassificacao, RomaneioClassificacao,
+  ContratoLiquidacao,
 } from "@/lib/mock-data";
 import { Plus, Pencil, Trash2, Eye, Lock } from "lucide-react";
 
