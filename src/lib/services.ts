@@ -1341,6 +1341,10 @@ export const contratoService = {
       deletadoEm: null, deletadoPor: null,
     };
     mockContratos.push(novo);
+
+    // Auto-create estoque_transito
+    estoqueTransitoService.criarParaContrato(novo, ctx);
+
     return novo;
   },
   async excluir(id: string): Promise<{ sucesso: boolean; mensagem: string }> {
