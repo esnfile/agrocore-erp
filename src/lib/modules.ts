@@ -24,6 +24,8 @@ import {
   Calculator,
   Table2,
   Ruler,
+  Scale,
+  ClipboardList,
   type LucideIcon,
 } from "lucide-react";
 
