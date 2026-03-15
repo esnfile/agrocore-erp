@@ -2768,3 +2768,268 @@ export const estoqueTransitoService = {
 };
 
 
+// ============================================================
+// Contrato Liquidação
+// ============================================================
+export const contratoLiquidacaoService = {
+  async listarPorContrato(contratoId: string): Promise<ContratoLiquidacao[]> {
+    await delay();
+    return mockContratoLiquidacoes.filter((l) => l.deletadoEm === null && l.contratoId === contratoId);
+  },
+
+  /**
+   * Gera prévia de liquidação calculando automaticamente:
+   * - quantidade entregue (soma peso_liquido dos romaneios FINALIZADOS do contrato)
+   * - preço unitário (fixo ou média ponderada das fixações)
+   * - descontos (condições financeiras do contrato)
+   * - valor bruto e líquido
+   */
+  async gerarPrevia(
+    contratoId: string,
+    opcaoEncerrar: boolean,
+    ctx: { grupoId: string; empresaId: string; filialId: string }
+  ): Promise<{ sucesso: boolean; mensagem: string; liquidacao?: ContratoLiquidacao }> {
+    await delay(400);
+    const now = new Date().toISOString();
+
+    const contrato = mockContratos.find((c) => c.id === contratoId && c.deletadoEm === null);
+    if (!contrato) return { sucesso: false, mensagem: "Contrato não encontrado." };
+
+    // Check existing active liquidacao
+    const existente = mockContratoLiquidacoes.find(
+      (l) => l.contratoId === contratoId && l.deletadoEm === null && l.status === "PREVIA"
+    );
+    if (existente) {
+      // Update existing preview
+      return this._calcularLiquidacao(existente, contrato, opcaoEncerrar, ctx, now);
+    }
+
+    // Create new preview
+    const liquidacao: ContratoLiquidacao = {
+      id: `liq${Date.now()}`,
+      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      contratoId,
+      quantidadeContratada: 0,
+      quantidadeEntregue: 0,
+      quantidadeLiquidada: 0,
+      precoUnitario: 0,
+      valorBruto: 0,
+      valorDescontos: 0,
+      valorLiquido: 0,
+      status: "PREVIA",
+      dataLiquidacao: now,
+      observacao: "",
+      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      deletadoEm: null, deletadoPor: null,
+    };
+    mockContratoLiquidacoes.push(liquidacao);
+
+    return this._calcularLiquidacao(liquidacao, contrato, opcaoEncerrar, ctx, now);
+  },
+
+  _calcularLiquidacao(
+    liquidacao: ContratoLiquidacao,
+    contrato: Contrato,
+    opcaoEncerrar: boolean,
+    _ctx: { grupoId: string; empresaId: string; filialId: string },
+    now: string
+  ): { sucesso: boolean; mensagem: string; liquidacao: ContratoLiquidacao } {
+    // 1. Quantidade entregue = soma entregas confirmadas
+    const entregas = mockContratoEntregas.filter(
+      (e) => e.contratoId === contrato.id && e.deletadoEm === null
+    );
+    const quantidadeEntregue = entregas.reduce((sum, e) => sum + e.quantidadeInformada, 0);
+
+    // 2. Quantidade liquidada
+    const quantidadeLiquidada = opcaoEncerrar
+      ? quantidadeEntregue
+      : Math.min(quantidadeEntregue, contrato.quantidadeTotal);
+
+    // 3. Preço unitário
+    let precoUnitario = contrato.precoUnitario;
+    if (contrato.tipoPreco === "A_FIXAR") {
+      const fixacoes = mockContratoFixacoes.filter(
+        (f) => f.contratoId === contrato.id && f.deletadoEm === null
+      );
+      if (fixacoes.length > 0) {
+        const somaQtdFixada = fixacoes.reduce((s, f) => s + f.quantidadeFixada, 0);
+        const somaPonderada = fixacoes.reduce((s, f) => s + f.precoFixado * f.quantidadeFixada, 0);
+        precoUnitario = somaQtdFixada > 0 ? somaPonderada / somaQtdFixada : 0;
+      }
+    }
+
+    // 4. Valor bruto
+    const valorBruto = Math.round(quantidadeLiquidada * precoUnitario * 100) / 100;
+
+    // 5. Descontos (condições financeiras do contrato)
+    const condicoes = mockContratoCondicoes
+      .filter((c) => c.contratoId === contrato.id && c.deletadoEm === null)
+      .sort((a, b) => a.ordemCalculo - b.ordemCalculo);
+
+    let valorDescontos = 0;
+    let valorBase = valorBruto;
+    for (const cond of condicoes) {
+      let desconto = 0;
+      if (cond.tipo === "PERCENTUAL") {
+        desconto = valorBase * cond.valor / 100;
+      } else {
+        desconto = cond.valor;
+      }
+      valorDescontos += desconto;
+      valorBase -= desconto;
+    }
+    valorDescontos = Math.round(valorDescontos * 100) / 100;
+
+    // 6. Descontos de classificação de qualidade (romaneios)
+    let descontoQualidade = 0;
+    for (const entrega of entregas) {
+      const classificacoes = mockRomaneioClassificacoes.filter(
+        (rc) => rc.romaneioId === entrega.id && rc.deletadoEm === null
+      );
+      for (const cl of classificacoes) {
+        if (cl.percentualDesconto > 0) {
+          const pesoBase = entrega.pesoLiquido ?? entrega.quantidadeInformada;
+          descontoQualidade += pesoBase * cl.percentualDesconto / 100 * precoUnitario;
+        }
+      }
+    }
+    descontoQualidade = Math.round(descontoQualidade * 100) / 100;
+    valorDescontos += descontoQualidade;
+
+    // 7. Valor líquido
+    const valorLiquido = Math.round((valorBruto - valorDescontos) * 100) / 100;
+
+    // Update liquidação
+    liquidacao.quantidadeContratada = contrato.quantidadeTotal;
+    liquidacao.quantidadeEntregue = quantidadeEntregue;
+    liquidacao.quantidadeLiquidada = quantidadeLiquidada;
+    liquidacao.precoUnitario = Math.round(precoUnitario * 100) / 100;
+    liquidacao.valorBruto = valorBruto;
+    liquidacao.valorDescontos = valorDescontos;
+    liquidacao.valorLiquido = valorLiquido;
+    liquidacao.atualizadoEm = now;
+    liquidacao.atualizadoPor = "u1";
+
+    return { sucesso: true, mensagem: "Prévia de liquidação gerada.", liquidacao };
+  },
+
+  async confirmar(
+    liquidacaoId: string,
+    opcaoTitulos: "ATUALIZAR" | "COMPLEMENTAR",
+    ctx: { grupoId: string; empresaId: string; filialId: string }
+  ): Promise<{ sucesso: boolean; mensagem: string }> {
+    await delay(400);
+    const now = new Date().toISOString();
+
+    const liquidacao = mockContratoLiquidacoes.find(
+      (l) => l.id === liquidacaoId && l.deletadoEm === null
+    );
+    if (!liquidacao) return { sucesso: false, mensagem: "Liquidação não encontrada." };
+    if (liquidacao.status !== "PREVIA") return { sucesso: false, mensagem: "Apenas liquidações em prévia podem ser confirmadas." };
+
+    const contrato = mockContratos.find((c) => c.id === liquidacao.contratoId && c.deletadoEm === null);
+    if (!contrato) return { sucesso: false, mensagem: "Contrato não encontrado." };
+
+    // 1. Update liquidação status
+    liquidacao.status = "CONFIRMADA";
+    liquidacao.dataLiquidacao = now;
+    liquidacao.atualizadoEm = now;
+    liquidacao.atualizadoPor = "u1";
+
+    // 2. Encerrar contrato
+    contrato.status = "LIQUIDADO";
+    contrato.atualizadoEm = now;
+    contrato.atualizadoPor = "u1";
+
+    // 3. Zerar estoque em trânsito
+    const transito = mockEstoquesTransito.find(
+      (t) => t.contratoId === contrato.id && t.deletadoEm === null && t.status === "ATIVO"
+    );
+    if (transito && transito.quantidadeSaldo > 0) {
+      transito.quantidadeSaldo = 0;
+      transito.status = "FINALIZADO";
+      transito.atualizadoEm = now;
+      transito.atualizadoPor = "u1";
+    }
+
+    // 4. Ajustar títulos financeiros (sem movimentar caixa)
+    const contasDoContrato = mockFinanceiroContas.filter(
+      (fc) => fc.deletadoEm === null && fc.documentoReferencia === contrato.numeroContrato
+    );
+
+    if (contasDoContrato.length > 0 && opcaoTitulos === "ATUALIZAR") {
+      // Adjust existing parcelas to reflect liquidation value
+      for (const conta of contasDoContrato) {
+        const parcelas = mockFinanceiroParcelas.filter(
+          (p) => p.contaId === conta.id && p.deletadoEm === null && p.status === "PENDENTE"
+        );
+        if (parcelas.length > 0) {
+          const valorPorParcela = Math.round((liquidacao.valorLiquido / parcelas.length) * 100) / 100;
+          parcelas.forEach((p, i) => {
+            p.valorParcela = i === parcelas.length - 1
+              ? liquidacao.valorLiquido - valorPorParcela * (parcelas.length - 1)
+              : valorPorParcela;
+            p.saldoParcela = p.valorParcela - p.valorPago;
+            p.atualizadoEm = now;
+            p.atualizadoPor = "u1";
+          });
+          conta.valorTotal = liquidacao.valorLiquido;
+          conta.atualizadoEm = now;
+          conta.atualizadoPor = "u1";
+        }
+      }
+    } else if (opcaoTitulos === "COMPLEMENTAR") {
+      // Create complementary financial entry
+      const valorExistente = contasDoContrato.reduce((s, c) => s + c.valorTotal, 0);
+      const diferenca = liquidacao.valorLiquido - valorExistente;
+      if (Math.abs(diferenca) > 0.01) {
+        const tipo = contrato.tipoContrato === "COMPRA" ? "PAGAR" : "RECEBER";
+        const novaConta: FinanceiroConta = {
+          id: `fc${Date.now()}`,
+          grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+          tipo: tipo as any,
+          pessoaId: contrato.pessoaId,
+          descricao: `Ajuste liquidação contrato ${contrato.numeroContrato}`,
+          dataEmissao: now.slice(0, 10),
+          valorTotal: Math.abs(diferenca),
+          status: "ABERTO",
+          origem: "CONTRATO" as any,
+          documentoReferencia: contrato.numeroContrato,
+          observacoes: `Ajuste gerado pela liquidação do contrato. Diferença: ${diferenca > 0 ? "+" : ""}${diferenca.toFixed(2)}`,
+          criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+          deletadoEm: null, deletadoPor: null,
+        };
+        mockFinanceiroContas.push(novaConta);
+        // Generate single parcela
+        const parcela: FinanceiroParcela = {
+          id: `fp${Date.now()}`,
+          grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+          contaId: novaConta.id, numeroParcela: 1,
+          dataVencimento: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
+          valorParcela: Math.abs(diferenca), valorPago: 0, saldoParcela: Math.abs(diferenca),
+          status: "PENDENTE",
+          criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+          deletadoEm: null, deletadoPor: null,
+        };
+        mockFinanceiroParcelas.push(parcela);
+      }
+    }
+
+    return { sucesso: true, mensagem: "Liquidação confirmada. Contrato encerrado." };
+  },
+
+  async cancelar(liquidacaoId: string): Promise<{ sucesso: boolean; mensagem: string }> {
+    await delay(200);
+    const now = new Date().toISOString();
+    const liquidacao = mockContratoLiquidacoes.find(
+      (l) => l.id === liquidacaoId && l.deletadoEm === null
+    );
+    if (!liquidacao) return { sucesso: false, mensagem: "Liquidação não encontrada." };
+    if (liquidacao.status !== "PREVIA") return { sucesso: false, mensagem: "Apenas prévias podem ser canceladas." };
+    liquidacao.status = "CANCELADA";
+    liquidacao.atualizadoEm = now;
+    liquidacao.atualizadoPor = "u1";
+    return { sucesso: true, mensagem: "Liquidação cancelada." };
+  },
+};
+
