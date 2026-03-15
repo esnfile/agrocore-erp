@@ -1103,7 +1103,7 @@ export const pontoEstoqueTiposProduto: PontoEstoqueTipoProduto[] = [];
 // ---- Contratos ----
 export type TipoContrato = "COMPRA" | "VENDA";
 export type TipoPreco = "FIXO" | "A_FIXAR";
-export type StatusContrato = "ABERTO" | "PARCIAL" | "FINALIZADO" | "CANCELADO";
+export type StatusContrato = "ABERTO" | "PARCIAL" | "FINALIZADO" | "CANCELADO" | "LIQUIDADO";
 
 export interface Contrato {
   id: string;
@@ -2067,3 +2067,34 @@ export interface RomaneioPesagem {
 }
 
 export const romaneioPesagens: RomaneioPesagem[] = [];
+
+// ============================================================
+// Contrato Liquidações
+// ============================================================
+export type StatusLiquidacao = "PREVIA" | "CONFIRMADA" | "CANCELADA";
+
+export interface ContratoLiquidacao {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  contratoId: string;
+  quantidadeContratada: number;
+  quantidadeEntregue: number;
+  quantidadeLiquidada: number;
+  precoUnitario: number;
+  valorBruto: number;
+  valorDescontos: number;
+  valorLiquido: number;
+  status: StatusLiquidacao;
+  dataLiquidacao: string;
+  observacao: string;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export const contratoLiquidacoes: ContratoLiquidacao[] = [];

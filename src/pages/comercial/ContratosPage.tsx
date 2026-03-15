@@ -30,6 +30,7 @@ import {
   condicaoDescontoModeloService, contratoCondicaoService,
   classificacaoTipoService, produtoClassificacaoService,
   classificacaoDescontoService, romaneioClassificacaoService,
+  contratoLiquidacaoService,
 } from "@/lib/services";
 import {
   pessoas as mockPessoas,
@@ -42,8 +43,9 @@ import type {
   PontoEstoque, Moeda,
   CondicaoDescontoModelo, ContratoCondicao, TipoCondicaoDesconto,
   ClassificacaoTipo, ProdutoClassificacao, RomaneioClassificacao,
+  ContratoLiquidacao,
 } from "@/lib/mock-data";
-import { Plus, Pencil, Trash2, Eye, Lock } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, Lock, FileCheck, AlertTriangle } from "lucide-react";
 
 // ---- Schemas ----
 const contratoSchema = z.object({
@@ -94,6 +96,7 @@ function StatusBadge({ status }: { status: string }) {
     PARCIAL: { label: "Parcial", variant: "secondary" },
     FINALIZADO: { label: "Finalizado", variant: "outline" },
     CANCELADO: { label: "Cancelado", variant: "destructive" },
+    LIQUIDADO: { label: "Liquidado", variant: "outline" },
   };
   const s = map[status] ?? { label: status, variant: "outline" as const };
   return <Badge variant={s.variant}>{s.label}</Badge>;
@@ -149,6 +152,13 @@ export default function ContratosPage() {
   const [produtoClassificacoes, setProdutoClassificacoes] = useState<ProdutoClassificacao[]>([]);
   const [romaneioClassificacoesMap, setRomaneioClassificacoesMap] = useState<Record<string, RomaneioClassificacao[]>>({});
   const [classEntregaItens, setClassEntregaItens] = useState<{ classificacaoTipoId: string; valorApurado: string }[]>([]);
+
+  // Liquidação
+  const [liquidacao, setLiquidacao] = useState<ContratoLiquidacao | null>(null);
+  const [liquidacaoLoading, setLiquidacaoLoading] = useState(false);
+  const [opcaoEncerrar, setOpcaoEncerrar] = useState(true);
+  const [opcaoTitulos, setOpcaoTitulos] = useState<"ATUALIZAR" | "COMPLEMENTAR">("ATUALIZAR");
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
 
   // Forms
   const contratoForm = useForm<ContratoForm>({
@@ -269,14 +279,17 @@ export default function ContratosPage() {
   };
 
   const loadSubEntities = async (contratoId: string) => {
-    const [e, f, conds] = await Promise.all([
+    const [e, f, conds, liqs] = await Promise.all([
       contratoEntregaService.listarPorContrato(contratoId),
       contratoFixacaoService.listarPorContrato(contratoId),
       contratoCondicaoService.listarPorContrato(contratoId),
+      contratoLiquidacaoService.listarPorContrato(contratoId),
     ]);
     setEntregas(e);
     setFixacoes(f);
     setCondicoes(conds);
+    const activeLiq = liqs.find((l) => l.status === "PREVIA" || l.status === "CONFIRMADA");
+    setLiquidacao(activeLiq || null);
   };
 
   const onSaveContrato = contratoForm.handleSubmit(async (data) => {
@@ -541,6 +554,63 @@ export default function ContratosPage() {
   }, 0);
   const valorLiquidoEstimado = valorEstimado - totalDescontosMock;
 
+  // ---- Liquidação handlers ----
+  const onGerarPrevia = async () => {
+    if (!editingContrato) return;
+    setLiquidacaoLoading(true);
+    try {
+      const result = await contratoLiquidacaoService.gerarPrevia(
+        editingContrato.id, opcaoEncerrar, { grupoId, empresaId, filialId }
+      );
+      if (result.sucesso && result.liquidacao) {
+        setLiquidacao(result.liquidacao);
+        toast({ title: "Sucesso", description: result.mensagem });
+      } else {
+        toast({ title: "Erro", description: result.mensagem, variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Erro", description: "Falha ao gerar prévia.", variant: "destructive" });
+    } finally { setLiquidacaoLoading(false); }
+  };
+
+  const onConfirmarLiquidacao = async () => {
+    if (!liquidacao || !editingContrato) return;
+    setLiquidacaoLoading(true);
+    setConfirmDialogOpen(false);
+    try {
+      const result = await contratoLiquidacaoService.confirmar(
+        liquidacao.id, opcaoTitulos, { grupoId, empresaId, filialId }
+      );
+      if (result.sucesso) {
+        toast({ title: "Sucesso", description: result.mensagem });
+        await loadSubEntities(editingContrato.id);
+        await loadContratos();
+        const updated = (await contratoService.listar(empresaId, filialId)).find((c) => c.id === editingContrato.id);
+        if (updated) setEditingContrato(updated);
+      } else {
+        toast({ title: "Erro", description: result.mensagem, variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Erro", description: "Falha ao confirmar liquidação.", variant: "destructive" });
+    } finally { setLiquidacaoLoading(false); }
+  };
+
+  const onCancelarLiquidacao = async () => {
+    if (!liquidacao || !editingContrato) return;
+    setLiquidacaoLoading(true);
+    try {
+      const result = await contratoLiquidacaoService.cancelar(liquidacao.id);
+      if (result.sucesso) {
+        setLiquidacao(null);
+        toast({ title: "Sucesso", description: result.mensagem });
+      } else {
+        toast({ title: "Erro", description: result.mensagem, variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Erro", description: "Falha ao cancelar.", variant: "destructive" });
+    } finally { setLiquidacaoLoading(false); }
+  };
+
 
   if (!grupoId) {
     return (
@@ -644,6 +714,7 @@ export default function ContratosPage() {
               )}
               <TabsTrigger value="financeiro" disabled={!editingContrato}>Financeiro</TabsTrigger>
               <TabsTrigger value="condicoes" disabled={!editingContrato}>Condições e Descontos</TabsTrigger>
+              <TabsTrigger value="liquidacao" disabled={!editingContrato}>Liquidação</TabsTrigger>
             </TabsList>
             {editingContrato && (
               <StatusBadge status={editingContrato.status} />
@@ -1057,6 +1128,177 @@ export default function ContratosPage() {
               </div>
             </div>
           </TabsContent>
+
+          {/* ABA 6 — Liquidação */}
+          <TabsContent value="liquidacao">
+            <div className="space-y-6">
+              {editingContrato?.status === "LIQUIDADO" && liquidacao?.status === "CONFIRMADA" ? (
+                /* Liquidação confirmada — exibir resumo final */
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-primary">
+                    <FileCheck className="h-5 w-5" />
+                    <h3 className="font-semibold text-lg">Contrato Liquidado</h3>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="rounded-md bg-card p-4 border space-y-1">
+                      <p className="text-sm text-muted-foreground">Qtd. Contratada</p>
+                      <p className="text-lg font-bold">{liquidacao.quantidadeContratada.toLocaleString("pt-BR")} {getCodigoUnidade(editingContrato.unidadeNegociacaoId)}</p>
+                    </div>
+                    <div className="rounded-md bg-card p-4 border space-y-1">
+                      <p className="text-sm text-muted-foreground">Qtd. Entregue</p>
+                      <p className="text-lg font-bold">{liquidacao.quantidadeEntregue.toLocaleString("pt-BR")}</p>
+                    </div>
+                    <div className="rounded-md bg-card p-4 border space-y-1">
+                      <p className="text-sm text-muted-foreground">Qtd. Liquidada</p>
+                      <p className="text-lg font-bold text-primary">{liquidacao.quantidadeLiquidada.toLocaleString("pt-BR")}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="rounded-md bg-card p-4 border space-y-1">
+                      <p className="text-sm text-muted-foreground">Preço Unitário</p>
+                      <p className="text-lg font-bold">{getSimboloMoeda(editingContrato.moedaId)} {liquidacao.precoUnitario.toFixed(2)}</p>
+                    </div>
+                    <div className="rounded-md bg-card p-4 border space-y-1">
+                      <p className="text-sm text-muted-foreground">Valor Bruto</p>
+                      <p className="text-lg font-bold">{getSimboloMoeda(editingContrato.moedaId)} {liquidacao.valorBruto.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                    </div>
+                    <div className="rounded-md bg-card p-4 border space-y-1">
+                      <p className="text-sm text-muted-foreground">Descontos</p>
+                      <p className="text-lg font-bold text-destructive">- {getSimboloMoeda(editingContrato.moedaId)} {liquidacao.valorDescontos.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                    </div>
+                    <div className="rounded-md bg-card p-4 border space-y-1">
+                      <p className="text-sm text-muted-foreground">Valor Líquido</p>
+                      <p className="text-lg font-bold text-primary">{getSimboloMoeda(editingContrato.moedaId)} {liquidacao.valorLiquido.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                    </div>
+                  </div>
+                  <div className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
+                    Liquidação confirmada em {new Date(liquidacao.dataLiquidacao).toLocaleDateString("pt-BR")} às {new Date(liquidacao.dataLiquidacao).toLocaleTimeString("pt-BR")}.
+                  </div>
+                </div>
+              ) : (
+                /* Prévia / não gerada */
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-lg text-foreground">Liquidação do Contrato</h3>
+                  <p className="text-sm text-muted-foreground">
+                    A liquidação calcula o resultado final da negociação com base nos romaneios realizados, fixações de preço e condições financeiras.
+                    Este processo <strong>não movimenta caixa</strong>, apenas ajusta títulos financeiros.
+                  </p>
+
+                  {/* Opções */}
+                  <div className="rounded-md border p-4 space-y-3">
+                    <h4 className="font-medium text-foreground">Opções da Liquidação</h4>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id="opcaoEncerrar"
+                        checked={opcaoEncerrar}
+                        onChange={(e) => setOpcaoEncerrar(e.target.checked)}
+                        className="h-4 w-4 rounded border-input"
+                        disabled={liquidacao?.status === "PREVIA" && false}
+                      />
+                      <Label htmlFor="opcaoEncerrar" className="text-sm">
+                        Encerrar contrato com a quantidade entregue (diferença não será cobrada)
+                      </Label>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-sm">Ajuste de títulos financeiros</Label>
+                      <Select value={opcaoTitulos} onValueChange={(v) => setOpcaoTitulos(v as any)}>
+                        <SelectTrigger className="w-[320px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ATUALIZAR">Atualizar títulos existentes</SelectItem>
+                          <SelectItem value="COMPLEMENTAR">Gerar título complementar</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Prévia gerada? */}
+                  {liquidacao && liquidacao.status === "PREVIA" ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2 text-amber-600">
+                        <AlertTriangle className="h-4 w-4" />
+                        <span className="text-sm font-medium">Prévia de liquidação — confira os valores antes de confirmar</span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="rounded-md bg-card p-4 border space-y-1">
+                          <p className="text-sm text-muted-foreground">Qtd. Contratada</p>
+                          <p className="text-lg font-bold">{liquidacao.quantidadeContratada.toLocaleString("pt-BR")} {getCodigoUnidade(editingContrato?.unidadeNegociacaoId ?? "")}</p>
+                        </div>
+                        <div className="rounded-md bg-card p-4 border space-y-1">
+                          <p className="text-sm text-muted-foreground">Qtd. Entregue</p>
+                          <p className="text-lg font-bold">{liquidacao.quantidadeEntregue.toLocaleString("pt-BR")}</p>
+                        </div>
+                        <div className="rounded-md bg-card p-4 border space-y-1">
+                          <p className="text-sm text-muted-foreground">Qtd. Liquidada</p>
+                          <p className="text-lg font-bold text-primary">{liquidacao.quantidadeLiquidada.toLocaleString("pt-BR")}</p>
+                          {liquidacao.quantidadeEntregue < liquidacao.quantidadeContratada && (
+                            <p className="text-xs text-amber-600">
+                              Diferença: {(liquidacao.quantidadeContratada - liquidacao.quantidadeEntregue).toLocaleString("pt-BR")}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div className="rounded-md bg-card p-4 border space-y-1">
+                          <p className="text-sm text-muted-foreground">Preço Unitário</p>
+                          <p className="text-lg font-bold">
+                            {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")} {liquidacao.precoUnitario.toFixed(2)}
+                            {editingContrato?.tipoPreco === "A_FIXAR" && (
+                              <span className="text-xs text-muted-foreground ml-1">(média ponderada)</span>
+                            )}
+                          </p>
+                        </div>
+                        <div className="rounded-md bg-card p-4 border space-y-1">
+                          <p className="text-sm text-muted-foreground">Valor Bruto</p>
+                          <p className="text-lg font-bold">
+                            {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")} {liquidacao.valorBruto.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </p>
+                        </div>
+                        <div className="rounded-md bg-card p-4 border space-y-1">
+                          <p className="text-sm text-muted-foreground">Descontos</p>
+                          <p className="text-lg font-bold text-destructive">
+                            - {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")} {liquidacao.valorDescontos.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </p>
+                        </div>
+                        <div className="rounded-md bg-card p-4 border space-y-1">
+                          <p className="text-sm text-muted-foreground">Valor Líquido</p>
+                          <p className="text-lg font-bold text-primary">
+                            {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")} {liquidacao.valorLiquido.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2 pt-2">
+                        <Button onClick={() => setConfirmDialogOpen(true)} disabled={liquidacaoLoading}>
+                          <FileCheck className="mr-2 h-4 w-4" />Confirmar Liquidação
+                        </Button>
+                        <Button variant="outline" onClick={onGerarPrevia} disabled={liquidacaoLoading}>
+                          Recalcular Prévia
+                        </Button>
+                        <Button variant="destructive" onClick={onCancelarLiquidacao} disabled={liquidacaoLoading}>
+                          Cancelar Prévia
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-4 py-6">
+                      <p className="text-sm text-muted-foreground">Nenhuma liquidação gerada para este contrato.</p>
+                      <Button
+                        onClick={onGerarPrevia}
+                        disabled={liquidacaoLoading || editingContrato?.status === "CANCELADO" || editingContrato?.status === "LIQUIDADO"}
+                      >
+                        <FileCheck className="mr-2 h-4 w-4" />Gerar Liquidação Prévia
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </TabsContent>
         </Tabs>
       </CrudModal>
 
@@ -1350,6 +1592,27 @@ export default function ContratosPage() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={onDeleteContrato} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirm Liquidação Dialog */}
+      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Liquidação</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ao confirmar a liquidação, o contrato será encerrado com status <strong>LIQUIDADO</strong>,
+              o estoque em trânsito será zerado e os títulos financeiros serão ajustados.
+              <br /><br />
+              <strong>Esta ação não pode ser desfeita.</strong>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={onConfirmarLiquidacao}>
+              Confirmar Liquidação
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
