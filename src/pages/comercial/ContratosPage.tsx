@@ -554,6 +554,63 @@ export default function ContratosPage() {
   }, 0);
   const valorLiquidoEstimado = valorEstimado - totalDescontosMock;
 
+  // ---- Liquidação handlers ----
+  const onGerarPrevia = async () => {
+    if (!editingContrato) return;
+    setLiquidacaoLoading(true);
+    try {
+      const result = await contratoLiquidacaoService.gerarPrevia(
+        editingContrato.id, opcaoEncerrar, { grupoId, empresaId, filialId }
+      );
+      if (result.sucesso && result.liquidacao) {
+        setLiquidacao(result.liquidacao);
+        toast({ title: "Sucesso", description: result.mensagem });
+      } else {
+        toast({ title: "Erro", description: result.mensagem, variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Erro", description: "Falha ao gerar prévia.", variant: "destructive" });
+    } finally { setLiquidacaoLoading(false); }
+  };
+
+  const onConfirmarLiquidacao = async () => {
+    if (!liquidacao || !editingContrato) return;
+    setLiquidacaoLoading(true);
+    setConfirmDialogOpen(false);
+    try {
+      const result = await contratoLiquidacaoService.confirmar(
+        liquidacao.id, opcaoTitulos, { grupoId, empresaId, filialId }
+      );
+      if (result.sucesso) {
+        toast({ title: "Sucesso", description: result.mensagem });
+        await loadSubEntities(editingContrato.id);
+        await loadContratos();
+        const updated = (await contratoService.listar(empresaId, filialId)).find((c) => c.id === editingContrato.id);
+        if (updated) setEditingContrato(updated);
+      } else {
+        toast({ title: "Erro", description: result.mensagem, variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Erro", description: "Falha ao confirmar liquidação.", variant: "destructive" });
+    } finally { setLiquidacaoLoading(false); }
+  };
+
+  const onCancelarLiquidacao = async () => {
+    if (!liquidacao || !editingContrato) return;
+    setLiquidacaoLoading(true);
+    try {
+      const result = await contratoLiquidacaoService.cancelar(liquidacao.id);
+      if (result.sucesso) {
+        setLiquidacao(null);
+        toast({ title: "Sucesso", description: result.mensagem });
+      } else {
+        toast({ title: "Erro", description: result.mensagem, variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Erro", description: "Falha ao cancelar.", variant: "destructive" });
+    } finally { setLiquidacaoLoading(false); }
+  };
+
 
   if (!grupoId) {
     return (
