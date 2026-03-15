@@ -2032,6 +2032,7 @@ export interface Romaneio {
   motoristaDocumento: string;
   veiculoId: string | null;
   placaVeiculo: string;
+  pontoEstoqueId: string | null;
   status: StatusRomaneio;
   pesoBruto: number;
   pesoTara: number;
