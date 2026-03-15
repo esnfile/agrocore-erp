@@ -153,6 +153,13 @@ export default function ContratosPage() {
   const [romaneioClassificacoesMap, setRomaneioClassificacoesMap] = useState<Record<string, RomaneioClassificacao[]>>({});
   const [classEntregaItens, setClassEntregaItens] = useState<{ classificacaoTipoId: string; valorApurado: string }[]>([]);
 
+  // Liquidação
+  const [liquidacao, setLiquidacao] = useState<ContratoLiquidacao | null>(null);
+  const [liquidacaoLoading, setLiquidacaoLoading] = useState(false);
+  const [opcaoEncerrar, setOpcaoEncerrar] = useState(true);
+  const [opcaoTitulos, setOpcaoTitulos] = useState<"ATUALIZAR" | "COMPLEMENTAR">("ATUALIZAR");
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+
   // Forms
   const contratoForm = useForm<ContratoForm>({
     resolver: zodResolver(contratoSchema),
