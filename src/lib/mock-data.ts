@@ -1103,7 +1103,7 @@ export const pontoEstoqueTiposProduto: PontoEstoqueTipoProduto[] = [];
 // ---- Contratos ----
 export type TipoContrato = "COMPRA" | "VENDA";
 export type TipoPreco = "FIXO" | "A_FIXAR";
-export type StatusContrato = "ABERTO" | "PARCIAL" | "FINALIZADO" | "CANCELADO";
+export type StatusContrato = "ABERTO" | "PARCIAL" | "FINALIZADO" | "CANCELADO" | "LIQUIDADO";
 
 export interface Contrato {
   id: string;
