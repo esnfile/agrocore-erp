@@ -714,6 +714,7 @@ export default function ContratosPage() {
               )}
               <TabsTrigger value="financeiro" disabled={!editingContrato}>Financeiro</TabsTrigger>
               <TabsTrigger value="condicoes" disabled={!editingContrato}>Condições e Descontos</TabsTrigger>
+              <TabsTrigger value="liquidacao" disabled={!editingContrato}>Liquidação</TabsTrigger>
             </TabsList>
             {editingContrato && (
               <StatusBadge status={editingContrato.status} />
