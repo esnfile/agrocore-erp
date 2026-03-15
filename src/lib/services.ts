@@ -1460,6 +1460,7 @@ export const contratoEntregaService = {
       quantidadeConvertidaBase: entrega.quantidadeConvertidaBase,
       dataMovimentacao: entrega.dataEntrega,
       observacao: `Romaneio ${entrega.id} — Contrato ${contrato.numeroContrato}`,
+      contratoId: contrato.id, romaneioId: entrega.id,
       criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
       deletadoEm: null, deletadoPor: null,
     };
