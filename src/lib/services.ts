@@ -535,12 +535,108 @@ function createSimpleCrudService<T extends SimpleEntity>(store: T[], prefix: str
   };
 }
 
-export const tipoProdutoService = createSimpleCrudService<TipoProduto>(mockTiposProduto, "tp");
-export const marcaProdutoService = createSimpleCrudService<MarcaProduto>(mockMarcasProduto, "mp");
-export const divisaoProdutoService = createSimpleCrudService<DivisaoProduto>(mockDivisoesProduto, "dp");
-export const secaoProdutoService = createSimpleCrudService<SecaoProduto>(mockSecoesProduto, "sp");
-export const grupoProdutoService = createSimpleCrudService<GrupoProduto>(mockGruposProduto, "grp");
-export const subgrupoProdutoService = createSimpleCrudService<SubgrupoProduto>(mockSubgruposProduto, "sgp");
+// ============================================================
+// Generic CRUD service factory for CORPORATE tables (grupo-level, no empresa/filial)
+// ============================================================
+interface CorporateEntity {
+  id: string;
+  grupoId: string;
+  empresaId: string | null;
+  filialId: string | null;
+  descricao: string;
+  ativo: boolean;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+function createCorporateCrudService<T extends CorporateEntity>(store: T[], prefix: string) {
+  return {
+    async listar(empresaId: string, filialId: string): Promise<T[]> {
+      await delay();
+      // Corporate entities: filter by grupoId only (get from first empresa match)
+      return store.filter((i) => i.deletadoEm === null);
+    },
+    async listarPorGrupo(grupoId: string): Promise<T[]> {
+      await delay();
+      return store.filter((i) => i.deletadoEm === null && i.grupoId === grupoId);
+    },
+    async listarTodos(): Promise<T[]> {
+      await delay();
+      return store.filter((i) => i.deletadoEm === null);
+    },
+    async descricaoExiste(descricao: string, empresaId: string, filialId: string, excludeId?: string): Promise<boolean> {
+      await delay(100);
+      const trimmed = descricao.trim().toLowerCase();
+      // For corporate entities, check across the whole group
+      return store.some(
+        (i) => i.deletadoEm === null &&
+          i.descricao.toLowerCase() === trimmed && i.id !== excludeId
+      );
+    },
+    async salvar(
+      data: Partial<T>,
+      ctx: { grupoId: string; empresaId: string; filialId: string }
+    ): Promise<T> {
+      await delay(400);
+      const now = new Date().toISOString();
+      const userId = "u1";
+      const existing = data.id ? store.find((i) => i.id === data.id && i.deletadoEm === null) : undefined;
+      if (existing) {
+        existing.descricao = (data.descricao ?? existing.descricao).trim();
+        existing.ativo = data.ativo ?? existing.ativo;
+        const extraKeys = Object.keys(data).filter(k => !['id','descricao','ativo','grupoId','empresaId','filialId','criadoEm','criadoPor','atualizadoEm','atualizadoPor','deletadoEm','deletadoPor'].includes(k));
+        for (const key of extraKeys) {
+          (existing as any)[key] = (data as any)[key];
+        }
+        existing.atualizadoEm = now;
+        existing.atualizadoPor = userId;
+        return existing;
+      }
+      const novo = {
+        id: `${prefix}${Date.now()}`,
+        grupoId: ctx.grupoId,
+        empresaId: null,
+        filialId: null,
+        descricao: (data.descricao ?? "").trim(),
+        ativo: data.ativo ?? true,
+        criadoEm: now,
+        criadoPor: userId,
+        atualizadoEm: now,
+        atualizadoPor: userId,
+        deletadoEm: null,
+        deletadoPor: null,
+      } as T;
+      const extraKeys = Object.keys(data).filter(k => !['id','descricao','ativo','grupoId','empresaId','filialId'].includes(k));
+      for (const key of extraKeys) {
+        (novo as any)[key] = (data as any)[key];
+      }
+      store.push(novo);
+      return novo;
+    },
+    async excluir(id: string): Promise<void> {
+      await delay();
+      const now = new Date().toISOString();
+      const item = store.find((i) => i.id === id && i.deletadoEm === null);
+      if (item) {
+        item.deletadoEm = now;
+        item.deletadoPor = "u1";
+        item.atualizadoEm = now;
+        item.atualizadoPor = "u1";
+      }
+    },
+  };
+}
+
+export const tipoProdutoService = createCorporateCrudService<TipoProduto>(mockTiposProduto, "tp");
+export const marcaProdutoService = createCorporateCrudService<MarcaProduto>(mockMarcasProduto, "mp");
+export const divisaoProdutoService = createCorporateCrudService<DivisaoProduto>(mockDivisoesProduto, "dp");
+export const secaoProdutoService = createCorporateCrudService<SecaoProduto>(mockSecoesProduto, "sp");
+export const grupoProdutoService = createCorporateCrudService<GrupoProduto>(mockGruposProduto, "grp");
+export const subgrupoProdutoService = createCorporateCrudService<SubgrupoProduto>(mockSubgruposProduto, "sgp");
 
 // ============================================================
 // Coeficientes
@@ -746,7 +842,7 @@ export const produtoService = {
     }
     const novo: Produto = {
       id: `prod${Date.now()}`,
-      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: null,
       codigoBarras: data.codigoBarras ?? "",
       tipoProdutoId: data.tipoProdutoId ?? "",
       descricao: (data.descricao ?? "").trim(),
@@ -853,7 +949,8 @@ export const produtoEmpresaTabelaPrecoService = {
 export const unidadeMedidaService = {
   async listar(empresaId: string, filialId: string): Promise<UnidadeMedida[]> {
     await delay();
-    return mockUnidadesMedida.filter((u) => u.deletadoEm === null && u.empresaId === empresaId && u.filialId === filialId);
+    // Corporate entity - list all for the group
+    return mockUnidadesMedida.filter((u) => u.deletadoEm === null);
   },
   async listarPorGrupo(grupoId: string): Promise<UnidadeMedida[]> {
     await delay();
@@ -862,8 +959,9 @@ export const unidadeMedidaService = {
   async codigoExiste(codigo: string, empresaId: string, filialId: string, excludeId?: string): Promise<boolean> {
     await delay(100);
     const t = codigo.trim().toUpperCase();
+    // Corporate entity - check across group
     return mockUnidadesMedida.some(
-      (u) => u.deletadoEm === null && u.empresaId === empresaId && u.filialId === filialId && u.codigo.toUpperCase() === t && u.id !== excludeId
+      (u) => u.deletadoEm === null && u.codigo.toUpperCase() === t && u.id !== excludeId
     );
   },
   async estaEmUso(id: string): Promise<boolean> {
@@ -892,8 +990,8 @@ export const unidadeMedidaService = {
     const novo: UnidadeMedida = {
       id: `um${Date.now()}`,
       grupoId: ctx.grupoId,
-      empresaId: ctx.empresaId,
-      filialId: ctx.filialId,
+      empresaId: null,
+      filialId: null,
       codigo: (data.codigo ?? "").trim().toUpperCase(),
       descricao: (data.descricao ?? "").trim(),
       tipo: data.tipo ?? "UNIDADE",
@@ -1140,7 +1238,7 @@ export const moedaService = {
       return existing;
     }
     const novo: Moeda = {
-      id: `moeda${Date.now()}`, grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      id: `moeda${Date.now()}`, grupoId: ctx.grupoId, empresaId: null, filialId: null,
       codigo: (data.codigo ?? "").trim(), descricao: (data.descricao ?? "").trim(),
       simbolo: data.simbolo ?? "", ativo: data.ativo ?? true,
       criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
@@ -1188,7 +1286,7 @@ export const cotacaoMoedaService = {
     const eurVar = newEurCompra - baseEur;
 
     const usd: CotacaoMoeda = {
-      id: `cot${Date.now()}a`, grupoId: "g1", empresaId: "e1", filialId: "f1",
+      id: `cot${Date.now()}a`, grupoId: "g1", empresaId: "e1", filialId: null,
       moedaOrigemId: "moeda2", moedaDestinoId: "moeda1",
       valorCompra: newUsdCompra, valorVenda: Math.round((newUsdCompra + 0.02) * 1000000) / 1000000,
       variacao: Math.round(usdVar * 1000000) / 1000000,
@@ -1201,7 +1299,7 @@ export const cotacaoMoedaService = {
     };
 
     const eur: CotacaoMoeda = {
-      id: `cot${Date.now()}b`, grupoId: "g1", empresaId: "e1", filialId: "f1",
+      id: `cot${Date.now()}b`, grupoId: "g1", empresaId: "e1", filialId: null,
       moedaOrigemId: "moeda3", moedaDestinoId: "moeda1",
       valorCompra: newEurCompra, valorVenda: Math.round((newEurCompra + 0.03) * 1000000) / 1000000,
       variacao: Math.round(eurVar * 1000000) / 1000000,
@@ -1335,6 +1433,9 @@ export const contratoService = {
       dataContrato: data.dataContrato ?? new Date().toISOString().slice(0, 10),
       dataEntregaInicio: data.dataEntregaInicio ?? "",
       dataEntregaFim: data.dataEntregaFim ?? "",
+      filialOperacaoId: data.filialOperacaoId ?? null,
+      filialOrigemId: data.filialOrigemId ?? null,
+      filialDestinoId: data.filialDestinoId ?? null,
       status: "ABERTO",
       observacoes: data.observacoes ?? "",
       criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
@@ -1542,7 +1643,7 @@ export const contratoFixacaoService = {
 
     const fixacao: ContratoFixacao = {
       id: `ctrf${Date.now()}`,
-      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: null,
       contratoId: data.contratoId!,
       dataFixacao: data.dataFixacao ?? now,
       quantidadeFixada: data.quantidadeFixada ?? 0,
@@ -1570,8 +1671,9 @@ export const contratoFixacaoService = {
 export const condicaoDescontoModeloService = {
   async listar(empresaId: string, filialId: string): Promise<CondicaoDescontoModelo[]> {
     await delay();
+    // Enterprise entity - filter by empresa only
     return mockCondicaoDescontoModelos.filter(
-      (m) => m.deletadoEm === null && m.empresaId === empresaId && m.filialId === filialId
+      (m) => m.deletadoEm === null && m.empresaId === empresaId
     );
   },
   async listarTodos(): Promise<CondicaoDescontoModelo[]> {
@@ -1581,8 +1683,9 @@ export const condicaoDescontoModeloService = {
   async descricaoExiste(descricao: string, empresaId: string, filialId: string, excludeId?: string): Promise<boolean> {
     await delay(100);
     const t = descricao.trim().toLowerCase();
+    // Enterprise entity - check by empresa only
     return mockCondicaoDescontoModelos.some(
-      (m) => m.deletadoEm === null && m.empresaId === empresaId && m.filialId === filialId &&
+      (m) => m.deletadoEm === null && m.empresaId === empresaId &&
         m.descricao.toLowerCase() === t && m.id !== excludeId
     );
   },
@@ -1602,7 +1705,7 @@ export const condicaoDescontoModeloService = {
     }
     const novo: CondicaoDescontoModelo = {
       id: `cdm${Date.now()}`,
-      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: null,
       descricao: (data.descricao ?? "").trim(),
       ativo: data.ativo ?? true,
       criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
@@ -1652,7 +1755,7 @@ export const condicaoDescontoModeloItemService = {
     }
     const novo: CondicaoDescontoModeloItem = {
       id: `cdmi${Date.now()}`,
-      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: null,
       modeloId: data.modeloId ?? "",
       descricao: (data.descricao ?? "").trim(),
       tipo: data.tipo ?? "PERCENTUAL",
@@ -1764,9 +1867,8 @@ export const contratoCondicaoService = {
 export const classificacaoTipoService = {
   async listar(empresaId: string, filialId: string): Promise<ClassificacaoTipo[]> {
     await delay();
-    return mockClassificacaoTipos.filter(
-      (t) => t.deletadoEm === null && t.empresaId === empresaId && t.filialId === filialId
-    );
+    // Corporate entity - list all
+    return mockClassificacaoTipos.filter((t) => t.deletadoEm === null);
   },
   async listarTodos(): Promise<ClassificacaoTipo[]> {
     await delay();
@@ -1775,9 +1877,9 @@ export const classificacaoTipoService = {
   async descricaoExiste(descricao: string, empresaId: string, filialId: string, excludeId?: string): Promise<boolean> {
     await delay(100);
     const t = descricao.trim().toLowerCase();
+    // Corporate entity - check across group
     return mockClassificacaoTipos.some(
-      (ct) => ct.deletadoEm === null && ct.empresaId === empresaId && ct.filialId === filialId &&
-        ct.descricao.toLowerCase() === t && ct.id !== excludeId
+      (ct) => ct.deletadoEm === null && ct.descricao.toLowerCase() === t && ct.id !== excludeId
     );
   },
   async salvar(
@@ -1798,7 +1900,7 @@ export const classificacaoTipoService = {
     }
     const novo: ClassificacaoTipo = {
       id: `ct${Date.now()}`,
-      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      grupoId: ctx.grupoId, empresaId: null, filialId: null,
       descricao: (data.descricao ?? "").trim(),
       unidade: data.unidade ?? "PERCENTUAL",
       valorBase: data.valorBase ?? null,
@@ -2164,12 +2266,12 @@ export const financeiroBaixaService = {
 // ============================================================
 // Financeiro — Bancos
 // ============================================================
-export const financeiroBancoService = createSimpleCrudService<FinanceiroBanco>(mockFinanceiroBancos as any, "fb_banco");
+export const financeiroBancoService = createCorporateCrudService<FinanceiroBanco>(mockFinanceiroBancos as any, "fb_banco");
 
 // ============================================================
 // Financeiro — Tipo de Contas
 // ============================================================
-export const financeiroTipoContaService = createSimpleCrudService<FinanceiroTipoConta>(mockFinanceiroTipoContas as any, "ftc");
+export const financeiroTipoContaService = createCorporateCrudService<FinanceiroTipoConta>(mockFinanceiroTipoContas as any, "ftc");
 
 // ============================================================
 // Financeiro — Contas Financeiras
@@ -2245,7 +2347,8 @@ export const financeiroContaFinanceiraService = {
 export const financeiroTipoLancamentoService = {
   async listar(empresaId: string, filialId: string): Promise<FinanceiroTipoLancamento[]> {
     await delay();
-    return mockFinanceiroTiposLancamento.filter((t) => t.deletadoEm === null && t.empresaId === empresaId && t.filialId === filialId);
+    // Corporate entity - list all
+    return mockFinanceiroTiposLancamento.filter((t) => t.deletadoEm === null);
   },
   async listarTodos(): Promise<FinanceiroTipoLancamento[]> {
     await delay();
@@ -2254,8 +2357,9 @@ export const financeiroTipoLancamentoService = {
   async descricaoExiste(descricao: string, empresaId: string, filialId: string, excludeId?: string): Promise<boolean> {
     await delay(100);
     const t = descricao.trim().toLowerCase();
+    // Corporate entity - check across group
     return mockFinanceiroTiposLancamento.some(
-      (tl) => tl.deletadoEm === null && tl.empresaId === empresaId && tl.filialId === filialId && tl.descricao.toLowerCase() === t && tl.id !== excludeId
+      (tl) => tl.deletadoEm === null && tl.descricao.toLowerCase() === t && tl.id !== excludeId
     );
   },
   async salvar(data: Partial<FinanceiroTipoLancamento>, ctx: { grupoId: string; empresaId: string; filialId: string }): Promise<FinanceiroTipoLancamento> {
@@ -2275,7 +2379,7 @@ export const financeiroTipoLancamentoService = {
     }
     const novo: FinanceiroTipoLancamento = {
       id: `ftl${Date.now()}`,
-      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      grupoId: ctx.grupoId, empresaId: null, filialId: null,
       descricao: (data.descricao ?? "").trim(),
       tipoMovimento: data.tipoMovimento ?? "ENTRADA",
       tipoConta: data.tipoConta ?? [],
@@ -2304,17 +2408,17 @@ export const financeiroTipoLancamentoService = {
 // ============================================================
 // Financeiro — Formas de Pagamento
 // ============================================================
-export const financeiroFormaPagtoService = createSimpleCrudService<FinanceiroFormaPagto>(mockFinanceiroFormasPagto as any, "ffp");
+export const financeiroFormaPagtoService = createCorporateCrudService<FinanceiroFormaPagto>(mockFinanceiroFormasPagto as any, "ffp");
 
 // ============================================================
 // Financeiro — Plano de Contas
 // ============================================================
-export const financeiroPlanoContaService = createSimpleCrudService<FinanceiroPlanoConta>(mockFinanceiroPlanoContas as any, "fpc");
+export const financeiroPlanoContaService = createCorporateCrudService<FinanceiroPlanoConta>(mockFinanceiroPlanoContas as any, "fpc");
 
 // ============================================================
 // Financeiro — Centros de Custo
 // ============================================================
-export const financeiroCentroCustoService = createSimpleCrudService<FinanceiroCentroCusto>(mockFinanceiroCentrosCusto as any, "fcc");
+export const financeiroCentroCustoService = createCorporateCrudService<FinanceiroCentroCusto>(mockFinanceiroCentrosCusto as any, "fcc");
 
 // ============================================================
 // Financeiro — Movimentações
@@ -2474,12 +2578,13 @@ import type { Motorista, Veiculo, Romaneio, StatusRomaneio, RomaneioPesagem, Tip
 export const motoristaService = {
   async listar(empresaId: string, filialId: string): Promise<Motorista[]> {
     await delay();
-    return mockMotoristas.filter((m) => m.deletadoEm === null && m.empresaId === empresaId && m.filialId === filialId);
+    // Motoristas can be shared across filiais - filter by empresa only
+    return mockMotoristas.filter((m) => m.deletadoEm === null && m.empresaId === empresaId);
   },
   async buscarPorNome(empresaId: string, filialId: string, termo: string): Promise<Motorista[]> {
     await delay();
     const t = termo.toLowerCase();
-    return mockMotoristas.filter((m) => m.deletadoEm === null && m.empresaId === empresaId && m.filialId === filialId && m.nome.toLowerCase().includes(t));
+    return mockMotoristas.filter((m) => m.deletadoEm === null && m.empresaId === empresaId && m.nome.toLowerCase().includes(t));
   },
   async salvar(data: Partial<Motorista>, ctx: { grupoId: string; empresaId: string; filialId: string }): Promise<Motorista> {
     await delay();
@@ -2489,7 +2594,7 @@ export const motoristaService = {
       if (existing) { Object.assign(existing, data, { atualizadoEm: now, atualizadoPor: "u1" }); return existing; }
     }
     const novo: Motorista = {
-      id: `mot${Date.now()}`, grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      id: `mot${Date.now()}`, grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: null,
       nome: data.nome || "", documento: data.documento || "", telefone: data.telefone || "",
       ativo: data.ativo ?? true,
       criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
@@ -2511,12 +2616,13 @@ export const motoristaService = {
 export const veiculoService = {
   async listar(empresaId: string, filialId: string): Promise<Veiculo[]> {
     await delay();
-    return mockVeiculos.filter((v) => v.deletadoEm === null && v.empresaId === empresaId && v.filialId === filialId);
+    // Veículos can be shared across filiais - filter by empresa only
+    return mockVeiculos.filter((v) => v.deletadoEm === null && v.empresaId === empresaId);
   },
   async buscarPorPlaca(empresaId: string, filialId: string, termo: string): Promise<Veiculo[]> {
     await delay();
     const t = termo.toUpperCase();
-    return mockVeiculos.filter((v) => v.deletadoEm === null && v.empresaId === empresaId && v.filialId === filialId && v.placa.toUpperCase().includes(t));
+    return mockVeiculos.filter((v) => v.deletadoEm === null && v.empresaId === empresaId && v.placa.toUpperCase().includes(t));
   },
   async salvar(data: Partial<Veiculo>, ctx: { grupoId: string; empresaId: string; filialId: string }): Promise<Veiculo> {
     await delay();
@@ -2526,7 +2632,7 @@ export const veiculoService = {
       if (existing) { Object.assign(existing, data, { atualizadoEm: now, atualizadoPor: "u1" }); return existing; }
     }
     const novo: Veiculo = {
-      id: `veic${Date.now()}`, grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      id: `veic${Date.now()}`, grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: null,
       placa: data.placa || "", tipoVeiculo: data.tipoVeiculo || "", transportadora: data.transportadora || "",
       ativo: data.ativo ?? true,
       criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
@@ -2735,6 +2841,7 @@ export const estoqueTransitoService = {
     const novo: EstoqueTransito = {
       id: `etrans${Date.now()}`,
       grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      filialOrigemId: null, filialDestinoId: null,
       contratoId: contrato.id,
       produtoId: contrato.produtoId,
       tipoMovimento: tipoMov,
