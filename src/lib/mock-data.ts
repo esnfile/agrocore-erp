@@ -94,6 +94,10 @@ export interface Endereco {
   numero: string;
   bairro: string;
   referencia: string;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
 }
 
 // ---- Contato (sub-entidade de Pessoa) ----
@@ -102,6 +106,10 @@ export interface Contato {
   contatoPadrao: boolean;
   tipoContato: "Telefone" | "WhatsApp" | "Email" | "Outros";
   descContatoPessoa: string;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
 }
 
 // ---- Pessoa ----
@@ -350,6 +358,8 @@ export const pessoas: Pessoa[] = [
         numero: "123",
         bairro: "Jardim Alvorada",
         referencia: "Próximo ao mercado central",
+        criadoEm: "2024-05-01T08:00:00Z", criadoPor: "u1",
+        atualizadoEm: "2024-05-01T08:00:00Z", atualizadoPor: "u1",
       },
     ],
     contatos: [
@@ -358,12 +368,16 @@ export const pessoas: Pessoa[] = [
         contatoPadrao: true,
         tipoContato: "WhatsApp",
         descContatoPessoa: "(44) 99999-1111",
+        criadoEm: "2024-05-01T08:00:00Z", criadoPor: "u1",
+        atualizadoEm: "2024-05-01T08:00:00Z", atualizadoPor: "u1",
       },
       {
         id: "ct2",
         contatoPadrao: false,
         tipoContato: "Email",
         descContatoPessoa: "carlos@email.com",
+        criadoEm: "2024-05-01T08:00:00Z", criadoPor: "u1",
+        atualizadoEm: "2024-05-01T08:00:00Z", atualizadoPor: "u1",
       },
     ],
     criadoEm: "2024-05-01T08:00:00Z",
@@ -400,6 +414,8 @@ export const pessoas: Pessoa[] = [
         numero: "4500",
         bairro: "Centro",
         referencia: "",
+        criadoEm: "2024-05-10T08:00:00Z", criadoPor: "u1",
+        atualizadoEm: "2024-05-10T08:00:00Z", atualizadoPor: "u1",
       },
     ],
     contatos: [
@@ -408,6 +424,8 @@ export const pessoas: Pessoa[] = [
         contatoPadrao: true,
         tipoContato: "Telefone",
         descContatoPessoa: "(43) 3344-5566",
+        criadoEm: "2024-05-10T08:00:00Z", criadoPor: "u1",
+        atualizadoEm: "2024-05-10T08:00:00Z", atualizadoPor: "u1",
       },
     ],
     criadoEm: "2024-05-10T08:00:00Z",
@@ -423,8 +441,8 @@ export const pessoas: Pessoa[] = [
 export interface TipoProduto {
   id: string;
   grupoId: string;
-  empresaId: string;
-  filialId: string;
+  empresaId: string | null;
+  filialId: string | null;
   descricao: string;
   ativo: boolean;
   criadoEm: string;
@@ -439,8 +457,8 @@ export interface TipoProduto {
 export interface MarcaProduto {
   id: string;
   grupoId: string;
-  empresaId: string;
-  filialId: string;
+  empresaId: string | null;
+  filialId: string | null;
   descricao: string;
   ativo: boolean;
   criadoEm: string;
@@ -455,8 +473,8 @@ export interface MarcaProduto {
 export interface DivisaoProduto {
   id: string;
   grupoId: string;
-  empresaId: string;
-  filialId: string;
+  empresaId: string | null;
+  filialId: string | null;
   descricao: string;
   ativo: boolean;
   criadoEm: string;
@@ -471,8 +489,8 @@ export interface DivisaoProduto {
 export interface SecaoProduto {
   id: string;
   grupoId: string;
-  empresaId: string;
-  filialId: string;
+  empresaId: string | null;
+  filialId: string | null;
   descricao: string;
   ativo: boolean;
   criadoEm: string;
@@ -487,8 +505,8 @@ export interface SecaoProduto {
 export interface GrupoProduto {
   id: string;
   grupoId: string;
-  empresaId: string;
-  filialId: string;
+  empresaId: string | null;
+  filialId: string | null;
   descricao: string;
   secaoProdutoId: string;
   ativo: boolean;
@@ -504,8 +522,8 @@ export interface GrupoProduto {
 export interface SubgrupoProduto {
   id: string;
   grupoId: string;
-  empresaId: string;
-  filialId: string;
+  empresaId: string | null;
+  filialId: string | null;
   descricao: string;
   grupoProdutoId: string;
   ativo: boolean;
@@ -519,14 +537,14 @@ export interface SubgrupoProduto {
 
 export const tiposProduto: TipoProduto[] = [
   {
-    id: "tp1", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    id: "tp1", grupoId: "g1", empresaId: null, filialId: null,
     descricao: "Matéria-Prima", ativo: true,
     criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1",
     atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1",
     deletadoEm: null, deletadoPor: null,
   },
   {
-    id: "tp2", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    id: "tp2", grupoId: "g1", empresaId: null, filialId: null,
     descricao: "Produto Acabado", ativo: true,
     criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1",
     atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1",
@@ -536,7 +554,7 @@ export const tiposProduto: TipoProduto[] = [
 
 export const marcasProduto: MarcaProduto[] = [
   {
-    id: "mp1", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    id: "mp1", grupoId: "g1", empresaId: null, filialId: null,
     descricao: "Syngenta", ativo: true,
     criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1",
     atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1",
@@ -546,7 +564,7 @@ export const marcasProduto: MarcaProduto[] = [
 
 export const divisoesProduto: DivisaoProduto[] = [
   {
-    id: "dp1", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    id: "dp1", grupoId: "g1", empresaId: null, filialId: null,
     descricao: "Agrícola", ativo: true,
     criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1",
     atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1",
@@ -556,14 +574,14 @@ export const divisoesProduto: DivisaoProduto[] = [
 
 export const secoesProduto: SecaoProduto[] = [
   {
-    id: "sp1", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    id: "sp1", grupoId: "g1", empresaId: null, filialId: null,
     descricao: "Insumos", ativo: true,
     criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1",
     atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1",
     deletadoEm: null, deletadoPor: null,
   },
   {
-    id: "sp2", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    id: "sp2", grupoId: "g1", empresaId: null, filialId: null,
     descricao: "Grãos", ativo: true,
     criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1",
     atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1",
@@ -573,14 +591,14 @@ export const secoesProduto: SecaoProduto[] = [
 
 export const gruposProduto: GrupoProduto[] = [
   {
-    id: "grp1", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    id: "grp1", grupoId: "g1", empresaId: null, filialId: null,
     descricao: "Fertilizantes", secaoProdutoId: "sp1", ativo: true,
     criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1",
     atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1",
     deletadoEm: null, deletadoPor: null,
   },
   {
-    id: "grp2", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    id: "grp2", grupoId: "g1", empresaId: null, filialId: null,
     descricao: "Soja", secaoProdutoId: "sp2", ativo: true,
     criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1",
     atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1",
@@ -590,7 +608,7 @@ export const gruposProduto: GrupoProduto[] = [
 
 export const subgruposProduto: SubgrupoProduto[] = [
   {
-    id: "sgp1", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    id: "sgp1", grupoId: "g1", empresaId: null, filialId: null,
     descricao: "NPK", grupoProdutoId: "grp1", ativo: true,
     criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1",
     atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1",
@@ -752,8 +770,8 @@ export type TipoUnidadeMedida = "PESO" | "VOLUME" | "UNIDADE";
 export interface UnidadeMedida {
   id: string;
   grupoId: string;
-  empresaId: string;
-  filialId: string;
+  empresaId: string | null;
+  filialId: string | null;
   codigo: string;
   descricao: string;
   tipo: TipoUnidadeMedida;
@@ -774,7 +792,7 @@ export interface Produto {
   id: string;
   grupoId: string;
   empresaId: string;
-  filialId: string;
+  filialId: string | null;
   tipoProdutoId: string;
   codigoBarras: string;
   descricao: string;
@@ -830,17 +848,17 @@ export interface ProdutoEmpresaTabelaPreco {
 }
 
 export const unidadesMedida: UnidadeMedida[] = [
-  { id: "um1", grupoId: "g1", empresaId: "e1", filialId: "f1", codigo: "KG", descricao: "Quilograma", tipo: "PESO", fatorBase: 1, ativo: true, criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
-  { id: "um2", grupoId: "g1", empresaId: "e1", filialId: "f1", codigo: "TON", descricao: "Tonelada", tipo: "PESO", fatorBase: 1000, ativo: true, criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
-  { id: "um3", grupoId: "g1", empresaId: "e1", filialId: "f1", codigo: "G", descricao: "Grama", tipo: "PESO", fatorBase: 0.001, ativo: true, criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
-  { id: "um4", grupoId: "g1", empresaId: "e1", filialId: "f1", codigo: "L", descricao: "Litro", tipo: "VOLUME", fatorBase: 1, ativo: true, criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
-  { id: "um5", grupoId: "g1", empresaId: "e1", filialId: "f1", codigo: "ML", descricao: "Mililitro", tipo: "VOLUME", fatorBase: 0.001, ativo: true, criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
-  { id: "um6", grupoId: "g1", empresaId: "e1", filialId: "f1", codigo: "UND", descricao: "Unidade", tipo: "UNIDADE", fatorBase: 1, ativo: true, criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "um1", grupoId: "g1", empresaId: null, filialId: null, codigo: "KG", descricao: "Quilograma", tipo: "PESO", fatorBase: 1, ativo: true, criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "um2", grupoId: "g1", empresaId: null, filialId: null, codigo: "TON", descricao: "Tonelada", tipo: "PESO", fatorBase: 1000, ativo: true, criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "um3", grupoId: "g1", empresaId: null, filialId: null, codigo: "G", descricao: "Grama", tipo: "PESO", fatorBase: 0.001, ativo: true, criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "um4", grupoId: "g1", empresaId: null, filialId: null, codigo: "L", descricao: "Litro", tipo: "VOLUME", fatorBase: 1, ativo: true, criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "um5", grupoId: "g1", empresaId: null, filialId: null, codigo: "ML", descricao: "Mililitro", tipo: "VOLUME", fatorBase: 0.001, ativo: true, criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "um6", grupoId: "g1", empresaId: null, filialId: null, codigo: "UND", descricao: "Unidade", tipo: "UNIDADE", fatorBase: 1, ativo: true, criadoEm: "2024-06-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2024-06-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
 ];
 
 export const produtos: Produto[] = [
   {
-    id: "prod1", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    id: "prod1", grupoId: "g1", empresaId: "e1", filialId: null,
     tipoProdutoId: "tp1",
     codigoBarras: "7891234567890", descricao: "Fertilizante NPK 20-05-20",
     aplicacao: "Aplicação foliar em soja e milho",
@@ -973,7 +991,9 @@ export interface EstoqueTransito {
   id: string;
   grupoId: string;
   empresaId: string;
-  filialId: string;
+  filialId: string | null;
+  filialOrigemId: string | null;
+  filialDestinoId: string | null;
   contratoId: string;
   produtoId: string;
   tipoMovimento: "ENTRADA" | "SAIDA";
@@ -995,8 +1015,8 @@ export const estoquesTransito: EstoqueTransito[] = [];
 export interface Moeda {
   id: string;
   grupoId: string;
-  empresaId: string;
-  filialId: string;
+  empresaId: string | null;
+  filialId: string | null;
   codigo: string;
   descricao: string;
   simbolo: string;
@@ -1011,21 +1031,21 @@ export interface Moeda {
 
 export const moedas: Moeda[] = [
   {
-    id: "moeda1", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    id: "moeda1", grupoId: "g1", empresaId: null, filialId: null,
     codigo: "BRL", descricao: "Real Brasileiro", simbolo: "R$", ativo: true,
     criadoEm: "2024-01-01T08:00:00Z", criadoPor: "u1",
     atualizadoEm: "2024-01-01T08:00:00Z", atualizadoPor: "u1",
     deletadoEm: null, deletadoPor: null,
   },
   {
-    id: "moeda2", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    id: "moeda2", grupoId: "g1", empresaId: null, filialId: null,
     codigo: "USD", descricao: "Dólar Americano", simbolo: "$", ativo: true,
     criadoEm: "2024-01-01T08:00:00Z", criadoPor: "u1",
     atualizadoEm: "2024-01-01T08:00:00Z", atualizadoPor: "u1",
     deletadoEm: null, deletadoPor: null,
   },
   {
-    id: "moeda3", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    id: "moeda3", grupoId: "g1", empresaId: null, filialId: null,
     codigo: "EUR", descricao: "Euro", simbolo: "€", ativo: true,
     criadoEm: "2024-01-01T08:00:00Z", criadoPor: "u1",
     atualizadoEm: "2024-01-01T08:00:00Z", atualizadoPor: "u1",
@@ -1038,7 +1058,7 @@ export interface CotacaoMoeda {
   id: string;
   grupoId: string;
   empresaId: string;
-  filialId: string;
+  filialId: string | null;
   moedaOrigemId: string;
   moedaDestinoId: string;
   valorCompra: number;
@@ -1059,7 +1079,7 @@ export interface CotacaoMoeda {
 
 export const cotacoesMoeda: CotacaoMoeda[] = [
   {
-    id: "cot1", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    id: "cot1", grupoId: "g1", empresaId: "e1", filialId: null,
     moedaOrigemId: "moeda2", moedaDestinoId: "moeda1",
     valorCompra: 5.02, valorVenda: 5.04,
     variacao: 0.02, variacaoPercentual: 0.40,
@@ -1070,7 +1090,7 @@ export const cotacoesMoeda: CotacaoMoeda[] = [
     deletadoEm: null, deletadoPor: null,
   },
   {
-    id: "cot2", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    id: "cot2", grupoId: "g1", empresaId: "e1", filialId: null,
     moedaOrigemId: "moeda3", moedaDestinoId: "moeda1",
     valorCompra: 5.43, valorVenda: 5.46,
     variacao: -0.008, variacaoPercentual: -0.15,
@@ -1125,6 +1145,9 @@ export interface Contrato {
   dataContrato: string;
   dataEntregaInicio: string;
   dataEntregaFim: string;
+  filialOperacaoId: string | null;
+  filialOrigemId: string | null;
+  filialDestinoId: string | null;
   status: StatusContrato;
   observacoes: string;
   criadoEm: string;
@@ -1167,7 +1190,7 @@ export interface ContratoFixacao {
   id: string;
   grupoId: string;
   empresaId: string;
-  filialId: string;
+  filialId: string | null;
   contratoId: string;
   dataFixacao: string;
   quantidadeFixada: number;
@@ -1195,6 +1218,7 @@ export const contratos: Contrato[] = [
     tipoPreco: "FIXO",
     dataContrato: "2025-03-01",
     dataEntregaInicio: "2025-04-01", dataEntregaFim: "2025-09-30",
+    filialOperacaoId: "f1", filialOrigemId: null, filialDestinoId: "f1",
     status: "PARCIAL", observacoes: "Contrato de compra de fertilizante NPK",
     criadoEm: "2025-03-01T08:00:00Z", criadoPor: "u1",
     atualizadoEm: "2025-03-10T14:00:00Z", atualizadoPor: "u1",
@@ -1211,6 +1235,7 @@ export const contratos: Contrato[] = [
     tipoPreco: "A_FIXAR",
     dataContrato: "2025-03-05",
     dataEntregaInicio: "2025-05-01", dataEntregaFim: "2025-12-31",
+    filialOperacaoId: "f1", filialOrigemId: "f1", filialDestinoId: null,
     status: "ABERTO", observacoes: "Contrato de venda com preço a fixar",
     criadoEm: "2025-03-05T10:00:00Z", criadoPor: "u1",
     atualizadoEm: "2025-03-05T10:00:00Z", atualizadoPor: "u1",
@@ -1245,7 +1270,7 @@ export interface CondicaoDescontoModelo {
   id: string;
   grupoId: string;
   empresaId: string;
-  filialId: string;
+  filialId: string | null;
   descricao: string;
   ativo: boolean;
   criadoEm: string;
@@ -1260,7 +1285,7 @@ export interface CondicaoDescontoModeloItem {
   id: string;
   grupoId: string;
   empresaId: string;
-  filialId: string;
+  filialId: string | null;
   modeloId: string;
   descricao: string;
   tipo: TipoCondicaoDesconto;
@@ -1297,14 +1322,14 @@ export interface ContratoCondicao {
 
 export const condicaoDescontoModelos: CondicaoDescontoModelo[] = [
   {
-    id: "cdm1", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    id: "cdm1", grupoId: "g1", empresaId: "e1", filialId: null,
     descricao: "Soja Padrão Trading", ativo: true,
     criadoEm: "2025-01-15T08:00:00Z", criadoPor: "u1",
     atualizadoEm: "2025-01-15T08:00:00Z", atualizadoPor: "u1",
     deletadoEm: null, deletadoPor: null,
   },
   {
-    id: "cdm2", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    id: "cdm2", grupoId: "g1", empresaId: "e1", filialId: null,
     descricao: "Milho Cooperativa", ativo: true,
     criadoEm: "2025-01-20T08:00:00Z", criadoPor: "u1",
     atualizadoEm: "2025-01-20T08:00:00Z", atualizadoPor: "u1",
@@ -1314,7 +1339,7 @@ export const condicaoDescontoModelos: CondicaoDescontoModelo[] = [
 
 export const condicaoDescontoModeloItens: CondicaoDescontoModeloItem[] = [
   {
-    id: "cdmi1", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    id: "cdmi1", grupoId: "g1", empresaId: "e1", filialId: null,
     modeloId: "cdm1", descricao: "FUNRURAL", tipo: "PERCENTUAL", valor: 1.5,
     ordemCalculo: 1, automatico: true,
     criadoEm: "2025-01-15T08:00:00Z", criadoPor: "u1",
@@ -1322,7 +1347,7 @@ export const condicaoDescontoModeloItens: CondicaoDescontoModeloItem[] = [
     deletadoEm: null, deletadoPor: null,
   },
   {
-    id: "cdmi2", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    id: "cdmi2", grupoId: "g1", empresaId: "e1", filialId: null,
     modeloId: "cdm1", descricao: "Taxa Administrativa", tipo: "PERCENTUAL", valor: 0.2,
     ordemCalculo: 2, automatico: true,
     criadoEm: "2025-01-15T08:00:00Z", criadoPor: "u1",
@@ -1330,7 +1355,7 @@ export const condicaoDescontoModeloItens: CondicaoDescontoModeloItem[] = [
     deletadoEm: null, deletadoPor: null,
   },
   {
-    id: "cdmi3", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    id: "cdmi3", grupoId: "g1", empresaId: "e1", filialId: null,
     modeloId: "cdm1", descricao: "Desconto Comercial", tipo: "VALOR_FIXO", valor: 2.00,
     ordemCalculo: 3, automatico: false,
     criadoEm: "2025-01-15T08:00:00Z", criadoPor: "u1",
@@ -1338,7 +1363,7 @@ export const condicaoDescontoModeloItens: CondicaoDescontoModeloItem[] = [
     deletadoEm: null, deletadoPor: null,
   },
   {
-    id: "cdmi4", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    id: "cdmi4", grupoId: "g1", empresaId: "e1", filialId: null,
     modeloId: "cdm2", descricao: "FUNRURAL", tipo: "PERCENTUAL", valor: 1.5,
     ordemCalculo: 1, automatico: true,
     criadoEm: "2025-01-20T08:00:00Z", criadoPor: "u1",
@@ -1346,7 +1371,7 @@ export const condicaoDescontoModeloItens: CondicaoDescontoModeloItem[] = [
     deletadoEm: null, deletadoPor: null,
   },
   {
-    id: "cdmi5", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    id: "cdmi5", grupoId: "g1", empresaId: "e1", filialId: null,
     modeloId: "cdm2", descricao: "Desconto Armazenagem", tipo: "VALOR_FIXO", valor: 3.50,
     ordemCalculo: 2, automatico: false,
     criadoEm: "2025-01-20T08:00:00Z", criadoPor: "u1",
@@ -1354,7 +1379,7 @@ export const condicaoDescontoModeloItens: CondicaoDescontoModeloItem[] = [
     deletadoEm: null, deletadoPor: null,
   },
   {
-    id: "cdmi6", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    id: "cdmi6", grupoId: "g1", empresaId: "e1", filialId: null,
     modeloId: "cdm2", descricao: "Prêmio Qualidade", tipo: "PERCENTUAL", valor: 0.5,
     ordemCalculo: 3, automatico: false,
     criadoEm: "2025-01-20T08:00:00Z", criadoPor: "u1",
@@ -1371,8 +1396,8 @@ export type UnidadeClassificacao = "PERCENTUAL" | "KG" | "GRAMAS";
 export interface ClassificacaoTipo {
   id: string;
   grupoId: string;
-  empresaId: string;
-  filialId: string;
+  empresaId: string | null;
+  filialId: string | null;
   descricao: string;
   unidade: UnidadeClassificacao;
   valorBase: number | null;
@@ -1440,35 +1465,35 @@ export interface RomaneioClassificacao {
 
 export const classificacaoTipos: ClassificacaoTipo[] = [
   {
-    id: "ct1", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    id: "ct1", grupoId: "g1", empresaId: null, filialId: null,
     descricao: "Umidade", unidade: "PERCENTUAL", valorBase: 14, ativo: true,
     criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1",
     atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1",
     deletadoEm: null, deletadoPor: null,
   },
   {
-    id: "ct2", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    id: "ct2", grupoId: "g1", empresaId: null, filialId: null,
     descricao: "Impureza", unidade: "PERCENTUAL", valorBase: 1, ativo: true,
     criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1",
     atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1",
     deletadoEm: null, deletadoPor: null,
   },
   {
-    id: "ct3", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    id: "ct3", grupoId: "g1", empresaId: null, filialId: null,
     descricao: "Ardidos", unidade: "PERCENTUAL", valorBase: 8, ativo: true,
     criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1",
     atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1",
     deletadoEm: null, deletadoPor: null,
   },
   {
-    id: "ct4", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    id: "ct4", grupoId: "g1", empresaId: null, filialId: null,
     descricao: "Quebrados", unidade: "PERCENTUAL", valorBase: null, ativo: true,
     criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1",
     atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1",
     deletadoEm: null, deletadoPor: null,
   },
   {
-    id: "ct5", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    id: "ct5", grupoId: "g1", empresaId: null, filialId: null,
     descricao: "Avariados", unidade: "PERCENTUAL", valorBase: null, ativo: true,
     criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1",
     atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1",
@@ -1726,8 +1751,8 @@ export const financeiroBaixas: FinanceiroBaixa[] = [
 export interface FinanceiroBanco {
   id: string;
   grupoId: string;
-  empresaId: string;
-  filialId: string;
+  empresaId: string | null;
+  filialId: string | null;
   codigo: string;
   descricao: string;
   logoBanco: string;
@@ -1741,17 +1766,17 @@ export interface FinanceiroBanco {
 }
 
 export const financeiroBancos: FinanceiroBanco[] = [
-  { id: "fb_banco1", grupoId: "g1", empresaId: "e1", filialId: "f1", codigo: "001", descricao: "BANCO DO BRASIL", logoBanco: "", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
-  { id: "fb_banco2", grupoId: "g1", empresaId: "e1", filialId: "f1", codigo: "104", descricao: "CAIXA", logoBanco: "", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
-  { id: "fb_banco3", grupoId: "g1", empresaId: "e1", filialId: "f1", codigo: "748", descricao: "SICREDI", logoBanco: "", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "fb_banco1", grupoId: "g1", empresaId: null, filialId: null, codigo: "001", descricao: "BANCO DO BRASIL", logoBanco: "", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "fb_banco2", grupoId: "g1", empresaId: null, filialId: null, codigo: "104", descricao: "CAIXA", logoBanco: "", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "fb_banco3", grupoId: "g1", empresaId: null, filialId: null, codigo: "748", descricao: "SICREDI", logoBanco: "", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
 ];
 
 // ---- Tipo de Conta ----
 export interface FinanceiroTipoConta {
   id: string;
   grupoId: string;
-  empresaId: string;
-  filialId: string;
+  empresaId: string | null;
+  filialId: string | null;
   descricao: string;
   ativo: boolean;
   criadoEm: string;
@@ -1763,9 +1788,9 @@ export interface FinanceiroTipoConta {
 }
 
 export const financeiroTipoContas: FinanceiroTipoConta[] = [
-  { id: "ftc1", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "CAIXA", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
-  { id: "ftc2", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "BANCO", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
-  { id: "ftc3", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "CARTEIRA", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "ftc1", grupoId: "g1", empresaId: null, filialId: null, descricao: "CAIXA", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "ftc2", grupoId: "g1", empresaId: null, filialId: null, descricao: "BANCO", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "ftc3", grupoId: "g1", empresaId: null, filialId: null, descricao: "CARTEIRA", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
 ];
 
 // ---- Conta Financeira ----
@@ -1802,8 +1827,8 @@ export type TipoMovimentoFinanceiro = "ENTRADA" | "SAIDA" | "TRANSFERENCIA";
 export interface FinanceiroTipoLancamento {
   id: string;
   grupoId: string;
-  empresaId: string;
-  filialId: string;
+  empresaId: string | null;
+  filialId: string | null;
   descricao: string;
   tipoMovimento: TipoMovimentoFinanceiro;
   tipoConta: string[];
@@ -1821,13 +1846,13 @@ export interface FinanceiroTipoLancamento {
 }
 
 export const financeiroTiposLancamento: FinanceiroTipoLancamento[] = [
-  { id: "ftl1", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "BAIXA CONTA RECEBER", tipoMovimento: "ENTRADA", tipoConta: ["CAIXA", "BANCO"], origemSistema: true, permiteEdicao: false, permiteExclusao: false, exigeCentroCusto: false, ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
-  { id: "ftl2", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "BAIXA CONTA PAGAR", tipoMovimento: "SAIDA", tipoConta: ["CAIXA", "BANCO"], origemSistema: true, permiteEdicao: false, permiteExclusao: false, exigeCentroCusto: false, ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
-  { id: "ftl3", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "TRANSFERENCIA ENTRE CONTAS", tipoMovimento: "TRANSFERENCIA", tipoConta: ["CAIXA", "BANCO", "CARTEIRA"], origemSistema: true, permiteEdicao: false, permiteExclusao: false, exigeCentroCusto: false, ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
-  { id: "ftl4", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "ADIANTAMENTO DE CLIENTE", tipoMovimento: "ENTRADA", tipoConta: ["CAIXA", "BANCO"], origemSistema: false, permiteEdicao: true, permiteExclusao: true, exigeCentroCusto: false, ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
-  { id: "ftl5", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "ADIANTAMENTO A FORNECEDOR", tipoMovimento: "SAIDA", tipoConta: ["CAIXA", "BANCO"], origemSistema: false, permiteEdicao: true, permiteExclusao: true, exigeCentroCusto: false, ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
-  { id: "ftl6", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "LANCAMENTO MANUAL RECEITA", tipoMovimento: "ENTRADA", tipoConta: ["CAIXA", "BANCO", "CARTEIRA"], origemSistema: false, permiteEdicao: true, permiteExclusao: true, exigeCentroCusto: true, ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
-  { id: "ftl7", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "LANCAMENTO MANUAL DESPESA", tipoMovimento: "SAIDA", tipoConta: ["CAIXA", "BANCO", "CARTEIRA"], origemSistema: false, permiteEdicao: true, permiteExclusao: true, exigeCentroCusto: true, ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "ftl1", grupoId: "g1", empresaId: null, filialId: null, descricao: "BAIXA CONTA RECEBER", tipoMovimento: "ENTRADA", tipoConta: ["CAIXA", "BANCO"], origemSistema: true, permiteEdicao: false, permiteExclusao: false, exigeCentroCusto: false, ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "ftl2", grupoId: "g1", empresaId: null, filialId: null, descricao: "BAIXA CONTA PAGAR", tipoMovimento: "SAIDA", tipoConta: ["CAIXA", "BANCO"], origemSistema: true, permiteEdicao: false, permiteExclusao: false, exigeCentroCusto: false, ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "ftl3", grupoId: "g1", empresaId: null, filialId: null, descricao: "TRANSFERENCIA ENTRE CONTAS", tipoMovimento: "TRANSFERENCIA", tipoConta: ["CAIXA", "BANCO", "CARTEIRA"], origemSistema: true, permiteEdicao: false, permiteExclusao: false, exigeCentroCusto: false, ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "ftl4", grupoId: "g1", empresaId: null, filialId: null, descricao: "ADIANTAMENTO DE CLIENTE", tipoMovimento: "ENTRADA", tipoConta: ["CAIXA", "BANCO"], origemSistema: false, permiteEdicao: true, permiteExclusao: true, exigeCentroCusto: false, ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "ftl5", grupoId: "g1", empresaId: null, filialId: null, descricao: "ADIANTAMENTO A FORNECEDOR", tipoMovimento: "SAIDA", tipoConta: ["CAIXA", "BANCO"], origemSistema: false, permiteEdicao: true, permiteExclusao: true, exigeCentroCusto: false, ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "ftl6", grupoId: "g1", empresaId: null, filialId: null, descricao: "LANCAMENTO MANUAL RECEITA", tipoMovimento: "ENTRADA", tipoConta: ["CAIXA", "BANCO", "CARTEIRA"], origemSistema: false, permiteEdicao: true, permiteExclusao: true, exigeCentroCusto: true, ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "ftl7", grupoId: "g1", empresaId: null, filialId: null, descricao: "LANCAMENTO MANUAL DESPESA", tipoMovimento: "SAIDA", tipoConta: ["CAIXA", "BANCO", "CARTEIRA"], origemSistema: false, permiteEdicao: true, permiteExclusao: true, exigeCentroCusto: true, ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
 ];
 
 // ---- Forma de Pagamento (tabela) ----
@@ -1836,8 +1861,8 @@ export type TipoFormaPagamento = "DINHEIRO" | "BANCARIO" | "ELETRONICO";
 export interface FinanceiroFormaPagto {
   id: string;
   grupoId: string;
-  empresaId: string;
-  filialId: string;
+  empresaId: string | null;
+  filialId: string | null;
   descricao: string;
   tipo: TipoFormaPagamento;
   ativo: boolean;
@@ -1850,15 +1875,15 @@ export interface FinanceiroFormaPagto {
 }
 
 export const financeiroFormasPagto: FinanceiroFormaPagto[] = [
-  { id: "ffp1", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "Dinheiro", tipo: "DINHEIRO", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
-  { id: "ffp2", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "PIX", tipo: "ELETRONICO", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
-  { id: "ffp3", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "Transferência", tipo: "BANCARIO", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
-  { id: "ffp4", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "TED", tipo: "BANCARIO", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
-  { id: "ffp5", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "DOC", tipo: "BANCARIO", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
-  { id: "ffp6", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "Cheque", tipo: "BANCARIO", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
-  { id: "ffp7", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "Boleto", tipo: "BANCARIO", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
-  { id: "ffp8", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "Cartão Débito", tipo: "ELETRONICO", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
-  { id: "ffp9", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "Cartão Crédito", tipo: "ELETRONICO", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "ffp1", grupoId: "g1", empresaId: null, filialId: null, descricao: "Dinheiro", tipo: "DINHEIRO", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "ffp2", grupoId: "g1", empresaId: null, filialId: null, descricao: "PIX", tipo: "ELETRONICO", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "ffp3", grupoId: "g1", empresaId: null, filialId: null, descricao: "Transferência", tipo: "BANCARIO", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "ffp4", grupoId: "g1", empresaId: null, filialId: null, descricao: "TED", tipo: "BANCARIO", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "ffp5", grupoId: "g1", empresaId: null, filialId: null, descricao: "DOC", tipo: "BANCARIO", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "ffp6", grupoId: "g1", empresaId: null, filialId: null, descricao: "Cheque", tipo: "BANCARIO", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "ffp7", grupoId: "g1", empresaId: null, filialId: null, descricao: "Boleto", tipo: "BANCARIO", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "ffp8", grupoId: "g1", empresaId: null, filialId: null, descricao: "Cartão Débito", tipo: "ELETRONICO", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "ffp9", grupoId: "g1", empresaId: null, filialId: null, descricao: "Cartão Crédito", tipo: "ELETRONICO", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
 ];
 
 // ---- Plano de Contas ----
@@ -1867,8 +1892,8 @@ export type TipoPlanoConta = "RECEITA" | "DESPESA";
 export interface FinanceiroPlanoConta {
   id: string;
   grupoId: string;
-  empresaId: string;
-  filialId: string;
+  empresaId: string | null;
+  filialId: string | null;
   codigo: string;
   descricao: string;
   tipo: TipoPlanoConta;
@@ -1882,20 +1907,20 @@ export interface FinanceiroPlanoConta {
 }
 
 export const financeiroPlanoContas: FinanceiroPlanoConta[] = [
-  { id: "fpc1", grupoId: "g1", empresaId: "e1", filialId: "f1", codigo: "1.1", descricao: "Receita de Vendas", tipo: "RECEITA", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
-  { id: "fpc2", grupoId: "g1", empresaId: "e1", filialId: "f1", codigo: "1.2", descricao: "Receita de Serviços", tipo: "RECEITA", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
-  { id: "fpc3", grupoId: "g1", empresaId: "e1", filialId: "f1", codigo: "2.1", descricao: "Despesa com Insumos", tipo: "DESPESA", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
-  { id: "fpc4", grupoId: "g1", empresaId: "e1", filialId: "f1", codigo: "2.2", descricao: "Despesa com Frete", tipo: "DESPESA", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
-  { id: "fpc5", grupoId: "g1", empresaId: "e1", filialId: "f1", codigo: "2.3", descricao: "Despesa Administrativa", tipo: "DESPESA", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
-  { id: "fpc6", grupoId: "g1", empresaId: "e1", filialId: "f1", codigo: "1.3", descricao: "Receita Financeira", tipo: "RECEITA", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "fpc1", grupoId: "g1", empresaId: null, filialId: null, codigo: "1.1", descricao: "Receita de Vendas", tipo: "RECEITA", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "fpc2", grupoId: "g1", empresaId: null, filialId: null, codigo: "1.2", descricao: "Receita de Serviços", tipo: "RECEITA", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "fpc3", grupoId: "g1", empresaId: null, filialId: null, codigo: "2.1", descricao: "Despesa com Insumos", tipo: "DESPESA", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "fpc4", grupoId: "g1", empresaId: null, filialId: null, codigo: "2.2", descricao: "Despesa com Frete", tipo: "DESPESA", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "fpc5", grupoId: "g1", empresaId: null, filialId: null, codigo: "2.3", descricao: "Despesa Administrativa", tipo: "DESPESA", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "fpc6", grupoId: "g1", empresaId: null, filialId: null, codigo: "1.3", descricao: "Receita Financeira", tipo: "RECEITA", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
 ];
 
 // ---- Centro de Custo ----
 export interface FinanceiroCentroCusto {
   id: string;
   grupoId: string;
-  empresaId: string;
-  filialId: string;
+  empresaId: string | null;
+  filialId: string | null;
   descricao: string;
   ativo: boolean;
   criadoEm: string;
@@ -1907,12 +1932,12 @@ export interface FinanceiroCentroCusto {
 }
 
 export const financeiroCentrosCusto: FinanceiroCentroCusto[] = [
-  { id: "fcc1", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "Lavoura Soja", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
-  { id: "fcc2", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "Lavoura Milho", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
-  { id: "fcc3", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "Armazém", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
-  { id: "fcc4", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "Administrativo", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
-  { id: "fcc5", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "Transporte", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
-  { id: "fcc6", grupoId: "g1", empresaId: "e1", filialId: "f1", descricao: "Comercial", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "fcc1", grupoId: "g1", empresaId: null, filialId: null, descricao: "Lavoura Soja", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "fcc2", grupoId: "g1", empresaId: null, filialId: null, descricao: "Lavoura Milho", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "fcc3", grupoId: "g1", empresaId: null, filialId: null, descricao: "Armazém", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "fcc4", grupoId: "g1", empresaId: null, filialId: null, descricao: "Administrativo", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "fcc5", grupoId: "g1", empresaId: null, filialId: null, descricao: "Transporte", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
+  { id: "fcc6", grupoId: "g1", empresaId: null, filialId: null, descricao: "Comercial", ativo: true, criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1", atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1", deletadoEm: null, deletadoPor: null },
 ];
 
 // ---- Movimentação Financeira ----
@@ -1978,7 +2003,7 @@ export interface Motorista {
   id: string;
   grupoId: string;
   empresaId: string;
-  filialId: string;
+  filialId: string | null;
   nome: string;
   documento: string;
   telefone: string;
@@ -2000,7 +2025,7 @@ export interface Veiculo {
   id: string;
   grupoId: string;
   empresaId: string;
-  filialId: string;
+  filialId: string | null;
   placa: string;
   tipoVeiculo: string;
   transportadora: string;
