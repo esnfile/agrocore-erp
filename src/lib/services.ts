@@ -1933,6 +1933,12 @@ export const produtoClassificacaoService = {
     await delay();
     return mockProdutoClassificacoes.filter((p) => p.deletadoEm === null && p.produtoId === produtoId);
   },
+  async listarPorProdutoEmpresa(produtoId: string, empresaId: string): Promise<ProdutoClassificacao[]> {
+    await delay();
+    return mockProdutoClassificacoes.filter(
+      (p) => p.deletadoEm === null && p.produtoId === produtoId && p.empresaId === empresaId
+    );
+  },
   async salvar(
     data: Partial<ProdutoClassificacao>,
     ctx: { grupoId: string; empresaId: string; filialId: string }
