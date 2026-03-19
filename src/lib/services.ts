@@ -2156,6 +2156,12 @@ export const financeiroParcelaService = {
     return mockFinanceiroParcelas.filter((p) => p.deletadoEm === null && p.contaId === contaId)
       .sort((a, b) => a.numeroParcela - b.numeroParcela);
   },
+  async listarPorContas(contaIds: string[]): Promise<FinanceiroParcela[]> {
+    await delay();
+    return mockFinanceiroParcelas
+      .filter((p) => p.deletadoEm === null && contaIds.includes(p.contaId))
+      .sort((a, b) => a.numeroParcela - b.numeroParcela);
+  },
   async gerarParcelas(
     contaId: string, numParcelas: number, intervaloDias: number, valorTotal: number,
     ctx: { grupoId: string; empresaId: string; filialId: string }
