@@ -2095,6 +2095,14 @@ export const financeiroContaService = {
     if (filtros?.dataFim) list = list.filter((c) => c.dataEmissao <= filtros.dataFim!);
     return list;
   },
+  async listarPorContrato(contratoId: string): Promise<FinanceiroConta[]> {
+    await delay();
+    const contrato = mockContratos.find((c) => c.id === contratoId && c.deletadoEm === null);
+    if (!contrato) return [];
+    return mockFinanceiroContas.filter(
+      (c) => c.deletadoEm === null && c.documentoReferencia === contrato.numeroContrato
+    );
+  },
   async obterPorId(id: string): Promise<FinanceiroConta | undefined> {
     await delay();
     return mockFinanceiroContas.find((c) => c.id === id && c.deletadoEm === null);
