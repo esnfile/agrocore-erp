@@ -1387,6 +1387,12 @@ export const contratoService = {
       (c) => c.deletadoEm === null && c.empresaId === empresaId && c.filialId === filialId
     );
   },
+  async listarPorEmpresa(empresaId: string): Promise<Contrato[]> {
+    await delay();
+    return mockContratos.filter(
+      (c) => c.deletadoEm === null && c.empresaId === empresaId
+    );
+  },
   async listarTodos(grupoId: string): Promise<Contrato[]> {
     await delay();
     return mockContratos.filter((c) => c.deletadoEm === null && c.grupoId === grupoId);
