@@ -30,7 +30,9 @@ import {
   condicaoDescontoModeloService, contratoCondicaoService,
   classificacaoTipoService, produtoClassificacaoService,
   classificacaoDescontoService, romaneioClassificacaoService,
-  contratoLiquidacaoService,
+  contratoLiquidacaoService, financeiroContaService,
+  financeiroParcelaService, financeiroBaixaService,
+  filialService,
 } from "@/lib/services";
 import {
   pessoas as mockPessoas,
@@ -40,10 +42,11 @@ import {
 } from "@/lib/mock-data";
 import type {
   Contrato, ContratoEntrega, ContratoFixacao,
-  PontoEstoque, Moeda,
+  PontoEstoque, Moeda, Filial,
   CondicaoDescontoModelo, ContratoCondicao, TipoCondicaoDesconto,
   ClassificacaoTipo, ProdutoClassificacao, RomaneioClassificacao,
   ContratoLiquidacao,
+  FinanceiroConta, FinanceiroParcela, FinanceiroBaixa,
 } from "@/lib/mock-data";
 import { Plus, Pencil, Trash2, Eye, Lock, FileCheck, AlertTriangle } from "lucide-react";
 
@@ -61,6 +64,9 @@ const contratoSchema = z.object({
   dataContrato: z.string().min(1, "Data é obrigatória"),
   dataEntregaInicio: z.string().optional(),
   dataEntregaFim: z.string().optional(),
+  filialOperacaoId: z.string().optional(),
+  filialOrigemId: z.string().optional(),
+  filialDestinoId: z.string().optional(),
   observacoes: z.string().optional(),
 });
 type ContratoForm = z.infer<typeof contratoSchema>;
@@ -71,7 +77,7 @@ const entregaSchema = z.object({
   unidadeInformadaId: z.string().min(1, "Unidade é obrigatória"),
   pontoEstoqueId: z.string().min(1, "Ponto de estoque é obrigatório"),
   pesoBruto: z.coerce.number().optional(),
-  pesoLiquido: z.coerce.number().optional(),
+  pesoTara: z.coerce.number().optional(),
   placaVeiculo: z.string().optional(),
   nomeMotorista: z.string().optional(),
   documentoMotorista: z.string().optional(),
@@ -103,13 +109,13 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function ContratosPage() {
-  const { grupoAtual, empresaAtual, filialAtual } = useOrganization();
+  const { grupoAtual, empresaAtual, filiais: orgFiliais } = useOrganization();
   const empresaId = empresaAtual?.id ?? "";
-  const filialId = filialAtual?.id ?? "";
   const grupoId = grupoAtual?.id ?? "";
 
   const [contratos, setContratos] = useState<Contrato[]>([]);
   const [loading, setLoading] = useState(false);
+  const [filiaisEmpresa, setFiliaisEmpresa] = useState<Filial[]>([]);
 
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -150,7 +156,6 @@ export default function ContratosPage() {
   // Classificação de grãos
   const [classificacaoTipos, setClassificacaoTipos] = useState<ClassificacaoTipo[]>([]);
   const [produtoClassificacoes, setProdutoClassificacoes] = useState<ProdutoClassificacao[]>([]);
-  const [romaneioClassificacoesMap, setRomaneioClassificacoesMap] = useState<Record<string, RomaneioClassificacao[]>>({});
   const [classEntregaItens, setClassEntregaItens] = useState<{ classificacaoTipoId: string; valorApurado: string }[]>([]);
 
   // Liquidação
@@ -160,6 +165,11 @@ export default function ContratosPage() {
   const [opcaoTitulos, setOpcaoTitulos] = useState<"ATUALIZAR" | "COMPLEMENTAR">("ATUALIZAR");
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
 
+  // Financeiro real
+  const [finContas, setFinContas] = useState<FinanceiroConta[]>([]);
+  const [finParcelas, setFinParcelas] = useState<FinanceiroParcela[]>([]);
+  const [finBaixas, setFinBaixas] = useState<FinanceiroBaixa[]>([]);
+
   // Forms
   const contratoForm = useForm<ContratoForm>({
     resolver: zodResolver(contratoSchema),
@@ -168,7 +178,9 @@ export default function ContratosPage() {
       unidadeNegociacaoId: "", quantidadeTotal: 0, moedaId: "moeda1",
       precoUnitario: 0, tipoPreco: "FIXO",
       dataContrato: new Date().toISOString().slice(0, 10),
-      dataEntregaInicio: "", dataEntregaFim: "", observacoes: "",
+      dataEntregaInicio: "", dataEntregaFim: "",
+      filialOperacaoId: "", filialOrigemId: "", filialDestinoId: "",
+      observacoes: "",
     },
   });
 
@@ -177,7 +189,7 @@ export default function ContratosPage() {
     defaultValues: {
       dataEntrega: new Date().toISOString().slice(0, 16),
       quantidadeInformada: 0, unidadeInformadaId: "", pontoEstoqueId: "",
-      pesoBruto: undefined, pesoLiquido: undefined,
+      pesoBruto: undefined, pesoTara: undefined,
       placaVeiculo: "", nomeMotorista: "", documentoMotorista: "", observacoes: "",
     },
   });
@@ -192,26 +204,43 @@ export default function ContratosPage() {
   });
 
   const tipoPrecoWatch = contratoForm.watch("tipoPreco");
+  const filialOperacaoWatch = contratoForm.watch("filialOperacaoId");
 
-  // Load data
+  // Peso líquido calculado
+  const pesoBrutoWatch = entregaForm.watch("pesoBruto");
+  const pesoTaraWatch = entregaForm.watch("pesoTara");
+  const pesoLiquidoCalculado = (Number(pesoBrutoWatch) || 0) - (Number(pesoTaraWatch) || 0);
+
+  // Load data — contrato é por EMPRESA, não por filial
   const loadContratos = async () => {
-    if (!empresaId || !filialId) return;
+    if (!empresaId) return;
     setLoading(true);
-    const list = await contratoService.listar(empresaId, filialId);
+    const list = await contratoService.listarPorEmpresa(empresaId);
     setContratos(list);
     setLoading(false);
   };
 
-  useEffect(() => { loadContratos(); }, [empresaId, filialId]);
+  useEffect(() => { loadContratos(); }, [empresaId]);
 
   useEffect(() => {
-    if (empresaId && filialId) {
-      pontoEstoqueService.listar(empresaId, filialId).then(setPontos);
-      condicaoDescontoModeloService.listar(empresaId, filialId).then(setModelosCondicao);
+    if (empresaId) {
+      // Modelos de condição são por empresa (filialId null)
+      condicaoDescontoModeloService.listar(empresaId, "").then(setModelosCondicao);
+      filialService.listarPorEmpresa(empresaId).then(setFiliaisEmpresa);
     }
     moedaService.listar().then(setMoedas);
+    // ClassificacaoTipo é CORPORATIVO — sem filtro
     classificacaoTipoService.listarTodos().then(setClassificacaoTipos);
-  }, [empresaId, filialId]);
+  }, [empresaId]);
+
+  // Atualizar pontos de estoque quando filialOperacaoId muda
+  useEffect(() => {
+    if (empresaId && filialOperacaoWatch) {
+      pontoEstoqueService.listar(empresaId, filialOperacaoWatch).then(setPontos);
+    } else {
+      setPontos([]);
+    }
+  }, [empresaId, filialOperacaoWatch]);
 
   const pessoasAtivas = useMemo(
     () => mockPessoas.filter((p) => p.deletadoEm === null && p.ativo && p.empresaId === empresaId),
@@ -232,6 +261,7 @@ export default function ContratosPage() {
   const getCodigoUnidade = (id: string) => mockUnidades.find((u) => u.id === id)?.codigo ?? id;
   const getSimboloMoeda = (id: string) => mockMoedas.find((m) => m.id === id)?.simbolo ?? "";
   const getCodigoMoeda = (id: string) => mockMoedas.find((m) => m.id === id)?.codigo ?? id;
+  const getNomeFilial = (id: string | null) => filiaisEmpresa.find((f) => f.id === id)?.nomeRazao ?? "—";
 
   // ---- Contrato CRUD ----
   const openNew = () => {
@@ -242,10 +272,17 @@ export default function ContratosPage() {
       unidadeNegociacaoId: "", quantidadeTotal: 0, moedaId: "moeda1",
       precoUnitario: 0, tipoPreco: "FIXO",
       dataContrato: new Date().toISOString().slice(0, 10),
-      dataEntregaInicio: "", dataEntregaFim: "", observacoes: "",
+      dataEntregaInicio: "", dataEntregaFim: "",
+      filialOperacaoId: "", filialOrigemId: "", filialDestinoId: "",
+      observacoes: "",
     });
     setEntregas([]);
     setFixacoes([]);
+    setCondicoes([]);
+    setFinContas([]);
+    setFinParcelas([]);
+    setFinBaixas([]);
+    setLiquidacao(null);
     setActiveTab("dados");
     setModalOpen(true);
   };
@@ -266,6 +303,9 @@ export default function ContratosPage() {
       dataContrato: c.dataContrato,
       dataEntregaInicio: c.dataEntregaInicio,
       dataEntregaFim: c.dataEntregaFim,
+      filialOperacaoId: c.filialOperacaoId ?? "",
+      filialOrigemId: c.filialOrigemId ?? "",
+      filialDestinoId: c.filialDestinoId ?? "",
       observacoes: c.observacoes,
     });
     loadSubEntities(c.id);
@@ -290,15 +330,37 @@ export default function ContratosPage() {
     setCondicoes(conds);
     const activeLiq = liqs.find((l) => l.status === "PREVIA" || l.status === "CONFIRMADA");
     setLiquidacao(activeLiq || null);
+
+    // Load financeiro REAL
+    const contas = await financeiroContaService.listarPorContrato(contratoId);
+    setFinContas(contas);
+    if (contas.length > 0) {
+      const contaIds = contas.map((c) => c.id);
+      const [parcelas, baixas] = await Promise.all([
+        financeiroParcelaService.listarPorContas(contaIds),
+        Promise.all(contaIds.map((id) => financeiroBaixaService.listarPorConta(id))).then((arr) => arr.flat()),
+      ]);
+      setFinParcelas(parcelas);
+      setFinBaixas(baixas);
+    } else {
+      setFinParcelas([]);
+      setFinBaixas([]);
+    }
   };
 
   const onSaveContrato = contratoForm.handleSubmit(async (data) => {
-    if (!grupoId || !empresaId || !filialId) return;
+    if (!grupoId || !empresaId) return;
     setSaving(true);
     try {
       await contratoService.salvar(
-        { ...data, id: editingContrato?.id },
-        { grupoId, empresaId, filialId }
+        {
+          ...data,
+          id: editingContrato?.id,
+          filialOperacaoId: data.filialOperacaoId || null,
+          filialOrigemId: data.filialOrigemId || null,
+          filialDestinoId: data.filialDestinoId || null,
+        },
+        { grupoId, empresaId, filialId: data.filialOperacaoId || empresaId }
       );
       toast({ title: "Sucesso", description: editingContrato ? "Contrato atualizado." : "Contrato criado." });
       setModalOpen(false);
@@ -326,18 +388,22 @@ export default function ContratosPage() {
     entregaForm.reset({
       dataEntrega: new Date().toISOString().slice(0, 16),
       quantidadeInformada: 0, unidadeInformadaId: editingContrato?.unidadeNegociacaoId ?? "",
-      pontoEstoqueId: "", pesoBruto: undefined, pesoLiquido: undefined,
+      pontoEstoqueId: "", pesoBruto: undefined, pesoTara: undefined,
       placaVeiculo: "", nomeMotorista: "", documentoMotorista: "", observacoes: "",
     });
-    // Load product classifications for this contract's product
-    if (editingContrato?.produtoId) {
-      produtoClassificacaoService.listarPorProduto(editingContrato.produtoId).then((pcs) => {
+    // Load ProdutoClassificacao filtered by PRODUTO + EMPRESA (not filial)
+    if (editingContrato?.produtoId && empresaId) {
+      produtoClassificacaoService.listarPorProdutoEmpresa(editingContrato.produtoId, empresaId).then((pcs) => {
         setProdutoClassificacoes(pcs);
         setClassEntregaItens(pcs.filter((pc) => pc.ativo).map((pc) => ({
           classificacaoTipoId: pc.classificacaoTipoId,
           valorApurado: String(pc.valorPadrao),
         })));
       });
+    }
+    // Load pontos for filialOperacaoId
+    if (empresaId && editingContrato?.filialOperacaoId) {
+      pontoEstoqueService.listar(empresaId, editingContrato.filialOperacaoId).then(setPontos);
     }
     setEntregaModalOpen(true);
   };
@@ -350,7 +416,7 @@ export default function ContratosPage() {
       unidadeInformadaId: e.unidadeInformadaId,
       pontoEstoqueId: e.pontoEstoqueId,
       pesoBruto: e.pesoBruto ?? undefined,
-      pesoLiquido: e.pesoLiquido ?? undefined,
+      pesoTara: e.pesoBruto && e.pesoLiquido ? e.pesoBruto - e.pesoLiquido : undefined,
       placaVeiculo: e.placaVeiculo,
       nomeMotorista: e.nomeMotorista,
       documentoMotorista: e.documentoMotorista,
@@ -363,15 +429,26 @@ export default function ContratosPage() {
     if (!editingContrato) return;
     setSavingEntrega(true);
     try {
-      // Calculate classification
-      const pesoBase = Number(data.pesoLiquido) || Number(data.pesoBruto) || 0;
+      // pesoLiquido = pesoBruto - pesoTara
+      const pesoBruto = Number(data.pesoBruto) || 0;
+      const pesoTara = Number(data.pesoTara) || 0;
+      const pesoLiquido = pesoBruto > 0 ? pesoBruto - pesoTara : 0;
+
+      // Classification discounts
       const totalDesc = classEntregaItens.reduce((sum, item) => {
         return sum + classificacaoDescontoService.buscarDescontoPorFaixa(editingContrato.produtoId, item.classificacaoTipoId, Number(item.valorApurado) || 0);
       }, 0);
+      const pesoBase = pesoLiquido > 0 ? pesoLiquido : pesoBruto;
       const pesoComercial = pesoBase > 0 ? Math.round((pesoBase - (pesoBase * totalDesc / 100)) * 100) / 100 : null;
 
+      const filialId = editingContrato.filialOperacaoId || editingContrato.filialId;
       const result = await contratoEntregaService.salvar(
-        { ...data, contratoId: editingContrato.id, id: editingEntrega?.id,
+        {
+          ...data,
+          contratoId: editingContrato.id,
+          id: editingEntrega?.id,
+          pesoBruto: pesoBruto || null,
+          pesoLiquido: pesoLiquido > 0 ? pesoLiquido : null,
           pesoClassificado: pesoBase || null,
           descontoTotalPercentual: totalDesc > 0 ? totalDesc : null,
           pesoComercial,
@@ -395,7 +472,7 @@ export default function ContratosPage() {
         setEntregaModalOpen(false);
         await loadSubEntities(editingContrato.id);
         await loadContratos();
-        const updated = (await contratoService.listar(empresaId, filialId)).find((c) => c.id === editingContrato.id);
+        const updated = (await contratoService.listarPorEmpresa(empresaId)).find((c) => c.id === editingContrato.id);
         if (updated) setEditingContrato(updated);
       } else {
         toast({ title: "Erro", description: result.mensagem, variant: "destructive" });
@@ -412,14 +489,14 @@ export default function ContratosPage() {
       toast({ title: "Sucesso", description: result.mensagem });
       await loadSubEntities(editingContrato.id);
       await loadContratos();
-      const updated = (await contratoService.listar(empresaId, filialId)).find((c) => c.id === editingContrato.id);
+      const updated = (await contratoService.listarPorEmpresa(empresaId)).find((c) => c.id === editingContrato.id);
       if (updated) setEditingContrato(updated);
     } else {
       toast({ title: "Erro", description: result.mensagem, variant: "destructive" });
     }
   };
 
-  // ---- Fixação CRUD ----
+  // ---- Fixação CRUD (por EMPRESA, não por filial) ----
   const openNewFixacao = () => {
     setEditingFixacao(null);
     fixacaoForm.reset({
@@ -449,7 +526,7 @@ export default function ContratosPage() {
     try {
       const result = await contratoFixacaoService.salvar(
         { ...data, contratoId: editingContrato.id, id: editingFixacao?.id },
-        { grupoId, empresaId, filialId }
+        { grupoId, empresaId, filialId: "" }
       );
       if (result.sucesso) {
         toast({ title: "Sucesso", description: result.mensagem });
@@ -474,7 +551,7 @@ export default function ContratosPage() {
   const onApplyModelo = async (modeloId: string) => {
     if (!editingContrato) return;
     const novas = await contratoCondicaoService.aplicarModelo(
-      editingContrato.id, modeloId, { grupoId, empresaId, filialId }
+      editingContrato.id, modeloId, { grupoId, empresaId, filialId: editingContrato.filialId }
     );
     setCondicoes(novas);
     toast({ title: "Sucesso", description: "Condições do modelo aplicadas ao contrato." });
@@ -522,7 +599,7 @@ export default function ContratosPage() {
           ordemCalculo: Number(condOrdem) || 1,
           automatico: condAutomatico,
         },
-        { grupoId, empresaId, filialId }
+        { grupoId, empresaId, filialId: editingContrato.filialId }
       );
       toast({ title: "Sucesso", description: editingCondicao ? "Condição atualizada." : "Condição adicionada." });
       setCondicaoModalOpen(false);
@@ -541,18 +618,10 @@ export default function ContratosPage() {
     setCondicoes(conds);
   };
 
-  // ---- Financeiro tab calculations ----
-  const valorEstimado = editingContrato
-    ? editingContrato.quantidadeTotal * editingContrato.precoUnitario
-    : 0;
-  const totalFixado = fixacoes.reduce((s, f) => s + f.quantidadeFixada * f.precoFixado, 0);
-
-  // Mock desconto calculations
-  const totalDescontosMock = condicoes.reduce((sum, c) => {
-    if (c.tipo === "PERCENTUAL") return sum + (valorEstimado * c.valor / 100);
-    return sum + c.valor;
-  }, 0);
-  const valorLiquidoEstimado = valorEstimado - totalDescontosMock;
+  // ---- Financeiro real (sem simulação) ----
+  const totalParcelasPagas = finParcelas.filter((p) => p.status === "PAGO").reduce((s, p) => s + p.valorParcela, 0);
+  const totalParcelasPendentes = finParcelas.filter((p) => p.status === "PENDENTE" || p.status === "PARCIAL").reduce((s, p) => s + p.saldoParcela, 0);
+  const totalBaixas = finBaixas.reduce((s, b) => s + b.valorPago, 0);
 
   // ---- Liquidação handlers ----
   const onGerarPrevia = async () => {
@@ -560,7 +629,7 @@ export default function ContratosPage() {
     setLiquidacaoLoading(true);
     try {
       const result = await contratoLiquidacaoService.gerarPrevia(
-        editingContrato.id, opcaoEncerrar, { grupoId, empresaId, filialId }
+        editingContrato.id, opcaoEncerrar, { grupoId, empresaId, filialId: editingContrato.filialId }
       );
       if (result.sucesso && result.liquidacao) {
         setLiquidacao(result.liquidacao);
@@ -579,13 +648,13 @@ export default function ContratosPage() {
     setConfirmDialogOpen(false);
     try {
       const result = await contratoLiquidacaoService.confirmar(
-        liquidacao.id, opcaoTitulos, { grupoId, empresaId, filialId }
+        liquidacao.id, opcaoTitulos, { grupoId, empresaId, filialId: editingContrato.filialId }
       );
       if (result.sucesso) {
         toast({ title: "Sucesso", description: result.mensagem });
         await loadSubEntities(editingContrato.id);
         await loadContratos();
-        const updated = (await contratoService.listar(empresaId, filialId)).find((c) => c.id === editingContrato.id);
+        const updated = (await contratoService.listarPorEmpresa(empresaId)).find((c) => c.id === editingContrato.id);
         if (updated) setEditingContrato(updated);
       } else {
         toast({ title: "Erro", description: result.mensagem, variant: "destructive" });
@@ -618,6 +687,17 @@ export default function ContratosPage() {
         <PageHeader title="Contratos" description="Gestão de contratos comerciais" />
         <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
           Selecione um Grupo para visualizar contratos.
+        </div>
+      </>
+    );
+  }
+
+  if (!empresaId) {
+    return (
+      <>
+        <PageHeader title="Contratos" description="Gestão de contratos comerciais" />
+        <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
+          Selecione uma Empresa para visualizar contratos.
         </div>
       </>
     );
@@ -839,6 +919,46 @@ export default function ContratosPage() {
                 </div>
               </div>
 
+              {/* Filiais logísticas */}
+              <div className="rounded-md border p-4 space-y-4">
+                <h4 className="font-semibold text-sm text-foreground">Filiais Logísticas</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>Filial de Operação</Label>
+                    <Select value={contratoForm.watch("filialOperacaoId") || ""} onValueChange={(v) => contratoForm.setValue("filialOperacaoId", v)}>
+                      <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                      <SelectContent>
+                        {filiaisEmpresa.filter((f) => f.ativo).map((f) => (
+                          <SelectItem key={f.id} value={f.id}>{f.nomeRazao}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Filial de Origem</Label>
+                    <Select value={contratoForm.watch("filialOrigemId") || ""} onValueChange={(v) => contratoForm.setValue("filialOrigemId", v)}>
+                      <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                      <SelectContent>
+                        {filiaisEmpresa.filter((f) => f.ativo).map((f) => (
+                          <SelectItem key={f.id} value={f.id}>{f.nomeRazao}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Filial de Destino</Label>
+                    <Select value={contratoForm.watch("filialDestinoId") || ""} onValueChange={(v) => contratoForm.setValue("filialDestinoId", v)}>
+                      <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                      <SelectContent>
+                        {filiaisEmpresa.filter((f) => f.ativo).map((f) => (
+                          <SelectItem key={f.id} value={f.id}>{f.nomeRazao}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-1.5">
                 <Label>Observações</Label>
                 <Textarea rows={3} {...contratoForm.register("observacoes")} />
@@ -848,6 +968,9 @@ export default function ContratosPage() {
                 <div className="rounded-md bg-muted p-3 text-sm space-y-1">
                   <div>Quantidade Entregue: <strong>{editingContrato.quantidadeEntregue.toLocaleString("pt-BR")} {getCodigoUnidade(editingContrato.unidadeNegociacaoId)}</strong></div>
                   <div>Saldo: <strong>{editingContrato.quantidadeSaldo.toLocaleString("pt-BR")} {getCodigoUnidade(editingContrato.unidadeNegociacaoId)}</strong></div>
+                  {editingContrato.filialOperacaoId && <div>Filial Operação: <strong>{getNomeFilial(editingContrato.filialOperacaoId)}</strong></div>}
+                  {editingContrato.filialOrigemId && <div>Filial Origem: <strong>{getNomeFilial(editingContrato.filialOrigemId)}</strong></div>}
+                  {editingContrato.filialDestinoId && <div>Filial Destino: <strong>{getNomeFilial(editingContrato.filialDestinoId)}</strong></div>}
                 </div>
               )}
             </fieldset>
@@ -975,71 +1098,119 @@ export default function ContratosPage() {
             </div>
           </TabsContent>
 
-          {/* ABA 4 — Financeiro */}
+          {/* ABA 4 — Financeiro REAL */}
           <TabsContent value="financeiro">
             <div className="space-y-6">
-              {/* Resumo existente */}
               <div className="rounded-md bg-muted p-4 space-y-3">
-                <h3 className="font-semibold text-foreground">Resumo Financeiro (Simulado)</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <h3 className="font-semibold text-foreground">Resumo Financeiro</h3>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
                   <div className="rounded-md bg-card p-3 border">
-                    <p className="text-muted-foreground">Valor Estimado do Contrato</p>
+                    <p className="text-muted-foreground">Total Contas</p>
+                    <p className="text-lg font-bold text-foreground">{finContas.length}</p>
+                  </div>
+                  <div className="rounded-md bg-card p-3 border">
+                    <p className="text-muted-foreground">Valor Total</p>
                     <p className="text-lg font-bold text-foreground">
-                      {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")} {valorEstimado.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")} {finContas.reduce((s, c) => s + c.valorTotal, 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                   </div>
                   <div className="rounded-md bg-card p-3 border">
-                    <p className="text-muted-foreground">Valor Fixado</p>
-                    <p className="text-lg font-bold text-foreground">
-                      {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")} {totalFixado.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    <p className="text-muted-foreground">Total Pago</p>
+                    <p className="text-lg font-bold text-primary">
+                      {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")} {totalBaixas.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                   </div>
                   <div className="rounded-md bg-card p-3 border">
-                    <p className="text-muted-foreground">Saldo Financeiro</p>
-                    <p className="text-lg font-bold text-foreground">
-                      {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")} {(valorEstimado - totalFixado).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    <p className="text-muted-foreground">Saldo Pendente</p>
+                    <p className="text-lg font-bold text-destructive">
+                      {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")} {totalParcelasPendentes.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground italic">
-                  * Valores simulados. O módulo financeiro completo será implementado em versão futura.
-                </p>
               </div>
 
+              {/* Parcelas */}
+              {finParcelas.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-foreground text-sm">Parcelas</h4>
+                  <div className="overflow-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Conta</TableHead>
+                          <TableHead>Nº</TableHead>
+                          <TableHead>Vencimento</TableHead>
+                          <TableHead className="text-right">Valor</TableHead>
+                          <TableHead className="text-right">Pago</TableHead>
+                          <TableHead className="text-right">Saldo</TableHead>
+                          <TableHead>Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {finParcelas.map((p) => {
+                          const conta = finContas.find((c) => c.id === p.contaId);
+                          return (
+                            <TableRow key={p.id}>
+                              <TableCell className="text-xs">{conta?.descricao ?? p.contaId}</TableCell>
+                              <TableCell>{p.numeroParcela}</TableCell>
+                              <TableCell>{format(new Date(p.dataVencimento), "dd/MM/yyyy")}</TableCell>
+                              <TableCell className="text-right">{p.valorParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                              <TableCell className="text-right">{p.valorPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                              <TableCell className="text-right">{p.saldoParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                              <TableCell>
+                                <Badge variant={p.status === "PAGO" ? "default" : p.status === "PARCIAL" ? "secondary" : "outline"}>
+                                  {p.status}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+
+              {/* Baixas */}
+              {finBaixas.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-foreground text-sm">Histórico de Baixas</h4>
+                  <div className="overflow-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Data Pagamento</TableHead>
+                          <TableHead className="text-right">Valor</TableHead>
+                          <TableHead>Forma</TableHead>
+                          <TableHead>Observações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {finBaixas.map((b) => (
+                          <TableRow key={b.id}>
+                            <TableCell>{format(new Date(b.dataPagamento), "dd/MM/yyyy HH:mm")}</TableCell>
+                            <TableCell className="text-right">{b.valorPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                            <TableCell>{b.formaPagamento}</TableCell>
+                            <TableCell className="text-xs text-muted-foreground">{b.observacoes || "—"}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+
+              {finContas.length === 0 && (
+                <p className="text-center text-sm text-muted-foreground py-6">
+                  Nenhuma conta financeira vinculada a este contrato.
+                </p>
+              )}
             </div>
           </TabsContent>
 
           {/* ABA 5 — Condições e Descontos */}
           <TabsContent value="condicoes">
             <div className="space-y-6">
-              {/* Resumo de Descontos */}
-              <div className="rounded-md bg-muted p-4 space-y-3">
-                <h3 className="font-semibold text-foreground">Simulação de Descontos</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <div className="rounded-md bg-card p-3 border">
-                    <p className="text-muted-foreground">Valor Bruto</p>
-                    <p className="text-lg font-bold text-foreground">
-                      {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")} {valorEstimado.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </p>
-                  </div>
-                  <div className="rounded-md bg-card p-3 border">
-                    <p className="text-muted-foreground">Total Descontos</p>
-                    <p className="text-lg font-bold text-destructive">
-                      - {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")} {totalDescontosMock.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </p>
-                  </div>
-                  <div className="rounded-md bg-card p-3 border">
-                    <p className="text-muted-foreground">Valor Líquido Estimado</p>
-                    <p className="text-lg font-bold text-foreground">
-                      {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")} {valorLiquidoEstimado.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </p>
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground italic">
-                  * Simulação. Cálculo real será implementado em versão futura.
-                </p>
-              </div>
-
               {/* Condições do Contrato */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -1150,82 +1321,49 @@ export default function ContratosPage() {
                     </div>
                     <div className="rounded-md bg-card p-4 border space-y-1">
                       <p className="text-sm text-muted-foreground">Qtd. Liquidada</p>
-                      <p className="text-lg font-bold text-primary">{liquidacao.quantidadeLiquidada.toLocaleString("pt-BR")}</p>
+                      <p className="text-lg font-bold">{liquidacao.quantidadeLiquidada.toLocaleString("pt-BR")}</p>
                     </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="rounded-md bg-card p-4 border space-y-1">
                       <p className="text-sm text-muted-foreground">Preço Unitário</p>
-                      <p className="text-lg font-bold">{getSimboloMoeda(editingContrato.moedaId)} {liquidacao.precoUnitario.toFixed(2)}</p>
+                      <p className="text-lg font-bold">
+                        {getSimboloMoeda(editingContrato.moedaId)} {liquidacao.precoUnitario.toFixed(2)}
+                        {editingContrato.tipoPreco === "A_FIXAR" && (
+                          <span className="text-xs text-muted-foreground ml-1">(média ponderada)</span>
+                        )}
+                      </p>
                     </div>
                     <div className="rounded-md bg-card p-4 border space-y-1">
                       <p className="text-sm text-muted-foreground">Valor Bruto</p>
-                      <p className="text-lg font-bold">{getSimboloMoeda(editingContrato.moedaId)} {liquidacao.valorBruto.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                      <p className="text-lg font-bold">
+                        {getSimboloMoeda(editingContrato.moedaId)} {liquidacao.valorBruto.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </p>
                     </div>
                     <div className="rounded-md bg-card p-4 border space-y-1">
                       <p className="text-sm text-muted-foreground">Descontos</p>
-                      <p className="text-lg font-bold text-destructive">- {getSimboloMoeda(editingContrato.moedaId)} {liquidacao.valorDescontos.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                      <p className="text-lg font-bold text-destructive">
+                        - {getSimboloMoeda(editingContrato.moedaId)} {liquidacao.valorDescontos.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </p>
                     </div>
                     <div className="rounded-md bg-card p-4 border space-y-1">
                       <p className="text-sm text-muted-foreground">Valor Líquido</p>
-                      <p className="text-lg font-bold text-primary">{getSimboloMoeda(editingContrato.moedaId)} {liquidacao.valorLiquido.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                      <p className="text-lg font-bold text-primary">
+                        {getSimboloMoeda(editingContrato.moedaId)} {liquidacao.valorLiquido.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </p>
                     </div>
-                  </div>
-                  <div className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
-                    Liquidação confirmada em {new Date(liquidacao.dataLiquidacao).toLocaleDateString("pt-BR")} às {new Date(liquidacao.dataLiquidacao).toLocaleTimeString("pt-BR")}.
                   </div>
                 </div>
               ) : (
-                /* Prévia / não gerada */
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-lg text-foreground">Liquidação do Contrato</h3>
-                  <p className="text-sm text-muted-foreground">
-                    A liquidação calcula o resultado final da negociação com base nos romaneios realizados, fixações de preço e condições financeiras.
-                    Este processo <strong>não movimenta caixa</strong>, apenas ajusta títulos financeiros.
-                  </p>
-
-                  {/* Opções */}
-                  <div className="rounded-md border p-4 space-y-3">
-                    <h4 className="font-medium text-foreground">Opções da Liquidação</h4>
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        id="opcaoEncerrar"
-                        checked={opcaoEncerrar}
-                        onChange={(e) => setOpcaoEncerrar(e.target.checked)}
-                        className="h-4 w-4 rounded border-input"
-                        disabled={liquidacao?.status === "PREVIA" && false}
-                      />
-                      <Label htmlFor="opcaoEncerrar" className="text-sm">
-                        Encerrar contrato com a quantidade entregue (diferença não será cobrada)
-                      </Label>
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-sm">Ajuste de títulos financeiros</Label>
-                      <Select value={opcaoTitulos} onValueChange={(v) => setOpcaoTitulos(v as any)}>
-                        <SelectTrigger className="w-[320px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="ATUALIZAR">Atualizar títulos existentes</SelectItem>
-                          <SelectItem value="COMPLEMENTAR">Gerar título complementar</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  {/* Prévia gerada? */}
+                <div className="space-y-6">
                   {liquidacao && liquidacao.status === "PREVIA" ? (
                     <div className="space-y-4">
-                      <div className="flex items-center gap-2 text-amber-600">
-                        <AlertTriangle className="h-4 w-4" />
-                        <span className="text-sm font-medium">Prévia de liquidação — confira os valores antes de confirmar</span>
+                      <div className="flex items-center gap-2 text-amber-500">
+                        <AlertTriangle className="h-5 w-5" />
+                        <h3 className="font-semibold text-lg text-foreground">Prévia de Liquidação</h3>
                       </div>
-
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="rounded-md bg-card p-4 border space-y-1">
                           <p className="text-sm text-muted-foreground">Qtd. Contratada</p>
-                          <p className="text-lg font-bold">{liquidacao.quantidadeContratada.toLocaleString("pt-BR")} {getCodigoUnidade(editingContrato?.unidadeNegociacaoId ?? "")}</p>
+                          <p className="text-lg font-bold">{liquidacao.quantidadeContratada.toLocaleString("pt-BR")} {editingContrato ? getCodigoUnidade(editingContrato.unidadeNegociacaoId) : ""}</p>
                         </div>
                         <div className="rounded-md bg-card p-4 border space-y-1">
                           <p className="text-sm text-muted-foreground">Qtd. Entregue</p>
@@ -1233,16 +1371,8 @@ export default function ContratosPage() {
                         </div>
                         <div className="rounded-md bg-card p-4 border space-y-1">
                           <p className="text-sm text-muted-foreground">Qtd. Liquidada</p>
-                          <p className="text-lg font-bold text-primary">{liquidacao.quantidadeLiquidada.toLocaleString("pt-BR")}</p>
-                          {liquidacao.quantidadeEntregue < liquidacao.quantidadeContratada && (
-                            <p className="text-xs text-amber-600">
-                              Diferença: {(liquidacao.quantidadeContratada - liquidacao.quantidadeEntregue).toLocaleString("pt-BR")}
-                            </p>
-                          )}
+                          <p className="text-lg font-bold">{liquidacao.quantidadeLiquidada.toLocaleString("pt-BR")}</p>
                         </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div className="rounded-md bg-card p-4 border space-y-1">
                           <p className="text-sm text-muted-foreground">Preço Unitário</p>
                           <p className="text-lg font-bold">
@@ -1269,6 +1399,20 @@ export default function ContratosPage() {
                           <p className="text-lg font-bold text-primary">
                             {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")} {liquidacao.valorLiquido.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </p>
+                        </div>
+                      </div>
+
+                      <div className="rounded-md border p-4 space-y-3">
+                        <h4 className="text-sm font-semibold">Opções de Confirmação</h4>
+                        <div className="space-y-2">
+                          <Label className="text-sm">Tratamento de Títulos Financeiros</Label>
+                          <Select value={opcaoTitulos} onValueChange={(v) => setOpcaoTitulos(v as any)}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="ATUALIZAR">Atualizar parcelas pendentes</SelectItem>
+                              <SelectItem value="COMPLEMENTAR">Criar título complementar</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
 
@@ -1361,14 +1505,18 @@ export default function ContratosPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
                   <Label>Peso Bruto</Label>
                   <Input type="number" step="0.000001" {...entregaForm.register("pesoBruto")} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Peso Líquido</Label>
-                  <Input type="number" step="0.000001" {...entregaForm.register("pesoLiquido")} />
+                  <Label>Peso Tara</Label>
+                  <Input type="number" step="0.000001" {...entregaForm.register("pesoTara")} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Peso Líquido (calculado)</Label>
+                  <Input type="number" value={pesoLiquidoCalculado > 0 ? pesoLiquidoCalculado : ""} disabled className="bg-muted" />
                 </div>
               </div>
 
@@ -1440,7 +1588,7 @@ export default function ContratosPage() {
                     </Table>
                   </div>
                   {(() => {
-                    const pesoBase = Number(entregaForm.watch("pesoLiquido")) || Number(entregaForm.watch("pesoBruto")) || 0;
+                    const pesoBase = pesoLiquidoCalculado > 0 ? pesoLiquidoCalculado : (Number(pesoBrutoWatch) || 0);
                     const totalDesc = classEntregaItens.reduce((sum, item) => {
                       return sum + (editingContrato?.produtoId
                         ? classificacaoDescontoService.buscarDescontoPorFaixa(editingContrato.produtoId, item.classificacaoTipoId, Number(item.valorApurado) || 0)
@@ -1597,22 +1745,20 @@ export default function ContratosPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Confirm Liquidação Dialog */}
+      {/* Liquidação Confirm Dialog */}
       <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar Liquidação</AlertDialogTitle>
             <AlertDialogDescription>
-              Ao confirmar a liquidação, o contrato será encerrado com status <strong>LIQUIDADO</strong>,
-              o estoque em trânsito será zerado e os títulos financeiros serão ajustados.
-              <br /><br />
-              <strong>Esta ação não pode ser desfeita.</strong>
+              Ao confirmar, o contrato será marcado como LIQUIDADO, o estoque em trânsito será zerado e os títulos financeiros serão ajustados.
+              Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={onConfirmarLiquidacao}>
-              Confirmar Liquidação
+              Confirmar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

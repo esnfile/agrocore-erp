@@ -1387,6 +1387,12 @@ export const contratoService = {
       (c) => c.deletadoEm === null && c.empresaId === empresaId && c.filialId === filialId
     );
   },
+  async listarPorEmpresa(empresaId: string): Promise<Contrato[]> {
+    await delay();
+    return mockContratos.filter(
+      (c) => c.deletadoEm === null && c.empresaId === empresaId
+    );
+  },
   async listarTodos(grupoId: string): Promise<Contrato[]> {
     await delay();
     return mockContratos.filter((c) => c.deletadoEm === null && c.grupoId === grupoId);
@@ -1927,6 +1933,12 @@ export const produtoClassificacaoService = {
     await delay();
     return mockProdutoClassificacoes.filter((p) => p.deletadoEm === null && p.produtoId === produtoId);
   },
+  async listarPorProdutoEmpresa(produtoId: string, empresaId: string): Promise<ProdutoClassificacao[]> {
+    await delay();
+    return mockProdutoClassificacoes.filter(
+      (p) => p.deletadoEm === null && p.produtoId === produtoId && p.empresaId === empresaId
+    );
+  },
   async salvar(
     data: Partial<ProdutoClassificacao>,
     ctx: { grupoId: string; empresaId: string; filialId: string }
@@ -2083,6 +2095,14 @@ export const financeiroContaService = {
     if (filtros?.dataFim) list = list.filter((c) => c.dataEmissao <= filtros.dataFim!);
     return list;
   },
+  async listarPorContrato(contratoId: string): Promise<FinanceiroConta[]> {
+    await delay();
+    const contrato = mockContratos.find((c) => c.id === contratoId && c.deletadoEm === null);
+    if (!contrato) return [];
+    return mockFinanceiroContas.filter(
+      (c) => c.deletadoEm === null && c.documentoReferencia === contrato.numeroContrato
+    );
+  },
   async obterPorId(id: string): Promise<FinanceiroConta | undefined> {
     await delay();
     return mockFinanceiroContas.find((c) => c.id === id && c.deletadoEm === null);
@@ -2142,6 +2162,12 @@ export const financeiroParcelaService = {
   async listarPorConta(contaId: string): Promise<FinanceiroParcela[]> {
     await delay();
     return mockFinanceiroParcelas.filter((p) => p.deletadoEm === null && p.contaId === contaId)
+      .sort((a, b) => a.numeroParcela - b.numeroParcela);
+  },
+  async listarPorContas(contaIds: string[]): Promise<FinanceiroParcela[]> {
+    await delay();
+    return mockFinanceiroParcelas
+      .filter((p) => p.deletadoEm === null && contaIds.includes(p.contaId))
       .sort((a, b) => a.numeroParcela - b.numeroParcela);
   },
   async gerarParcelas(
