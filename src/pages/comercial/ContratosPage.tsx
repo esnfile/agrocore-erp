@@ -183,7 +183,7 @@ export default function ContratosPage() {
 
   useEffect(() => {
     if (empresaId) {
-      condicaoDescontoModeloService.listar(empresaId, "").then(setModelosCondicao);
+      condicaoDescontoModeloService.listarPorEmpresa(empresaId).then(setModelosCondicao);
       filialService.listarPorEmpresa(empresaId).then(setFiliaisEmpresa);
     }
     moedaService.listar().then(setMoedas);

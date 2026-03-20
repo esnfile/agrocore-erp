@@ -1688,6 +1688,12 @@ export const condicaoDescontoModeloService = {
       (m) => m.deletadoEm === null && m.empresaId === empresaId
     );
   },
+  async listarPorEmpresa(empresaId: string): Promise<CondicaoDescontoModelo[]> {
+    await delay();
+    return mockCondicaoDescontoModelos.filter(
+      (m) => m.deletadoEm === null && m.empresaId === empresaId
+    );
+  },
   async listarTodos(): Promise<CondicaoDescontoModelo[]> {
     await delay();
     return mockCondicaoDescontoModelos.filter((m) => m.deletadoEm === null);
