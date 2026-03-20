@@ -1021,6 +1021,12 @@ export const pontoEstoqueService = {
       (p) => p.deletadoEm === null && p.empresaId === empresaId && p.filialId === filialId
     );
   },
+  async listarPorEmpresa(empresaId: string): Promise<PontoEstoque[]> {
+    await delay();
+    return mockPontosEstoque.filter(
+      (p) => p.deletadoEm === null && p.empresaId === empresaId
+    );
+  },
   async descricaoExiste(descricao: string, empresaId: string, filialId: string, excludeId?: string): Promise<boolean> {
     await delay(100);
     const t = descricao.trim().toLowerCase();
