@@ -1021,6 +1021,12 @@ export const pontoEstoqueService = {
       (p) => p.deletadoEm === null && p.empresaId === empresaId && p.filialId === filialId
     );
   },
+  async listarPorEmpresa(empresaId: string): Promise<PontoEstoque[]> {
+    await delay();
+    return mockPontosEstoque.filter(
+      (p) => p.deletadoEm === null && p.empresaId === empresaId
+    );
+  },
   async descricaoExiste(descricao: string, empresaId: string, filialId: string, excludeId?: string): Promise<boolean> {
     await delay(100);
     const t = descricao.trim().toLowerCase();
@@ -1678,6 +1684,12 @@ export const condicaoDescontoModeloService = {
   async listar(empresaId: string, filialId: string): Promise<CondicaoDescontoModelo[]> {
     await delay();
     // Enterprise entity - filter by empresa only
+    return mockCondicaoDescontoModelos.filter(
+      (m) => m.deletadoEm === null && m.empresaId === empresaId
+    );
+  },
+  async listarPorEmpresa(empresaId: string): Promise<CondicaoDescontoModelo[]> {
+    await delay();
     return mockCondicaoDescontoModelos.filter(
       (m) => m.deletadoEm === null && m.empresaId === empresaId
     );
