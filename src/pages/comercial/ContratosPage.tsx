@@ -28,8 +28,7 @@ import {
   contratoService, contratoEntregaService, contratoFixacaoService,
   pontoEstoqueService, moedaService,
   condicaoDescontoModeloService, contratoCondicaoService,
-  classificacaoTipoService, produtoClassificacaoService,
-  classificacaoDescontoService, romaneioClassificacaoService,
+  classificacaoTipoService,
   contratoLiquidacaoService, financeiroContaService,
   financeiroParcelaService, financeiroBaixaService,
   filialService,
@@ -44,7 +43,6 @@ import type {
   Contrato, ContratoEntrega, ContratoFixacao,
   PontoEstoque, Moeda, Filial,
   CondicaoDescontoModelo, ContratoCondicao, TipoCondicaoDesconto,
-  ClassificacaoTipo, ProdutoClassificacao, RomaneioClassificacao,
   ContratoLiquidacao,
   FinanceiroConta, FinanceiroParcela, FinanceiroBaixa,
 } from "@/lib/mock-data";
@@ -70,20 +68,6 @@ const contratoSchema = z.object({
   observacoes: z.string().optional(),
 });
 type ContratoForm = z.infer<typeof contratoSchema>;
-
-const entregaSchema = z.object({
-  dataEntrega: z.string().min(1, "Data é obrigatória"),
-  quantidadeInformada: z.coerce.number().positive("Quantidade deve ser > 0"),
-  unidadeInformadaId: z.string().min(1, "Unidade é obrigatória"),
-  pontoEstoqueId: z.string().min(1, "Ponto de estoque é obrigatório"),
-  pesoBruto: z.coerce.number().optional(),
-  pesoTara: z.coerce.number().optional(),
-  placaVeiculo: z.string().optional(),
-  nomeMotorista: z.string().optional(),
-  documentoMotorista: z.string().optional(),
-  observacoes: z.string().optional(),
-});
-type EntregaForm = z.infer<typeof entregaSchema>;
 
 const fixacaoSchema = z.object({
   dataFixacao: z.string().min(1, "Data é obrigatória"),
@@ -131,11 +115,6 @@ export default function ContratosPage() {
   const [pontos, setPontos] = useState<PontoEstoque[]>([]);
   const [moedas, setMoedas] = useState<Moeda[]>([]);
 
-  // Entrega modal
-  const [entregaModalOpen, setEntregaModalOpen] = useState(false);
-  const [editingEntrega, setEditingEntrega] = useState<ContratoEntrega | null>(null);
-  const [savingEntrega, setSavingEntrega] = useState(false);
-
   // Fixacao modal
   const [fixacaoModalOpen, setFixacaoModalOpen] = useState(false);
   const [editingFixacao, setEditingFixacao] = useState<ContratoFixacao | null>(null);
@@ -152,11 +131,6 @@ export default function ContratosPage() {
   const [condValor, setCondValor] = useState("");
   const [condOrdem, setCondOrdem] = useState("");
   const [condAutomatico, setCondAutomatico] = useState(false);
-
-  // Classificação de grãos
-  const [classificacaoTipos, setClassificacaoTipos] = useState<ClassificacaoTipo[]>([]);
-  const [produtoClassificacoes, setProdutoClassificacoes] = useState<ProdutoClassificacao[]>([]);
-  const [classEntregaItens, setClassEntregaItens] = useState<{ classificacaoTipoId: string; valorApurado: string }[]>([]);
 
   // Liquidação
   const [liquidacao, setLiquidacao] = useState<ContratoLiquidacao | null>(null);
@@ -184,16 +158,6 @@ export default function ContratosPage() {
     },
   });
 
-  const entregaForm = useForm<EntregaForm>({
-    resolver: zodResolver(entregaSchema),
-    defaultValues: {
-      dataEntrega: new Date().toISOString().slice(0, 16),
-      quantidadeInformada: 0, unidadeInformadaId: "", pontoEstoqueId: "",
-      pesoBruto: undefined, pesoTara: undefined,
-      placaVeiculo: "", nomeMotorista: "", documentoMotorista: "", observacoes: "",
-    },
-  });
-
   const fixacaoForm = useForm<FixacaoForm>({
     resolver: zodResolver(fixacaoSchema),
     defaultValues: {
@@ -205,11 +169,6 @@ export default function ContratosPage() {
 
   const tipoPrecoWatch = contratoForm.watch("tipoPreco");
   const filialOperacaoWatch = contratoForm.watch("filialOperacaoId");
-
-  // Peso líquido calculado
-  const pesoBrutoWatch = entregaForm.watch("pesoBruto");
-  const pesoTaraWatch = entregaForm.watch("pesoTara");
-  const pesoLiquidoCalculado = (Number(pesoBrutoWatch) || 0) - (Number(pesoTaraWatch) || 0);
 
   // Load data — contrato é por EMPRESA, não por filial
   const loadContratos = async () => {
@@ -224,16 +183,13 @@ export default function ContratosPage() {
 
   useEffect(() => {
     if (empresaId) {
-      // Modelos de condição são por empresa (filialId null)
       condicaoDescontoModeloService.listar(empresaId, "").then(setModelosCondicao);
       filialService.listarPorEmpresa(empresaId).then(setFiliaisEmpresa);
     }
     moedaService.listar().then(setMoedas);
-    // ClassificacaoTipo é CORPORATIVO — sem filtro
-    classificacaoTipoService.listarTodos().then(setClassificacaoTipos);
+    classificacaoTipoService.listarTodos().then(() => {});
   }, [empresaId]);
 
-  // Atualizar pontos de estoque quando filialOperacaoId muda
   useEffect(() => {
     if (empresaId && filialOperacaoWatch) {
       pontoEstoqueService.listar(empresaId, filialOperacaoWatch).then(setPontos);
@@ -380,120 +336,6 @@ export default function ContratosPage() {
       toast({ title: "Erro", description: result.mensagem, variant: "destructive" });
     }
     setDeleteId(null);
-  };
-
-  // ---- Entrega CRUD ----
-  const openNewEntrega = () => {
-    setEditingEntrega(null);
-    entregaForm.reset({
-      dataEntrega: new Date().toISOString().slice(0, 16),
-      quantidadeInformada: 0, unidadeInformadaId: editingContrato?.unidadeNegociacaoId ?? "",
-      pontoEstoqueId: "", pesoBruto: undefined, pesoTara: undefined,
-      placaVeiculo: "", nomeMotorista: "", documentoMotorista: "", observacoes: "",
-    });
-    // Load ProdutoClassificacao filtered by PRODUTO + EMPRESA (not filial)
-    if (editingContrato?.produtoId && empresaId) {
-      produtoClassificacaoService.listarPorProdutoEmpresa(editingContrato.produtoId, empresaId).then((pcs) => {
-        setProdutoClassificacoes(pcs);
-        setClassEntregaItens(pcs.filter((pc) => pc.ativo).map((pc) => ({
-          classificacaoTipoId: pc.classificacaoTipoId,
-          valorApurado: String(pc.valorPadrao),
-        })));
-      });
-    }
-    // Load pontos for filialOperacaoId
-    if (empresaId && editingContrato?.filialOperacaoId) {
-      pontoEstoqueService.listar(empresaId, editingContrato.filialOperacaoId).then(setPontos);
-    }
-    setEntregaModalOpen(true);
-  };
-
-  const openEditEntrega = (e: ContratoEntrega) => {
-    setEditingEntrega(e);
-    entregaForm.reset({
-      dataEntrega: e.dataEntrega.slice(0, 16),
-      quantidadeInformada: e.quantidadeInformada,
-      unidadeInformadaId: e.unidadeInformadaId,
-      pontoEstoqueId: e.pontoEstoqueId,
-      pesoBruto: e.pesoBruto ?? undefined,
-      pesoTara: e.pesoBruto && e.pesoLiquido ? e.pesoBruto - e.pesoLiquido : undefined,
-      placaVeiculo: e.placaVeiculo,
-      nomeMotorista: e.nomeMotorista,
-      documentoMotorista: e.documentoMotorista,
-      observacoes: e.observacoes,
-    });
-    setEntregaModalOpen(true);
-  };
-
-  const onSaveEntrega = entregaForm.handleSubmit(async (data) => {
-    if (!editingContrato) return;
-    setSavingEntrega(true);
-    try {
-      // pesoLiquido = pesoBruto - pesoTara
-      const pesoBruto = Number(data.pesoBruto) || 0;
-      const pesoTara = Number(data.pesoTara) || 0;
-      const pesoLiquido = pesoBruto > 0 ? pesoBruto - pesoTara : 0;
-
-      // Classification discounts
-      const totalDesc = classEntregaItens.reduce((sum, item) => {
-        return sum + classificacaoDescontoService.buscarDescontoPorFaixa(editingContrato.produtoId, item.classificacaoTipoId, Number(item.valorApurado) || 0);
-      }, 0);
-      const pesoBase = pesoLiquido > 0 ? pesoLiquido : pesoBruto;
-      const pesoComercial = pesoBase > 0 ? Math.round((pesoBase - (pesoBase * totalDesc / 100)) * 100) / 100 : null;
-
-      const filialId = editingContrato.filialOperacaoId || editingContrato.filialId;
-      const result = await contratoEntregaService.salvar(
-        {
-          ...data,
-          contratoId: editingContrato.id,
-          id: editingEntrega?.id,
-          pesoBruto: pesoBruto || null,
-          pesoLiquido: pesoLiquido > 0 ? pesoLiquido : null,
-          pesoClassificado: pesoBase || null,
-          descontoTotalPercentual: totalDesc > 0 ? totalDesc : null,
-          pesoComercial,
-        },
-        { grupoId, empresaId, filialId }
-      );
-      if (result.sucesso && result.entrega) {
-        // Save romaneio classificacoes
-        if (classEntregaItens.length > 0) {
-          await romaneioClassificacaoService.salvarClassificacoes(
-            result.entrega.id,
-            classEntregaItens.map((item) => ({
-              classificacaoTipoId: item.classificacaoTipoId,
-              valorApurado: Number(item.valorApurado) || 0,
-              percentualDesconto: classificacaoDescontoService.buscarDescontoPorFaixa(editingContrato.produtoId, item.classificacaoTipoId, Number(item.valorApurado) || 0),
-            })),
-            { grupoId, empresaId, filialId }
-          );
-        }
-        toast({ title: "Sucesso", description: result.mensagem });
-        setEntregaModalOpen(false);
-        await loadSubEntities(editingContrato.id);
-        await loadContratos();
-        const updated = (await contratoService.listarPorEmpresa(empresaId)).find((c) => c.id === editingContrato.id);
-        if (updated) setEditingContrato(updated);
-      } else {
-        toast({ title: "Erro", description: result.mensagem, variant: "destructive" });
-      }
-    } catch {
-      toast({ title: "Erro", description: "Falha ao salvar romaneio.", variant: "destructive" });
-    } finally { setSavingEntrega(false); }
-  });
-
-  const onDeleteEntrega = async (id: string) => {
-    if (!editingContrato) return;
-    const result = await contratoEntregaService.excluir(id);
-    if (result.sucesso) {
-      toast({ title: "Sucesso", description: result.mensagem });
-      await loadSubEntities(editingContrato.id);
-      await loadContratos();
-      const updated = (await contratoService.listarPorEmpresa(empresaId)).find((c) => c.id === editingContrato.id);
-      if (updated) setEditingContrato(updated);
-    } else {
-      toast({ title: "Erro", description: result.mensagem, variant: "destructive" });
-    }
   };
 
   // ---- Fixação CRUD (por EMPRESA, não por filial) ----
@@ -861,7 +703,14 @@ export default function ContratosPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
-                  <Label>Unidade de Negociação <span className="text-destructive">*</span></Label>
+                  <Label>Quantidade <span className="text-destructive">*</span></Label>
+                  <Input type="number" step="0.000001" {...contratoForm.register("quantidadeTotal")} />
+                  {contratoForm.formState.errors.quantidadeTotal && (
+                    <p className="text-xs text-destructive">{contratoForm.formState.errors.quantidadeTotal.message}</p>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Unidade <span className="text-destructive">*</span></Label>
                   <Select value={contratoForm.watch("unidadeNegociacaoId")} onValueChange={(v) => contratoForm.setValue("unidadeNegociacaoId", v)}>
                     <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                     <SelectContent>
@@ -870,13 +719,6 @@ export default function ContratosPage() {
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Quantidade Total <span className="text-destructive">*</span></Label>
-                  <Input type="number" step="0.000001" {...contratoForm.register("quantidadeTotal")} />
-                  {contratoForm.formState.errors.quantidadeTotal && (
-                    <p className="text-xs text-destructive">{contratoForm.formState.errors.quantidadeTotal.message}</p>
-                  )}
                 </div>
                 <div className="space-y-1.5">
                   <Label>Tipo de Preço <span className="text-destructive">*</span></Label>
@@ -890,7 +732,7 @@ export default function ContratosPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label>Moeda</Label>
                   <Select value={contratoForm.watch("moedaId")} onValueChange={(v) => contratoForm.setValue("moedaId", v)}>
@@ -976,16 +818,9 @@ export default function ContratosPage() {
             </fieldset>
           </TabsContent>
 
-          {/* ABA 2 — Romaneios */}
+          {/* ABA 2 — Romaneios (somente leitura) */}
           <TabsContent value="romaneios">
             <div className="space-y-4">
-              {!viewOnly && (
-                <div className="flex justify-end">
-                  <Button size="sm" onClick={openNewEntrega} disabled={editingContrato?.status === "FINALIZADO" || editingContrato?.status === "CANCELADO"}>
-                    <Plus className="mr-2 h-4 w-4" />Novo Romaneio
-                  </Button>
-                </div>
-              )}
               <div className="overflow-auto">
                 <Table>
                   <TableHeader>
@@ -999,14 +834,13 @@ export default function ContratosPage() {
                        <TableHead className="text-right">Desc. %</TableHead>
                        <TableHead>Motorista</TableHead>
                        <TableHead>Placa</TableHead>
-                       {!viewOnly && <TableHead className="text-right">Ações</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {entregas.length === 0 ? (
                       <TableRow>
-                         <TableCell colSpan={viewOnly ? 9 : 10} className="text-center py-8 text-muted-foreground">
-                          Nenhum romaneio registrado.
+                         <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                          Nenhum romaneio registrado. A criação de romaneios é feita pelo módulo Romaneios.
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -1021,18 +855,6 @@ export default function ContratosPage() {
                            <TableCell className="text-right">{e.descontoTotalPercentual != null ? `${e.descontoTotalPercentual.toFixed(2)}%` : "—"}</TableCell>
                           <TableCell>{e.nomeMotorista || "—"}</TableCell>
                           <TableCell>{e.placaVeiculo || "—"}</TableCell>
-                          {!viewOnly && (
-                            <TableCell className="text-right">
-                              <div className="flex justify-end gap-1">
-                                <Button variant="ghost" size="icon" onClick={() => openEditEntrega(e)}>
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
-                                <Button variant="ghost" size="icon" onClick={() => onDeleteEntrega(e.id)}>
-                                  <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          )}
                         </TableRow>
                       ))
                     )}
@@ -1211,7 +1033,6 @@ export default function ContratosPage() {
           {/* ABA 5 — Condições e Descontos */}
           <TabsContent value="condicoes">
             <div className="space-y-6">
-              {/* Condições do Contrato */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="font-semibold text-foreground">Condições Financeiras</h3>
@@ -1304,7 +1125,6 @@ export default function ContratosPage() {
           <TabsContent value="liquidacao">
             <div className="space-y-6">
               {editingContrato?.status === "LIQUIDADO" && liquidacao?.status === "CONFIRMADA" ? (
-                /* Liquidação confirmada — exibir resumo final */
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 text-primary">
                     <FileCheck className="h-5 w-5" />
@@ -1440,172 +1260,6 @@ export default function ContratosPage() {
                     </div>
                   )}
                 </div>
-              )}
-            </div>
-          </TabsContent>
-        </Tabs>
-      </CrudModal>
-
-      {/* Entrega Modal */}
-      <CrudModal
-        open={entregaModalOpen}
-        onClose={() => setEntregaModalOpen(false)}
-        title={editingEntrega ? "Editar Romaneio" : "Novo Romaneio"}
-        saving={savingEntrega}
-        onSave={onSaveEntrega}
-        maxWidth="sm:max-w-2xl"
-      >
-        <Tabs defaultValue="geral" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="geral">Geral</TabsTrigger>
-            <TabsTrigger value="classificacao">Classificação do Grão</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="geral">
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label>Data da Entrega <span className="text-destructive">*</span></Label>
-                  <Input type="datetime-local" {...entregaForm.register("dataEntrega")} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Ponto de Estoque <span className="text-destructive">*</span></Label>
-                  <Select value={entregaForm.watch("pontoEstoqueId")} onValueChange={(v) => entregaForm.setValue("pontoEstoqueId", v)}>
-                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                    <SelectContent>
-                      {pontos.filter((p) => p.ativo).map((p) => (
-                        <SelectItem key={p.id} value={p.id}>{p.descricao}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {entregaForm.formState.errors.pontoEstoqueId && (
-                    <p className="text-xs text-destructive">{entregaForm.formState.errors.pontoEstoqueId.message}</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label>Quantidade <span className="text-destructive">*</span></Label>
-                  <Input type="number" step="0.000001" {...entregaForm.register("quantidadeInformada")} />
-                  {entregaForm.formState.errors.quantidadeInformada && (
-                    <p className="text-xs text-destructive">{entregaForm.formState.errors.quantidadeInformada.message}</p>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Unidade <span className="text-destructive">*</span></Label>
-                  <Select value={entregaForm.watch("unidadeInformadaId")} onValueChange={(v) => entregaForm.setValue("unidadeInformadaId", v)}>
-                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                    <SelectContent>
-                      {unidadesAtivas.map((u) => (
-                        <SelectItem key={u.id} value={u.id}>{u.codigo} — {u.descricao}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-1.5">
-                  <Label>Peso Bruto</Label>
-                  <Input type="number" step="0.000001" {...entregaForm.register("pesoBruto")} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Peso Tara</Label>
-                  <Input type="number" step="0.000001" {...entregaForm.register("pesoTara")} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Peso Líquido (calculado)</Label>
-                  <Input type="number" value={pesoLiquidoCalculado > 0 ? pesoLiquidoCalculado : ""} disabled className="bg-muted" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-1.5">
-                  <Label>Placa do Veículo</Label>
-                  <Input {...entregaForm.register("placaVeiculo")} maxLength={10} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Motorista</Label>
-                  <Input {...entregaForm.register("nomeMotorista")} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Documento Motorista</Label>
-                  <Input {...entregaForm.register("documentoMotorista")} maxLength={20} />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label>Observações</Label>
-                <Textarea rows={2} {...entregaForm.register("observacoes")} />
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="classificacao">
-            <div className="space-y-4">
-              {classEntregaItens.length > 0 ? (
-                <div className="space-y-3">
-                  <div className="overflow-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Tipo</TableHead>
-                          <TableHead className="text-right">Valor Base</TableHead>
-                          <TableHead className="text-right">Valor Apurado</TableHead>
-                          <TableHead className="text-right">Excedente</TableHead>
-                          <TableHead className="text-right">% Desconto</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {classEntregaItens.map((item, idx) => {
-                          const tipo = classificacaoTipos.find((t) => t.id === item.classificacaoTipoId);
-                          const valorApuradoNum = Number(item.valorApurado) || 0;
-                          const valorBase = tipo?.valorBase ?? 0;
-                          const excedente = valorApuradoNum - valorBase;
-                          const descPct = editingContrato?.produtoId
-                            ? classificacaoDescontoService.buscarDescontoPorFaixa(editingContrato.produtoId, item.classificacaoTipoId, valorApuradoNum)
-                            : 0;
-                          return (
-                            <TableRow key={idx}>
-                              <TableCell>{tipo?.descricao ?? item.classificacaoTipoId}</TableCell>
-                              <TableCell className="text-right text-muted-foreground">{valorBase}</TableCell>
-                              <TableCell className="text-right">
-                                <Input
-                                  type="number" step="0.000001" className="w-[120px] ml-auto"
-                                  value={item.valorApurado}
-                                  onChange={(e) => {
-                                    setClassEntregaItens((prev) => prev.map((it, i) => i === idx ? { ...it, valorApurado: e.target.value } : it));
-                                  }}
-                                />
-                              </TableCell>
-                              <TableCell className="text-right">{excedente > 0 ? `+${excedente.toFixed(2)}` : excedente.toFixed(2)}</TableCell>
-                              <TableCell className="text-right font-medium">{descPct.toFixed(2)}%</TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </div>
-                  {(() => {
-                    const pesoBase = pesoLiquidoCalculado > 0 ? pesoLiquidoCalculado : (Number(pesoBrutoWatch) || 0);
-                    const totalDesc = classEntregaItens.reduce((sum, item) => {
-                      return sum + (editingContrato?.produtoId
-                        ? classificacaoDescontoService.buscarDescontoPorFaixa(editingContrato.produtoId, item.classificacaoTipoId, Number(item.valorApurado) || 0)
-                        : 0);
-                    }, 0);
-                    const pesoComercial = pesoBase > 0 ? pesoBase - (pesoBase * totalDesc / 100) : 0;
-                    return (
-                      <div className="grid grid-cols-3 gap-3 rounded-md bg-muted p-3 text-sm">
-                        <div>Peso Base: <strong>{pesoBase.toLocaleString("pt-BR")}</strong></div>
-                        <div>Desconto Total: <strong className="text-destructive">{totalDesc.toFixed(2)}%</strong></div>
-                        <div>Peso Comercial: <strong className="text-primary">{Math.round(pesoComercial * 100) / 100}</strong></div>
-                      </div>
-                    );
-                  })()}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground text-center py-6">Nenhuma classificação de qualidade vinculada a este produto.</p>
               )}
             </div>
           </TabsContent>
@@ -1751,8 +1405,8 @@ export default function ContratosPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar Liquidação</AlertDialogTitle>
             <AlertDialogDescription>
-              Ao confirmar, o contrato será marcado como LIQUIDADO, o estoque em trânsito será zerado e os títulos financeiros serão ajustados.
-              Esta ação não pode ser desfeita.
+              Ao confirmar a liquidação, o contrato será encerrado e os títulos financeiros serão atualizados.
+              Esta ação não pode ser desfeita facilmente.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
