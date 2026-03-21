@@ -1261,7 +1261,28 @@ export const contratoEntregas: ContratoEntrega[] = [
   },
 ];
 
-export const contratoFixacoes: ContratoFixacao[] = [];
+export const contratoFixacoes: ContratoFixacao[] = [
+  {
+    id: "ctrf1", grupoId: "g1", empresaId: "e1", filialId: null,
+    contratoId: "ctr2", dataFixacao: "2025-03-10T10:00:00Z",
+    quantidadeFixada: 200, unidadeFixacaoId: "um2",
+    precoFixado: 48.00, moedaId: "moeda2",
+    observacoes: "Fixação parcial — lote março",
+    criadoEm: "2025-03-10T10:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-03-10T10:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "ctrf2", grupoId: "g1", empresaId: "e1", filialId: null,
+    contratoId: "ctr2", dataFixacao: "2025-03-15T14:00:00Z",
+    quantidadeFixada: 100, unidadeFixacaoId: "um2",
+    precoFixado: 50.00, moedaId: "moeda2",
+    observacoes: "Fixação parcial — lote abril",
+    criadoEm: "2025-03-15T14:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-03-15T14:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+];
 
 // ---- Condições de Desconto — Modelo ----
 export type TipoCondicaoDesconto = "PERCENTUAL" | "VALOR_FIXO";

@@ -2694,6 +2694,14 @@ export const romaneioService = {
     await delay();
     return mockRomaneios.filter((r) => r.deletadoEm === null && r.empresaId === empresaId && r.filialId === filialId);
   },
+  async listarPorContrato(contratoId: string): Promise<Romaneio[]> {
+    await delay();
+    return mockRomaneios.filter((r) => r.deletadoEm === null && r.contratoId === contratoId);
+  },
+  async listarFinalizadosPorContrato(contratoId: string): Promise<Romaneio[]> {
+    await delay();
+    return mockRomaneios.filter((r) => r.deletadoEm === null && r.contratoId === contratoId && r.status === "FINALIZADO");
+  },
   async obterPorId(id: string): Promise<Romaneio | undefined> {
     await delay();
     return mockRomaneios.find((r) => r.id === id && r.deletadoEm === null);
@@ -2979,11 +2987,11 @@ export const contratoLiquidacaoService = {
     _ctx: { grupoId: string; empresaId: string; filialId: string },
     now: string
   ): { sucesso: boolean; mensagem: string; liquidacao: ContratoLiquidacao } {
-    // 1. Quantidade entregue = soma entregas confirmadas
-    const entregas = mockContratoEntregas.filter(
-      (e) => e.contratoId === contrato.id && e.deletadoEm === null
+    // 1. Quantidade entregue = soma pesoLiquido dos romaneios FINALIZADOS do contrato
+    const romaneiosFinalizados = mockRomaneios.filter(
+      (r) => r.contratoId === contrato.id && r.deletadoEm === null && r.status === "FINALIZADO"
     );
-    const quantidadeEntregue = entregas.reduce((sum, e) => sum + e.quantidadeInformada, 0);
+    const quantidadeEntregue = romaneiosFinalizados.reduce((sum, r) => sum + r.pesoLiquido, 0);
 
     // 2. Quantidade liquidada
     const quantidadeLiquidada = opcaoEncerrar
@@ -3027,14 +3035,13 @@ export const contratoLiquidacaoService = {
 
     // 6. Descontos de classificação de qualidade (romaneios)
     let descontoQualidade = 0;
-    for (const entrega of entregas) {
+    for (const rom of romaneiosFinalizados) {
       const classificacoes = mockRomaneioClassificacoes.filter(
-        (rc) => rc.romaneioId === entrega.id && rc.deletadoEm === null
+        (rc) => rc.romaneioId === rom.id && rc.deletadoEm === null
       );
       for (const cl of classificacoes) {
         if (cl.percentualDesconto > 0) {
-          const pesoBase = entrega.pesoLiquido ?? entrega.quantidadeInformada;
-          descontoQualidade += pesoBase * cl.percentualDesconto / 100 * precoUnitario;
+          descontoQualidade += rom.pesoLiquido * cl.percentualDesconto / 100 * precoUnitario;
         }
       }
     }
