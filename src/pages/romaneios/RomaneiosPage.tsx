@@ -798,7 +798,21 @@ export default function RomaneiosPage() {
                       <TableRow><TableCell colSpan={isEditable ? 5 : 4} className="text-center text-muted-foreground">Nenhuma pesagem registrada</TableCell></TableRow>
                     ) : pesagens.map((p) => (
                       <TableRow key={p.id}>
-                        <TableCell><Badge variant={p.tipoPesagem === "ENTRADA" ? "default" : "secondary"}>{p.tipoPesagem}</Badge></TableCell>
+                        <TableCell>
+                          {editingPesagemId === p.id ? (
+                            <Select value={editPesagemTipo} onValueChange={(v) => setEditPesagemTipo(v as TipoPesagem)}>
+                              <SelectTrigger className="h-8 w-32"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="ENTRADA">⬇️ Entrada</SelectItem>
+                                <SelectItem value="SAIDA">⬆️ Saída</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <Badge variant={p.tipoPesagem === "ENTRADA" ? "default" : "secondary"}>
+                              {p.tipoPesagem === "ENTRADA" ? "⬇️" : "⬆️"} {p.tipoPesagem}
+                            </Badge>
+                          )}
+                        </TableCell>
                         <TableCell>
                           {editingPesagemId === p.id ? (
                             <div className="flex items-center gap-2">
@@ -836,6 +850,7 @@ export default function RomaneiosPage() {
                               <Button variant="ghost" size="sm" className="gap-1" onClick={() => {
                                 setEditingPesagemId(p.id);
                                 setEditPesagemPeso(p.peso);
+                                setEditPesagemTipo(p.tipoPesagem);
                               }}>
                                 <Pencil className="h-3 w-3" /> Editar
                               </Button>
