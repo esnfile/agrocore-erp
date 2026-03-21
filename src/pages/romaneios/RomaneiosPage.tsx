@@ -367,7 +367,6 @@ export default function RomaneiosPage() {
     [pesoBaseClassificacao, classUmidade, classImpureza, classArdidos, classAvariados]
   );
 
-  const editPesoLiquido = editPesoBruto - editPesoTara;
   const isEditable = selected && (selected.status === "ABERTO" || selected.status === "AGUARDANDO_CONTRATO");
 
   const columns: Column<Romaneio>[] = [
