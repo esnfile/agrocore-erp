@@ -538,86 +538,39 @@ export default function RomaneiosPage() {
                   </CardContent>
                 </Card>
 
-                {/* ===== WEIGHT SECTION WITH MANUAL EDIT ===== */}
+                {/* ===== WEIGHT SECTION (READ-ONLY, calculated from pesagens) ===== */}
                 <Card>
                   <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-sm font-medium">Pesos</CardTitle>
-                      {isEditable && !editingPesos && (
-                        <Button variant="ghost" size="sm" className="gap-1" onClick={() => {
-                          setEditPesoBruto(selected.pesoBruto);
-                          setEditPesoTara(selected.pesoTara);
-                          setEditingPesos(true);
-                        }}>
-                          <Pencil className="h-3 w-3" /> Editar
-                        </Button>
-                      )}
-                      {editingPesos && (
-                        <div className="flex gap-2">
-                          <Button variant="ghost" size="sm" onClick={() => setEditingPesos(false)}>Cancelar</Button>
-                          <Button size="sm" className="gap-1" onClick={salvarPesosManual}>
-                            <Check className="h-3 w-3" /> Salvar
-                          </Button>
-                        </div>
-                      )}
-                    </div>
+                    <CardTitle className="text-sm font-medium">Pesos</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-3 gap-4">
-                      {/* Peso Bruto */}
                       <div className="space-y-1">
                         <Label className="text-muted-foreground text-xs">Peso Bruto</Label>
-                        {editingPesos ? (
-                          <Input
-                            type="number"
-                            step="0.001"
-                            min="0"
-                            value={editPesoBruto}
-                            onChange={(e) => setEditPesoBruto(parseFloat(e.target.value) || 0)}
-                            className="text-lg font-bold"
-                          />
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <p className="text-xl font-bold">{selected.pesoBruto > 0 ? `${selected.pesoBruto.toFixed(3)} ton` : "—"}</p>
-                            {selected.pesoBruto > 0 && <Badge variant="secondary" className="text-xs">Automático</Badge>}
-                          </div>
-                        )}
+                        <div className="flex items-center gap-2">
+                          <p className="text-xl font-bold">{selected.pesoBruto > 0 ? `${selected.pesoBruto.toFixed(3)} ton` : "—"}</p>
+                          {selected.pesoBruto > 0 && <Badge variant="secondary" className="text-xs">Automático</Badge>}
+                        </div>
                       </div>
-
-                      {/* Peso Tara */}
                       <div className="space-y-1">
                         <Label className="text-muted-foreground text-xs">Peso Tara</Label>
-                        {editingPesos ? (
-                          <Input
-                            type="number"
-                            step="0.001"
-                            min="0"
-                            value={editPesoTara}
-                            onChange={(e) => setEditPesoTara(parseFloat(e.target.value) || 0)}
-                            className="text-lg font-bold"
-                          />
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <p className="text-xl font-bold">{selected.pesoTara > 0 ? `${selected.pesoTara.toFixed(3)} ton` : "—"}</p>
-                            {selected.pesoTara > 0 && <Badge variant="secondary" className="text-xs">Automático</Badge>}
-                          </div>
-                        )}
+                        <div className="flex items-center gap-2">
+                          <p className="text-xl font-bold">{selected.pesoTara > 0 ? `${selected.pesoTara.toFixed(3)} ton` : "—"}</p>
+                          {selected.pesoTara > 0 && <Badge variant="secondary" className="text-xs">Automático</Badge>}
+                        </div>
                       </div>
-
-                      {/* Peso Líquido - always read-only */}
                       <div className="space-y-1">
                         <Label className="text-muted-foreground text-xs">Peso Líquido (Bruto - Tara)</Label>
-                        {editingPesos ? (
-                          <p className={`text-xl font-bold ${editPesoLiquido > 0 ? "text-green-700" : "text-destructive"}`}>
-                            {editPesoLiquido.toFixed(3)} ton
-                          </p>
-                        ) : (
-                          <p className={`text-xl font-bold ${selected.pesoLiquido > 0 ? "text-green-700" : ""}`}>
-                            {selected.pesoLiquido > 0 ? `${selected.pesoLiquido.toFixed(3)} ton` : "—"}
-                          </p>
-                        )}
+                        <p className={`text-xl font-bold ${selected.pesoLiquido > 0 ? "text-green-700" : ""}`}>
+                          {selected.pesoLiquido > 0 ? `${selected.pesoLiquido.toFixed(3)} ton` : "—"}
+                        </p>
                       </div>
                     </div>
+                    {pesagens.length > 0 && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        💡 Para corrigir pesos, edite as pesagens na aba "Pesagens"
+                      </p>
+                    )}
                   </CardContent>
                 </Card>
 
