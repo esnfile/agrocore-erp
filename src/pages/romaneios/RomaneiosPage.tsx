@@ -775,7 +775,23 @@ export default function RomaneiosPage() {
                         <Link2 className="h-4 w-4" /> Vincular Contrato
                       </Button>
                     )}
-                    {selected.status === "ABERTO" && <Button onClick={finalizarRomaneio} className="gap-2"><CheckCircle className="h-4 w-4" /> Finalizar</Button>}
+                    {selected.status === "ABERTO" && (
+                      <div className="flex flex-col gap-1">
+                        <Button
+                          onClick={finalizarRomaneio}
+                          disabled={!podeFinalizarRomaneio}
+                          className="gap-2"
+                        >
+                          <CheckCircle className="h-4 w-4" /> Finalizar
+                        </Button>
+                        {pesagensCompletas && !pesoLiquidoValido && (
+                          <p className="text-xs text-destructive">❌ Peso Líquido inválido. Revise as pesagens.</p>
+                        )}
+                        {pesagensCompletas && pesoLiquidoValido && !contratoVinculado && (
+                          <p className="text-xs text-yellow-600">⚠️ Vincule um contrato para finalizar.</p>
+                        )}
+                      </div>
+                    )}
                     <Button variant="destructive" onClick={cancelarRomaneio} className="gap-2"><XCircle className="h-4 w-4" /> Cancelar</Button>
                   </div>
                 )}
