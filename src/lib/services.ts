@@ -2694,6 +2694,14 @@ export const romaneioService = {
     await delay();
     return mockRomaneios.filter((r) => r.deletadoEm === null && r.empresaId === empresaId && r.filialId === filialId);
   },
+  async listarPorContrato(contratoId: string): Promise<Romaneio[]> {
+    await delay();
+    return mockRomaneios.filter((r) => r.deletadoEm === null && r.contratoId === contratoId);
+  },
+  async listarFinalizadosPorContrato(contratoId: string): Promise<Romaneio[]> {
+    await delay();
+    return mockRomaneios.filter((r) => r.deletadoEm === null && r.contratoId === contratoId && r.status === "FINALIZADO");
+  },
   async obterPorId(id: string): Promise<Romaneio | undefined> {
     await delay();
     return mockRomaneios.find((r) => r.id === id && r.deletadoEm === null);
