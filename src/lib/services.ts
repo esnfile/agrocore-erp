@@ -1442,7 +1442,14 @@ export const contratoService = {
     }
     // Convert quantity to base
     const produto = mockProdutos.find((p) => p.id === data.produtoId);
-    const unidadeNeg = mockUnidadesMedida.find((u) => u.id === data.unidadeNegociacaoId);
+    // FURO 4: Se unidadeNegociacaoId não informada, herdar do produto
+    let unidadeNegociacaoId = data.unidadeNegociacaoId ?? "";
+    if (!unidadeNegociacaoId && produto) {
+      unidadeNegociacaoId = data.tipoContrato === "COMPRA"
+        ? produto.unidadeCompraId
+        : produto.unidadeVendaId;
+    }
+    const unidadeNeg = mockUnidadesMedida.find((u) => u.id === unidadeNegociacaoId);
     const unidadeBase = produto ? mockUnidadesMedida.find((u) => u.id === produto.unidadeBaseId) : undefined;
     let quantidadeBaseTotal = data.quantidadeTotal ?? 0;
     if (unidadeNeg && unidadeBase && unidadeBase.fatorBase > 0) {
@@ -1456,7 +1463,7 @@ export const contratoService = {
       tipoContrato: data.tipoContrato ?? "COMPRA",
       pessoaId: data.pessoaId ?? "",
       produtoId: data.produtoId ?? "",
-      unidadeNegociacaoId: data.unidadeNegociacaoId ?? "",
+      unidadeNegociacaoId,
       quantidadeTotal: data.quantidadeTotal ?? 0,
       quantidadeEntregue: 0,
       quantidadeSaldo: data.quantidadeTotal ?? 0,
