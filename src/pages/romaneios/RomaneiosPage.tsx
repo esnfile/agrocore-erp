@@ -231,9 +231,7 @@ export default function RomaneiosPage() {
     setSelected(rom);
     const p = await romaneioPesagemService.listarPorRomaneio(rom.id);
     setPesagens(p);
-    setEditingPesos(false);
-    setEditPesoBruto(rom.pesoBruto);
-    setEditPesoTara(rom.pesoTara);
+    setEditingPesagemId(null);
     setClassUmidade(rom.classificacaoUmidade || 0);
     setClassImpureza(rom.classificacaoImpureza || 0);
     setClassArdidos(rom.classificacaoArdidos || 0);
@@ -246,8 +244,6 @@ export default function RomaneiosPage() {
     const updated = await romaneioService.obterPorId(selected.id);
     if (updated) {
       setSelected(updated);
-      setEditPesoBruto(updated.pesoBruto);
-      setEditPesoTara(updated.pesoTara);
       setClassUmidade(updated.classificacaoUmidade || 0);
       setClassImpureza(updated.classificacaoImpureza || 0);
       setClassArdidos(updated.classificacaoArdidos || 0);
@@ -255,6 +251,7 @@ export default function RomaneiosPage() {
     }
     const p = await romaneioPesagemService.listarPorRomaneio(selected.id);
     setPesagens(p);
+    setEditingPesagemId(null);
     load();
   };
 
@@ -268,23 +265,16 @@ export default function RomaneiosPage() {
     refreshDetail();
   };
 
-  // Save manual weight edits
-  const salvarPesosManual = async () => {
-    if (!selected || !ctx) return;
-    const liquido = editPesoBruto - editPesoTara;
-    if (liquido <= 0) {
-      toast({ title: "Peso Líquido deve ser maior que zero", variant: "destructive" });
+  // Edit pesagem inline
+  const salvarEdicaoPesagem = async () => {
+    if (!editingPesagemId) return;
+    const result = await romaneioPesagemService.editarPesagem(editingPesagemId, editPesagemPeso);
+    if (result.sucesso) {
+      toast({ title: result.mensagem });
+    } else {
+      toast({ title: result.mensagem, variant: "destructive" });
       return;
     }
-    // Update the romaneio directly
-    await romaneioService.salvar({
-      id: selected.id,
-      pesoBruto: editPesoBruto,
-      pesoTara: editPesoTara,
-      pesoLiquido: liquido,
-    }, ctx);
-    toast({ title: "Pesos atualizados manualmente" });
-    setEditingPesos(false);
     refreshDetail();
   };
 
