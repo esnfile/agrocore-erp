@@ -2125,6 +2125,8 @@ export interface RomaneioPesagem {
   dataHora: string;
   criadoEm: string;
   criadoPor: string;
+  editadoEm: string | null;
+  editadoPor: string | null;
 }
 
 export const romaneioPesagens: RomaneioPesagem[] = [];
