@@ -2745,6 +2745,10 @@ export const romaneioService = {
         return existing;
       }
     }
+    // Determinar unidadeRomaneioId a partir do produto
+    const produto = mockProdutos.find((p) => p.id === data.produtoId);
+    const unidadeRomaneioId = data.unidadeRomaneioId || produto?.unidadeBaseId || "um1";
+
     const status: StatusRomaneio = data.contratoId ? "ABERTO" : "AGUARDANDO_CONTRATO";
     const novo: Romaneio = {
       id: `rom${Date.now()}`, grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
@@ -2756,6 +2760,7 @@ export const romaneioService = {
       veiculoId: data.veiculoId || null,
       placaVeiculo: data.placaVeiculo || "",
       pontoEstoqueId: data.pontoEstoqueId || null,
+      unidadeRomaneioId,
       status,
       pesoBruto: 0, pesoTara: 0, pesoLiquido: 0,
       classificacaoUmidade: 0, classificacaoImpureza: 0, classificacaoArdidos: 0, classificacaoAvariados: 0,
