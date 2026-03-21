@@ -2729,6 +2729,8 @@ export const romaneioService = {
       pontoEstoqueId: data.pontoEstoqueId || null,
       status,
       pesoBruto: 0, pesoTara: 0, pesoLiquido: 0,
+      classificacaoUmidade: 0, classificacaoImpureza: 0, classificacaoArdidos: 0, classificacaoAvariados: 0,
+      pesoLiquidoSecoLimpo: 0,
       observacao: data.observacao || "",
       criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
       deletadoEm: null, deletadoPor: null,
