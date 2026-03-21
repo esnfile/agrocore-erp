@@ -2844,8 +2844,13 @@ export const romaneioPesagemService = {
     await delay();
     return mockRomaneioPesagens.filter((p) => p.romaneioId === romaneioId);
   },
-  async salvar(data: { romaneioId: string; tipoPesagem: TipoPesagem; peso: number }, ctx: { grupoId: string; empresaId: string; filialId: string }): Promise<RomaneioPesagem> {
+  async salvar(data: { romaneioId: string; tipoPesagem: TipoPesagem; peso: number }, ctx: { grupoId: string; empresaId: string; filialId: string }): Promise<RomaneioPesagem | { erro: string }> {
     await delay();
+    // Block duplicate type
+    const existing = mockRomaneioPesagens.find((p) => p.romaneioId === data.romaneioId && p.tipoPesagem === data.tipoPesagem);
+    if (existing) {
+      return { erro: `Já existe uma pesagem de ${data.tipoPesagem === "ENTRADA" ? "ENTRADA" : "SAÍDA"} registrada. Edite a existente.` };
+    }
     const now = new Date().toISOString();
     const novo: RomaneioPesagem = {
       id: `rpes${Date.now()}`, grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
@@ -2860,11 +2865,17 @@ export const romaneioPesagemService = {
     romaneioService.recalcularPesos(data.romaneioId);
     return novo;
   },
-  async editarPesagem(pesagemId: string, novoPeso: number): Promise<{ sucesso: boolean; mensagem: string }> {
+  async editarPesagem(pesagemId: string, novoPeso: number, novoTipo?: TipoPesagem): Promise<{ sucesso: boolean; mensagem: string }> {
     await delay();
     const pesagem = mockRomaneioPesagens.find((p) => p.id === pesagemId);
     if (!pesagem) return { sucesso: false, mensagem: "Pesagem não encontrada" };
     if (novoPeso <= 0) return { sucesso: false, mensagem: "Peso deve ser maior que zero" };
+    // Validate type change — no duplicates
+    if (novoTipo && novoTipo !== pesagem.tipoPesagem) {
+      const duplicate = mockRomaneioPesagens.find((p) => p.romaneioId === pesagem.romaneioId && p.tipoPesagem === novoTipo && p.id !== pesagemId);
+      if (duplicate) return { sucesso: false, mensagem: `Já existe outra pesagem do tipo ${novoTipo}. Não é possível ter duas do mesmo tipo.` };
+      pesagem.tipoPesagem = novoTipo;
+    }
     const now = new Date().toISOString();
     pesagem.peso = novoPeso;
     pesagem.editadoEm = now;
