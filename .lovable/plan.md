@@ -1,69 +1,101 @@
 
 
-# Plan: Replace MAX/MIN with Explicit Weighing Types (ENTRADA/SAIDA)
+# Plan: Correções Arquiteturais — 4 Furos Críticos do AgroERP
 
-## Problem
-`recalcularPesos` uses `Math.max/Math.min` across all weighings, which is semantically wrong. The system must use the explicit `tipoPesagem` field to determine which weighing is Bruto (ENTRADA) and which is Tara (SAIDA).
+## Contexto: O que JA EXISTE vs O que FALTA
 
-## Changes
+Após análise completa do código atual, a base já possui a maioria das interfaces e estruturas necessárias. O documento gerado pela IA Claude contém inconsistências (IDs simples ao invés de UUID, falta de auditoria/soft-delete, interfaces simplificadas) que serão ignoradas em favor da arquitetura já estabelecida.
 
-### 1. Service Layer — `services.ts`
+### Ja existe no codigo:
+- `UnidadeMedida` com `fatorBase` e `tipo` (com auditoria completa)
+- `Produto` com `unidadeBaseId`, `unidadeCompraId`, `unidadeVendaId`, `quantidadeEmbalagemCompra/Venda`
+- `Contrato` com `unidadeNegociacaoId`, `quantidadeBaseTotal`, conversao na criacao
+- `RomaneioClassificacao` interface e array mock (vazio)
+- `romaneioClassificacaoService` com `salvarPorRomaneio`
+- `EstoqueTransito` com service e criacao automatica ao criar contrato
+- `recalcularPesos` com logica ENTRADA/SAIDA (corrigida anteriormente)
 
-**a) Replace `recalcularPesos` logic (line ~2823-2838)**
-- Instead of `MAX/MIN`, find the pesagem with `tipoPesagem === "ENTRADA"` → its `peso` = `pesoBruto`
-- Find pesagem with `tipoPesagem === "SAIDA"` → its `peso` = `pesoTara`
-- `pesoLiquido = pesoBruto - pesoTara`
-- If either is missing, set the available one and leave the rest at 0
+### O que FALTA (os 4 furos reais):
 
-**b) Update `editarPesagem` to also accept `novoTipo` parameter (line ~2865)**
-- Add optional `novoTipo?: TipoPesagem` parameter
-- When provided, update `pesagem.tipoPesagem = novoTipo`
-- Validate: if changing type, check no duplicate type exists (e.g., can't have 2 ENTRADAs)
-- Continue calling `recalcularPesos` after
+**Furo 1 - Classificacao nao persiste na finalizacao:** `romaneioService.finalizar` nao invoca `romaneioClassificacaoService.salvarPorRomaneio` nem calcula `pesoLiquidoSecoLimpo` com base nos descontos da tabela.
 
-**c) Update `romaneioPesagemService.salvar` — block duplicates**
-- Before creating, check if a pesagem with the same `tipoPesagem` already exists for this romaneio
-- If yes, return error: "Já existe uma pesagem de ENTRADA/SAIDA registrada. Edite a existente."
+**Furo 2 - Conversao de unidades na finalizacao:** O peso final e tratado diretamente como a unidade base. O romaneio nao tem campo `unidadeRomaneioId`. A conversao `unidadeRomaneio → unidadeBase` nao e aplicada antes de atualizar estoque/contrato.
 
-**d) Update `romaneioService.finalizar` validation (line ~2751)**
-- Replace `pesagens.length < 2` check with: must have exactly 1 ENTRADA and 1 SAIDA
-- Add warning if ENTRADA peso < SAIDA peso
+**Furo 3 - Estoque em transito sem conversao:** `estoqueTransitoService.registrarMovimento` recebe o peso bruto sem converter para a unidade do contrato.
 
-### 2. Romaneios Page — `RomaneiosPage.tsx`
+**Furo 4 - Heranca de unidade parcialmente implementada:** A criacao do contrato aceita `unidadeNegociacaoId` do form, mas nao pre-preenche automaticamente com base no tipo (COMPRA→unidadeCompra, VENDA→unidadeVenda).
 
-**a) Pesagem edit inline (line ~794-830) — add Type editing**
-- Add a `Select` for tipo (ENTRADA/SAIDA) next to the peso input when editing
-- New state: `editPesagemTipo` to track the edited type
-- Pass both `novoPeso` and `novoTipo` to `editarPesagem`
+---
 
-**b) Update pesagem list display (line ~790-837)**
-- Show icons: ⬇️ for ENTRADA, ⬆️ for SAIDA
-- Badge already shows tipo — enhance with arrow icons
+## Modificacoes Planejadas
 
-**c) Update "Registrar Pesagem" button — disable when 2 pesagens exist**
-- Check pesagens array: if already has 1 ENTRADA + 1 SAIDA, hide/disable the button
-- Show message: "Pesagens completas (1 Entrada + 1 Saída). Use edição para corrigir."
+### 1. Adicionar `unidadeRomaneioId` ao Romaneio (mock-data.ts)
 
-**d) Update finalizarRomaneio validation (line ~304-314)**
-- Check for exactly 1 ENTRADA + 1 SAIDA instead of `pesagens.length < 2`
-- Show specific error if ENTRADA < SAIDA: "Peso de entrada menor que saída"
+Adicionar campo `unidadeRomaneioId: string` na interface `Romaneio` para identificar em qual unidade as pesagens foram feitas. Default sera a unidade base do produto ao criar o romaneio.
 
-**e) Update calculated summary (line ~842-851)**
-- Label Bruto as "(Pesagem ENTRADA)" and Tara as "(Pesagem SAÍDA)"
+### 2. Implementar `converterQuantidade` no `unidadeMedidaService` (services.ts)
 
-### 3. Mock Data — `mock-data.ts`
-No structural changes needed — `RomaneioPesagem` already has `tipoPesagem: TipoPesagem` field.
+Adicionar metodo sincrono ao service existente:
+```text
+converterQuantidade(valor, unidadeOrigemId, unidadeDestinoId) → number
+- Valida que ambas unidades existem e sao do mesmo tipo
+- Formula: (valor * fatorOrigem) / fatorDestino
+```
 
-## Files Modified
-1. `src/lib/services.ts` — `recalcularPesos`, `editarPesagem`, `salvar` (pesagem), `finalizar` (romaneio)
-2. `src/pages/romaneios/RomaneiosPage.tsx` — edit UI, validation, display
+### 3. Refatorar `romaneioService.finalizar` (services.ts)
 
-## Validation Checklist
-- Modal has mandatory "Tipo de Pesagem" dropdown (already exists)
-- Pesagens listed with ⬇️/⬆️ icons
-- Calculation uses types, NOT MAX/MIN
-- Blocks registration if 1 ENTRADA + 1 SAIDA already exist
-- Warning if ENTRADA < SAIDA
-- Edit allows changing Type
-- Finalization blocked without exactly 1 ENTRADA + 1 SAIDA
+O metodo atual (linhas 2751-2814) sera expandido para:
+
+1. **Persistir classificacoes**: Buscar as classificacoes ja salvas pelo `romaneioClassificacaoService` (que ja e chamado pela UI). Se nao existirem, usar os campos `classificacaoUmidade/Impureza/Ardidos/Avariados` do romaneio como fallback.
+
+2. **Calcular `pesoLiquidoSecoLimpo`**: Buscar a tabela de descontos (`classificacaoDescontos`) do produto para cada tipo de classificacao. Somar os percentuais de desconto aplicaveis e calcular:
+   ```text
+   totalDesconto% = soma dos descontos por tipo
+   pesoLiquidoSecoLimpo = pesoLiquido * (1 - totalDesconto/100)
+   ```
+
+3. **Converter para unidade base antes de movimentar estoque**:
+   ```text
+   quantidadeEstoque = converterQuantidade(pesoLiquidoSecoLimpo, unidadeRomaneioId, produto.unidadeBaseId)
+   ```
+
+4. **Converter para unidade do contrato antes de atualizar saldo**:
+   ```text
+   quantidadeContrato = converterQuantidade(pesoLiquidoSecoLimpo, unidadeRomaneioId, contrato.unidadeNegociacaoId)
+   ```
+
+5. **Registrar movimento de estoque com quantidade convertida** (em unidade base).
+
+6. **Atualizar contrato com quantidade convertida** (em unidade de negociacao).
+
+### 4. Atualizar `estoqueTransitoService.registrarMovimento` (services.ts)
+
+Receber a quantidade ja convertida para a unidade do contrato (a conversao ocorre no `finalizar`).
+
+### 5. Pre-preencher `unidadeNegociacaoId` na criacao de contrato (services.ts + UI)
+
+No `contratoService.salvar`, se `unidadeNegociacaoId` nao for informada:
+- COMPRA → usar `produto.unidadeCompraId`
+- VENDA → usar `produto.unidadeVendaId`
+
+Na UI (`ContratosPage.tsx`), ao selecionar produto e tipo, pre-preencher o campo de unidade.
+
+### 6. Atualizar `romaneioService.salvar` (services.ts)
+
+Ao criar romaneio, definir `unidadeRomaneioId` a partir da `unidadeBaseId` do produto selecionado.
+
+---
+
+## Arquivos Modificados
+
+1. **`src/lib/mock-data.ts`** — Adicionar `unidadeRomaneioId` na interface `Romaneio` e nos dados mock
+2. **`src/lib/services.ts`** — `unidadeMedidaService.converterQuantidade`, refatorar `romaneioService.finalizar`, `romaneioService.salvar`, `contratoService.salvar`
+3. **`src/pages/romaneios/RomaneiosPage.tsx`** — Exibir unidade do romaneio, ajustar mensagem de finalizacao com conversoes
+4. **`src/pages/comercial/ContratosPage.tsx`** — Pre-preencher unidade ao selecionar produto/tipo
+
+## Regras Mantidas (ignorando inconsistencias do documento)
+- Todos os IDs seguem padrao UUID (mock usa prefixos temporarios)
+- Todas as tabelas mantem auditoria completa (criadoEm/Por, atualizadoEm/Por)
+- Exclusao sempre via soft-delete (deletadoEm/Por)
+- Escopo multi-empresa/filial preservado
 
