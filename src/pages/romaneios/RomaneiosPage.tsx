@@ -313,6 +313,8 @@ export default function RomaneiosPage() {
   const finalizarRomaneio = async () => {
     if (!selected) return;
     if (!pesagensCompletas) { toast({ title: "É necessário exatamente 1 pesagem de ENTRADA e 1 de SAÍDA", variant: "destructive" }); return; }
+    if (!pesoLiquidoValido) { toast({ title: "❌ Peso Líquido deve ser > 0. Verifique as pesagens.", variant: "destructive" }); return; }
+    if (!contratoVinculado) { toast({ title: "⚠️ Romaneio sem contrato vinculado. Vincule antes de finalizar.", variant: "destructive" }); return; }
     const result = await romaneioService.finalizar(selected.id);
     if (result.sucesso) {
       toast({ title: result.mensagem });
