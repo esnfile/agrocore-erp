@@ -777,8 +777,11 @@ export default function RomaneiosPage() {
               </TabsContent>
 
               <TabsContent value="pesagens" className="space-y-4">
-                {isEditable && (
+                {isEditable && !pesagensCompletas && (
                   <Button onClick={() => setPesagemOpen(true)} className="gap-2"><Scale className="h-4 w-4" /> Registrar Pesagem</Button>
+                )}
+                {isEditable && pesagensCompletas && (
+                  <p className="text-sm text-muted-foreground">✅ Pesagens completas (1 Entrada + 1 Saída). Use edição para corrigir.</p>
                 )}
                 <Table>
                   <TableHeader>
