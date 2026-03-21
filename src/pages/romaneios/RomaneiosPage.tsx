@@ -306,6 +306,9 @@ export default function RomaneiosPage() {
   };
 
   const pesagensCompletas = pesagens.some((p) => p.tipoPesagem === "ENTRADA") && pesagens.some((p) => p.tipoPesagem === "SAIDA");
+  const pesoLiquidoValido = selected ? selected.pesoLiquido > 0 : false;
+  const contratoVinculado = selected ? !!selected.contratoId : false;
+  const podeFinalizarRomaneio = pesagensCompletas && pesoLiquidoValido && contratoVinculado;
 
   const finalizarRomaneio = async () => {
     if (!selected) return;
