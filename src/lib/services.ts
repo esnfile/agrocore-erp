@@ -2752,7 +2752,8 @@ export const romaneioService = {
     if (!r) return { sucesso: false, mensagem: "Romaneio não encontrado." };
     const now = new Date().toISOString();
 
-    if (r.pesoLiquido <= 0) return { sucesso: false, mensagem: "Peso líquido deve ser maior que zero." };
+    const pesoFinal = r.pesoLiquidoSecoLimpo > 0 ? r.pesoLiquidoSecoLimpo : r.pesoLiquido;
+    if (pesoFinal <= 0) return { sucesso: false, mensagem: "Peso líquido final deve ser maior que zero." };
     if (!r.contratoId) return { sucesso: false, mensagem: "Romaneio sem contrato não pode ser finalizado. Vincule a um contrato primeiro." };
     if (!r.pontoEstoqueId) return { sucesso: false, mensagem: "Selecione um ponto de estoque antes de finalizar." };
 
@@ -2763,9 +2764,9 @@ export const romaneioService = {
     const tipoMov: "ENTRADA" | "SAIDA" = contrato.tipoContrato === "COMPRA" ? "ENTRADA" : "SAIDA";
 
     // 1. Update estoque em trânsito
-    estoqueTransitoService.registrarMovimento(contrato.id, r.pesoLiquido);
+    estoqueTransitoService.registrarMovimento(contrato.id, pesoFinal);
 
-    // 2. Create stock movement
+    // 2. Create stock movement (uses pesoLiquidoSecoLimpo)
     const produto = mockProdutos.find((p) => p.id === r.produtoId);
     const unidadeBaseId = produto?.unidadeBaseId || "um1";
     const mov: MovimentacaoEstoque = {
@@ -2773,9 +2774,9 @@ export const romaneioService = {
       grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
       produtoId: r.produtoId, pontoEstoqueId: r.pontoEstoqueId,
       tipoMovimento: tipoMov,
-      quantidadeInformada: r.pesoLiquido,
+      quantidadeInformada: pesoFinal,
       unidadeMovimentacaoId: unidadeBaseId,
-      quantidadeConvertidaBase: r.pesoLiquido,
+      quantidadeConvertidaBase: pesoFinal,
       dataMovimentacao: now,
       observacao: `Romaneio ${r.id.substring(0, 8)} — Contrato ${contrato.numeroContrato}`,
       contratoId: contrato.id, romaneioId: r.id,
@@ -2787,11 +2788,11 @@ export const romaneioService = {
     // 3. Update estoque saldo
     const saldoAtual = estoqueService.obterSaldo(r.produtoId, r.pontoEstoqueId);
     const qtdAtual = saldoAtual?.quantidadeAtual ?? 0;
-    const novaQtd = tipoMov === "ENTRADA" ? qtdAtual + r.pesoLiquido : qtdAtual - r.pesoLiquido;
+    const novaQtd = tipoMov === "ENTRADA" ? qtdAtual + pesoFinal : qtdAtual - pesoFinal;
     estoqueService.atualizarSaldo(r.produtoId, r.pontoEstoqueId, novaQtd, ctx);
 
     // 4. Update contract saldo
-    contrato.quantidadeEntregue += r.pesoLiquido;
+    contrato.quantidadeEntregue += pesoFinal;
     contrato.quantidadeSaldo = contrato.quantidadeTotal - contrato.quantidadeEntregue;
     if (contrato.quantidadeSaldo <= 0) contrato.status = "FINALIZADO";
     else if (contrato.quantidadeEntregue > 0) contrato.status = "PARCIAL";
@@ -2801,7 +2802,7 @@ export const romaneioService = {
     r.status = "FINALIZADO";
     r.atualizadoEm = now; r.atualizadoPor = "u1";
 
-    return { sucesso: true, mensagem: "Romaneio finalizado. Estoque atualizado." };
+    return { sucesso: true, mensagem: `Romaneio finalizado. Peso comercial: ${pesoFinal.toFixed(3)} ton. Estoque atualizado.` };
   },
   async vincularContrato(romaneioId: string, contratoId: string): Promise<{ sucesso: boolean; mensagem: string }> {
     await delay();
