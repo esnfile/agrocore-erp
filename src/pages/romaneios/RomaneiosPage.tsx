@@ -133,6 +133,7 @@ export default function RomaneiosPage() {
   // Pesagem inline editing
   const [editingPesagemId, setEditingPesagemId] = useState<string | null>(null);
   const [editPesagemPeso, setEditPesagemPeso] = useState(0);
+  const [editPesagemTipo, setEditPesagemTipo] = useState<TipoPesagem>("ENTRADA");
 
   // Quality classification editing
   const [classUmidade, setClassUmidade] = useState(0);
