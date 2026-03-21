@@ -130,10 +130,9 @@ export default function RomaneiosPage() {
   const [editPontoOpen, setEditPontoOpen] = useState(false);
   const [editPontoId, setEditPontoId] = useState("");
 
-  // Manual weight editing
-  const [editingPesos, setEditingPesos] = useState(false);
-  const [editPesoBruto, setEditPesoBruto] = useState(0);
-  const [editPesoTara, setEditPesoTara] = useState(0);
+  // Pesagem inline editing
+  const [editingPesagemId, setEditingPesagemId] = useState<string | null>(null);
+  const [editPesagemPeso, setEditPesagemPeso] = useState(0);
 
   // Quality classification editing
   const [classUmidade, setClassUmidade] = useState(0);
