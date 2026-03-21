@@ -133,6 +133,7 @@ export default function RomaneiosPage() {
   // Pesagem inline editing
   const [editingPesagemId, setEditingPesagemId] = useState<string | null>(null);
   const [editPesagemPeso, setEditPesagemPeso] = useState(0);
+  const [editPesagemTipo, setEditPesagemTipo] = useState<TipoPesagem>("ENTRADA");
 
   // Quality classification editing
   const [classUmidade, setClassUmidade] = useState(0);
@@ -259,7 +260,10 @@ export default function RomaneiosPage() {
     if (!selected || !ctx || !pesagemPeso) return;
     const peso = parseFloat(pesagemPeso);
     if (isNaN(peso) || peso <= 0) { toast({ title: "Peso inválido", variant: "destructive" }); return; }
-    await romaneioPesagemService.salvar({ romaneioId: selected.id, tipoPesagem: pesagemTipo, peso }, ctx);
+    const result = await romaneioPesagemService.salvar({ romaneioId: selected.id, tipoPesagem: pesagemTipo, peso }, ctx);
+    if ("erro" in result) {
+      toast({ title: result.erro, variant: "destructive" }); return;
+    }
     toast({ title: `Pesagem de ${pesagemTipo === "ENTRADA" ? "entrada" : "saída"} registrada` });
     setPesagemOpen(false); setPesagemPeso("");
     refreshDetail();
@@ -268,7 +272,7 @@ export default function RomaneiosPage() {
   // Edit pesagem inline
   const salvarEdicaoPesagem = async () => {
     if (!editingPesagemId) return;
-    const result = await romaneioPesagemService.editarPesagem(editingPesagemId, editPesagemPeso);
+    const result = await romaneioPesagemService.editarPesagem(editingPesagemId, editPesagemPeso, editPesagemTipo);
     if (result.sucesso) {
       toast({ title: result.mensagem });
     } else {
@@ -301,9 +305,11 @@ export default function RomaneiosPage() {
     refreshDetail();
   };
 
+  const pesagensCompletas = pesagens.some((p) => p.tipoPesagem === "ENTRADA") && pesagens.some((p) => p.tipoPesagem === "SAIDA");
+
   const finalizarRomaneio = async () => {
     if (!selected) return;
-    if (pesagens.length < 2) { toast({ title: "É necessário pelo menos 2 pesagens (entrada e saída)", variant: "destructive" }); return; }
+    if (!pesagensCompletas) { toast({ title: "É necessário exatamente 1 pesagem de ENTRADA e 1 de SAÍDA", variant: "destructive" }); return; }
     const result = await romaneioService.finalizar(selected.id);
     if (result.sucesso) {
       toast({ title: result.mensagem });
@@ -771,8 +777,11 @@ export default function RomaneiosPage() {
               </TabsContent>
 
               <TabsContent value="pesagens" className="space-y-4">
-                {isEditable && (
+                {isEditable && !pesagensCompletas && (
                   <Button onClick={() => setPesagemOpen(true)} className="gap-2"><Scale className="h-4 w-4" /> Registrar Pesagem</Button>
+                )}
+                {isEditable && pesagensCompletas && (
+                  <p className="text-sm text-muted-foreground">✅ Pesagens completas (1 Entrada + 1 Saída). Use edição para corrigir.</p>
                 )}
                 <Table>
                   <TableHeader>
@@ -789,7 +798,21 @@ export default function RomaneiosPage() {
                       <TableRow><TableCell colSpan={isEditable ? 5 : 4} className="text-center text-muted-foreground">Nenhuma pesagem registrada</TableCell></TableRow>
                     ) : pesagens.map((p) => (
                       <TableRow key={p.id}>
-                        <TableCell><Badge variant={p.tipoPesagem === "ENTRADA" ? "default" : "secondary"}>{p.tipoPesagem}</Badge></TableCell>
+                        <TableCell>
+                          {editingPesagemId === p.id ? (
+                            <Select value={editPesagemTipo} onValueChange={(v) => setEditPesagemTipo(v as TipoPesagem)}>
+                              <SelectTrigger className="h-8 w-32"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="ENTRADA">⬇️ Entrada</SelectItem>
+                                <SelectItem value="SAIDA">⬆️ Saída</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <Badge variant={p.tipoPesagem === "ENTRADA" ? "default" : "secondary"}>
+                              {p.tipoPesagem === "ENTRADA" ? "⬇️" : "⬆️"} {p.tipoPesagem}
+                            </Badge>
+                          )}
+                        </TableCell>
                         <TableCell>
                           {editingPesagemId === p.id ? (
                             <div className="flex items-center gap-2">
@@ -827,6 +850,7 @@ export default function RomaneiosPage() {
                               <Button variant="ghost" size="sm" className="gap-1" onClick={() => {
                                 setEditingPesagemId(p.id);
                                 setEditPesagemPeso(p.peso);
+                                setEditPesagemTipo(p.tipoPesagem);
                               }}>
                                 <Pencil className="h-3 w-3" /> Editar
                               </Button>
@@ -839,14 +863,17 @@ export default function RomaneiosPage() {
                 </Table>
 
                 {/* Calculated summary below pesagens table */}
-                {pesagens.length >= 2 && selected && (
+                {pesagensCompletas && selected && (
                   <div className="rounded-md bg-muted/50 p-3 space-y-1">
                     <p className="text-xs font-medium text-muted-foreground">✅ CALCULADO AUTOMATICAMENTE A PARTIR DAS PESAGENS:</p>
                     <div className="flex gap-6 text-sm">
-                      <span>Bruto: <strong className="font-mono">{selected.pesoBruto.toFixed(3)} ton</strong></span>
-                      <span>Tara: <strong className="font-mono">{selected.pesoTara.toFixed(3)} ton</strong></span>
+                      <span>Bruto (ENTRADA): <strong className="font-mono">{selected.pesoBruto.toFixed(3)} ton</strong></span>
+                      <span>Tara (SAÍDA): <strong className="font-mono">{selected.pesoTara.toFixed(3)} ton</strong></span>
                       <span>Líquido: <strong className={`font-mono ${selected.pesoLiquido > 0 ? "text-green-700" : "text-destructive"}`}>{selected.pesoLiquido.toFixed(3)} ton</strong></span>
                     </div>
+                    {selected.pesoBruto > 0 && selected.pesoTara > 0 && selected.pesoBruto < selected.pesoTara && (
+                      <p className="text-xs text-destructive font-medium">⚠️ Peso de ENTRADA é menor que SAÍDA. Verifique as pesagens.</p>
+                    )}
                   </div>
                 )}
               </TabsContent>

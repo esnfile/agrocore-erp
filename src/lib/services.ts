@@ -2754,6 +2754,13 @@ export const romaneioService = {
     if (!r) return { sucesso: false, mensagem: "Romaneio não encontrado." };
     const now = new Date().toISOString();
 
+    // Validate pesagens: exactly 1 ENTRADA + 1 SAIDA
+    const pesagens = mockRomaneioPesagens.filter((p) => p.romaneioId === id);
+    const entrada = pesagens.find((p) => p.tipoPesagem === "ENTRADA");
+    const saida = pesagens.find((p) => p.tipoPesagem === "SAIDA");
+    if (!entrada || !saida) return { sucesso: false, mensagem: "É necessário exatamente 1 pesagem de ENTRADA e 1 de SAÍDA para finalizar." };
+    if (entrada.peso < saida.peso) return { sucesso: false, mensagem: "⚠️ Peso de ENTRADA é menor que SAÍDA. Verifique as pesagens." };
+
     const pesoFinal = r.pesoLiquidoSecoLimpo > 0 ? r.pesoLiquidoSecoLimpo : r.pesoLiquido;
     if (pesoFinal <= 0) return { sucesso: false, mensagem: "Peso líquido final deve ser maior que zero." };
     if (!r.contratoId) return { sucesso: false, mensagem: "Romaneio sem contrato não pode ser finalizado. Vincule a um contrato primeiro." };
@@ -2822,19 +2829,17 @@ export const romaneioService = {
   },
   recalcularPesos(romaneioId: string) {
     const pesagens = mockRomaneioPesagens.filter((p) => p.romaneioId === romaneioId);
-    if (pesagens.length === 0) return;
-    const pesos = pesagens.map((p) => p.peso);
-    const bruto = Math.max(...pesos);
-    const tara = Math.min(...pesos);
-    const liquido = bruto - tara;
     const rom = mockRomaneios.find((r) => r.id === romaneioId);
-    if (rom) {
-      rom.pesoBruto = bruto;
-      rom.pesoTara = tara;
-      rom.pesoLiquido = liquido;
-      rom.atualizadoEm = new Date().toISOString();
-      rom.atualizadoPor = "u1";
-    }
+    if (!rom) return;
+
+    const entrada = pesagens.find((p) => p.tipoPesagem === "ENTRADA");
+    const saida = pesagens.find((p) => p.tipoPesagem === "SAIDA");
+
+    rom.pesoBruto = entrada ? entrada.peso : 0;
+    rom.pesoTara = saida ? saida.peso : 0;
+    rom.pesoLiquido = (entrada && saida) ? rom.pesoBruto - rom.pesoTara : 0;
+    rom.atualizadoEm = new Date().toISOString();
+    rom.atualizadoPor = "u1";
   },
 };
 
@@ -2846,8 +2851,13 @@ export const romaneioPesagemService = {
     await delay();
     return mockRomaneioPesagens.filter((p) => p.romaneioId === romaneioId);
   },
-  async salvar(data: { romaneioId: string; tipoPesagem: TipoPesagem; peso: number }, ctx: { grupoId: string; empresaId: string; filialId: string }): Promise<RomaneioPesagem> {
+  async salvar(data: { romaneioId: string; tipoPesagem: TipoPesagem; peso: number }, ctx: { grupoId: string; empresaId: string; filialId: string }): Promise<RomaneioPesagem | { erro: string }> {
     await delay();
+    // Block duplicate type
+    const existing = mockRomaneioPesagens.find((p) => p.romaneioId === data.romaneioId && p.tipoPesagem === data.tipoPesagem);
+    if (existing) {
+      return { erro: `Já existe uma pesagem de ${data.tipoPesagem === "ENTRADA" ? "ENTRADA" : "SAÍDA"} registrada. Edite a existente.` };
+    }
     const now = new Date().toISOString();
     const novo: RomaneioPesagem = {
       id: `rpes${Date.now()}`, grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
@@ -2862,11 +2872,17 @@ export const romaneioPesagemService = {
     romaneioService.recalcularPesos(data.romaneioId);
     return novo;
   },
-  async editarPesagem(pesagemId: string, novoPeso: number): Promise<{ sucesso: boolean; mensagem: string }> {
+  async editarPesagem(pesagemId: string, novoPeso: number, novoTipo?: TipoPesagem): Promise<{ sucesso: boolean; mensagem: string }> {
     await delay();
     const pesagem = mockRomaneioPesagens.find((p) => p.id === pesagemId);
     if (!pesagem) return { sucesso: false, mensagem: "Pesagem não encontrada" };
     if (novoPeso <= 0) return { sucesso: false, mensagem: "Peso deve ser maior que zero" };
+    // Validate type change — no duplicates
+    if (novoTipo && novoTipo !== pesagem.tipoPesagem) {
+      const duplicate = mockRomaneioPesagens.find((p) => p.romaneioId === pesagem.romaneioId && p.tipoPesagem === novoTipo && p.id !== pesagemId);
+      if (duplicate) return { sucesso: false, mensagem: `Já existe outra pesagem do tipo ${novoTipo}. Não é possível ter duas do mesmo tipo.` };
+      pesagem.tipoPesagem = novoTipo;
+    }
     const now = new Date().toISOString();
     pesagem.peso = novoPeso;
     pesagem.editadoEm = now;
