@@ -2856,10 +2856,23 @@ export const romaneioPesagemService = {
       peso: data.peso,
       dataHora: now,
       criadoEm: now, criadoPor: "u1",
+      editadoEm: null, editadoPor: null,
     };
     mockRomaneioPesagens.push(novo);
     romaneioService.recalcularPesos(data.romaneioId);
     return novo;
+  },
+  async editarPesagem(pesagemId: string, novoPeso: number): Promise<{ sucesso: boolean; mensagem: string }> {
+    await delay();
+    const pesagem = mockRomaneioPesagens.find((p) => p.id === pesagemId);
+    if (!pesagem) return { sucesso: false, mensagem: "Pesagem não encontrada" };
+    if (novoPeso <= 0) return { sucesso: false, mensagem: "Peso deve ser maior que zero" };
+    const now = new Date().toISOString();
+    pesagem.peso = novoPeso;
+    pesagem.editadoEm = now;
+    pesagem.editadoPor = "u1";
+    romaneioService.recalcularPesos(pesagem.romaneioId);
+    return { sucesso: true, mensagem: "Pesagem atualizada com sucesso" };
   },
   async excluir(id: string): Promise<void> {
     await delay();
