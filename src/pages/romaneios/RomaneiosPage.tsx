@@ -281,7 +281,7 @@ export default function RomaneiosPage() {
   // Save classification
   const salvarClassificacao = async () => {
     if (!selected || !ctx) return;
-    const pesoBase = selected.pesoLiquido > 0 ? selected.pesoLiquido : (editPesoBruto - editPesoTara);
+    const pesoBase = selected.pesoLiquido > 0 ? selected.pesoLiquido : 0;
     const result = calcularPesoSecoLimpo(pesoBase, classUmidade, classImpureza, classArdidos, classAvariados);
 
     if (result.pesoFinal <= 0) {
