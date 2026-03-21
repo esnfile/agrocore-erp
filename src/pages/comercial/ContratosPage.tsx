@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -25,13 +26,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import {
-  contratoService, contratoEntregaService, contratoFixacaoService,
+  contratoService, contratoFixacaoService,
   pontoEstoqueService, moedaService,
   condicaoDescontoModeloService, contratoCondicaoService,
   classificacaoTipoService,
   contratoLiquidacaoService, financeiroContaService,
   financeiroParcelaService, financeiroBaixaService,
-  filialService,
+  filialService, romaneioService,
 } from "@/lib/services";
 import {
   pessoas as mockPessoas,
@@ -40,13 +41,13 @@ import {
   moedas as mockMoedas,
 } from "@/lib/mock-data";
 import type {
-  Contrato, ContratoEntrega, ContratoFixacao,
-  PontoEstoque, Moeda, Filial,
+  Contrato, ContratoFixacao,
+  PontoEstoque, Moeda, Filial, Romaneio,
   CondicaoDescontoModelo, ContratoCondicao, TipoCondicaoDesconto,
   ContratoLiquidacao,
   FinanceiroConta, FinanceiroParcela, FinanceiroBaixa,
 } from "@/lib/mock-data";
-import { Plus, Pencil, Trash2, Eye, Lock, FileCheck, AlertTriangle } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, Lock, FileCheck, AlertTriangle, ExternalLink } from "lucide-react";
 
 // ---- Schemas ----
 const contratoSchema = z.object({
@@ -110,7 +111,7 @@ export default function ContratosPage() {
   const [activeTab, setActiveTab] = useState("dados");
 
   // Sub-entities
-  const [entregas, setEntregas] = useState<ContratoEntrega[]>([]);
+  const [romaneiosContrato, setRomaneiosContrato] = useState<Romaneio[]>([]);
   const [fixacoes, setFixacoes] = useState<ContratoFixacao[]>([]);
   const [pontos, setPontos] = useState<PontoEstoque[]>([]);
   const [moedas, setMoedas] = useState<Moeda[]>([]);
@@ -170,7 +171,7 @@ export default function ContratosPage() {
   const tipoPrecoWatch = contratoForm.watch("tipoPreco");
   const filialOperacaoWatch = contratoForm.watch("filialOperacaoId");
 
-  // Load data — contrato é por EMPRESA, não por filial
+  // Load data
   const loadContratos = async () => {
     if (!empresaId) return;
     setLoading(true);
@@ -219,6 +220,25 @@ export default function ContratosPage() {
   const getCodigoMoeda = (id: string) => mockMoedas.find((m) => m.id === id)?.codigo ?? id;
   const getNomeFilial = (id: string | null) => filiaisEmpresa.find((f) => f.id === id)?.nomeRazao ?? "—";
 
+  // ---- Fixação computed values ----
+  const totalEntregue = useMemo(() => {
+    return romaneiosContrato.filter(r => r.status === "FINALIZADO").reduce((s, r) => s + r.pesoLiquido, 0);
+  }, [romaneiosContrato]);
+
+  const totalFixado = useMemo(() => {
+    return fixacoes.reduce((s, f) => s + f.quantidadeFixada, 0);
+  }, [fixacoes]);
+
+  const saldoAFixar = useMemo(() => {
+    return Math.max(0, (editingContrato?.quantidadeEntregue ?? 0) - totalFixado);
+  }, [editingContrato, totalFixado]);
+
+  const precoMedioFixado = useMemo(() => {
+    if (totalFixado <= 0) return 0;
+    const somaPonderada = fixacoes.reduce((s, f) => s + f.precoFixado * f.quantidadeFixada, 0);
+    return somaPonderada / totalFixado;
+  }, [fixacoes, totalFixado]);
+
   // ---- Contrato CRUD ----
   const openNew = () => {
     setEditingContrato(null);
@@ -232,7 +252,7 @@ export default function ContratosPage() {
       filialOperacaoId: "", filialOrigemId: "", filialDestinoId: "",
       observacoes: "",
     });
-    setEntregas([]);
+    setRomaneiosContrato([]);
     setFixacoes([]);
     setCondicoes([]);
     setFinContas([]);
@@ -275,13 +295,13 @@ export default function ContratosPage() {
   };
 
   const loadSubEntities = async (contratoId: string) => {
-    const [e, f, conds, liqs] = await Promise.all([
-      contratoEntregaService.listarPorContrato(contratoId),
+    const [roms, f, conds, liqs] = await Promise.all([
+      romaneioService.listarPorContrato(contratoId),
       contratoFixacaoService.listarPorContrato(contratoId),
       contratoCondicaoService.listarPorContrato(contratoId),
       contratoLiquidacaoService.listarPorContrato(contratoId),
     ]);
-    setEntregas(e);
+    setRomaneiosContrato(roms);
     setFixacoes(f);
     setCondicoes(conds);
     const activeLiq = liqs.find((l) => l.status === "PREVIA" || l.status === "CONFIRMADA");
@@ -338,7 +358,7 @@ export default function ContratosPage() {
     setDeleteId(null);
   };
 
-  // ---- Fixação CRUD (por EMPRESA, não por filial) ----
+  // ---- Fixação CRUD ----
   const openNewFixacao = () => {
     setEditingFixacao(null);
     fixacaoForm.reset({
@@ -460,14 +480,28 @@ export default function ContratosPage() {
     setCondicoes(conds);
   };
 
-  // ---- Financeiro real (sem simulação) ----
-  const totalParcelasPagas = finParcelas.filter((p) => p.status === "PAGO").reduce((s, p) => s + p.valorParcela, 0);
+  // ---- Financeiro real ----
   const totalParcelasPendentes = finParcelas.filter((p) => p.status === "PENDENTE" || p.status === "PARCIAL").reduce((s, p) => s + p.saldoParcela, 0);
   const totalBaixas = finBaixas.reduce((s, b) => s + b.valorPago, 0);
 
   // ---- Liquidação handlers ----
+  const canLiquidate = useMemo(() => {
+    if (!editingContrato) return false;
+    if (editingContrato.tipoPreco === "A_FIXAR" && saldoAFixar > 0) return false;
+    if (editingContrato.status === "CANCELADO" || editingContrato.status === "LIQUIDADO") return false;
+    return true;
+  }, [editingContrato, saldoAFixar]);
+
   const onGerarPrevia = async () => {
     if (!editingContrato) return;
+    if (editingContrato.tipoPreco === "A_FIXAR" && saldoAFixar > 0) {
+      toast({
+        title: "Bloqueado",
+        description: "Defina fixações para todo o volume entregue antes de liquidar.",
+        variant: "destructive",
+      });
+      return;
+    }
     setLiquidacaoLoading(true);
     try {
       const result = await contratoLiquidacaoService.gerarPrevia(
@@ -818,43 +852,101 @@ export default function ContratosPage() {
             </fieldset>
           </TabsContent>
 
-          {/* ABA 2 — Romaneios (somente leitura) */}
+          {/* ABA 2 — Romaneios Vinculados (READ-ONLY) */}
           <TabsContent value="romaneios">
             <div className="space-y-4">
+              {/* Painel de Fixação para A_FIXAR */}
+              {editingContrato?.tipoPreco === "A_FIXAR" && (
+                <Card className="border-2 border-amber-500/30 bg-amber-50/30 dark:bg-amber-950/10">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 text-amber-600" />
+                      Resumo de Fixação
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Total Entregue</p>
+                        <p className="text-lg font-bold">{editingContrato.quantidadeEntregue.toLocaleString("pt-BR")} {getCodigoUnidade(editingContrato.unidadeNegociacaoId)}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Total Fixado</p>
+                        <p className="text-lg font-bold">{totalFixado.toLocaleString("pt-BR")} {getCodigoUnidade(editingContrato.unidadeNegociacaoId)}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Saldo a Fixar</p>
+                        <p className={`text-lg font-bold ${saldoAFixar > 0 ? "text-amber-600" : "text-primary"}`}>
+                          {saldoAFixar.toLocaleString("pt-BR")} {getCodigoUnidade(editingContrato.unidadeNegociacaoId)}
+                          {saldoAFixar > 0 && <span className="ml-1">⚠️</span>}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Preço Médio Atual</p>
+                        <p className="text-lg font-bold">
+                          {getSimboloMoeda(editingContrato.moedaId)} {precoMedioFixado.toFixed(2)}/{getCodigoUnidade(editingContrato.unidadeNegociacaoId)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-3">
+                      <Button variant="outline" size="sm" onClick={() => setActiveTab("fixacao")}>
+                        Gerenciar Fixações →
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-foreground">Romaneios Vinculados</h3>
+                <p className="text-xs text-muted-foreground">Somente leitura — romaneios são criados no módulo Romaneios</p>
+              </div>
               <div className="overflow-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                       <TableHead>Data</TableHead>
-                       <TableHead className="text-right">Quantidade</TableHead>
-                       <TableHead>Unidade</TableHead>
-                       <TableHead className="text-right">Peso Bruto</TableHead>
-                       <TableHead className="text-right">Peso Líquido</TableHead>
-                       <TableHead className="text-right">Peso Comercial</TableHead>
-                       <TableHead className="text-right">Desc. %</TableHead>
-                       <TableHead>Motorista</TableHead>
-                       <TableHead>Placa</TableHead>
+                      <TableHead>ID</TableHead>
+                      <TableHead>Data</TableHead>
+                      <TableHead className="text-right">Peso Bruto</TableHead>
+                      <TableHead className="text-right">Peso Tara</TableHead>
+                      <TableHead className="text-right">Peso Líquido</TableHead>
+                      <TableHead>Motorista</TableHead>
+                      <TableHead>Placa</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {entregas.length === 0 ? (
+                    {romaneiosContrato.length === 0 ? (
                       <TableRow>
-                         <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                          Nenhum romaneio registrado. A criação de romaneios é feita pelo módulo Romaneios.
+                        <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                          Nenhum romaneio vinculado a este contrato.
+                          <br />
+                          <span className="text-xs">Crie romaneios pelo menu Romaneios e vincule a este contrato.</span>
                         </TableCell>
                       </TableRow>
                     ) : (
-                      entregas.map((e) => (
-                        <TableRow key={e.id}>
-                          <TableCell>{format(new Date(e.dataEntrega), "dd/MM/yyyy HH:mm")}</TableCell>
-                          <TableCell className="text-right">{e.quantidadeInformada.toLocaleString("pt-BR")}</TableCell>
-                          <TableCell>{getCodigoUnidade(e.unidadeInformadaId)}</TableCell>
-                           <TableCell className="text-right">{e.pesoBruto?.toLocaleString("pt-BR") ?? "—"}</TableCell>
-                           <TableCell className="text-right">{e.pesoLiquido?.toLocaleString("pt-BR") ?? "—"}</TableCell>
-                           <TableCell className="text-right font-medium">{e.pesoComercial?.toLocaleString("pt-BR") ?? "—"}</TableCell>
-                           <TableCell className="text-right">{e.descontoTotalPercentual != null ? `${e.descontoTotalPercentual.toFixed(2)}%` : "—"}</TableCell>
-                          <TableCell>{e.nomeMotorista || "—"}</TableCell>
-                          <TableCell>{e.placaVeiculo || "—"}</TableCell>
+                      romaneiosContrato.map((r) => (
+                        <TableRow key={r.id}>
+                          <TableCell className="font-mono text-xs">{r.id.substring(0, 8)}</TableCell>
+                          <TableCell>{format(new Date(r.criadoEm), "dd/MM/yyyy HH:mm")}</TableCell>
+                          <TableCell className="text-right">{r.pesoBruto > 0 ? r.pesoBruto.toFixed(3) : "—"}</TableCell>
+                          <TableCell className="text-right">{r.pesoTara > 0 ? r.pesoTara.toFixed(3) : "—"}</TableCell>
+                          <TableCell className="text-right font-medium">{r.pesoLiquido > 0 ? r.pesoLiquido.toFixed(3) : "—"}</TableCell>
+                          <TableCell>{r.motoristaNome || "—"}</TableCell>
+                          <TableCell>{r.placaVeiculo || "—"}</TableCell>
+                          <TableCell>
+                            <Badge variant={r.status === "FINALIZADO" ? "outline" : r.status === "ABERTO" ? "default" : "secondary"}>
+                              {r.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="icon" asChild title="Ver no módulo Romaneios">
+                              <a href="/romaneios">
+                                <ExternalLink className="h-4 w-4" />
+                              </a>
+                            </Button>
+                          </TableCell>
                         </TableRow>
                       ))
                     )}
@@ -867,6 +959,35 @@ export default function ContratosPage() {
           {/* ABA 3 — Fixação */}
           <TabsContent value="fixacao">
             <div className="space-y-4">
+              {/* Painel resumo */}
+              {editingContrato && (
+                <Card className="border-2 border-amber-500/30 bg-amber-50/30 dark:bg-amber-950/10">
+                  <CardContent className="pt-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Total Entregue</p>
+                        <p className="text-lg font-bold">{editingContrato.quantidadeEntregue.toLocaleString("pt-BR")}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Total Fixado</p>
+                        <p className="text-lg font-bold">{totalFixado.toLocaleString("pt-BR")}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Saldo a Fixar</p>
+                        <p className={`text-lg font-bold ${saldoAFixar > 0 ? "text-amber-600" : "text-primary"}`}>
+                          {saldoAFixar.toLocaleString("pt-BR")}
+                          {saldoAFixar > 0 && <span className="ml-1">⚠️</span>}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Preço Médio</p>
+                        <p className="text-lg font-bold">{getSimboloMoeda(editingContrato.moedaId)} {precoMedioFixado.toFixed(2)}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {!viewOnly && (
                 <div className="flex justify-end">
                   <Button size="sm" onClick={openNewFixacao}>
@@ -951,7 +1072,6 @@ export default function ContratosPage() {
                 </div>
               </div>
 
-              {/* Parcelas */}
               {finParcelas.length > 0 && (
                 <div className="space-y-3">
                   <h4 className="font-semibold text-foreground text-sm">Parcelas</h4>
@@ -993,7 +1113,6 @@ export default function ContratosPage() {
                 </div>
               )}
 
-              {/* Baixas */}
               {finBaixas.length > 0 && (
                 <div className="space-y-3">
                   <h4 className="font-semibold text-foreground text-sm">Histórico de Baixas</h4>
@@ -1124,6 +1243,27 @@ export default function ContratosPage() {
           {/* ABA 6 — Liquidação */}
           <TabsContent value="liquidacao">
             <div className="space-y-6">
+              {/* Bloqueio A_FIXAR */}
+              {editingContrato?.tipoPreco === "A_FIXAR" && saldoAFixar > 0 && (
+                <Card className="border-2 border-destructive/30 bg-destructive/5">
+                  <CardContent className="pt-4">
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className="h-5 w-5 text-destructive mt-0.5" />
+                      <div>
+                        <p className="font-semibold text-destructive">Liquidação Bloqueada</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Defina fixações para todo o volume entregue antes de liquidar.
+                          Saldo a fixar: <strong>{saldoAFixar.toLocaleString("pt-BR")} {getCodigoUnidade(editingContrato.unidadeNegociacaoId)}</strong>
+                        </p>
+                        <Button variant="outline" size="sm" className="mt-2" onClick={() => setActiveTab("fixacao")}>
+                          Gerenciar Fixações →
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {editingContrato?.status === "LIQUIDADO" && liquidacao?.status === "CONFIRMADA" ? (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 text-primary">
@@ -1174,11 +1314,47 @@ export default function ContratosPage() {
                 </div>
               ) : (
                 <div className="space-y-6">
+                  {/* Romaneios usados na liquidação */}
+                  {romaneiosContrato.filter(r => r.status === "FINALIZADO").length > 0 && (
+                    <div className="space-y-3">
+                      <h4 className="font-semibold text-foreground text-sm">Volume Físico Entregue (Romaneios Finalizados)</h4>
+                      <div className="overflow-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>ID</TableHead>
+                              <TableHead>Data</TableHead>
+                              <TableHead className="text-right">Peso Líquido</TableHead>
+                              <TableHead>Status</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {romaneiosContrato.filter(r => r.status === "FINALIZADO").map((r) => (
+                              <TableRow key={r.id}>
+                                <TableCell className="font-mono text-xs">{r.id.substring(0, 8)}</TableCell>
+                                <TableCell>{format(new Date(r.criadoEm), "dd/MM/yyyy")}</TableCell>
+                                <TableCell className="text-right font-medium">{r.pesoLiquido.toFixed(3)}</TableCell>
+                                <TableCell><Badge variant="outline">FINALIZADO</Badge></TableCell>
+                              </TableRow>
+                            ))}
+                            <TableRow className="font-bold bg-muted/50">
+                              <TableCell colSpan={2}>TOTAL ENTREGUE</TableCell>
+                              <TableCell className="text-right">
+                                {romaneiosContrato.filter(r => r.status === "FINALIZADO").reduce((s, r) => s + r.pesoLiquido, 0).toFixed(3)}
+                              </TableCell>
+                              <TableCell />
+                            </TableRow>
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  )}
+
                   {liquidacao && liquidacao.status === "PREVIA" ? (
                     <div className="space-y-4">
                       <div className="flex items-center gap-2 text-amber-500">
                         <AlertTriangle className="h-5 w-5" />
-                        <h3 className="font-semibold text-lg text-foreground">Prévia de Liquidação</h3>
+                        <h3 className="font-semibold text-lg text-foreground">Simulação de Liquidação</h3>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="rounded-md bg-card p-4 border space-y-1">
@@ -1222,6 +1398,38 @@ export default function ContratosPage() {
                         </div>
                       </div>
 
+                      {/* Fixações usadas (para A_FIXAR) */}
+                      {editingContrato?.tipoPreco === "A_FIXAR" && fixacoes.length > 0 && (
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-semibold">Fixações Utilizadas</h4>
+                          <div className="overflow-auto">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Data</TableHead>
+                                  <TableHead className="text-right">Quantidade</TableHead>
+                                  <TableHead className="text-right">Preço</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {fixacoes.map((f) => (
+                                  <TableRow key={f.id}>
+                                    <TableCell>{format(new Date(f.dataFixacao), "dd/MM/yyyy")}</TableCell>
+                                    <TableCell className="text-right">{f.quantidadeFixada.toLocaleString("pt-BR")}</TableCell>
+                                    <TableCell className="text-right">{getSimboloMoeda(f.moedaId)} {f.precoFixado.toFixed(2)}</TableCell>
+                                  </TableRow>
+                                ))}
+                                <TableRow className="font-bold bg-muted/50">
+                                  <TableCell>PREÇO MÉDIO PONDERADO</TableCell>
+                                  <TableCell className="text-right">{totalFixado.toLocaleString("pt-BR")}</TableCell>
+                                  <TableCell className="text-right">{getSimboloMoeda(editingContrato.moedaId)} {precoMedioFixado.toFixed(2)}</TableCell>
+                                </TableRow>
+                              </TableBody>
+                            </Table>
+                          </div>
+                        </div>
+                      )}
+
                       <div className="rounded-md border p-4 space-y-3">
                         <h4 className="text-sm font-semibold">Opções de Confirmação</h4>
                         <div className="space-y-2">
@@ -1238,13 +1446,13 @@ export default function ContratosPage() {
 
                       <div className="flex gap-2 pt-2">
                         <Button onClick={() => setConfirmDialogOpen(true)} disabled={liquidacaoLoading}>
-                          <FileCheck className="mr-2 h-4 w-4" />Confirmar Liquidação
+                          <FileCheck className="mr-2 h-4 w-4" />Confirmar e Efetivar
                         </Button>
                         <Button variant="outline" onClick={onGerarPrevia} disabled={liquidacaoLoading}>
-                          Recalcular Prévia
+                          Recalcular Simulação
                         </Button>
                         <Button variant="destructive" onClick={onCancelarLiquidacao} disabled={liquidacaoLoading}>
-                          Cancelar Prévia
+                          Cancelar Simulação
                         </Button>
                       </div>
                     </div>
@@ -1253,10 +1461,13 @@ export default function ContratosPage() {
                       <p className="text-sm text-muted-foreground">Nenhuma liquidação gerada para este contrato.</p>
                       <Button
                         onClick={onGerarPrevia}
-                        disabled={liquidacaoLoading || editingContrato?.status === "CANCELADO" || editingContrato?.status === "LIQUIDADO"}
+                        disabled={liquidacaoLoading || !canLiquidate}
                       >
-                        <FileCheck className="mr-2 h-4 w-4" />Gerar Liquidação Prévia
+                        <FileCheck className="mr-2 h-4 w-4" />Gerar Simulação de Liquidação
                       </Button>
+                      {editingContrato?.tipoPreco === "A_FIXAR" && saldoAFixar > 0 && (
+                        <p className="text-xs text-destructive">Fixe todo o volume entregue antes de liquidar.</p>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1403,16 +1614,17 @@ export default function ContratosPage() {
       <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar Liquidação</AlertDialogTitle>
+            <AlertDialogTitle>Confirmar e Efetivar Liquidação</AlertDialogTitle>
             <AlertDialogDescription>
-              Ao confirmar a liquidação, o contrato será encerrado e os títulos financeiros serão atualizados.
+              Ao confirmar, o contrato será encerrado (LIQUIDADO) e os títulos financeiros serão atualizados.
+              Estoque NÃO será alterado (já foi movimentado pelos romaneios).
               Esta ação não pode ser desfeita facilmente.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={onConfirmarLiquidacao}>
-              Confirmar
+              Confirmar e Efetivar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
