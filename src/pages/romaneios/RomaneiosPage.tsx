@@ -305,9 +305,11 @@ export default function RomaneiosPage() {
     refreshDetail();
   };
 
+  const pesagensCompletas = pesagens.some((p) => p.tipoPesagem === "ENTRADA") && pesagens.some((p) => p.tipoPesagem === "SAIDA");
+
   const finalizarRomaneio = async () => {
     if (!selected) return;
-    if (pesagens.length < 2) { toast({ title: "É necessário pelo menos 2 pesagens (entrada e saída)", variant: "destructive" }); return; }
+    if (!pesagensCompletas) { toast({ title: "É necessário exatamente 1 pesagem de ENTRADA e 1 de SAÍDA", variant: "destructive" }); return; }
     const result = await romaneioService.finalizar(selected.id);
     if (result.sucesso) {
       toast({ title: result.mensagem });
