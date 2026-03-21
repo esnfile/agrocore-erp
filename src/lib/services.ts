@@ -2754,6 +2754,13 @@ export const romaneioService = {
     if (!r) return { sucesso: false, mensagem: "Romaneio não encontrado." };
     const now = new Date().toISOString();
 
+    // Validate pesagens: exactly 1 ENTRADA + 1 SAIDA
+    const pesagens = mockRomaneioPesagens.filter((p) => p.romaneioId === id);
+    const entrada = pesagens.find((p) => p.tipoPesagem === "ENTRADA");
+    const saida = pesagens.find((p) => p.tipoPesagem === "SAIDA");
+    if (!entrada || !saida) return { sucesso: false, mensagem: "É necessário exatamente 1 pesagem de ENTRADA e 1 de SAÍDA para finalizar." };
+    if (entrada.peso < saida.peso) return { sucesso: false, mensagem: "⚠️ Peso de ENTRADA é menor que SAÍDA. Verifique as pesagens." };
+
     const pesoFinal = r.pesoLiquidoSecoLimpo > 0 ? r.pesoLiquidoSecoLimpo : r.pesoLiquido;
     if (pesoFinal <= 0) return { sucesso: false, mensagem: "Peso líquido final deve ser maior que zero." };
     if (!r.contratoId) return { sucesso: false, mensagem: "Romaneio sem contrato não pode ser finalizado. Vincule a um contrato primeiro." };

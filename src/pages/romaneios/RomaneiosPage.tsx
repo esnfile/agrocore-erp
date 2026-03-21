@@ -863,14 +863,17 @@ export default function RomaneiosPage() {
                 </Table>
 
                 {/* Calculated summary below pesagens table */}
-                {pesagens.length >= 2 && selected && (
+                {pesagensCompletas && selected && (
                   <div className="rounded-md bg-muted/50 p-3 space-y-1">
                     <p className="text-xs font-medium text-muted-foreground">✅ CALCULADO AUTOMATICAMENTE A PARTIR DAS PESAGENS:</p>
                     <div className="flex gap-6 text-sm">
-                      <span>Bruto: <strong className="font-mono">{selected.pesoBruto.toFixed(3)} ton</strong></span>
-                      <span>Tara: <strong className="font-mono">{selected.pesoTara.toFixed(3)} ton</strong></span>
+                      <span>Bruto (ENTRADA): <strong className="font-mono">{selected.pesoBruto.toFixed(3)} ton</strong></span>
+                      <span>Tara (SAÍDA): <strong className="font-mono">{selected.pesoTara.toFixed(3)} ton</strong></span>
                       <span>Líquido: <strong className={`font-mono ${selected.pesoLiquido > 0 ? "text-green-700" : "text-destructive"}`}>{selected.pesoLiquido.toFixed(3)} ton</strong></span>
                     </div>
+                    {selected.pesoBruto > 0 && selected.pesoTara > 0 && selected.pesoBruto < selected.pesoTara && (
+                      <p className="text-xs text-destructive font-medium">⚠️ Peso de ENTRADA é menor que SAÍDA. Verifique as pesagens.</p>
+                    )}
                   </div>
                 )}
               </TabsContent>
