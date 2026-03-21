@@ -2822,19 +2822,17 @@ export const romaneioService = {
   },
   recalcularPesos(romaneioId: string) {
     const pesagens = mockRomaneioPesagens.filter((p) => p.romaneioId === romaneioId);
-    if (pesagens.length === 0) return;
-    const pesos = pesagens.map((p) => p.peso);
-    const bruto = Math.max(...pesos);
-    const tara = Math.min(...pesos);
-    const liquido = bruto - tara;
     const rom = mockRomaneios.find((r) => r.id === romaneioId);
-    if (rom) {
-      rom.pesoBruto = bruto;
-      rom.pesoTara = tara;
-      rom.pesoLiquido = liquido;
-      rom.atualizadoEm = new Date().toISOString();
-      rom.atualizadoPor = "u1";
-    }
+    if (!rom) return;
+
+    const entrada = pesagens.find((p) => p.tipoPesagem === "ENTRADA");
+    const saida = pesagens.find((p) => p.tipoPesagem === "SAIDA");
+
+    rom.pesoBruto = entrada ? entrada.peso : 0;
+    rom.pesoTara = saida ? saida.peso : 0;
+    rom.pesoLiquido = (entrada && saida) ? rom.pesoBruto - rom.pesoTara : 0;
+    rom.atualizadoEm = new Date().toISOString();
+    rom.atualizadoPor = "u1";
   },
 };
 
