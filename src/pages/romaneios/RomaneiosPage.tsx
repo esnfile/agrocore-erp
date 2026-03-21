@@ -260,7 +260,10 @@ export default function RomaneiosPage() {
     if (!selected || !ctx || !pesagemPeso) return;
     const peso = parseFloat(pesagemPeso);
     if (isNaN(peso) || peso <= 0) { toast({ title: "Peso inválido", variant: "destructive" }); return; }
-    await romaneioPesagemService.salvar({ romaneioId: selected.id, tipoPesagem: pesagemTipo, peso }, ctx);
+    const result = await romaneioPesagemService.salvar({ romaneioId: selected.id, tipoPesagem: pesagemTipo, peso }, ctx);
+    if ("erro" in result) {
+      toast({ title: result.erro, variant: "destructive" }); return;
+    }
     toast({ title: `Pesagem de ${pesagemTipo === "ENTRADA" ? "entrada" : "saída"} registrada` });
     setPesagemOpen(false); setPesagemPeso("");
     refreshDetail();
