@@ -272,7 +272,7 @@ export default function RomaneiosPage() {
   // Edit pesagem inline
   const salvarEdicaoPesagem = async () => {
     if (!editingPesagemId) return;
-    const result = await romaneioPesagemService.editarPesagem(editingPesagemId, editPesagemPeso);
+    const result = await romaneioPesagemService.editarPesagem(editingPesagemId, editPesagemPeso, editPesagemTipo);
     if (result.sucesso) {
       toast({ title: result.mensagem });
     } else {
