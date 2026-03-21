@@ -2066,6 +2066,15 @@ export const veiculos: Veiculo[] = [];
 // ============================================================
 export type StatusRomaneio = "ABERTO" | "FINALIZADO" | "AGUARDANDO_CONTRATO" | "CANCELADO";
 
+export interface RomaneioClassificacaoItem {
+  tipo: "umidade" | "impureza" | "ardidos" | "avariados";
+  label: string;
+  base: number;
+  apurado: number;
+  desconto: number; // percentual
+  pesoDescontado: number; // kg descontado
+}
+
 export interface Romaneio {
   id: string;
   grupoId: string;
@@ -2083,6 +2092,12 @@ export interface Romaneio {
   pesoBruto: number;
   pesoTara: number;
   pesoLiquido: number;
+  // Classificação de qualidade
+  classificacaoUmidade: number;
+  classificacaoImpureza: number;
+  classificacaoArdidos: number;
+  classificacaoAvariados: number;
+  pesoLiquidoSecoLimpo: number;
   observacao: string;
   criadoEm: string;
   criadoPor: string;
