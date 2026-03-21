@@ -775,19 +775,80 @@ export default function RomaneiosPage() {
                   <Button onClick={() => setPesagemOpen(true)} className="gap-2"><Scale className="h-4 w-4" /> Registrar Pesagem</Button>
                 )}
                 <Table>
-                  <TableHeader><TableRow><TableHead>Tipo</TableHead><TableHead>Peso (ton)</TableHead><TableHead>Data/Hora</TableHead></TableRow></TableHeader>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Peso (ton)</TableHead>
+                      <TableHead>Data/Hora</TableHead>
+                      <TableHead>Editado</TableHead>
+                      {isEditable && <TableHead className="text-right">Ações</TableHead>}
+                    </TableRow>
+                  </TableHeader>
                   <TableBody>
                     {pesagens.length === 0 ? (
-                      <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">Nenhuma pesagem registrada</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={isEditable ? 5 : 4} className="text-center text-muted-foreground">Nenhuma pesagem registrada</TableCell></TableRow>
                     ) : pesagens.map((p) => (
                       <TableRow key={p.id}>
                         <TableCell><Badge variant={p.tipoPesagem === "ENTRADA" ? "default" : "secondary"}>{p.tipoPesagem}</Badge></TableCell>
-                        <TableCell className="font-mono">{p.peso.toFixed(3)}</TableCell>
+                        <TableCell>
+                          {editingPesagemId === p.id ? (
+                            <div className="flex items-center gap-2">
+                              <Input
+                                type="number"
+                                step="0.001"
+                                min="0"
+                                value={editPesagemPeso}
+                                onChange={(e) => setEditPesagemPeso(parseFloat(e.target.value) || 0)}
+                                className="h-8 w-28 font-mono"
+                                autoFocus
+                              />
+                              <Button size="sm" variant="ghost" onClick={() => setEditingPesagemId(null)}>Cancelar</Button>
+                              <Button size="sm" className="gap-1" onClick={salvarEdicaoPesagem}>
+                                <Check className="h-3 w-3" /> Salvar
+                              </Button>
+                            </div>
+                          ) : (
+                            <span className="font-mono">{p.peso.toFixed(3)}</span>
+                          )}
+                        </TableCell>
                         <TableCell>{format(new Date(p.dataHora), "dd/MM/yyyy HH:mm:ss")}</TableCell>
+                        <TableCell>
+                          {p.editadoEm ? (
+                            <span className="text-xs text-muted-foreground">
+                              {format(new Date(p.editadoEm), "dd/MM/yyyy HH:mm")}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        {isEditable && (
+                          <TableCell className="text-right">
+                            {editingPesagemId !== p.id && (
+                              <Button variant="ghost" size="sm" className="gap-1" onClick={() => {
+                                setEditingPesagemId(p.id);
+                                setEditPesagemPeso(p.peso);
+                              }}>
+                                <Pencil className="h-3 w-3" /> Editar
+                              </Button>
+                            )}
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
+
+                {/* Calculated summary below pesagens table */}
+                {pesagens.length >= 2 && selected && (
+                  <div className="rounded-md bg-muted/50 p-3 space-y-1">
+                    <p className="text-xs font-medium text-muted-foreground">✅ CALCULADO AUTOMATICAMENTE A PARTIR DAS PESAGENS:</p>
+                    <div className="flex gap-6 text-sm">
+                      <span>Bruto: <strong className="font-mono">{selected.pesoBruto.toFixed(3)} ton</strong></span>
+                      <span>Tara: <strong className="font-mono">{selected.pesoTara.toFixed(3)} ton</strong></span>
+                      <span>Líquido: <strong className={`font-mono ${selected.pesoLiquido > 0 ? "text-green-700" : "text-destructive"}`}>{selected.pesoLiquido.toFixed(3)} ton</strong></span>
+                    </div>
+                  </div>
+                )}
               </TabsContent>
             </Tabs>
           )}
