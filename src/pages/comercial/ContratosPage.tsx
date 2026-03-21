@@ -170,8 +170,20 @@ export default function ContratosPage() {
 
   const tipoPrecoWatch = contratoForm.watch("tipoPreco");
   const filialOperacaoWatch = contratoForm.watch("filialOperacaoId");
+  const produtoIdWatch = contratoForm.watch("produtoId");
+  const tipoContratoWatch = contratoForm.watch("tipoContrato");
 
-  // Load data
+  // FURO 4: Pre-preencher unidadeNegociacaoId ao selecionar produto/tipo
+  useEffect(() => {
+    if (!produtoIdWatch || editingContrato) return; // Só pré-preenche em criação
+    const produto = mockProdutos.find((p) => p.id === produtoIdWatch && p.deletadoEm === null);
+    if (!produto) return;
+    const unidadeId = tipoContratoWatch === "COMPRA" ? produto.unidadeCompraId : produto.unidadeVendaId;
+    if (unidadeId) {
+      contratoForm.setValue("unidadeNegociacaoId", unidadeId);
+    }
+  }, [produtoIdWatch, tipoContratoWatch, editingContrato]);
+
   const loadContratos = async () => {
     if (!empresaId) return;
     setLoading(true);
