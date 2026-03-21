@@ -306,10 +306,15 @@ export default function RomaneiosPage() {
   };
 
   const pesagensCompletas = pesagens.some((p) => p.tipoPesagem === "ENTRADA") && pesagens.some((p) => p.tipoPesagem === "SAIDA");
+  const pesoLiquidoValido = selected ? selected.pesoLiquido > 0 : false;
+  const contratoVinculado = selected ? !!selected.contratoId : false;
+  const podeFinalizarRomaneio = pesagensCompletas && pesoLiquidoValido && contratoVinculado;
 
   const finalizarRomaneio = async () => {
     if (!selected) return;
     if (!pesagensCompletas) { toast({ title: "É necessário exatamente 1 pesagem de ENTRADA e 1 de SAÍDA", variant: "destructive" }); return; }
+    if (!pesoLiquidoValido) { toast({ title: "❌ Peso Líquido deve ser > 0. Verifique as pesagens.", variant: "destructive" }); return; }
+    if (!contratoVinculado) { toast({ title: "⚠️ Romaneio sem contrato vinculado. Vincule antes de finalizar.", variant: "destructive" }); return; }
     const result = await romaneioService.finalizar(selected.id);
     if (result.sucesso) {
       toast({ title: result.mensagem });
@@ -770,7 +775,23 @@ export default function RomaneiosPage() {
                         <Link2 className="h-4 w-4" /> Vincular Contrato
                       </Button>
                     )}
-                    {selected.status === "ABERTO" && <Button onClick={finalizarRomaneio} className="gap-2"><CheckCircle className="h-4 w-4" /> Finalizar</Button>}
+                    {selected.status === "ABERTO" && (
+                      <div className="flex flex-col gap-1">
+                        <Button
+                          onClick={finalizarRomaneio}
+                          disabled={!podeFinalizarRomaneio}
+                          className="gap-2"
+                        >
+                          <CheckCircle className="h-4 w-4" /> Finalizar
+                        </Button>
+                        {pesagensCompletas && !pesoLiquidoValido && (
+                          <p className="text-xs text-destructive">❌ Peso Líquido inválido. Revise as pesagens.</p>
+                        )}
+                        {pesagensCompletas && pesoLiquidoValido && !contratoVinculado && (
+                          <p className="text-xs text-yellow-600">⚠️ Vincule um contrato para finalizar.</p>
+                        )}
+                      </div>
+                    )}
                     <Button variant="destructive" onClick={cancelarRomaneio} className="gap-2"><XCircle className="h-4 w-4" /> Cancelar</Button>
                   </div>
                 )}
