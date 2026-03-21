@@ -2088,6 +2088,7 @@ export interface Romaneio {
   veiculoId: string | null;
   placaVeiculo: string;
   pontoEstoqueId: string | null;
+  unidadeRomaneioId: string; // Unidade em que as pesagens foram feitas
   status: StatusRomaneio;
   pesoBruto: number;
   pesoTara: number;
