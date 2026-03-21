@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -36,7 +36,7 @@ import {
 } from "@/lib/services";
 import { produtos as mockProdutos } from "@/lib/mock-data";
 import type { Romaneio, RomaneioPesagem, Motorista, Veiculo, Contrato, TipoPesagem, PontoEstoque } from "@/lib/mock-data";
-import { Plus, Scale, XCircle, CheckCircle, Link2 } from "lucide-react";
+import { Plus, Scale, XCircle, CheckCircle, Link2, Pencil, Check } from "lucide-react";
 
 const romaneioSchema = z.object({
   produtoId: z.string().min(1, "Produto é obrigatório"),
@@ -61,6 +61,37 @@ const statusLabels: Record<string, string> = {
   AGUARDANDO_CONTRATO: "Aguard. Contrato",
   CANCELADO: "Cancelado",
 };
+
+// Quality classification bases
+const CLASSIFICACAO_BASES = {
+  umidade: { label: "Umidade", base: 14 },
+  impureza: { label: "Impureza", base: 1 },
+  ardidos: { label: "Ardidos", base: 8 },
+  avariados: { label: "Avariados", base: 0 },
+} as const;
+
+function calcularPesoSecoLimpo(pesoBruto: number, umidade: number, impureza: number, ardidos: number, avariados: number) {
+  const descUmidade = Math.max(0, umidade - CLASSIFICACAO_BASES.umidade.base);
+  const descImpureza = Math.max(0, impureza - CLASSIFICACAO_BASES.impureza.base);
+  const descArdidos = Math.max(0, ardidos - CLASSIFICACAO_BASES.ardidos.base);
+  const descAvariados = Math.max(0, avariados - CLASSIFICACAO_BASES.avariados.base);
+
+  let peso = pesoBruto;
+  const steps: { label: string; descPerc: number; descKg: number; pesoApos: number }[] = [];
+
+  const applyDiscount = (label: string, perc: number) => {
+    const descKg = peso * (perc / 100);
+    peso -= descKg;
+    steps.push({ label, descPerc: perc, descKg, pesoApos: peso });
+  };
+
+  applyDiscount("Umidade", descUmidade);
+  applyDiscount("Impureza", descImpureza);
+  applyDiscount("Ardidos", descArdidos);
+  applyDiscount("Avariados", descAvariados);
+
+  return { pesoFinal: peso, steps, totalDescontado: pesoBruto - peso };
+}
 
 export default function RomaneiosPage() {
   const { empresaAtual, filialAtual, grupoAtual } = useOrganization();
@@ -93,13 +124,22 @@ export default function RomaneiosPage() {
   const [contratos, setContratos] = useState<Contrato[]>([]);
   const [pontosEstoque, setPontosEstoque] = useState<PontoEstoque[]>([]);
 
-  // Vincular contrato modal
   const [vincularOpen, setVincularOpen] = useState(false);
   const [vincularContratoId, setVincularContratoId] = useState("");
 
-  // Selecionar ponto estoque no detail
   const [editPontoOpen, setEditPontoOpen] = useState(false);
   const [editPontoId, setEditPontoId] = useState("");
+
+  // Manual weight editing
+  const [editingPesos, setEditingPesos] = useState(false);
+  const [editPesoBruto, setEditPesoBruto] = useState(0);
+  const [editPesoTara, setEditPesoTara] = useState(0);
+
+  // Quality classification editing
+  const [classUmidade, setClassUmidade] = useState(0);
+  const [classImpureza, setClassImpureza] = useState(0);
+  const [classArdidos, setClassArdidos] = useState(0);
+  const [classAvariados, setClassAvariados] = useState(0);
 
   const form = useForm<RomaneioFormData>({
     resolver: zodResolver(romaneioSchema),
@@ -192,13 +232,28 @@ export default function RomaneiosPage() {
     setSelected(rom);
     const p = await romaneioPesagemService.listarPorRomaneio(rom.id);
     setPesagens(p);
+    setEditingPesos(false);
+    setEditPesoBruto(rom.pesoBruto);
+    setEditPesoTara(rom.pesoTara);
+    setClassUmidade(rom.classificacaoUmidade || 0);
+    setClassImpureza(rom.classificacaoImpureza || 0);
+    setClassArdidos(rom.classificacaoArdidos || 0);
+    setClassAvariados(rom.classificacaoAvariados || 0);
     setDetailOpen(true);
   };
 
   const refreshDetail = async () => {
     if (!selected) return;
     const updated = await romaneioService.obterPorId(selected.id);
-    if (updated) setSelected(updated);
+    if (updated) {
+      setSelected(updated);
+      setEditPesoBruto(updated.pesoBruto);
+      setEditPesoTara(updated.pesoTara);
+      setClassUmidade(updated.classificacaoUmidade || 0);
+      setClassImpureza(updated.classificacaoImpureza || 0);
+      setClassArdidos(updated.classificacaoArdidos || 0);
+      setClassAvariados(updated.classificacaoAvariados || 0);
+    }
     const p = await romaneioPesagemService.listarPorRomaneio(selected.id);
     setPesagens(p);
     load();
@@ -211,6 +266,49 @@ export default function RomaneiosPage() {
     await romaneioPesagemService.salvar({ romaneioId: selected.id, tipoPesagem: pesagemTipo, peso }, ctx);
     toast({ title: `Pesagem de ${pesagemTipo === "ENTRADA" ? "entrada" : "saída"} registrada` });
     setPesagemOpen(false); setPesagemPeso("");
+    refreshDetail();
+  };
+
+  // Save manual weight edits
+  const salvarPesosManual = async () => {
+    if (!selected || !ctx) return;
+    const liquido = editPesoBruto - editPesoTara;
+    if (liquido <= 0) {
+      toast({ title: "Peso Líquido deve ser maior que zero", variant: "destructive" });
+      return;
+    }
+    // Update the romaneio directly
+    await romaneioService.salvar({
+      id: selected.id,
+      pesoBruto: editPesoBruto,
+      pesoTara: editPesoTara,
+      pesoLiquido: liquido,
+    }, ctx);
+    toast({ title: "Pesos atualizados manualmente" });
+    setEditingPesos(false);
+    refreshDetail();
+  };
+
+  // Save classification
+  const salvarClassificacao = async () => {
+    if (!selected || !ctx) return;
+    const pesoBase = selected.pesoLiquido > 0 ? selected.pesoLiquido : (editPesoBruto - editPesoTara);
+    const result = calcularPesoSecoLimpo(pesoBase, classUmidade, classImpureza, classArdidos, classAvariados);
+
+    if (result.pesoFinal <= 0) {
+      toast({ title: "Descontos resultam em peso zerado ou negativo", variant: "destructive" });
+      return;
+    }
+
+    await romaneioService.salvar({
+      id: selected.id,
+      classificacaoUmidade: classUmidade,
+      classificacaoImpureza: classImpureza,
+      classificacaoArdidos: classArdidos,
+      classificacaoAvariados: classAvariados,
+      pesoLiquidoSecoLimpo: result.pesoFinal,
+    }, ctx);
+    toast({ title: `Classificação salva. Peso Seco e Limpo: ${result.pesoFinal.toFixed(3)} ton` });
     refreshDetail();
   };
 
@@ -273,13 +371,23 @@ export default function RomaneiosPage() {
     return p ? p.descricao : id;
   };
 
+  // Computed classification values
+  const pesoBaseClassificacao = selected ? (selected.pesoLiquido > 0 ? selected.pesoLiquido : 0) : 0;
+  const classificacaoResult = useMemo(
+    () => calcularPesoSecoLimpo(pesoBaseClassificacao, classUmidade, classImpureza, classArdidos, classAvariados),
+    [pesoBaseClassificacao, classUmidade, classImpureza, classArdidos, classAvariados]
+  );
+
+  const editPesoLiquido = editPesoBruto - editPesoTara;
+  const isEditable = selected && (selected.status === "ABERTO" || selected.status === "AGUARDANDO_CONTRATO");
+
   const columns: Column<Romaneio>[] = [
     { key: "id", header: "ID", render: (row) => row.id.substring(0, 8) },
     { key: "produtoId", header: "Produto", render: (row) => getProdutoNome(row.produtoId) },
     { key: "contratoId", header: "Contrato", render: (row) => getContratoNum(row.contratoId) },
     { key: "motoristaNome", header: "Motorista", render: (row) => row.motoristaNome },
     { key: "placaVeiculo", header: "Placa", render: (row) => row.placaVeiculo },
-    { key: "pesoLiquido", header: "Peso Líq. (ton)", render: (row) => row.pesoLiquido > 0 ? row.pesoLiquido.toFixed(3) : "—" },
+    { key: "pesoLiquido", header: "Peso Líq. (ton)", render: (row) => row.pesoLiquidoSecoLimpo > 0 ? row.pesoLiquidoSecoLimpo.toFixed(3) : (row.pesoLiquido > 0 ? row.pesoLiquido.toFixed(3) : "—") },
     { key: "status", header: "Status", render: (row) => <Badge variant={statusColors[row.status] || "default"}>{statusLabels[row.status] || row.status}</Badge> },
     { key: "criadoEm", header: "Data", render: (row) => format(new Date(row.criadoEm), "dd/MM/yyyy HH:mm") },
   ];
@@ -405,7 +513,7 @@ export default function RomaneiosPage() {
 
       {/* Detail Dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Romaneio {selected?.id.substring(0, 8)}</DialogTitle>
           </DialogHeader>
@@ -417,6 +525,7 @@ export default function RomaneiosPage() {
               </TabsList>
 
               <TabsContent value="geral" className="space-y-4">
+                {/* Info Cards */}
                 <div className="grid grid-cols-2 gap-4">
                   <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Produto</CardTitle></CardHeader><CardContent><p className="font-medium">{getProdutoNome(selected.produtoId)}</p></CardContent></Card>
                   <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Contrato</CardTitle></CardHeader><CardContent><p className="font-medium">{getContratoNum(selected.contratoId)}</p></CardContent></Card>
@@ -424,11 +533,12 @@ export default function RomaneiosPage() {
                   <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Veículo</CardTitle></CardHeader><CardContent><p className="font-medium">{selected.placaVeiculo}</p></CardContent></Card>
                 </div>
 
+                {/* Ponto de Estoque */}
                 <Card>
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-sm font-medium text-muted-foreground">Ponto de Estoque</CardTitle>
-                      {(selected.status === "ABERTO" || selected.status === "AGUARDANDO_CONTRATO") && (
+                      {isEditable && (
                         <Button variant="ghost" size="sm" onClick={() => { setEditPontoId(selected.pontoEstoqueId || ""); setEditPontoOpen(true); }}>Alterar</Button>
                       )}
                     </div>
@@ -440,19 +550,273 @@ export default function RomaneiosPage() {
                   </CardContent>
                 </Card>
 
-                <div className="grid grid-cols-3 gap-4">
-                  <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Peso Bruto</CardTitle></CardHeader><CardContent><p className="text-xl font-bold">{selected.pesoBruto > 0 ? `${selected.pesoBruto.toFixed(3)} ton` : "—"}</p></CardContent></Card>
-                  <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Peso Tara</CardTitle></CardHeader><CardContent><p className="text-xl font-bold">{selected.pesoTara > 0 ? `${selected.pesoTara.toFixed(3)} ton` : "—"}</p></CardContent></Card>
-                  <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Peso Líquido</CardTitle></CardHeader><CardContent><p className="text-xl font-bold text-primary">{selected.pesoLiquido > 0 ? `${selected.pesoLiquido.toFixed(3)} ton` : "—"}</p></CardContent></Card>
-                </div>
+                {/* ===== WEIGHT SECTION WITH MANUAL EDIT ===== */}
+                <Card>
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-sm font-medium">Pesos</CardTitle>
+                      {isEditable && !editingPesos && (
+                        <Button variant="ghost" size="sm" className="gap-1" onClick={() => {
+                          setEditPesoBruto(selected.pesoBruto);
+                          setEditPesoTara(selected.pesoTara);
+                          setEditingPesos(true);
+                        }}>
+                          <Pencil className="h-3 w-3" /> Editar
+                        </Button>
+                      )}
+                      {editingPesos && (
+                        <div className="flex gap-2">
+                          <Button variant="ghost" size="sm" onClick={() => setEditingPesos(false)}>Cancelar</Button>
+                          <Button size="sm" className="gap-1" onClick={salvarPesosManual}>
+                            <Check className="h-3 w-3" /> Salvar
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-3 gap-4">
+                      {/* Peso Bruto */}
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground text-xs">Peso Bruto</Label>
+                        {editingPesos ? (
+                          <Input
+                            type="number"
+                            step="0.001"
+                            min="0"
+                            value={editPesoBruto}
+                            onChange={(e) => setEditPesoBruto(parseFloat(e.target.value) || 0)}
+                            className="text-lg font-bold"
+                          />
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <p className="text-xl font-bold">{selected.pesoBruto > 0 ? `${selected.pesoBruto.toFixed(3)} ton` : "—"}</p>
+                            {selected.pesoBruto > 0 && <Badge variant="secondary" className="text-xs">Automático</Badge>}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Peso Tara */}
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground text-xs">Peso Tara</Label>
+                        {editingPesos ? (
+                          <Input
+                            type="number"
+                            step="0.001"
+                            min="0"
+                            value={editPesoTara}
+                            onChange={(e) => setEditPesoTara(parseFloat(e.target.value) || 0)}
+                            className="text-lg font-bold"
+                          />
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <p className="text-xl font-bold">{selected.pesoTara > 0 ? `${selected.pesoTara.toFixed(3)} ton` : "—"}</p>
+                            {selected.pesoTara > 0 && <Badge variant="secondary" className="text-xs">Automático</Badge>}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Peso Líquido - always read-only */}
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground text-xs">Peso Líquido (Bruto - Tara)</Label>
+                        {editingPesos ? (
+                          <p className={`text-xl font-bold ${editPesoLiquido > 0 ? "text-green-700" : "text-destructive"}`}>
+                            {editPesoLiquido.toFixed(3)} ton
+                          </p>
+                        ) : (
+                          <p className={`text-xl font-bold ${selected.pesoLiquido > 0 ? "text-green-700" : ""}`}>
+                            {selected.pesoLiquido > 0 ? `${selected.pesoLiquido.toFixed(3)} ton` : "—"}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* ===== QUALITY CLASSIFICATION SECTION ===== */}
+                {selected.pesoLiquido > 0 && (
+                  <Card className="border-2 border-dashed border-muted">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-sm font-medium">Classificação de Qualidade</CardTitle>
+                        {isEditable && (
+                          <Button size="sm" onClick={salvarClassificacao} className="gap-1">
+                            <Check className="h-3 w-3" /> Salvar Classificação
+                          </Button>
+                        )}
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {/* Classification Fields */}
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* Umidade */}
+                        <div className="space-y-1 rounded-md border p-3">
+                          <Label className="text-xs font-semibold">Umidade (Base {CLASSIFICACAO_BASES.umidade.base}%)</Label>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">Valor apurado:</span>
+                            <Input
+                              type="number"
+                              step="0.1"
+                              min="0"
+                              max="100"
+                              value={classUmidade}
+                              onChange={(e) => setClassUmidade(parseFloat(e.target.value) || 0)}
+                              className="h-8 w-24"
+                              disabled={!isEditable}
+                            />
+                            <span className="text-xs">%</span>
+                            {classUmidade > CLASSIFICACAO_BASES.umidade.base && (
+                              <span className="text-xs text-orange-600 font-medium">
+                                → Desc: -{(classUmidade - CLASSIFICACAO_BASES.umidade.base).toFixed(1)}%
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Impureza */}
+                        <div className="space-y-1 rounded-md border p-3">
+                          <Label className="text-xs font-semibold">Impureza (Base {CLASSIFICACAO_BASES.impureza.base}%)</Label>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">Valor apurado:</span>
+                            <Input
+                              type="number"
+                              step="0.1"
+                              min="0"
+                              max="100"
+                              value={classImpureza}
+                              onChange={(e) => setClassImpureza(parseFloat(e.target.value) || 0)}
+                              className="h-8 w-24"
+                              disabled={!isEditable}
+                            />
+                            <span className="text-xs">%</span>
+                            {classImpureza > CLASSIFICACAO_BASES.impureza.base && (
+                              <span className="text-xs text-orange-600 font-medium">
+                                → Desc: -{(classImpureza - CLASSIFICACAO_BASES.impureza.base).toFixed(1)}%
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Ardidos */}
+                        <div className="space-y-1 rounded-md border p-3">
+                          <Label className="text-xs font-semibold">Ardidos (Base {CLASSIFICACAO_BASES.ardidos.base}%)</Label>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">Valor apurado:</span>
+                            <Input
+                              type="number"
+                              step="0.1"
+                              min="0"
+                              max="100"
+                              value={classArdidos}
+                              onChange={(e) => setClassArdidos(parseFloat(e.target.value) || 0)}
+                              className="h-8 w-24"
+                              disabled={!isEditable}
+                            />
+                            <span className="text-xs">%</span>
+                            {classArdidos > CLASSIFICACAO_BASES.ardidos.base && (
+                              <span className="text-xs text-orange-600 font-medium">
+                                → Desc: -{(classArdidos - CLASSIFICACAO_BASES.ardidos.base).toFixed(1)}%
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Avariados */}
+                        <div className="space-y-1 rounded-md border p-3">
+                          <Label className="text-xs font-semibold">Avariados (Base {CLASSIFICACAO_BASES.avariados.base}%)</Label>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">Valor apurado:</span>
+                            <Input
+                              type="number"
+                              step="0.1"
+                              min="0"
+                              max="100"
+                              value={classAvariados}
+                              onChange={(e) => setClassAvariados(parseFloat(e.target.value) || 0)}
+                              className="h-8 w-24"
+                              disabled={!isEditable}
+                            />
+                            <span className="text-xs">%</span>
+                            {classAvariados > CLASSIFICACAO_BASES.avariados.base && (
+                              <span className="text-xs text-orange-600 font-medium">
+                                → Desc: -{(classAvariados - CLASSIFICACAO_BASES.avariados.base).toFixed(1)}%
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Progressive Calculation */}
+                      <div className="rounded-md bg-muted/50 p-4 space-y-2">
+                        <p className="text-sm font-medium">Cálculo Progressivo de Descontos</p>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="text-xs">Etapa</TableHead>
+                              <TableHead className="text-xs text-right">Desconto %</TableHead>
+                              <TableHead className="text-xs text-right">Peso Descontado</TableHead>
+                              <TableHead className="text-xs text-right">Peso Após</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            <TableRow>
+                              <TableCell className="text-xs font-medium">Peso Líquido (Bruto - Tara)</TableCell>
+                              <TableCell className="text-xs text-right">—</TableCell>
+                              <TableCell className="text-xs text-right">—</TableCell>
+                              <TableCell className="text-xs text-right font-mono">{pesoBaseClassificacao.toFixed(3)} ton</TableCell>
+                            </TableRow>
+                            {classificacaoResult.steps.map((step, i) => (
+                              <TableRow key={i}>
+                                <TableCell className="text-xs">{step.label}</TableCell>
+                                <TableCell className="text-xs text-right text-orange-600">
+                                  {step.descPerc > 0 ? `-${step.descPerc.toFixed(1)}%` : "0%"}
+                                </TableCell>
+                                <TableCell className="text-xs text-right text-orange-600 font-mono">
+                                  {step.descKg > 0 ? `-${step.descKg.toFixed(3)} ton` : "—"}
+                                </TableCell>
+                                <TableCell className="text-xs text-right font-mono">{step.pesoApos.toFixed(3)} ton</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+
+                        <div className="flex items-center justify-between pt-2 border-t">
+                          <div>
+                            <p className="text-xs text-muted-foreground">Total de Descontos</p>
+                            <p className="text-sm font-bold text-orange-600">
+                              {classificacaoResult.totalDescontado.toFixed(3)} ton
+                              ({pesoBaseClassificacao > 0 ? ((classificacaoResult.totalDescontado / pesoBaseClassificacao) * 100).toFixed(2) : "0.00"}%)
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-muted-foreground">Peso Líquido Seco e Limpo</p>
+                            <p className={`text-lg font-bold ${classificacaoResult.pesoFinal > 0 ? "text-green-700" : "text-destructive"}`}>
+                              ✅ {classificacaoResult.pesoFinal.toFixed(3)} ton
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Status & Timestamp */}
                 <div className="flex items-center gap-2">
                   <Badge variant={statusColors[selected.status]}>{statusLabels[selected.status]}</Badge>
                   <span className="text-sm text-muted-foreground">Criado em {format(new Date(selected.criadoEm), "dd/MM/yyyy HH:mm")}</span>
+                  {selected.pesoLiquidoSecoLimpo > 0 && (
+                    <Badge variant="outline" className="text-green-700 border-green-700">
+                      Peso Comercial: {selected.pesoLiquidoSecoLimpo.toFixed(3)} ton
+                    </Badge>
+                  )}
                 </div>
+
                 {selected.observacao && (
                   <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Observação</CardTitle></CardHeader><CardContent><p>{selected.observacao}</p></CardContent></Card>
                 )}
-                {(selected.status === "ABERTO" || selected.status === "AGUARDANDO_CONTRATO") && (
+
+                {/* Action Buttons */}
+                {isEditable && (
                   <div className="flex gap-2 pt-4 flex-wrap">
                     {selected.status === "AGUARDANDO_CONTRATO" && (
                       <Button variant="outline" onClick={() => { setVincularContratoId(""); setVincularOpen(true); }} className="gap-2">
@@ -466,7 +830,7 @@ export default function RomaneiosPage() {
               </TabsContent>
 
               <TabsContent value="pesagens" className="space-y-4">
-                {(selected.status === "ABERTO" || selected.status === "AGUARDANDO_CONTRATO") && (
+                {isEditable && (
                   <Button onClick={() => setPesagemOpen(true)} className="gap-2"><Scale className="h-4 w-4" /> Registrar Pesagem</Button>
                 )}
                 <Table>
