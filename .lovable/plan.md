@@ -1,80 +1,69 @@
 
 
-## Plano: Estrutura de Estoque (Quantidade + Controle de Negativo)
+# Plan: Replace MAX/MIN with Explicit Weighing Types (ENTRADA/SAIDA)
 
-### 1. Atualizar `ParametroComercial` — `src/lib/mock-data.ts`
+## Problem
+`recalcularPesos` uses `Math.max/Math.min` across all weighings, which is semantically wrong. The system must use the explicit `tipoPesagem` field to determine which weighing is Bruto (ENTRADA) and which is Tara (SAIDA).
 
-Adicionar campo `permitirEstoqueNegativo: boolean` na interface e no mock data (default `false`).
+## Changes
 
-### 2. Novas Interfaces e Mock Data — `src/lib/mock-data.ts`
+### 1. Service Layer — `services.ts`
 
-**`PontoEstoque`:**
-- id, grupoId, empresaId, filialId, descricao, principal (boolean), tipo ("PROPRIO" | "TERCEIRO"), ativo, auditoria completa
+**a) Replace `recalcularPesos` logic (line ~2823-2838)**
+- Instead of `MAX/MIN`, find the pesagem with `tipoPesagem === "ENTRADA"` → its `peso` = `pesoBruto`
+- Find pesagem with `tipoPesagem === "SAIDA"` → its `peso` = `pesoTara`
+- `pesoLiquido = pesoBruto - pesoTara`
+- If either is missing, set the available one and leave the rest at 0
 
-**`Estoque`:**
-- id, grupoId, empresaId, filialId, produtoId, pontoEstoqueId, quantidadeAtual (decimal), custoMedioAtual (nullable), valorTotalEstoque (nullable)
+**b) Update `editarPesagem` to also accept `novoTipo` parameter (line ~2865)**
+- Add optional `novoTipo?: TipoPesagem` parameter
+- When provided, update `pesagem.tipoPesagem = novoTipo`
+- Validate: if changing type, check no duplicate type exists (e.g., can't have 2 ENTRADAs)
+- Continue calling `recalcularPesos` after
 
-**`MovimentacaoEstoque`:**
-- id, grupoId, empresaId, filialId, produtoId, pontoEstoqueId, tipoMovimento ("ENTRADA" | "SAIDA" | "AJUSTE"), quantidadeInformada, unidadeMovimentacaoId, quantidadeConvertidaBase, dataMovimentacao, observacao, auditoria completa
+**c) Update `romaneioPesagemService.salvar` — block duplicates**
+- Before creating, check if a pesagem with the same `tipoPesagem` already exists for this romaneio
+- If yes, return error: "Já existe uma pesagem de ENTRADA/SAIDA registrada. Edite a existente."
 
-Mock data: 1 ponto de estoque (principal, PROPRIO), 1 registro de estoque para prod1, 0 movimentações iniciais.
+**d) Update `romaneioService.finalizar` validation (line ~2751)**
+- Replace `pesagens.length < 2` check with: must have exactly 1 ENTRADA and 1 SAIDA
+- Add warning if ENTRADA peso < SAIDA peso
 
-### 3. Novos Services — `src/lib/services.ts`
+### 2. Romaneios Page — `RomaneiosPage.tsx`
 
-**`pontoEstoqueService`:** listar (por empresa+filial), salvar (validar unicidade de principal por empresa+filial), excluir (soft delete).
+**a) Pesagem edit inline (line ~794-830) — add Type editing**
+- Add a `Select` for tipo (ENTRADA/SAIDA) next to the peso input when editing
+- New state: `editPesagemTipo` to track the edited type
+- Pass both `novoPeso` and `novoTipo` to `editarPesagem`
 
-**`estoqueService`:** listarPorEmpresaFilial, obterSaldo (por produto+ponto), atualizarSaldo.
+**b) Update pesagem list display (line ~790-837)**
+- Show icons: ⬇️ for ENTRADA, ⬆️ for SAIDA
+- Badge already shows tipo — enhance with arrow icons
 
-**`movimentacaoEstoqueService`:** listar (com filtros), registrar — contém toda a lógica central:
-1. Validar tipo da unidade (mesmo tipo da unidade_base do produto)
-2. Converter quantidade para unidade_base usando fatorBase
-3. Calcular novo saldo (ENTRADA: +, SAIDA: -, AJUSTE: = valor)
-4. Verificar `permitirEstoqueNegativo` se saldo < 0
-5. Atualizar registro de estoque
-6. Inserir movimentação
+**c) Update "Registrar Pesagem" button — disable when 2 pesagens exist**
+- Check pesagens array: if already has 1 ENTRADA + 1 SAIDA, hide/disable the button
+- Show message: "Pesagens completas (1 Entrada + 1 Saída). Use edição para corrigir."
 
-### 4. Atualizar Menu — `src/lib/modules.ts`
+**d) Update finalizarRomaneio validation (line ~304-314)**
+- Check for exactly 1 ENTRADA + 1 SAIDA instead of `pesagens.length < 2`
+- Show specific error if ENTRADA < SAIDA: "Peso de entrada menor que saída"
 
-Dentro de "Auxiliares", adicionar/ajustar:
-- Pontos de Estoque (já existe placeholder)
-- Movimentação de Estoque (novo item)
-- Consulta de Estoque (novo item)
+**e) Update calculated summary (line ~842-851)**
+- Label Bruto as "(Pesagem ENTRADA)" and Tara as "(Pesagem SAÍDA)"
 
-### 5. Novas Páginas
+### 3. Mock Data — `mock-data.ts`
+No structural changes needed — `RomaneioPesagem` already has `tipoPesagem: TipoPesagem` field.
 
-**`src/pages/produtos-estoque/PontosEstoquePage.tsx`:**
-- CRUD com listagem, novo, editar, soft delete
-- Campos: descrição, tipo (PROPRIO/TERCEIRO), principal (toggle), ativo
-- Validação: apenas 1 principal por empresa+filial
+## Files Modified
+1. `src/lib/services.ts` — `recalcularPesos`, `editarPesagem`, `salvar` (pesagem), `finalizar` (romaneio)
+2. `src/pages/romaneios/RomaneiosPage.tsx` — edit UI, validation, display
 
-**`src/pages/produtos-estoque/MovimentacaoEstoquePage.tsx`:**
-- Formulário: Produto (select), Ponto de Estoque (select), Tipo Movimento (ENTRADA/SAIDA/AJUSTE), Unidade (select filtrada por tipo da unidade_base), Quantidade, Data, Observação
-- Exibir "Quantidade convertida para unidade base: XXX [codigo]" em tempo real
-- Ao confirmar: chamar service que faz conversão, validação de negativo e atualização de saldo
-- Toast de sucesso/erro
-- Listagem de movimentações recentes abaixo do formulário
-
-**`src/pages/produtos-estoque/ConsultaEstoquePage.tsx`:**
-- Grid: Produto, Ponto, Quantidade Atual, Unidade Base
-- Filtros: Produto, Ponto
-- Saldo negativo destacado em vermelho
-
-### 6. Rotas — `src/App.tsx`
-
-Substituir placeholders por componentes reais:
-- `/produtos-estoque/pontos-estoque` → PontosEstoquePage
-- `/produtos-estoque/movimentacao-estoque` → MovimentacaoEstoquePage (nova rota)
-- `/produtos-estoque/consulta-estoque` → ConsultaEstoquePage (nova rota)
-
-### Arquivos Modificados
-
-| Arquivo | Ação |
-|---|---|
-| `src/lib/mock-data.ts` | Adicionar interfaces, types, mock arrays, campo em ParametroComercial |
-| `src/lib/services.ts` | Adicionar pontoEstoqueService, estoqueService, movimentacaoEstoqueService |
-| `src/lib/modules.ts` | Adicionar itens de menu (Movimentação, Consulta) |
-| `src/App.tsx` | Adicionar imports e rotas |
-| `src/pages/produtos-estoque/PontosEstoquePage.tsx` | Criar |
-| `src/pages/produtos-estoque/MovimentacaoEstoquePage.tsx` | Criar |
-| `src/pages/produtos-estoque/ConsultaEstoquePage.tsx` | Criar |
+## Validation Checklist
+- Modal has mandatory "Tipo de Pesagem" dropdown (already exists)
+- Pesagens listed with ⬇️/⬆️ icons
+- Calculation uses types, NOT MAX/MIN
+- Blocks registration if 1 ENTRADA + 1 SAIDA already exist
+- Warning if ENTRADA < SAIDA
+- Edit allows changing Type
+- Finalization blocked without exactly 1 ENTRADA + 1 SAIDA
 
