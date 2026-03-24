@@ -1221,17 +1221,14 @@ export const movimentacaoEstoqueService = {
       return { sucesso: false, mensagem: `Tipo da unidade informada (${unidadeMov.tipo}) difere do tipo da unidade base do produto (${unidadeBase.tipo}). Operação bloqueada.` };
     }
 
-    // 4. Converter para unidade base
+    // 4. Converter para unidade base (usando conversão product-aware)
     let quantidadeConvertidaBase: number;
-    if (data.unidadeMovimentacaoId === produto.unidadeBaseId) {
-      quantidadeConvertidaBase = data.quantidadeInformada;
-    } else if (data.unidadeMovimentacaoId === produto.unidadeEntradaId) {
-      quantidadeConvertidaBase = data.quantidadeInformada * produto.quantidadeEmbalagemEntrada;
-    } else if (data.unidadeMovimentacaoId === produto.unidadeSaidaId) {
-      quantidadeConvertidaBase = data.quantidadeInformada * produto.quantidadeEmbalagemSaida;
-    } else {
-      // Conversão genérica por fator
-      quantidadeConvertidaBase = (data.quantidadeInformada * unidadeMov.fatorBase) / unidadeBase.fatorBase;
+    try {
+      quantidadeConvertidaBase = unidadeMedidaService.converterQuantidade(
+        data.quantidadeInformada, data.unidadeMovimentacaoId, produto.unidadeBaseId, produto.id
+      );
+    } catch (e: any) {
+      return { sucesso: false, mensagem: `Erro na conversão: ${e.message}` };
     }
 
     // 5. Calcular novo saldo
