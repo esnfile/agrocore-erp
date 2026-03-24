@@ -1,101 +1,69 @@
 
 
-# Plan: Correções Arquiteturais — 4 Furos Críticos do AgroERP
+# Plan: Refatorar Conversão de Unidades com Contexto de Produto
 
-## Contexto: O que JA EXISTE vs O que FALTA
+## Análise do Documento
 
-Após análise completa do código atual, a base já possui a maioria das interfaces e estruturas necessárias. O documento gerado pela IA Claude contém inconsistências (IDs simples ao invés de UUID, falta de auditoria/soft-delete, interfaces simplificadas) que serão ignoradas em favor da arquitetura já estabelecida.
+O documento propõe 4 mudanças. Avaliei cada uma contra o código existente:
 
-### Ja existe no codigo:
-- `UnidadeMedida` com `fatorBase` e `tipo` (com auditoria completa)
-- `Produto` com `unidadeBaseId`, `unidadeCompraId`, `unidadeVendaId`, `quantidadeEmbalagemCompra/Venda`
-- `Contrato` com `unidadeNegociacaoId`, `quantidadeBaseTotal`, conversao na criacao
-- `RomaneioClassificacao` interface e array mock (vazio)
-- `romaneioClassificacaoService` com `salvarPorRomaneio`
-- `EstoqueTransito` com service e criacao automatica ao criar contrato
-- `recalcularPesos` com logica ENTRADA/SAIDA (corrigida anteriormente)
+### O que faz sentido implementar
 
-### O que FALTA (os 4 furos reais):
+**Mudança 1 — `converterQuantidade` com `produtoId`**: Correta e necessária. Hoje a conversão usa apenas `fatorBase` global, mas produtos como Soja (60kg/SC) e Milho (50kg/SC) têm fatores diferentes para a mesma unidade "SC". A função precisa do contexto do produto para usar `quantidadeEmbalagem` específica ao invés do `fatorBase` genérico.
 
-**Furo 1 - Classificacao nao persiste na finalizacao:** `romaneioService.finalizar` nao invoca `romaneioClassificacaoService.salvarPorRomaneio` nem calcula `pesoLiquidoSecoLimpo` com base nos descontos da tabela.
+**Mudança 3 — Renomear campos**: Faz sentido semântico. `quantidadeEmbalagemCompra/Venda` → `quantidadeEmbalagemEntrada/Saida` e `unidadeCompraId/VendaId` → `unidadeEntradaId/unidadeSaidaId`. Reflete melhor o fluxo de estoque. É um rename global em ~6 arquivos.
 
-**Furo 2 - Conversao de unidades na finalizacao:** O peso final e tratado diretamente como a unidade base. O romaneio nao tem campo `unidadeRomaneioId`. A conversao `unidadeRomaneio → unidadeBase` nao e aplicada antes de atualizar estoque/contrato.
+**Mudança 4 — Usar nova conversão no `finalizar`**: Consequência direta da Mudança 1. Já temos a chamada, apenas precisa passar o `produtoId`.
 
-**Furo 3 - Estoque em transito sem conversao:** `estoqueTransitoService.registrarMovimento` recebe o peso bruto sem converter para a unidade do contrato.
+### O que precisa de ajuste vs o documento
 
-**Furo 4 - Heranca de unidade parcialmente implementada:** A criacao do contrato aceita `unidadeNegociacaoId` do form, mas nao pre-preenche automaticamente com base no tipo (COMPRA→unidadeCompra, VENDA→unidadeVenda).
+**Mudança 2 — Defaults no novo produto**: O código já pré-preenche `quantidadeEmbalagem` com 1. O documento sugere adicionar validação visual (borda vermelha) se os campos ainda estiverem com valores padrão ao salvar — isso é um UX enhancement válido mas menor.
+
+### Inconsistências do documento (ignoradas)
+- O documento não usa UUID nem auditoria/soft-delete nas interfaces simplificadas — mantemos o padrão existente.
+- A lógica de fallback para `fatorBase` global no documento está invertida na fórmula (linha 69-70). Corrigiremos.
 
 ---
 
-## Modificacoes Planejadas
+## Modificações Planejadas
 
-### 1. Adicionar `unidadeRomaneioId` ao Romaneio (mock-data.ts)
+### 1. Renomear campos na interface `Produto` (mock-data.ts)
+- `unidadeCompraId` → `unidadeEntradaId`
+- `unidadeVendaId` → `unidadeSaidaId`
+- `quantidadeEmbalagemCompra` → `quantidadeEmbalagemEntrada`
+- `quantidadeEmbalagemVenda` → `quantidadeEmbalagemSaida`
 
-Adicionar campo `unidadeRomaneioId: string` na interface `Romaneio` para identificar em qual unidade as pesagens foram feitas. Default sera a unidade base do produto ao criar o romaneio.
-
-### 2. Implementar `converterQuantidade` no `unidadeMedidaService` (services.ts)
-
-Adicionar metodo sincrono ao service existente:
+### 2. Refatorar `converterQuantidade` (services.ts)
+Adicionar parâmetro opcional `produtoId?: string`. Lógica hierárquica:
 ```text
-converterQuantidade(valor, unidadeOrigemId, unidadeDestinoId) → number
-- Valida que ambas unidades existem e sao do mesmo tipo
-- Formula: (valor * fatorOrigem) / fatorDestino
+1. Se origem === destino → retorna valor
+2. Converte origem → unidadeBase do produto:
+   - Se origem === unidadeEntradaId → valor * quantidadeEmbalagemEntrada
+   - Se origem === unidadeSaidaId → valor * quantidadeEmbalagemSaida
+   - Senão → fallback: (valor * fatorOrigem) / fatorBase
+3. Converte unidadeBase → destino:
+   - Se destino === unidadeEntradaId → valorBase / quantidadeEmbalagemEntrada
+   - Se destino === unidadeSaidaId → valorBase / quantidadeEmbalagemSaida
+   - Senão → fallback: (valorBase * fatorBase) / fatorDestino
 ```
 
-### 3. Refatorar `romaneioService.finalizar` (services.ts)
+### 3. Atualizar `romaneioService.finalizar` (services.ts)
+Passar `produto.id` nas chamadas a `converterQuantidade`.
 
-O metodo atual (linhas 2751-2814) sera expandido para:
+### 4. Atualizar referências em todos os arquivos
+Rename global em:
+- `src/lib/mock-data.ts` — interface + dados mock
+- `src/lib/services.ts` — produtoService, movimentacaoService, contratoService, estaEmUso
+- `src/pages/produtos-estoque/ProdutosPage.tsx` — form schema, labels, validação
+- `src/pages/produtos-estoque/MovimentacaoEstoquePage.tsx` — lógica de conversão inline
+- `src/pages/comercial/ContratosPage.tsx` — herança de unidade
 
-1. **Persistir classificacoes**: Buscar as classificacoes ja salvas pelo `romaneioClassificacaoService` (que ja e chamado pela UI). Se nao existirem, usar os campos `classificacaoUmidade/Impureza/Ardidos/Avariados` do romaneio como fallback.
-
-2. **Calcular `pesoLiquidoSecoLimpo`**: Buscar a tabela de descontos (`classificacaoDescontos`) do produto para cada tipo de classificacao. Somar os percentuais de desconto aplicaveis e calcular:
-   ```text
-   totalDesconto% = soma dos descontos por tipo
-   pesoLiquidoSecoLimpo = pesoLiquido * (1 - totalDesconto/100)
-   ```
-
-3. **Converter para unidade base antes de movimentar estoque**:
-   ```text
-   quantidadeEstoque = converterQuantidade(pesoLiquidoSecoLimpo, unidadeRomaneioId, produto.unidadeBaseId)
-   ```
-
-4. **Converter para unidade do contrato antes de atualizar saldo**:
-   ```text
-   quantidadeContrato = converterQuantidade(pesoLiquidoSecoLimpo, unidadeRomaneioId, contrato.unidadeNegociacaoId)
-   ```
-
-5. **Registrar movimento de estoque com quantidade convertida** (em unidade base).
-
-6. **Atualizar contrato com quantidade convertida** (em unidade de negociacao).
-
-### 4. Atualizar `estoqueTransitoService.registrarMovimento` (services.ts)
-
-Receber a quantidade ja convertida para a unidade do contrato (a conversao ocorre no `finalizar`).
-
-### 5. Pre-preencher `unidadeNegociacaoId` na criacao de contrato (services.ts + UI)
-
-No `contratoService.salvar`, se `unidadeNegociacaoId` nao for informada:
-- COMPRA → usar `produto.unidadeCompraId`
-- VENDA → usar `produto.unidadeVendaId`
-
-Na UI (`ContratosPage.tsx`), ao selecionar produto e tipo, pre-preencher o campo de unidade.
-
-### 6. Atualizar `romaneioService.salvar` (services.ts)
-
-Ao criar romaneio, definir `unidadeRomaneioId` a partir da `unidadeBaseId` do produto selecionado.
-
----
+### 5. Validação visual no ProdutosPage
+Adicionar indicador visual (borda amarela/aviso) nos campos de unidade quando ainda estiverem com valor padrão "UND" ao tentar salvar.
 
 ## Arquivos Modificados
-
-1. **`src/lib/mock-data.ts`** — Adicionar `unidadeRomaneioId` na interface `Romaneio` e nos dados mock
-2. **`src/lib/services.ts`** — `unidadeMedidaService.converterQuantidade`, refatorar `romaneioService.finalizar`, `romaneioService.salvar`, `contratoService.salvar`
-3. **`src/pages/romaneios/RomaneiosPage.tsx`** — Exibir unidade do romaneio, ajustar mensagem de finalizacao com conversoes
-4. **`src/pages/comercial/ContratosPage.tsx`** — Pre-preencher unidade ao selecionar produto/tipo
-
-## Regras Mantidas (ignorando inconsistencias do documento)
-- Todos os IDs seguem padrao UUID (mock usa prefixos temporarios)
-- Todas as tabelas mantem auditoria completa (criadoEm/Por, atualizadoEm/Por)
-- Exclusao sempre via soft-delete (deletadoEm/Por)
-- Escopo multi-empresa/filial preservado
+1. `src/lib/mock-data.ts`
+2. `src/lib/services.ts`
+3. `src/pages/produtos-estoque/ProdutosPage.tsx`
+4. `src/pages/produtos-estoque/MovimentacaoEstoquePage.tsx`
+5. `src/pages/comercial/ContratosPage.tsx`
 
