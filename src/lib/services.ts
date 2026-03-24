@@ -848,16 +848,16 @@ export const produtoService = {
       descricao: (data.descricao ?? "").trim(),
       aplicacao: data.aplicacao ?? "",
       tipoBaixaEstoque: data.tipoBaixaEstoque ?? "INDIVIDUAL",
-      quantidadeEmbalagemCompra: data.quantidadeEmbalagemCompra ?? 1,
-      quantidadeEmbalagemVenda: data.quantidadeEmbalagemVenda ?? 1,
+      quantidadeEmbalagemEntrada: data.quantidadeEmbalagemEntrada ?? 1,
+      quantidadeEmbalagemSaida: data.quantidadeEmbalagemSaida ?? 1,
       divisaoProdutoId: data.divisaoProdutoId ?? "",
       secaoProdutoId: data.secaoProdutoId ?? "",
       grupoProdutoId: data.grupoProdutoId ?? "",
       subgrupoProdutoId: data.subgrupoProdutoId ?? "",
       marcaProdutoId: data.marcaProdutoId ?? null,
       unidadeBaseId: data.unidadeBaseId ?? "",
-      unidadeCompraId: data.unidadeCompraId ?? "",
-      unidadeVendaId: data.unidadeVendaId ?? "",
+      unidadeEntradaId: data.unidadeEntradaId ?? "",
+      unidadeSaidaId: data.unidadeSaidaId ?? "",
       ativo: data.ativo ?? true,
       criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
       deletadoEm: null, deletadoPor: null,
@@ -961,9 +961,11 @@ export const unidadeMedidaService = {
   },
   /**
    * Converte uma quantidade entre duas unidades do mesmo tipo.
-   * Fórmula: (valor * fatorOrigem) / fatorDestino
+   * Com produtoId, usa quantidadeEmbalagem específica do produto (prioridade).
+   * Sem produtoId, usa fatorBase global da unidade.
+   * Lógica: origem → unidadeBase (do produto) → destino
    */
-  converterQuantidade(valor: number, unidadeOrigemId: string, unidadeDestinoId: string): number {
+  converterQuantidade(valor: number, unidadeOrigemId: string, unidadeDestinoId: string, produtoId?: string): number {
     if (unidadeOrigemId === unidadeDestinoId) return valor;
     const unidadeOrigem = mockUnidadesMedida.find((u) => u.id === unidadeOrigemId && u.deletadoEm === null);
     const unidadeDestino = mockUnidadesMedida.find((u) => u.id === unidadeDestinoId && u.deletadoEm === null);
@@ -976,6 +978,43 @@ export const unidadeMedidaService = {
     if (unidadeDestino.fatorBase === 0) {
       throw new Error("Fator base da unidade destino não pode ser zero.");
     }
+
+    // Se temos produto, usar conversão hierárquica: origem → base → destino
+    const produto = produtoId ? mockProdutos.find((p) => p.id === produtoId && p.deletadoEm === null) : null;
+    if (produto) {
+      const unidadeBase = mockUnidadesMedida.find((u) => u.id === produto.unidadeBaseId && u.deletadoEm === null);
+      if (!unidadeBase) {
+        // fallback genérico
+        return (valor * unidadeOrigem.fatorBase) / unidadeDestino.fatorBase;
+      }
+
+      // Passo 1: Converter origem → unidadeBase do produto
+      let valorBase: number;
+      if (unidadeOrigemId === produto.unidadeBaseId) {
+        valorBase = valor;
+      } else if (unidadeOrigemId === produto.unidadeEntradaId && produto.quantidadeEmbalagemEntrada > 0) {
+        valorBase = valor * produto.quantidadeEmbalagemEntrada;
+      } else if (unidadeOrigemId === produto.unidadeSaidaId && produto.quantidadeEmbalagemSaida > 0) {
+        valorBase = valor * produto.quantidadeEmbalagemSaida;
+      } else {
+        // Fallback: usar fatorBase global
+        valorBase = (valor * unidadeOrigem.fatorBase) / unidadeBase.fatorBase;
+      }
+
+      // Passo 2: Converter unidadeBase → destino
+      if (unidadeDestinoId === produto.unidadeBaseId) {
+        return valorBase;
+      } else if (unidadeDestinoId === produto.unidadeEntradaId && produto.quantidadeEmbalagemEntrada > 0) {
+        return valorBase / produto.quantidadeEmbalagemEntrada;
+      } else if (unidadeDestinoId === produto.unidadeSaidaId && produto.quantidadeEmbalagemSaida > 0) {
+        return valorBase / produto.quantidadeEmbalagemSaida;
+      } else {
+        // Fallback: usar fatorBase global
+        return (valorBase * unidadeBase.fatorBase) / unidadeDestino.fatorBase;
+      }
+    }
+
+    // Sem produto: conversão genérica por fatorBase
     return (valor * unidadeOrigem.fatorBase) / unidadeDestino.fatorBase;
   },
   async codigoExiste(codigo: string, empresaId: string, filialId: string, excludeId?: string): Promise<boolean> {
@@ -989,7 +1028,7 @@ export const unidadeMedidaService = {
   async estaEmUso(id: string): Promise<boolean> {
     await delay(100);
     return mockProdutos.some(
-      (p) => p.deletadoEm === null && (p.unidadeBaseId === id || p.unidadeCompraId === id || p.unidadeVendaId === id)
+      (p) => p.deletadoEm === null && (p.unidadeBaseId === id || p.unidadeEntradaId === id || p.unidadeSaidaId === id)
     );
   },
   async salvar(
@@ -1182,17 +1221,14 @@ export const movimentacaoEstoqueService = {
       return { sucesso: false, mensagem: `Tipo da unidade informada (${unidadeMov.tipo}) difere do tipo da unidade base do produto (${unidadeBase.tipo}). Operação bloqueada.` };
     }
 
-    // 4. Converter para unidade base
+    // 4. Converter para unidade base (usando conversão product-aware)
     let quantidadeConvertidaBase: number;
-    if (data.unidadeMovimentacaoId === produto.unidadeBaseId) {
-      quantidadeConvertidaBase = data.quantidadeInformada;
-    } else if (data.unidadeMovimentacaoId === produto.unidadeCompraId) {
-      quantidadeConvertidaBase = data.quantidadeInformada * produto.quantidadeEmbalagemCompra;
-    } else if (data.unidadeMovimentacaoId === produto.unidadeVendaId) {
-      quantidadeConvertidaBase = data.quantidadeInformada * produto.quantidadeEmbalagemVenda;
-    } else {
-      // Conversão genérica por fator
-      quantidadeConvertidaBase = (data.quantidadeInformada * unidadeMov.fatorBase) / unidadeBase.fatorBase;
+    try {
+      quantidadeConvertidaBase = unidadeMedidaService.converterQuantidade(
+        data.quantidadeInformada, data.unidadeMovimentacaoId, produto.unidadeBaseId, produto.id
+      );
+    } catch (e: any) {
+      return { sucesso: false, mensagem: `Erro na conversão: ${e.message}` };
     }
 
     // 5. Calcular novo saldo
@@ -1446,8 +1482,8 @@ export const contratoService = {
     let unidadeNegociacaoId = data.unidadeNegociacaoId ?? "";
     if (!unidadeNegociacaoId && produto) {
       unidadeNegociacaoId = data.tipoContrato === "COMPRA"
-        ? produto.unidadeCompraId
-        : produto.unidadeVendaId;
+        ? produto.unidadeEntradaId
+        : produto.unidadeSaidaId;
     }
     const unidadeNeg = mockUnidadesMedida.find((u) => u.id === unidadeNegociacaoId);
     const unidadeBase = produto ? mockUnidadesMedida.find((u) => u.id === produto.unidadeBaseId) : undefined;
@@ -2846,8 +2882,8 @@ export const romaneioService = {
     let quantidadeContrato: number;
 
     try {
-      quantidadeEstoque = unidadeMedidaService.converterQuantidade(pesoFinal, unidadeRomaneioId, produto.unidadeBaseId);
-      quantidadeContrato = unidadeMedidaService.converterQuantidade(pesoFinal, unidadeRomaneioId, contrato.unidadeNegociacaoId);
+      quantidadeEstoque = unidadeMedidaService.converterQuantidade(pesoFinal, unidadeRomaneioId, produto.unidadeBaseId, produto.id);
+      quantidadeContrato = unidadeMedidaService.converterQuantidade(pesoFinal, unidadeRomaneioId, contrato.unidadeNegociacaoId, produto.id);
     } catch (e: any) {
       return { sucesso: false, mensagem: `Erro na conversão de unidades: ${e.message}` };
     }
