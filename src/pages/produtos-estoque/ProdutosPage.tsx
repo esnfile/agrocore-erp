@@ -211,11 +211,11 @@ export default function ProdutosPage() {
     () => unidades.find((u) => u.id === unidadeBaseIdSel),
     [unidades, unidadeBaseIdSel]
   );
-  const unidadesCompraFiltradas = useMemo(
+  const unidadesEntradaFiltradas = useMemo(
     () => unidadeBaseSel ? unidades.filter((u) => u.tipo === unidadeBaseSel.tipo && u.ativo) : unidades.filter((u) => u.ativo),
     [unidades, unidadeBaseSel]
   );
-  const unidadesVendaFiltradas = useMemo(
+  const unidadesSaidaFiltradas = useMemo(
     () => unidadeBaseSel ? unidades.filter((u) => u.tipo === unidadeBaseSel.tipo && u.ativo) : unidades.filter((u) => u.ativo),
     [unidades, unidadeBaseSel]
   );
@@ -506,13 +506,13 @@ export default function ProdutosPage() {
 
     // Validate unit types match
     const unBase = unidades.find((u) => u.id === formData.unidadeBaseId);
-    const unCompra = unidades.find((u) => u.id === formData.unidadeEntradaId);
-    const unVenda = unidades.find((u) => u.id === formData.unidadeSaidaId);
-    if (unBase && unCompra && unCompra.tipo !== unBase.tipo) {
+    const unEntrada = unidades.find((u) => u.id === formData.unidadeEntradaId);
+    const unSaida = unidades.find((u) => u.id === formData.unidadeSaidaId);
+    if (unBase && unEntrada && unEntrada.tipo !== unBase.tipo) {
       setError("unidadeEntradaId", { message: "Deve ser do mesmo tipo da unidade base" });
       return;
     }
-    if (unBase && unVenda && unVenda.tipo !== unBase.tipo) {
+    if (unBase && unSaida && unSaida.tipo !== unBase.tipo) {
       setError("unidadeSaidaId", { message: "Deve ser do mesmo tipo da unidade base" });
       return;
     }
@@ -997,7 +997,7 @@ export default function ProdutosPage() {
                           <SelectValue placeholder="Selecione..." />
                         </SelectTrigger>
                         <SelectContent>
-                          {unidadesCompraFiltradas.map((u) => (
+                          {unidadesEntradaFiltradas.map((u) => (
                             <SelectItem key={u.id} value={u.id}>
                               {u.codigo} - {u.descricao}
                             </SelectItem>
@@ -1062,7 +1062,7 @@ export default function ProdutosPage() {
                           <SelectValue placeholder="Selecione..." />
                         </SelectTrigger>
                         <SelectContent>
-                          {unidadesVendaFiltradas.map((u) => (
+                          {unidadesSaidaFiltradas.map((u) => (
                             <SelectItem key={u.id} value={u.id}>
                               {u.codigo} - {u.descricao}
                             </SelectItem>
