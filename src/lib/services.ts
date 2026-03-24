@@ -961,9 +961,11 @@ export const unidadeMedidaService = {
   },
   /**
    * Converte uma quantidade entre duas unidades do mesmo tipo.
-   * Fórmula: (valor * fatorOrigem) / fatorDestino
+   * Com produtoId, usa quantidadeEmbalagem específica do produto (prioridade).
+   * Sem produtoId, usa fatorBase global da unidade.
+   * Lógica: origem → unidadeBase (do produto) → destino
    */
-  converterQuantidade(valor: number, unidadeOrigemId: string, unidadeDestinoId: string): number {
+  converterQuantidade(valor: number, unidadeOrigemId: string, unidadeDestinoId: string, produtoId?: string): number {
     if (unidadeOrigemId === unidadeDestinoId) return valor;
     const unidadeOrigem = mockUnidadesMedida.find((u) => u.id === unidadeOrigemId && u.deletadoEm === null);
     const unidadeDestino = mockUnidadesMedida.find((u) => u.id === unidadeDestinoId && u.deletadoEm === null);
@@ -976,6 +978,43 @@ export const unidadeMedidaService = {
     if (unidadeDestino.fatorBase === 0) {
       throw new Error("Fator base da unidade destino não pode ser zero.");
     }
+
+    // Se temos produto, usar conversão hierárquica: origem → base → destino
+    const produto = produtoId ? mockProdutos.find((p) => p.id === produtoId && p.deletadoEm === null) : null;
+    if (produto) {
+      const unidadeBase = mockUnidadesMedida.find((u) => u.id === produto.unidadeBaseId && u.deletadoEm === null);
+      if (!unidadeBase) {
+        // fallback genérico
+        return (valor * unidadeOrigem.fatorBase) / unidadeDestino.fatorBase;
+      }
+
+      // Passo 1: Converter origem → unidadeBase do produto
+      let valorBase: number;
+      if (unidadeOrigemId === produto.unidadeBaseId) {
+        valorBase = valor;
+      } else if (unidadeOrigemId === produto.unidadeEntradaId && produto.quantidadeEmbalagemEntrada > 0) {
+        valorBase = valor * produto.quantidadeEmbalagemEntrada;
+      } else if (unidadeOrigemId === produto.unidadeSaidaId && produto.quantidadeEmbalagemSaida > 0) {
+        valorBase = valor * produto.quantidadeEmbalagemSaida;
+      } else {
+        // Fallback: usar fatorBase global
+        valorBase = (valor * unidadeOrigem.fatorBase) / unidadeBase.fatorBase;
+      }
+
+      // Passo 2: Converter unidadeBase → destino
+      if (unidadeDestinoId === produto.unidadeBaseId) {
+        return valorBase;
+      } else if (unidadeDestinoId === produto.unidadeEntradaId && produto.quantidadeEmbalagemEntrada > 0) {
+        return valorBase / produto.quantidadeEmbalagemEntrada;
+      } else if (unidadeDestinoId === produto.unidadeSaidaId && produto.quantidadeEmbalagemSaida > 0) {
+        return valorBase / produto.quantidadeEmbalagemSaida;
+      } else {
+        // Fallback: usar fatorBase global
+        return (valorBase * unidadeBase.fatorBase) / unidadeDestino.fatorBase;
+      }
+    }
+
+    // Sem produto: conversão genérica por fatorBase
     return (valor * unidadeOrigem.fatorBase) / unidadeDestino.fatorBase;
   },
   async codigoExiste(codigo: string, empresaId: string, filialId: string, excludeId?: string): Promise<boolean> {
