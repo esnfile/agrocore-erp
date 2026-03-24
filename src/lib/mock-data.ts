@@ -935,16 +935,16 @@ export interface Produto {
   descricao: string;
   aplicacao: string;
   tipoBaixaEstoque: TipoBaixaEstoque;
-  quantidadeEmbalagemCompra: number;
-  quantidadeEmbalagemVenda: number;
+  quantidadeEmbalagemEntrada: number;
+  quantidadeEmbalagemSaida: number;
   divisaoProdutoId: string;
   secaoProdutoId: string;
   grupoProdutoId: string;
   subgrupoProdutoId: string;
   marcaProdutoId: string | null;
   unidadeBaseId: string;
-  unidadeCompraId: string;
-  unidadeVendaId: string;
+  unidadeEntradaId: string;
+  unidadeSaidaId: string;
   ativo: boolean;
   criadoEm: string;
   criadoPor: string;
@@ -1100,16 +1100,16 @@ export const produtos: Produto[] = [
     descricao: "Fertilizante NPK 20-05-20",
     aplicacao: "Aplicação foliar em soja e milho",
     tipoBaixaEstoque: "INDIVIDUAL",
-    quantidadeEmbalagemCompra: 50,
-    quantidadeEmbalagemVenda: 25,
+    quantidadeEmbalagemEntrada: 50,
+    quantidadeEmbalagemSaida: 25,
     divisaoProdutoId: "dp1",
     secaoProdutoId: "sp1",
     grupoProdutoId: "grp1",
     subgrupoProdutoId: "sgp1",
     marcaProdutoId: "mp1",
     unidadeBaseId: "um1",
-    unidadeCompraId: "um1",
-    unidadeVendaId: "um1",
+    unidadeEntradaId: "um1",
+    unidadeSaidaId: "um1",
     ativo: true,
     criadoEm: "2024-07-01T08:00:00Z",
     criadoPor: "u1",
@@ -1128,16 +1128,16 @@ export const produtos: Produto[] = [
     descricao: "Soja",
     aplicacao: "Plantação",
     tipoBaixaEstoque: "INDIVIDUAL",
-    quantidadeEmbalagemCompra: 1,
-    quantidadeEmbalagemVenda: 1,
+    quantidadeEmbalagemEntrada: 1,
+    quantidadeEmbalagemSaida: 1,
     divisaoProdutoId: "dp1",
     secaoProdutoId: "sp1",
     grupoProdutoId: "grp2",
     subgrupoProdutoId: "sgp2",
     marcaProdutoId: null,
     unidadeBaseId: "um1",
-    unidadeCompraId: "um7",
-    unidadeVendaId: "um7",
+    unidadeEntradaId: "um7",
+    unidadeSaidaId: "um7",
     ativo: true,
     criadoEm: "2024-07-01T08:00:00Z",
     criadoPor: "u1",

@@ -848,16 +848,16 @@ export const produtoService = {
       descricao: (data.descricao ?? "").trim(),
       aplicacao: data.aplicacao ?? "",
       tipoBaixaEstoque: data.tipoBaixaEstoque ?? "INDIVIDUAL",
-      quantidadeEmbalagemCompra: data.quantidadeEmbalagemCompra ?? 1,
-      quantidadeEmbalagemVenda: data.quantidadeEmbalagemVenda ?? 1,
+      quantidadeEmbalagemEntrada: data.quantidadeEmbalagemEntrada ?? 1,
+      quantidadeEmbalagemSaida: data.quantidadeEmbalagemSaida ?? 1,
       divisaoProdutoId: data.divisaoProdutoId ?? "",
       secaoProdutoId: data.secaoProdutoId ?? "",
       grupoProdutoId: data.grupoProdutoId ?? "",
       subgrupoProdutoId: data.subgrupoProdutoId ?? "",
       marcaProdutoId: data.marcaProdutoId ?? null,
       unidadeBaseId: data.unidadeBaseId ?? "",
-      unidadeCompraId: data.unidadeCompraId ?? "",
-      unidadeVendaId: data.unidadeVendaId ?? "",
+      unidadeEntradaId: data.unidadeEntradaId ?? "",
+      unidadeSaidaId: data.unidadeSaidaId ?? "",
       ativo: data.ativo ?? true,
       criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
       deletadoEm: null, deletadoPor: null,
@@ -989,7 +989,7 @@ export const unidadeMedidaService = {
   async estaEmUso(id: string): Promise<boolean> {
     await delay(100);
     return mockProdutos.some(
-      (p) => p.deletadoEm === null && (p.unidadeBaseId === id || p.unidadeCompraId === id || p.unidadeVendaId === id)
+      (p) => p.deletadoEm === null && (p.unidadeBaseId === id || p.unidadeEntradaId === id || p.unidadeSaidaId === id)
     );
   },
   async salvar(
@@ -1186,10 +1186,10 @@ export const movimentacaoEstoqueService = {
     let quantidadeConvertidaBase: number;
     if (data.unidadeMovimentacaoId === produto.unidadeBaseId) {
       quantidadeConvertidaBase = data.quantidadeInformada;
-    } else if (data.unidadeMovimentacaoId === produto.unidadeCompraId) {
-      quantidadeConvertidaBase = data.quantidadeInformada * produto.quantidadeEmbalagemCompra;
-    } else if (data.unidadeMovimentacaoId === produto.unidadeVendaId) {
-      quantidadeConvertidaBase = data.quantidadeInformada * produto.quantidadeEmbalagemVenda;
+    } else if (data.unidadeMovimentacaoId === produto.unidadeEntradaId) {
+      quantidadeConvertidaBase = data.quantidadeInformada * produto.quantidadeEmbalagemEntrada;
+    } else if (data.unidadeMovimentacaoId === produto.unidadeSaidaId) {
+      quantidadeConvertidaBase = data.quantidadeInformada * produto.quantidadeEmbalagemSaida;
     } else {
       // Conversão genérica por fator
       quantidadeConvertidaBase = (data.quantidadeInformada * unidadeMov.fatorBase) / unidadeBase.fatorBase;
@@ -1446,8 +1446,8 @@ export const contratoService = {
     let unidadeNegociacaoId = data.unidadeNegociacaoId ?? "";
     if (!unidadeNegociacaoId && produto) {
       unidadeNegociacaoId = data.tipoContrato === "COMPRA"
-        ? produto.unidadeCompraId
-        : produto.unidadeVendaId;
+        ? produto.unidadeEntradaId
+        : produto.unidadeSaidaId;
     }
     const unidadeNeg = mockUnidadesMedida.find((u) => u.id === unidadeNegociacaoId);
     const unidadeBase = produto ? mockUnidadesMedida.find((u) => u.id === produto.unidadeBaseId) : undefined;

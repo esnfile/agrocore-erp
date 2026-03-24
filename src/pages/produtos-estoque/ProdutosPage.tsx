@@ -89,10 +89,10 @@ const schema = z.object({
     .transform((v) => v.trim()),
   aplicacao: z.string().optional().default(""),
   tipoBaixaEstoque: z.enum(["INDIVIDUAL", "AGREGADO"]),
-  quantidadeEmbalagemCompra: z.coerce
+  quantidadeEmbalagemEntrada: z.coerce
     .number()
     .min(0.000001, "Deve ser maior que 0"),
-  quantidadeEmbalagemVenda: z.coerce
+  quantidadeEmbalagemSaida: z.coerce
     .number()
     .min(0.000001, "Deve ser maior que 0"),
   divisaoProdutoId: z.string().min(1, "Divisão é obrigatória"),
@@ -101,8 +101,8 @@ const schema = z.object({
   subgrupoProdutoId: z.string().min(1, "Subgrupo é obrigatório"),
   marcaProdutoId: z.string().optional().default(""),
   unidadeBaseId: z.string().min(1, "Unidade base é obrigatória"),
-  unidadeCompraId: z.string().min(1, "Unidade de compra é obrigatória"),
-  unidadeVendaId: z.string().min(1, "Unidade de venda é obrigatória"),
+  unidadeEntradaId: z.string().min(1, "Unidade de compra é obrigatória"),
+  unidadeSaidaId: z.string().min(1, "Unidade de venda é obrigatória"),
   ativo: z.boolean(),
 });
 
@@ -193,8 +193,8 @@ export default function ProdutosPage() {
   const secaoSel = watch("secaoProdutoId");
   const grupoSel = watch("grupoProdutoId");
   const unidadeBaseIdSel = watch("unidadeBaseId");
-  const unidadeCompraIdSel = watch("unidadeCompraId");
-  const unidadeVendaIdSel = watch("unidadeVendaId");
+  const unidadeEntradaIdSel = watch("unidadeEntradaId");
+  const unidadeSaidaIdSel = watch("unidadeSaidaId");
 
   // Filtered classification lists
   const gruposFiltrados = useMemo(
@@ -375,16 +375,16 @@ export default function ProdutosPage() {
       descricao: "",
       aplicacao: "",
       tipoBaixaEstoque: "INDIVIDUAL",
-      quantidadeEmbalagemCompra: 1,
-      quantidadeEmbalagemVenda: 1,
+      quantidadeEmbalagemEntrada: 1,
+      quantidadeEmbalagemSaida: 1,
       divisaoProdutoId: "",
       secaoProdutoId: "",
       grupoProdutoId: "",
       subgrupoProdutoId: "",
       marcaProdutoId: "",
       unidadeBaseId: "",
-      unidadeCompraId: "",
-      unidadeVendaId: "",
+      unidadeEntradaId: "",
+      unidadeSaidaId: "",
       ativo: true,
     });
     // Initialize empresa rows for all empresas, all inactive
@@ -417,16 +417,16 @@ export default function ProdutosPage() {
       descricao: row.descricao,
       aplicacao: row.aplicacao,
       tipoBaixaEstoque: row.tipoBaixaEstoque,
-      quantidadeEmbalagemCompra: row.quantidadeEmbalagemCompra,
-      quantidadeEmbalagemVenda: row.quantidadeEmbalagemVenda,
+      quantidadeEmbalagemEntrada: row.quantidadeEmbalagemEntrada,
+      quantidadeEmbalagemSaida: row.quantidadeEmbalagemSaida,
       divisaoProdutoId: row.divisaoProdutoId,
       secaoProdutoId: row.secaoProdutoId,
       grupoProdutoId: row.grupoProdutoId,
       subgrupoProdutoId: row.subgrupoProdutoId,
       marcaProdutoId: row.marcaProdutoId ?? "",
       unidadeBaseId: row.unidadeBaseId ?? "",
-      unidadeCompraId: row.unidadeCompraId ?? "",
-      unidadeVendaId: row.unidadeVendaId ?? "",
+      unidadeEntradaId: row.unidadeEntradaId ?? "",
+      unidadeSaidaId: row.unidadeSaidaId ?? "",
       ativo: row.ativo,
     });
 
@@ -506,14 +506,14 @@ export default function ProdutosPage() {
 
     // Validate unit types match
     const unBase = unidades.find((u) => u.id === formData.unidadeBaseId);
-    const unCompra = unidades.find((u) => u.id === formData.unidadeCompraId);
-    const unVenda = unidades.find((u) => u.id === formData.unidadeVendaId);
+    const unCompra = unidades.find((u) => u.id === formData.unidadeEntradaId);
+    const unVenda = unidades.find((u) => u.id === formData.unidadeSaidaId);
     if (unBase && unCompra && unCompra.tipo !== unBase.tipo) {
-      setError("unidadeCompraId", { message: "Deve ser do mesmo tipo da unidade base" });
+      setError("unidadeEntradaId", { message: "Deve ser do mesmo tipo da unidade base" });
       return;
     }
     if (unBase && unVenda && unVenda.tipo !== unBase.tipo) {
-      setError("unidadeVendaId", { message: "Deve ser do mesmo tipo da unidade base" });
+      setError("unidadeSaidaId", { message: "Deve ser do mesmo tipo da unidade base" });
       return;
     }
 
@@ -948,10 +948,10 @@ export default function ProdutosPage() {
                         value={watch("unidadeBaseId")}
                         onValueChange={(v) => {
                           setValue("unidadeBaseId", v);
-                          setValue("unidadeCompraId", "");
-                          setValue("unidadeVendaId", "");
-                          setValue("quantidadeEmbalagemCompra", 1);
-                          setValue("quantidadeEmbalagemVenda", 1);
+                          setValue("unidadeEntradaId", "");
+                          setValue("unidadeSaidaId", "");
+                          setValue("quantidadeEmbalagemEntrada", 1);
+                          setValue("quantidadeEmbalagemSaida", 1);
                         }}
                       >
                         <SelectTrigger>
@@ -980,11 +980,11 @@ export default function ProdutosPage() {
                         Unidade de Compra <span className="text-destructive">*</span>
                       </Label>
                       <Select
-                        value={watch("unidadeCompraId")}
+                        value={watch("unidadeEntradaId")}
                         onValueChange={(v) => {
-                          setValue("unidadeCompraId", v);
+                          setValue("unidadeEntradaId", v);
                           if (v === unidadeBaseIdSel) {
-                            setValue("quantidadeEmbalagemCompra", 1);
+                            setValue("quantidadeEmbalagemEntrada", 1);
                           }
                           const um = unidades.find((u) => u.id === v);
                           if (um) {
@@ -1004,9 +1004,9 @@ export default function ProdutosPage() {
                           ))}
                         </SelectContent>
                       </Select>
-                      {errors.unidadeCompraId && (
+                      {errors.unidadeEntradaId && (
                         <p className="text-xs text-destructive">
-                          {errors.unidadeCompraId.message}
+                          {errors.unidadeEntradaId.message}
                         </p>
                       )}
                     </div>
@@ -1018,21 +1018,21 @@ export default function ProdutosPage() {
                         type="number"
                         step="0.000001"
                         min="0"
-                        readOnly={unidadeCompraIdSel === unidadeBaseIdSel && !!unidadeCompraIdSel}
-                        className={unidadeCompraIdSel === unidadeBaseIdSel && !!unidadeCompraIdSel ? "bg-muted" : ""}
-                        {...register("quantidadeEmbalagemCompra")}
+                        readOnly={unidadeEntradaIdSel === unidadeBaseIdSel && !!unidadeEntradaIdSel}
+                        className={unidadeEntradaIdSel === unidadeBaseIdSel && !!unidadeEntradaIdSel ? "bg-muted" : ""}
+                        {...register("quantidadeEmbalagemEntrada")}
                         onChange={(e) => {
-                          register("quantidadeEmbalagemCompra").onChange(e);
+                          register("quantidadeEmbalagemEntrada").onChange(e);
                           const val = parseFloat(e.target.value) || 0;
-                          const um = unidades.find((u) => u.id === unidadeCompraIdSel);
+                          const um = unidades.find((u) => u.id === unidadeEntradaIdSel);
                           if (um) {
                             console.log(`[Mock Conversão] quantidade_base = ${val} × ${um.fatorBase} = ${val * um.fatorBase}`);
                           }
                         }}
                       />
-                      {errors.quantidadeEmbalagemCompra && (
+                      {errors.quantidadeEmbalagemEntrada && (
                         <p className="text-xs text-destructive">
-                          {errors.quantidadeEmbalagemCompra.message}
+                          {errors.quantidadeEmbalagemEntrada.message}
                         </p>
                       )}
                     </div>
@@ -1045,11 +1045,11 @@ export default function ProdutosPage() {
                         Unidade de Venda <span className="text-destructive">*</span>
                       </Label>
                       <Select
-                        value={watch("unidadeVendaId")}
+                        value={watch("unidadeSaidaId")}
                         onValueChange={(v) => {
-                          setValue("unidadeVendaId", v);
+                          setValue("unidadeSaidaId", v);
                           if (v === unidadeBaseIdSel) {
-                            setValue("quantidadeEmbalagemVenda", 1);
+                            setValue("quantidadeEmbalagemSaida", 1);
                           }
                           const um = unidades.find((u) => u.id === v);
                           if (um) {
@@ -1069,9 +1069,9 @@ export default function ProdutosPage() {
                           ))}
                         </SelectContent>
                       </Select>
-                      {errors.unidadeVendaId && (
+                      {errors.unidadeSaidaId && (
                         <p className="text-xs text-destructive">
-                          {errors.unidadeVendaId.message}
+                          {errors.unidadeSaidaId.message}
                         </p>
                       )}
                     </div>
@@ -1083,13 +1083,13 @@ export default function ProdutosPage() {
                         type="number"
                         step="0.000001"
                         min="0"
-                        readOnly={unidadeVendaIdSel === unidadeBaseIdSel && !!unidadeVendaIdSel}
-                        className={unidadeVendaIdSel === unidadeBaseIdSel && !!unidadeVendaIdSel ? "bg-muted" : ""}
-                        {...register("quantidadeEmbalagemVenda")}
+                        readOnly={unidadeSaidaIdSel === unidadeBaseIdSel && !!unidadeSaidaIdSel}
+                        className={unidadeSaidaIdSel === unidadeBaseIdSel && !!unidadeSaidaIdSel ? "bg-muted" : ""}
+                        {...register("quantidadeEmbalagemSaida")}
                       />
-                      {errors.quantidadeEmbalagemVenda && (
+                      {errors.quantidadeEmbalagemSaida && (
                         <p className="text-xs text-destructive">
-                          {errors.quantidadeEmbalagemVenda.message}
+                          {errors.quantidadeEmbalagemSaida.message}
                         </p>
                       )}
                     </div>

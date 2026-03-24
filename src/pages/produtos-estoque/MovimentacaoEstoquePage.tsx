@@ -124,8 +124,8 @@ export default function MovimentacaoEstoquePage() {
   const quantidadeConvertida = useMemo(() => {
     if (!produtoSelecionado || !unidadeMovimentacaoId || !quantidadeInformada || quantidadeInformada <= 0) return null;
     if (unidadeMovimentacaoId === produtoSelecionado.unidadeBaseId) return quantidadeInformada;
-    if (unidadeMovimentacaoId === produtoSelecionado.unidadeCompraId) return quantidadeInformada * produtoSelecionado.quantidadeEmbalagemCompra;
-    if (unidadeMovimentacaoId === produtoSelecionado.unidadeVendaId) return quantidadeInformada * produtoSelecionado.quantidadeEmbalagemVenda;
+    if (unidadeMovimentacaoId === produtoSelecionado.unidadeEntradaId) return quantidadeInformada * produtoSelecionado.quantidadeEmbalagemEntrada;
+    if (unidadeMovimentacaoId === produtoSelecionado.unidadeSaidaId) return quantidadeInformada * produtoSelecionado.quantidadeEmbalagemSaida;
     const unidadeMov = mockUnidades.find((u) => u.id === unidadeMovimentacaoId);
     const unBase = mockUnidades.find((u) => u.id === produtoSelecionado.unidadeBaseId);
     if (unidadeMov && unBase && unBase.fatorBase > 0) return (quantidadeInformada * unidadeMov.fatorBase) / unBase.fatorBase;

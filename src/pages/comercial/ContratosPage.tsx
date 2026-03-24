@@ -178,7 +178,7 @@ export default function ContratosPage() {
     if (!produtoIdWatch || editingContrato) return; // Só pré-preenche em criação
     const produto = mockProdutos.find((p) => p.id === produtoIdWatch && p.deletadoEm === null);
     if (!produto) return;
-    const unidadeId = tipoContratoWatch === "COMPRA" ? produto.unidadeCompraId : produto.unidadeVendaId;
+    const unidadeId = tipoContratoWatch === "COMPRA" ? produto.unidadeEntradaId : produto.unidadeSaidaId;
     if (unidadeId) {
       contratoForm.setValue("unidadeNegociacaoId", unidadeId);
     }
