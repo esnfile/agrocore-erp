@@ -973,11 +973,11 @@ export default function ProdutosPage() {
                     </div>
                   </div>
 
-                  {/* Coluna 2: Unidade de Compra + Qtd Emb */}
+                  {/* Coluna 2: Unidade de Entrada + Qtd Emb */}
                   <div className="space-y-4">
                     <div className="space-y-1.5">
                       <Label>
-                        Unidade de Compra <span className="text-destructive">*</span>
+                        Unidade de Entrada <span className="text-destructive">*</span>
                       </Label>
                       <Select
                         value={watch("unidadeEntradaId")}
@@ -988,7 +988,7 @@ export default function ProdutosPage() {
                           }
                           const um = unidades.find((u) => u.id === v);
                           if (um) {
-                            console.log(`[Mock Conversão Compra] unidade=${um.codigo}, fator=${um.fatorBase}`);
+                            console.log(`[Mock Conversão Entrada] unidade=${um.codigo}, fator=${um.fatorBase}`);
                           }
                         }}
                         disabled={!unidadeBaseIdSel}
@@ -1012,7 +1012,7 @@ export default function ProdutosPage() {
                     </div>
                     <div className="space-y-1.5">
                       <Label>
-                        Qtd. Emb. Compra <span className="text-destructive">*</span>
+                        Qtd. Emb. Entrada <span className="text-destructive">*</span>
                       </Label>
                       <Input
                         type="number"
@@ -1038,11 +1038,11 @@ export default function ProdutosPage() {
                     </div>
                   </div>
 
-                  {/* Coluna 3: Unidade de Venda + Qtd Emb */}
+                  {/* Coluna 3: Unidade de Saída + Qtd Emb */}
                   <div className="space-y-4">
                     <div className="space-y-1.5">
                       <Label>
-                        Unidade de Venda <span className="text-destructive">*</span>
+                        Unidade de Saída <span className="text-destructive">*</span>
                       </Label>
                       <Select
                         value={watch("unidadeSaidaId")}
@@ -1053,7 +1053,7 @@ export default function ProdutosPage() {
                           }
                           const um = unidades.find((u) => u.id === v);
                           if (um) {
-                            console.log(`[Mock Conversão Venda] unidade=${um.codigo}, fator=${um.fatorBase}`);
+                            console.log(`[Mock Conversão Saída] unidade=${um.codigo}, fator=${um.fatorBase}`);
                           }
                         }}
                         disabled={!unidadeBaseIdSel}
@@ -1077,7 +1077,7 @@ export default function ProdutosPage() {
                     </div>
                     <div className="space-y-1.5">
                       <Label>
-                        Qtd. Emb. Venda <span className="text-destructive">*</span>
+                        Qtd. Emb. Saída <span className="text-destructive">*</span>
                       </Label>
                       <Input
                         type="number"
