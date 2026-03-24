@@ -101,8 +101,8 @@ const schema = z.object({
   subgrupoProdutoId: z.string().min(1, "Subgrupo é obrigatório"),
   marcaProdutoId: z.string().optional().default(""),
   unidadeBaseId: z.string().min(1, "Unidade base é obrigatória"),
-  unidadeEntradaId: z.string().min(1, "Unidade de compra é obrigatória"),
-  unidadeSaidaId: z.string().min(1, "Unidade de venda é obrigatória"),
+  unidadeEntradaId: z.string().min(1, "Unidade de entrada é obrigatória"),
+  unidadeSaidaId: z.string().min(1, "Unidade de saída é obrigatória"),
   ativo: z.boolean(),
 });
 
