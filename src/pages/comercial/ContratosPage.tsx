@@ -87,7 +87,8 @@ const contratoSchema = z.object({
   filialOrigemId: z.string().optional(),
   filialDestinoId: z.string().optional(),
   observacoes: z.string().optional(),
-});
+type ContratoForm = z.infer<typeof contratoSchema>;
+
 
 const fixacaoSchema = z.object({
   dataFixacao: z.string().min(1, "Data é obrigatória"),
