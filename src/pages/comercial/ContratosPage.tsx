@@ -896,7 +896,7 @@ export default function ContratosPage() {
                 </div>
               </div>
 
-              {/* Row 4: Moeda + Preço Unitário (2 cols on md, 3 on lg) */}
+              {/* Row 4: Moeda + Preço Unitário + Breakdown (3 cols) */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
                   <Label>Moeda <span className="text-destructive">*</span></Label>
@@ -938,6 +938,38 @@ export default function ContratosPage() {
                   </div>
                   {contratoForm.formState.errors.precoUnitario && (
                     <p className="text-xs text-destructive">{contratoForm.formState.errors.precoUnitario.message}</p>
+                  )}
+                  {/* Price suggestion badge with breakdown tooltip */}
+                  {precoSugestao && !editingContrato && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="mt-1 inline-flex items-center gap-1 rounded-md border border-border bg-muted/60 px-2 py-1 text-xs text-muted-foreground cursor-help">
+                          <Info className="h-3 w-3" />
+                          <span>Sugerido: <strong className="text-foreground">{formatCurrency(precoSugestao.valor, moedaCodigo)}</strong> — {precoSugestao.origem}</span>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="max-w-[320px]">
+                        <div className="space-y-1 text-xs">
+                          <p className="font-semibold">Composição do Preço</p>
+                          {precoSugestao.breakdown.map((b, i) => (
+                            <div key={i} className="flex justify-between gap-4">
+                              <span>{b.tipo}{b.percentual > 0 ? ` (${b.percentual}%)` : ""}</span>
+                              <span className="font-mono">{formatCurrency(b.valor, moedaCodigo)}</span>
+                            </div>
+                          ))}
+                          <div className="border-t border-border pt-1 flex justify-between gap-4 font-semibold">
+                            <span>Total</span>
+                            <span className="font-mono">{formatCurrency(precoSugestao.valor, moedaCodigo)}</span>
+                          </div>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                  {precoSugestaoLoading && (
+                    <p className="text-xs text-muted-foreground mt-1">Calculando preço sugerido...</p>
+                  )}
+                  {!precoSugestao && !precoSugestaoLoading && produtoIdWatch && !editingContrato && (
+                    <p className="text-xs text-amber-600 mt-1">Configure coeficiente/tabela no produto para sugestão de preço.</p>
                   )}
                 </div>
                 <div className="space-y-1.5 lg:col-span-1 hidden lg:block" />
