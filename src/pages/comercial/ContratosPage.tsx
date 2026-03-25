@@ -716,7 +716,7 @@ export default function ContratosPage() {
                     <TableCell className="text-right">{c.quantidadeTotal.toLocaleString("pt-BR")} {getCodigoUnidade(c.unidadeNegociacaoId)}</TableCell>
                     <TableCell className="text-right">{c.quantidadeEntregue.toLocaleString("pt-BR")}</TableCell>
                     <TableCell className="text-right">{c.quantidadeSaldo.toLocaleString("pt-BR")}</TableCell>
-                    <TableCell className="text-right">{getSimboloMoeda(c.moedaId)} {c.precoUnitario.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(c.precoUnitario, mockMoedas.find(m => m.id === c.moedaId)?.codigo ?? "BRL")}</TableCell>
                     <TableCell>{getCodigoMoeda(c.moedaId)}</TableCell>
                     <TableCell><StatusBadge status={c.status} /></TableCell>
                     <TableCell className="text-right">
