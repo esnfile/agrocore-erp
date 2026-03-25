@@ -72,7 +72,6 @@ function formatCurrency(value: number, moedaCodigo: string): string {
 // ---- Schemas ----
 const contratoSchema = z.object({
   tipoContrato: z.enum(["COMPRA", "VENDA"]),
-  tipoContrato: z.enum(["COMPRA", "VENDA"]),
   pessoaId: z.string().min(1, "Pessoa responsável é obrigatória"),
   produtoId: z.string().min(1, "Produto é obrigatório"),
   unidadeNegociacaoId: z.string().min(1, "Unidade é obrigatória"),
