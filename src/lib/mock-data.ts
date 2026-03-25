@@ -1164,6 +1164,21 @@ export const produtoEmpresas: ProdutoEmpresa[] = [
     deletadoEm: null,
     deletadoPor: null,
   },
+  {
+    id: "pe2",
+    produtoId: "prod2",
+    empresaId: "e1",
+    coeficienteEmpresaId: "ce1",
+    custoBase: 100.0,
+    custoCalculado: 120.70,
+    ativo: true,
+    criadoEm: "2024-07-01T08:00:00Z",
+    criadoPor: "u1",
+    atualizadoEm: "2024-07-01T08:00:00Z",
+    atualizadoPor: "u1",
+    deletadoEm: null,
+    deletadoPor: null,
+  },
 ];
 
 export const produtoEmpresaTabelasPreco: ProdutoEmpresaTabelaPreco[] = [
