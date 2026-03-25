@@ -1571,7 +1571,7 @@ export const contratoService = {
       return existing;
     }
     // Auto-generate number if not provided
-    const numeroContrato = data.numeroContrato?.trim() || this.gerarNumeroContrato(ctx.grupoId);
+    const numeroContrato = this.gerarNumeroContrato(ctx.grupoId);
     // Convert quantity to base
     const produto = mockProdutos.find((p) => p.id === data.produtoId);
     let unidadeNegociacaoId = data.unidadeNegociacaoId ?? "";
