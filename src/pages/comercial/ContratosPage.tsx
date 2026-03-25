@@ -815,17 +815,15 @@ export default function ContratosPage() {
                     <Label>Número do Contrato</Label>
                     <Tooltip>
                       <TooltipTrigger type="button"><Info className="h-3.5 w-3.5 text-muted-foreground" /></TooltipTrigger>
-                      <TooltipContent><p className="max-w-[220px] text-xs">Número gerado automaticamente pelo sistema (CTR-AAAAMM-NNN). Editável para override manual.</p></TooltipContent>
+                      <TooltipContent><p className="max-w-[220px] text-xs">Número sequencial gerado pelo sistema (CTR-AAAAMM-NNNN). Não editável.</p></TooltipContent>
                     </Tooltip>
                   </div>
                   <Input
-                    {...contratoForm.register("numeroContrato")}
-                    placeholder={editingContrato ? "" : "Auto — CTR-AAAAMM-NNN"}
-                    className="bg-muted/50"
+                    value={editingContrato?.numeroContrato ?? ""}
+                    placeholder="Gerado automaticamente"
+                    disabled
+                    className="bg-muted/50 cursor-not-allowed"
                   />
-                  {!editingContrato && (
-                    <p className="text-xs text-muted-foreground">Deixe vazio para auto-gerar</p>
-                  )}
                 </div>
                 <div className="space-y-1.5">
                   <Label>Data do Contrato <span className="text-destructive">*</span></Label>
