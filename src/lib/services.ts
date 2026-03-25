@@ -1461,6 +1461,23 @@ export const contratoService = {
     await delay();
     return mockContratos.filter((c) => c.deletadoEm === null && c.grupoId === grupoId);
   },
+  gerarNumeroContrato(grupoId: string): string {
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, "0");
+    const prefix = `CTR-${yyyy}${mm}-`;
+    const existingThisMonth = mockContratos.filter(
+      (c) => c.deletadoEm === null && c.grupoId === grupoId && c.numeroContrato.startsWith(prefix)
+    );
+    let seq = existingThisMonth.length + 1;
+    let numero = `${prefix}${String(seq).padStart(3, "0")}`;
+    // Conflict check
+    while (mockContratos.some((c) => c.deletadoEm === null && c.numeroContrato === numero)) {
+      seq++;
+      numero = `${prefix}${String(seq).padStart(3, "0")}`;
+    }
+    return numero;
+  },
   async salvar(
     data: Partial<Contrato>,
     ctx: { grupoId: string; empresaId: string; filialId: string }
@@ -1469,6 +1486,10 @@ export const contratoService = {
     const now = new Date().toISOString();
     const existing = data.id ? mockContratos.find((c) => c.id === data.id && c.deletadoEm === null) : undefined;
     if (existing) {
+      // Allow override of numero only if explicitly different (log as critical)
+      if (data.numeroContrato && data.numeroContrato !== existing.numeroContrato) {
+        console.warn(`[AUDIT] Número do contrato alterado manualmente: ${existing.numeroContrato} → ${data.numeroContrato}`);
+      }
       Object.assign(existing, data, {
         grupoId: existing.grupoId, empresaId: existing.empresaId, filialId: existing.filialId,
         criadoEm: existing.criadoEm, criadoPor: existing.criadoPor,
@@ -1476,9 +1497,10 @@ export const contratoService = {
       });
       return existing;
     }
+    // Auto-generate number if not provided
+    const numeroContrato = data.numeroContrato?.trim() || this.gerarNumeroContrato(ctx.grupoId);
     // Convert quantity to base
     const produto = mockProdutos.find((p) => p.id === data.produtoId);
-    // FURO 4: Se unidadeNegociacaoId não informada, herdar do produto
     let unidadeNegociacaoId = data.unidadeNegociacaoId ?? "";
     if (!unidadeNegociacaoId && produto) {
       unidadeNegociacaoId = data.tipoContrato === "COMPRA"
@@ -1495,7 +1517,7 @@ export const contratoService = {
     const novo: Contrato = {
       id: `ctr${Date.now()}`,
       grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
-      numeroContrato: data.numeroContrato ?? "",
+      numeroContrato,
       tipoContrato: data.tipoContrato ?? "COMPRA",
       pessoaId: data.pessoaId ?? "",
       produtoId: data.produtoId ?? "",
