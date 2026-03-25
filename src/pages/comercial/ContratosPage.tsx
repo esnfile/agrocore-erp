@@ -86,6 +86,7 @@ const contratoSchema = z.object({
   filialOperacaoId: z.string().optional(),
   filialOrigemId: z.string().optional(),
   filialDestinoId: z.string().optional(),
+  observacoes: z.string().optional(),
 });
 type ContratoForm = z.infer<typeof contratoSchema>;
 
