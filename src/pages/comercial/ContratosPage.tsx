@@ -169,7 +169,7 @@ export default function ContratosPage() {
   const contratoForm = useForm<ContratoForm>({
     resolver: zodResolver(contratoSchema),
     defaultValues: {
-      numeroContrato: "", tipoContrato: "COMPRA", pessoaId: "", produtoId: "",
+      tipoContrato: "COMPRA", pessoaId: "", produtoId: "",
       unidadeNegociacaoId: "", quantidadeTotal: 0, moedaId: "moeda1",
       precoUnitario: 0, tipoPreco: "FIXO",
       dataContrato: new Date().toISOString().slice(0, 10),
