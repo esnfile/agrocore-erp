@@ -768,15 +768,10 @@ export default function ContratosPage() {
 
           {/* ABA 1 — Dados */}
           <TabsContent value="dados">
-            <fieldset disabled={viewOnly} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-1.5">
-                  <Label>Número do Contrato <span className="text-destructive">*</span></Label>
-                  <Input {...contratoForm.register("numeroContrato")} />
-                  {contratoForm.formState.errors.numeroContrato && (
-                    <p className="text-xs text-destructive">{contratoForm.formState.errors.numeroContrato.message}</p>
-                  )}
-                </div>
+            <TooltipProvider delayDuration={200}>
+            <fieldset disabled={viewOnly} className="space-y-5">
+              {/* Row 1: Tipo + Número + Data (3 cols) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
                   <Label>Tipo <span className="text-destructive">*</span></Label>
                   <Select value={contratoForm.watch("tipoContrato")} onValueChange={(v) => contratoForm.setValue("tipoContrato", v as any)}>
@@ -788,43 +783,63 @@ export default function ContratosPage() {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <Label>Número do Contrato</Label>
+                    <Tooltip>
+                      <TooltipTrigger type="button"><Info className="h-3.5 w-3.5 text-muted-foreground" /></TooltipTrigger>
+                      <TooltipContent><p className="max-w-[220px] text-xs">Número gerado automaticamente pelo sistema (CTR-AAAAMM-NNN). Editável para override manual.</p></TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <Input
+                    {...contratoForm.register("numeroContrato")}
+                    placeholder={editingContrato ? "" : "Auto — CTR-AAAAMM-NNN"}
+                    className="bg-muted/50"
+                  />
+                  {!editingContrato && (
+                    <p className="text-xs text-muted-foreground">Deixe vazio para auto-gerar</p>
+                  )}
+                </div>
+                <div className="space-y-1.5">
                   <Label>Data do Contrato <span className="text-destructive">*</span></Label>
                   <Input type="date" {...contratoForm.register("dataContrato")} />
+                  {contratoForm.formState.errors.dataContrato && (
+                    <p className="text-xs text-destructive">{contratoForm.formState.errors.dataContrato.message}</p>
+                  )}
                 </div>
               </div>
 
+              {/* Row 2: Pessoa + Produto (2 cols) */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label>Parceiro <span className="text-destructive">*</span></Label>
-                  <Select value={contratoForm.watch("pessoaId")} onValueChange={(v) => contratoForm.setValue("pessoaId", v)}>
-                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                    <SelectContent>
-                      {pessoasAtivas.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>{p.nomeRazao}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label>Pessoa Responsável <span className="text-destructive">*</span></Label>
+                  <SearchableSelect
+                    options={pessoaOptions}
+                    value={contratoForm.watch("pessoaId")}
+                    onChange={(v) => contratoForm.setValue("pessoaId", v, { shouldValidate: true })}
+                    placeholder="Buscar por nome, CPF/CNPJ..."
+                    disabled={viewOnly}
+                  />
                   {contratoForm.formState.errors.pessoaId && (
                     <p className="text-xs text-destructive">{contratoForm.formState.errors.pessoaId.message}</p>
                   )}
                 </div>
                 <div className="space-y-1.5">
                   <Label>Produto <span className="text-destructive">*</span></Label>
-                  <Select value={contratoForm.watch("produtoId")} onValueChange={(v) => contratoForm.setValue("produtoId", v)}>
-                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                    <SelectContent>
-                      {produtosAtivos.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>{p.descricao}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <SearchableSelect
+                    options={produtoOptions}
+                    value={contratoForm.watch("produtoId")}
+                    onChange={(v) => contratoForm.setValue("produtoId", v, { shouldValidate: true })}
+                    placeholder="Buscar por nome, código..."
+                    disabled={viewOnly}
+                  />
                   {contratoForm.formState.errors.produtoId && (
                     <p className="text-xs text-destructive">{contratoForm.formState.errors.produtoId.message}</p>
                   )}
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Row 3: Quantidade + Unidade + Tipo Preço (3 cols) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
                   <Label>Quantidade <span className="text-destructive">*</span></Label>
                   <Input type="number" step="0.000001" {...contratoForm.register("quantidadeTotal")} />
@@ -855,9 +870,10 @@ export default function ContratosPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Row 4: Moeda + Preço Unitário (2 cols on md, 3 on lg) */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
-                  <Label>Moeda</Label>
+                  <Label>Moeda <span className="text-destructive">*</span></Label>
                   <Select value={contratoForm.watch("moedaId")} onValueChange={(v) => contratoForm.setValue("moedaId", v)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -867,12 +883,41 @@ export default function ContratosPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1.5">
-                  <Label>Preço Unitário</Label>
-                  <Input type="number" step="0.000001" {...contratoForm.register("precoUnitario")} />
+                <div className="space-y-1.5 md:col-span-2 lg:col-span-1">
+                  <Label>Preço Unitário <span className="text-destructive">*</span></Label>
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      step="0.01"
+                      {...contratoForm.register("precoUnitario")}
+                      onFocus={handlePrecoFocus}
+                      onBlur={(e) => {
+                        contratoForm.register("precoUnitario").onBlur(e);
+                        handlePrecoBlur();
+                      }}
+                      className={precoDisplay ? "opacity-0 absolute inset-0" : ""}
+                    />
+                    {precoDisplay && (
+                      <div
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm cursor-text"
+                        onClick={() => {
+                          handlePrecoFocus();
+                          const input = document.querySelector<HTMLInputElement>('input[name="precoUnitario"]');
+                          input?.focus();
+                        }}
+                      >
+                        {precoDisplay}
+                      </div>
+                    )}
+                  </div>
+                  {contratoForm.formState.errors.precoUnitario && (
+                    <p className="text-xs text-destructive">{contratoForm.formState.errors.precoUnitario.message}</p>
+                  )}
                 </div>
+                <div className="space-y-1.5 lg:col-span-1 hidden lg:block" />
               </div>
 
+              {/* Row 5: Datas de entrega (2 cols) */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label>Data Entrega Início</Label>
@@ -884,12 +929,24 @@ export default function ContratosPage() {
                 </div>
               </div>
 
-              {/* Filiais logísticas */}
+              {/* Row 6: Filiais logísticas (3 cols) with tooltips */}
               <div className="rounded-md border p-4 space-y-4">
-                <h4 className="font-semibold text-sm text-foreground">Filiais Logísticas</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex items-center gap-2">
+                  <h4 className="font-semibold text-sm text-foreground">Filiais Logísticas</h4>
+                  <Tooltip>
+                    <TooltipTrigger type="button"><Info className="h-3.5 w-3.5 text-muted-foreground" /></TooltipTrigger>
+                    <TooltipContent side="right"><p className="max-w-[280px] text-xs">Defina a origem, operação e destino para rastrear o fluxo físico do contrato.</p></TooltipContent>
+                  </Tooltip>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="space-y-1.5">
-                    <Label>Filial de Operação</Label>
+                    <div className="flex items-center gap-1.5">
+                      <Label>Filial de Operação</Label>
+                      <Tooltip>
+                        <TooltipTrigger type="button"><Info className="h-3 w-3 text-muted-foreground" /></TooltipTrigger>
+                        <TooltipContent><p className="max-w-[240px] text-xs">Filial responsável pela execução do contrato (emite NF-e, gerencia logística).</p></TooltipContent>
+                      </Tooltip>
+                    </div>
                     <Select value={contratoForm.watch("filialOperacaoId") || ""} onValueChange={(v) => contratoForm.setValue("filialOperacaoId", v)}>
                       <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                       <SelectContent>
@@ -900,7 +957,13 @@ export default function ContratosPage() {
                     </Select>
                   </div>
                   <div className="space-y-1.5">
-                    <Label>Filial de Origem</Label>
+                    <div className="flex items-center gap-1.5">
+                      <Label>Filial de Origem</Label>
+                      <Tooltip>
+                        <TooltipTrigger type="button"><Info className="h-3 w-3 text-muted-foreground" /></TooltipTrigger>
+                        <TooltipContent><p className="max-w-[240px] text-xs">Local físico onde o produto está armazenado antes da entrega (armazém de saída).</p></TooltipContent>
+                      </Tooltip>
+                    </div>
                     <Select value={contratoForm.watch("filialOrigemId") || ""} onValueChange={(v) => contratoForm.setValue("filialOrigemId", v)}>
                       <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                       <SelectContent>
@@ -911,7 +974,13 @@ export default function ContratosPage() {
                     </Select>
                   </div>
                   <div className="space-y-1.5">
-                    <Label>Filial de Destino</Label>
+                    <div className="flex items-center gap-1.5">
+                      <Label>Filial de Destino</Label>
+                      <Tooltip>
+                        <TooltipTrigger type="button"><Info className="h-3 w-3 text-muted-foreground" /></TooltipTrigger>
+                        <TooltipContent><p className="max-w-[240px] text-xs">Local físico onde o produto será entregue (armazém de chegada).</p></TooltipContent>
+                      </Tooltip>
+                    </div>
                     <Select value={contratoForm.watch("filialDestinoId") || ""} onValueChange={(v) => contratoForm.setValue("filialDestinoId", v)}>
                       <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                       <SelectContent>
@@ -924,11 +993,13 @@ export default function ContratosPage() {
                 </div>
               </div>
 
+              {/* Row 7: Observações */}
               <div className="space-y-1.5">
                 <Label>Observações</Label>
                 <Textarea rows={3} {...contratoForm.register("observacoes")} />
               </div>
 
+              {/* Info panel for existing contract */}
               {editingContrato && (
                 <div className="rounded-md bg-muted p-3 text-sm space-y-1">
                   <div>Quantidade Entregue: <strong>{editingContrato.quantidadeEntregue.toLocaleString("pt-BR")} {getCodigoUnidade(editingContrato.unidadeNegociacaoId)}</strong></div>
@@ -939,6 +1010,7 @@ export default function ContratosPage() {
                 </div>
               )}
             </fieldset>
+            </TooltipProvider>
           </TabsContent>
 
           {/* ABA 2 — Romaneios Vinculados (READ-ONLY) */}
