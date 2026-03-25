@@ -194,6 +194,14 @@ export default function ContratosPage() {
   const produtoIdWatch = contratoForm.watch("produtoId");
   const tipoContratoWatch = contratoForm.watch("tipoContrato");
 
+  // Price suggestion state
+  const [precoSugestao, setPrecoSugestao] = useState<{
+    valor: number;
+    origem: string;
+    breakdown: { tipo: string; percentual: number; valor: number }[];
+  } | null>(null);
+  const [precoSugestaoLoading, setPrecoSugestaoLoading] = useState(false);
+
   // FURO 4: Pre-preencher unidadeNegociacaoId ao selecionar produto/tipo
   useEffect(() => {
     if (!produtoIdWatch || editingContrato) return; // Só pré-preenche em criação
@@ -204,6 +212,26 @@ export default function ContratosPage() {
       contratoForm.setValue("unidadeNegociacaoId", unidadeId);
     }
   }, [produtoIdWatch, tipoContratoWatch, editingContrato]);
+
+  // Auto-fill price when product or type changes (only on creation)
+  useEffect(() => {
+    if (!produtoIdWatch || !empresaId || editingContrato) {
+      setPrecoSugestao(null);
+      return;
+    }
+    let cancelled = false;
+    setPrecoSugestaoLoading(true);
+    produtoService.getPrecoProduto(produtoIdWatch, tipoContratoWatch, empresaId).then((result) => {
+      if (cancelled) return;
+      setPrecoSugestao(result);
+      if (result && result.valor > 0) {
+        contratoForm.setValue("precoUnitario", result.valor);
+        setPrecoDisplay(formatCurrency(result.valor, moedaCodigo));
+      }
+      setPrecoSugestaoLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [produtoIdWatch, tipoContratoWatch, empresaId, editingContrato]);
 
   const loadContratos = async () => {
     if (!empresaId) return;
