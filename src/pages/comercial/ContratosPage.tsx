@@ -383,7 +383,7 @@ export default function ContratosPage() {
     setEditingContrato(c);
     setViewOnly(false);
     contratoForm.reset({
-      numeroContrato: c.numeroContrato,
+      tipoContrato: c.tipoContrato,
       tipoContrato: c.tipoContrato,
       pessoaId: c.pessoaId,
       produtoId: c.produtoId,
