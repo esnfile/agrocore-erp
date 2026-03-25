@@ -360,7 +360,7 @@ export default function ContratosPage() {
     setEditingContrato(null);
     setViewOnly(false);
     contratoForm.reset({
-      numeroContrato: "", tipoContrato: "COMPRA", pessoaId: "", produtoId: "",
+      tipoContrato: "COMPRA", pessoaId: "", produtoId: "",
       unidadeNegociacaoId: "", quantidadeTotal: 0, moedaId: "moeda1",
       precoUnitario: 0, tipoPreco: "FIXO",
       dataContrato: new Date().toISOString().slice(0, 10),
