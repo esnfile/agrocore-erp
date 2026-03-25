@@ -871,6 +871,79 @@ export const produtoService = {
     const p = mockProdutos.find((p) => p.id === id && p.deletadoEm === null);
     if (p) { p.deletadoEm = now; p.deletadoPor = "u1"; p.atualizadoEm = now; p.atualizadoPor = "u1"; }
   },
+  /**
+   * Retorna preço sugerido para um produto com base no tipo de contrato e empresa.
+   * COMPRA: custoCalculado (custo base + coeficientes %).
+   * VENDA: precoCalculado (custoCalculado + margem da tabela de preço).
+   */
+  async getPrecoProduto(
+    produtoId: string,
+    tipoContrato: "COMPRA" | "VENDA",
+    empresaId: string
+  ): Promise<{
+    valor: number;
+    origem: string;
+    breakdown: { tipo: string; percentual: number; valor: number }[];
+  } | null> {
+    await delay(150);
+    // Find produtoEmpresa
+    const pe = mockProdutoEmpresas.find(
+      (p) => p.deletadoEm === null && p.produtoId === produtoId && p.empresaId === empresaId && p.ativo
+    );
+    if (!pe) return null;
+
+    // Find coeficienteEmpresa
+    const ce = mockCoeficienteEmpresas.find(
+      (c) => c.deletadoEm === null && c.id === pe.coeficienteEmpresaId
+    );
+    // Find coeficiente (for name)
+    const coef = ce ? mockCoeficientes.find((c) => c.id === ce.coeficienteId && c.deletadoEm === null) : undefined;
+    const coefNome = coef?.descricao ?? "Padrão";
+
+    const custoBase = pe.custoBase;
+    const percFixo = ce?.percentualCustoFixo ?? 0;
+    const percVariavel = ce?.percentualCustoVariavel ?? 0;
+    const percImpostos = ce?.percentualImpostos ?? 0;
+
+    const valFixo = custoBase * (percFixo / 100);
+    const valVariavel = custoBase * (percVariavel / 100);
+    const valImpostos = custoBase * (percImpostos / 100);
+    const custoCalculado = custoBase + valFixo + valVariavel + valImpostos;
+
+    const breakdown: { tipo: string; percentual: number; valor: number }[] = [
+      { tipo: "Custo Base", percentual: 0, valor: custoBase },
+      { tipo: "Custo Fixo", percentual: percFixo, valor: valFixo },
+      { tipo: "Custo Variável", percentual: percVariavel, valor: valVariavel },
+      { tipo: "Impostos", percentual: percImpostos, valor: valImpostos },
+    ];
+
+    if (tipoContrato === "COMPRA") {
+      return {
+        valor: Math.round(custoCalculado * 100) / 100,
+        origem: `Coeficiente ${coefNome}`,
+        breakdown,
+      };
+    }
+
+    // VENDA: apply markup from tabela de preço
+    const petp = mockProdutoEmpresaTabelasPreco.find(
+      (t) => t.deletadoEm === null && t.produtoEmpresaId === pe.id && t.ativo
+    );
+    const tpe = petp ? mockTabelaPrecoEmpresas.find((t) => t.id === petp.tabelaPrecoEmpresaId && t.deletadoEm === null) : undefined;
+    const tabela = tpe ? mockTabelasPreco.find((t) => t.id === tpe.tabelaPrecoId && t.deletadoEm === null) : undefined;
+    const tabelaNome = tabela?.descricao ?? "Padrão";
+    const markup = tpe?.margemLucroPercentual ?? 0;
+    const valMarkup = custoCalculado * (markup / 100);
+    const precoVenda = custoCalculado + valMarkup;
+
+    breakdown.push({ tipo: `Markup (${tabelaNome})`, percentual: markup, valor: valMarkup });
+
+    return {
+      valor: Math.round(precoVenda * 100) / 100,
+      origem: `Tabela ${tabelaNome}`,
+      breakdown,
+    };
+  },
 };
 
 export const produtoEmpresaService = {
