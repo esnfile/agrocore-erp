@@ -384,7 +384,6 @@ export default function ContratosPage() {
     setViewOnly(false);
     contratoForm.reset({
       tipoContrato: c.tipoContrato,
-      tipoContrato: c.tipoContrato,
       pessoaId: c.pessoaId,
       produtoId: c.produtoId,
       unidadeNegociacaoId: c.unidadeNegociacaoId,
