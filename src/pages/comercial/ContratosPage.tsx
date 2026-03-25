@@ -245,6 +245,62 @@ export default function ContratosPage() {
     []
   );
 
+  // Searchable options for Pessoa
+  const pessoaOptions: SearchableOption[] = useMemo(
+    () => pessoasAtivas.map((p) => ({
+      id: p.id,
+      label: p.nomeRazao,
+      sublabel: p.cpfCnpj,
+      meta: p.relacaoComercial.join(", "),
+    })),
+    [pessoasAtivas]
+  );
+
+  // Searchable options for Produto
+  const produtoOptions: SearchableOption[] = useMemo(
+    () => produtosAtivos.map((p) => {
+      const unBase = mockUnidades.find((u) => u.id === p.unidadeBaseId);
+      return {
+        id: p.id,
+        label: p.descricao,
+        sublabel: p.codigoBarras || undefined,
+        meta: unBase?.codigo ?? "",
+      };
+    }),
+    [produtosAtivos]
+  );
+
+  // Currency watch
+  const moedaIdWatch = contratoForm.watch("moedaId");
+  const precoWatch = contratoForm.watch("precoUnitario");
+  const moedaCodigo = useMemo(
+    () => mockMoedas.find((m) => m.id === moedaIdWatch)?.codigo ?? "BRL",
+    [moedaIdWatch]
+  );
+  const [precoDisplay, setPrecoDisplay] = useState("");
+
+  // Sync price display on blur
+  const handlePrecoBlur = useCallback(() => {
+    const val = contratoForm.getValues("precoUnitario");
+    if (val && val > 0) {
+      setPrecoDisplay(formatCurrency(val, moedaCodigo));
+    } else {
+      setPrecoDisplay("");
+    }
+  }, [moedaCodigo]);
+
+  // Update display when moeda changes
+  useEffect(() => {
+    const val = contratoForm.getValues("precoUnitario");
+    if (val && val > 0) {
+      setPrecoDisplay(formatCurrency(val, moedaCodigo));
+    }
+  }, [moedaCodigo]);
+
+  const handlePrecoFocus = useCallback(() => {
+    setPrecoDisplay("");
+  }, []);
+
   // Helpers
   const getNomePessoa = (id: string) => mockPessoas.find((p) => p.id === id)?.nomeRazao ?? id;
   const getNomeProduto = (id: string) => mockProdutos.find((p) => p.id === id)?.descricao ?? id;
