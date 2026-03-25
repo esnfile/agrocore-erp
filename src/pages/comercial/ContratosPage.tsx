@@ -999,10 +999,10 @@ export default function ContratosPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-1.5">
-                      <Label>Filial de Operação</Label>
+                      <Label>Filial de Operação <span className="text-destructive">*</span></Label>
                       <Tooltip>
                         <TooltipTrigger type="button"><Info className="h-3 w-3 text-muted-foreground" /></TooltipTrigger>
-                        <TooltipContent><p className="max-w-[240px] text-xs">Filial responsável pela execução do contrato (emite NF-e, gerencia logística).</p></TooltipContent>
+                        <TooltipContent><p className="max-w-[240px] text-xs">Filial responsável pela execução do contrato (emite NF-e, gerencia logística) — sempre obrigatória.</p></TooltipContent>
                       </Tooltip>
                     </div>
                     <Select value={contratoForm.watch("filialOperacaoId") || ""} onValueChange={(v) => contratoForm.setValue("filialOperacaoId", v)}>
@@ -1016,14 +1016,22 @@ export default function ContratosPage() {
                   </div>
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-1.5">
-                      <Label>Filial de Origem</Label>
+                      <Label>
+                        Filial de Origem
+                        {tipoContratoWatch === "VENDA" && <span className="text-destructive ml-0.5">*</span>}
+                      </Label>
                       <Tooltip>
                         <TooltipTrigger type="button"><Info className="h-3 w-3 text-muted-foreground" /></TooltipTrigger>
-                        <TooltipContent><p className="max-w-[240px] text-xs">Local físico onde o produto está armazenado antes da entrega (armazém de saída).</p></TooltipContent>
+                        <TooltipContent><p className="max-w-[240px] text-xs">Local físico onde o produto está armazenado antes da entrega (armazém de saída) — obrigatória para VENDAS.</p></TooltipContent>
                       </Tooltip>
                     </div>
-                    <Select value={contratoForm.watch("filialOrigemId") || ""} onValueChange={(v) => contratoForm.setValue("filialOrigemId", v)}>
-                      <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                    <Select
+                      value={contratoForm.watch("filialOrigemId") || ""}
+                      onValueChange={(v) => contratoForm.setValue("filialOrigemId", v)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={tipoContratoWatch === "COMPRA" ? "Não aplicável" : "Selecione..."} />
+                      </SelectTrigger>
                       <SelectContent>
                         {filiaisEmpresa.filter((f) => f.ativo).map((f) => (
                           <SelectItem key={f.id} value={f.id}>{f.nomeRazao}</SelectItem>
@@ -1033,14 +1041,22 @@ export default function ContratosPage() {
                   </div>
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-1.5">
-                      <Label>Filial de Destino</Label>
+                      <Label>
+                        Filial de Destino
+                        {tipoContratoWatch === "COMPRA" && <span className="text-destructive ml-0.5">*</span>}
+                      </Label>
                       <Tooltip>
                         <TooltipTrigger type="button"><Info className="h-3 w-3 text-muted-foreground" /></TooltipTrigger>
-                        <TooltipContent><p className="max-w-[240px] text-xs">Local físico onde o produto será entregue (armazém de chegada).</p></TooltipContent>
+                        <TooltipContent><p className="max-w-[240px] text-xs">Local físico onde o produto será entregue (armazém de chegada) — obrigatória para COMPRAS.</p></TooltipContent>
                       </Tooltip>
                     </div>
-                    <Select value={contratoForm.watch("filialDestinoId") || ""} onValueChange={(v) => contratoForm.setValue("filialDestinoId", v)}>
-                      <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                    <Select
+                      value={contratoForm.watch("filialDestinoId") || ""}
+                      onValueChange={(v) => contratoForm.setValue("filialDestinoId", v)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={tipoContratoWatch === "VENDA" ? "Não aplicável" : "Selecione..."} />
+                      </SelectTrigger>
                       <SelectContent>
                         {filiaisEmpresa.filter((f) => f.ativo).map((f) => (
                           <SelectItem key={f.id} value={f.id}>{f.nomeRazao}</SelectItem>
