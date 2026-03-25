@@ -1195,6 +1195,19 @@ export const produtoEmpresaTabelasPreco: ProdutoEmpresaTabelaPreco[] = [
     deletadoEm: null,
     deletadoPor: null,
   },
+  {
+    id: "petp2",
+    produtoEmpresaId: "pe2",
+    tabelaPrecoEmpresaId: "tpe1",
+    precoCalculado: 138.81,
+    ativo: true,
+    criadoEm: "2024-07-01T08:00:00Z",
+    criadoPor: "u1",
+    atualizadoEm: "2024-07-01T08:00:00Z",
+    atualizadoPor: "u1",
+    deletadoEm: null,
+    deletadoPor: null,
+  },
 ];
 
 // ---- Ponto de Estoque ----
