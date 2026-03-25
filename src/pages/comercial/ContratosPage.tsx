@@ -35,7 +35,7 @@ import {
   classificacaoTipoService,
   contratoLiquidacaoService, financeiroContaService,
   financeiroParcelaService, financeiroBaixaService,
-  filialService, romaneioService,
+  filialService, romaneioService, produtoService,
 } from "@/lib/services";
 import {
   pessoas as mockPessoas,
@@ -71,7 +71,6 @@ function formatCurrency(value: number, moedaCodigo: string): string {
 
 // ---- Schemas ----
 const contratoSchema = z.object({
-  numeroContrato: z.string().optional(),
   tipoContrato: z.enum(["COMPRA", "VENDA"]),
   pessoaId: z.string().min(1, "Pessoa responsável é obrigatória"),
   produtoId: z.string().min(1, "Produto é obrigatório"),
@@ -170,7 +169,7 @@ export default function ContratosPage() {
   const contratoForm = useForm<ContratoForm>({
     resolver: zodResolver(contratoSchema),
     defaultValues: {
-      numeroContrato: "", tipoContrato: "COMPRA", pessoaId: "", produtoId: "",
+      tipoContrato: "COMPRA", pessoaId: "", produtoId: "",
       unidadeNegociacaoId: "", quantidadeTotal: 0, moedaId: "moeda1",
       precoUnitario: 0, tipoPreco: "FIXO",
       dataContrato: new Date().toISOString().slice(0, 10),
@@ -194,6 +193,14 @@ export default function ContratosPage() {
   const produtoIdWatch = contratoForm.watch("produtoId");
   const tipoContratoWatch = contratoForm.watch("tipoContrato");
 
+  // Price suggestion state
+  const [precoSugestao, setPrecoSugestao] = useState<{
+    valor: number;
+    origem: string;
+    breakdown: { tipo: string; percentual: number; valor: number }[];
+  } | null>(null);
+  const [precoSugestaoLoading, setPrecoSugestaoLoading] = useState(false);
+
   // FURO 4: Pre-preencher unidadeNegociacaoId ao selecionar produto/tipo
   useEffect(() => {
     if (!produtoIdWatch || editingContrato) return; // Só pré-preenche em criação
@@ -204,6 +211,26 @@ export default function ContratosPage() {
       contratoForm.setValue("unidadeNegociacaoId", unidadeId);
     }
   }, [produtoIdWatch, tipoContratoWatch, editingContrato]);
+
+  // Auto-fill price when product or type changes (only on creation)
+  useEffect(() => {
+    if (!produtoIdWatch || !empresaId || editingContrato) {
+      setPrecoSugestao(null);
+      return;
+    }
+    let cancelled = false;
+    setPrecoSugestaoLoading(true);
+    produtoService.getPrecoProduto(produtoIdWatch, tipoContratoWatch, empresaId).then((result) => {
+      if (cancelled) return;
+      setPrecoSugestao(result);
+      if (result && result.valor > 0) {
+        contratoForm.setValue("precoUnitario", result.valor);
+        setPrecoDisplay(formatCurrency(result.valor, moedaCodigo));
+      }
+      setPrecoSugestaoLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [produtoIdWatch, tipoContratoWatch, empresaId, editingContrato]);
 
   const loadContratos = async () => {
     if (!empresaId) return;
@@ -333,7 +360,7 @@ export default function ContratosPage() {
     setEditingContrato(null);
     setViewOnly(false);
     contratoForm.reset({
-      numeroContrato: "", tipoContrato: "COMPRA", pessoaId: "", produtoId: "",
+      tipoContrato: "COMPRA", pessoaId: "", produtoId: "",
       unidadeNegociacaoId: "", quantidadeTotal: 0, moedaId: "moeda1",
       precoUnitario: 0, tipoPreco: "FIXO",
       dataContrato: new Date().toISOString().slice(0, 10),
@@ -356,7 +383,6 @@ export default function ContratosPage() {
     setEditingContrato(c);
     setViewOnly(false);
     contratoForm.reset({
-      numeroContrato: c.numeroContrato,
       tipoContrato: c.tipoContrato,
       pessoaId: c.pessoaId,
       produtoId: c.produtoId,
@@ -787,17 +813,15 @@ export default function ContratosPage() {
                     <Label>Número do Contrato</Label>
                     <Tooltip>
                       <TooltipTrigger type="button"><Info className="h-3.5 w-3.5 text-muted-foreground" /></TooltipTrigger>
-                      <TooltipContent><p className="max-w-[220px] text-xs">Número gerado automaticamente pelo sistema (CTR-AAAAMM-NNN). Editável para override manual.</p></TooltipContent>
+                      <TooltipContent><p className="max-w-[220px] text-xs">Número sequencial gerado pelo sistema (CTR-AAAAMM-NNNN). Não editável.</p></TooltipContent>
                     </Tooltip>
                   </div>
                   <Input
-                    {...contratoForm.register("numeroContrato")}
-                    placeholder={editingContrato ? "" : "Auto — CTR-AAAAMM-NNN"}
-                    className="bg-muted/50"
+                    value={editingContrato?.numeroContrato ?? ""}
+                    placeholder="Gerado automaticamente"
+                    disabled
+                    className="bg-muted/50 cursor-not-allowed"
                   />
-                  {!editingContrato && (
-                    <p className="text-xs text-muted-foreground">Deixe vazio para auto-gerar</p>
-                  )}
                 </div>
                 <div className="space-y-1.5">
                   <Label>Data do Contrato <span className="text-destructive">*</span></Label>
@@ -870,7 +894,7 @@ export default function ContratosPage() {
                 </div>
               </div>
 
-              {/* Row 4: Moeda + Preço Unitário (2 cols on md, 3 on lg) */}
+              {/* Row 4: Moeda + Preço Unitário + Breakdown (3 cols) */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
                   <Label>Moeda <span className="text-destructive">*</span></Label>
@@ -913,6 +937,38 @@ export default function ContratosPage() {
                   {contratoForm.formState.errors.precoUnitario && (
                     <p className="text-xs text-destructive">{contratoForm.formState.errors.precoUnitario.message}</p>
                   )}
+                  {/* Price suggestion badge with breakdown tooltip */}
+                  {precoSugestao && !editingContrato && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="mt-1 inline-flex items-center gap-1 rounded-md border border-border bg-muted/60 px-2 py-1 text-xs text-muted-foreground cursor-help">
+                          <Info className="h-3 w-3" />
+                          <span>Sugerido: <strong className="text-foreground">{formatCurrency(precoSugestao.valor, moedaCodigo)}</strong> — {precoSugestao.origem}</span>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="max-w-[320px]">
+                        <div className="space-y-1 text-xs">
+                          <p className="font-semibold">Composição do Preço</p>
+                          {precoSugestao.breakdown.map((b, i) => (
+                            <div key={i} className="flex justify-between gap-4">
+                              <span>{b.tipo}{b.percentual > 0 ? ` (${b.percentual}%)` : ""}</span>
+                              <span className="font-mono">{formatCurrency(b.valor, moedaCodigo)}</span>
+                            </div>
+                          ))}
+                          <div className="border-t border-border pt-1 flex justify-between gap-4 font-semibold">
+                            <span>Total</span>
+                            <span className="font-mono">{formatCurrency(precoSugestao.valor, moedaCodigo)}</span>
+                          </div>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                  {precoSugestaoLoading && (
+                    <p className="text-xs text-muted-foreground mt-1">Calculando preço sugerido...</p>
+                  )}
+                  {!precoSugestao && !precoSugestaoLoading && produtoIdWatch && !editingContrato && (
+                    <p className="text-xs text-amber-600 mt-1">Configure coeficiente/tabela no produto para sugestão de preço.</p>
+                  )}
                 </div>
                 <div className="space-y-1.5 lg:col-span-1 hidden lg:block" />
               </div>
@@ -941,10 +997,10 @@ export default function ContratosPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-1.5">
-                      <Label>Filial de Operação</Label>
+                      <Label>Filial de Operação <span className="text-destructive">*</span></Label>
                       <Tooltip>
                         <TooltipTrigger type="button"><Info className="h-3 w-3 text-muted-foreground" /></TooltipTrigger>
-                        <TooltipContent><p className="max-w-[240px] text-xs">Filial responsável pela execução do contrato (emite NF-e, gerencia logística).</p></TooltipContent>
+                        <TooltipContent><p className="max-w-[240px] text-xs">Filial responsável pela execução do contrato (emite NF-e, gerencia logística) — sempre obrigatória.</p></TooltipContent>
                       </Tooltip>
                     </div>
                     <Select value={contratoForm.watch("filialOperacaoId") || ""} onValueChange={(v) => contratoForm.setValue("filialOperacaoId", v)}>
@@ -958,14 +1014,22 @@ export default function ContratosPage() {
                   </div>
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-1.5">
-                      <Label>Filial de Origem</Label>
+                      <Label>
+                        Filial de Origem
+                        {tipoContratoWatch === "VENDA" && <span className="text-destructive ml-0.5">*</span>}
+                      </Label>
                       <Tooltip>
                         <TooltipTrigger type="button"><Info className="h-3 w-3 text-muted-foreground" /></TooltipTrigger>
-                        <TooltipContent><p className="max-w-[240px] text-xs">Local físico onde o produto está armazenado antes da entrega (armazém de saída).</p></TooltipContent>
+                        <TooltipContent><p className="max-w-[240px] text-xs">Local físico onde o produto está armazenado antes da entrega (armazém de saída) — obrigatória para VENDAS.</p></TooltipContent>
                       </Tooltip>
                     </div>
-                    <Select value={contratoForm.watch("filialOrigemId") || ""} onValueChange={(v) => contratoForm.setValue("filialOrigemId", v)}>
-                      <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                    <Select
+                      value={contratoForm.watch("filialOrigemId") || ""}
+                      onValueChange={(v) => contratoForm.setValue("filialOrigemId", v)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={tipoContratoWatch === "COMPRA" ? "Não aplicável" : "Selecione..."} />
+                      </SelectTrigger>
                       <SelectContent>
                         {filiaisEmpresa.filter((f) => f.ativo).map((f) => (
                           <SelectItem key={f.id} value={f.id}>{f.nomeRazao}</SelectItem>
@@ -975,14 +1039,22 @@ export default function ContratosPage() {
                   </div>
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-1.5">
-                      <Label>Filial de Destino</Label>
+                      <Label>
+                        Filial de Destino
+                        {tipoContratoWatch === "COMPRA" && <span className="text-destructive ml-0.5">*</span>}
+                      </Label>
                       <Tooltip>
                         <TooltipTrigger type="button"><Info className="h-3 w-3 text-muted-foreground" /></TooltipTrigger>
-                        <TooltipContent><p className="max-w-[240px] text-xs">Local físico onde o produto será entregue (armazém de chegada).</p></TooltipContent>
+                        <TooltipContent><p className="max-w-[240px] text-xs">Local físico onde o produto será entregue (armazém de chegada) — obrigatória para COMPRAS.</p></TooltipContent>
                       </Tooltip>
                     </div>
-                    <Select value={contratoForm.watch("filialDestinoId") || ""} onValueChange={(v) => contratoForm.setValue("filialDestinoId", v)}>
-                      <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                    <Select
+                      value={contratoForm.watch("filialDestinoId") || ""}
+                      onValueChange={(v) => contratoForm.setValue("filialDestinoId", v)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={tipoContratoWatch === "VENDA" ? "Não aplicável" : "Selecione..."} />
+                      </SelectTrigger>
                       <SelectContent>
                         {filiaisEmpresa.filter((f) => f.ativo).map((f) => (
                           <SelectItem key={f.id} value={f.id}>{f.nomeRazao}</SelectItem>
