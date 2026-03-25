@@ -1470,11 +1470,11 @@ export const contratoService = {
       (c) => c.deletadoEm === null && c.grupoId === grupoId && c.numeroContrato.startsWith(prefix)
     );
     let seq = existingThisMonth.length + 1;
-    let numero = `${prefix}${String(seq).padStart(3, "0")}`;
+    let numero = `${prefix}${String(seq).padStart(4, "0")}`;
     // Conflict check
     while (mockContratos.some((c) => c.deletadoEm === null && c.numeroContrato === numero)) {
       seq++;
-      numero = `${prefix}${String(seq).padStart(3, "0")}`;
+      numero = `${prefix}${String(seq).padStart(4, "0")}`;
     }
     return numero;
   },
