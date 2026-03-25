@@ -684,7 +684,7 @@ export default function ContratosPage() {
               <TableRow>
                 <TableHead>Número</TableHead>
                 <TableHead>Tipo</TableHead>
-                <TableHead>Parceiro</TableHead>
+                <TableHead>Pessoa</TableHead>
                 <TableHead>Produto</TableHead>
                 <TableHead className="text-right">Qtd. Total</TableHead>
                 <TableHead className="text-right">Entregue</TableHead>
