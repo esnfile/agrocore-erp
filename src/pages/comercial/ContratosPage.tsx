@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -24,6 +24,9 @@ import {
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
   AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import {
   contratoService, contratoFixacaoService,
@@ -47,18 +50,35 @@ import type {
   ContratoLiquidacao,
   FinanceiroConta, FinanceiroParcela, FinanceiroBaixa,
 } from "@/lib/mock-data";
-import { Plus, Pencil, Trash2, Eye, Lock, FileCheck, AlertTriangle, ExternalLink } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, Lock, FileCheck, AlertTriangle, ExternalLink, Info } from "lucide-react";
+import { SearchableSelect, type SearchableOption } from "@/components/SearchableSelect";
+
+// ---- Currency formatting helpers ----
+function formatCurrency(value: number, moedaCodigo: string): string {
+  const localeMap: Record<string, { locale: string; currency: string }> = {
+    BRL: { locale: "pt-BR", currency: "BRL" },
+    USD: { locale: "en-US", currency: "USD" },
+    EUR: { locale: "de-DE", currency: "EUR" },
+  };
+  const cfg = localeMap[moedaCodigo] ?? localeMap.BRL;
+  return new Intl.NumberFormat(cfg.locale, {
+    style: "currency",
+    currency: cfg.currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
 
 // ---- Schemas ----
 const contratoSchema = z.object({
-  numeroContrato: z.string().min(1, "Número é obrigatório"),
+  numeroContrato: z.string().optional(),
   tipoContrato: z.enum(["COMPRA", "VENDA"]),
-  pessoaId: z.string().min(1, "Parceiro é obrigatório"),
+  pessoaId: z.string().min(1, "Pessoa responsável é obrigatória"),
   produtoId: z.string().min(1, "Produto é obrigatório"),
   unidadeNegociacaoId: z.string().min(1, "Unidade é obrigatória"),
   quantidadeTotal: z.coerce.number().positive("Quantidade deve ser > 0"),
   moedaId: z.string().min(1, "Moeda é obrigatória"),
-  precoUnitario: z.coerce.number().min(0),
+  precoUnitario: z.coerce.number().min(0, "Preço deve ser >= 0"),
   tipoPreco: z.enum(["FIXO", "A_FIXAR"]),
   dataContrato: z.string().min(1, "Data é obrigatória"),
   dataEntregaInicio: z.string().optional(),
@@ -68,7 +88,6 @@ const contratoSchema = z.object({
   filialDestinoId: z.string().optional(),
   observacoes: z.string().optional(),
 });
-type ContratoForm = z.infer<typeof contratoSchema>;
 
 const fixacaoSchema = z.object({
   dataFixacao: z.string().min(1, "Data é obrigatória"),
