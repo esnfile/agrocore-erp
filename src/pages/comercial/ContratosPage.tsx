@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -50,7 +51,7 @@ import type {
   ContratoLiquidacao,
   FinanceiroConta, FinanceiroParcela, FinanceiroBaixa,
 } from "@/lib/mock-data";
-import { Plus, Pencil, Trash2, Eye, Lock, FileCheck, AlertTriangle, ExternalLink, Info } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, Lock, FileCheck, AlertTriangle, ExternalLink, Info, Clock } from "lucide-react";
 import { SearchableSelect, type SearchableOption } from "@/components/SearchableSelect";
 
 // ---- Currency formatting helpers ----
@@ -96,7 +97,7 @@ const fixacaoSchema = z.object({
   unidadeFixacaoId: z.string().min(1, "Unidade é obrigatória"),
   precoFixado: z.coerce.number().positive("Preço deve ser > 0"),
   moedaId: z.string().min(1, "Moeda é obrigatória"),
-  observacoes: z.string().optional(),
+  observacoes: z.string().min(1, "Observações são obrigatórias (motivo da fixação)"),
 });
 type FixacaoForm = z.infer<typeof fixacaoSchema>;
 
@@ -212,9 +213,9 @@ export default function ContratosPage() {
     }
   }, [produtoIdWatch, tipoContratoWatch, editingContrato]);
 
-  // Auto-fill price when product or type changes (only on creation)
+  // Auto-fill price when product or type changes
   useEffect(() => {
-    if (!produtoIdWatch || !empresaId || editingContrato) {
+    if (!produtoIdWatch || !empresaId) {
       setPrecoSugestao(null);
       return;
     }
@@ -223,14 +224,20 @@ export default function ContratosPage() {
     produtoService.getPrecoProduto(produtoIdWatch, tipoContratoWatch, empresaId).then((result) => {
       if (cancelled) return;
       setPrecoSugestao(result);
-      if (result && result.valor > 0) {
+      // Only auto-fill price for new contracts with FIXO type
+      if (!editingContrato && tipoPrecoWatch !== "A_FIXAR" && result && result.valor > 0) {
         contratoForm.setValue("precoUnitario", result.valor);
         setPrecoDisplay(formatCurrency(result.valor, moedaCodigo));
+      }
+      // Force price to 0 for A_FIXAR
+      if (tipoPrecoWatch === "A_FIXAR") {
+        contratoForm.setValue("precoUnitario", 0);
+        setPrecoDisplay("");
       }
       setPrecoSugestaoLoading(false);
     });
     return () => { cancelled = true; };
-  }, [produtoIdWatch, tipoContratoWatch, empresaId, editingContrato]);
+  }, [produtoIdWatch, tipoContratoWatch, empresaId, editingContrato, tipoPrecoWatch]);
 
   const loadContratos = async () => {
     if (!empresaId) return;
@@ -478,8 +485,11 @@ export default function ContratosPage() {
     setEditingFixacao(null);
     fixacaoForm.reset({
       dataFixacao: new Date().toISOString().slice(0, 16),
-      quantidadeFixada: 0, unidadeFixacaoId: editingContrato?.unidadeNegociacaoId ?? "",
-      precoFixado: 0, moedaId: editingContrato?.moedaId ?? "moeda1", observacoes: "",
+      quantidadeFixada: saldoAFixar > 0 ? saldoAFixar : 0,
+      unidadeFixacaoId: editingContrato?.unidadeNegociacaoId ?? "",
+      precoFixado: precoSugestao?.valor ?? 0,
+      moedaId: editingContrato?.moedaId ?? "moeda1",
+      observacoes: "",
     });
     setFixacaoModalOpen(true);
   };
@@ -884,7 +894,16 @@ export default function ContratosPage() {
                 </div>
                 <div className="space-y-1.5">
                   <Label>Tipo de Preço <span className="text-destructive">*</span></Label>
-                  <Select value={contratoForm.watch("tipoPreco")} onValueChange={(v) => contratoForm.setValue("tipoPreco", v as any)}>
+                  <Select
+                    value={contratoForm.watch("tipoPreco")}
+                    onValueChange={(v) => {
+                      contratoForm.setValue("tipoPreco", v as any);
+                      if (v === "A_FIXAR") {
+                        contratoForm.setValue("precoUnitario", 0);
+                        setPrecoDisplay("");
+                      }
+                    }}
+                  >
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="FIXO">Fixo</SelectItem>
@@ -894,7 +913,7 @@ export default function ContratosPage() {
                 </div>
               </div>
 
-              {/* Row 4: Moeda + Preço Unitário + Breakdown (3 cols) */}
+              {/* Row 4: Moeda + Preço Unitário + Badge A_FIXAR (3 cols) */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
                   <Label>Moeda <span className="text-destructive">*</span></Label>
@@ -908,37 +927,93 @@ export default function ContratosPage() {
                   </Select>
                 </div>
                 <div className="space-y-1.5 md:col-span-2 lg:col-span-1">
-                  <Label>Preço Unitário <span className="text-destructive">*</span></Label>
-                  <div className="relative">
-                    <Input
-                      type="number"
-                      step="0.01"
-                      {...contratoForm.register("precoUnitario")}
-                      onFocus={handlePrecoFocus}
-                      onBlur={(e) => {
-                        contratoForm.register("precoUnitario").onBlur(e);
-                        handlePrecoBlur();
-                      }}
-                      className={precoDisplay ? "opacity-0 absolute inset-0" : ""}
-                    />
-                    {precoDisplay && (
-                      <div
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm cursor-text"
-                        onClick={() => {
-                          handlePrecoFocus();
-                          const input = document.querySelector<HTMLInputElement>('input[name="precoUnitario"]');
-                          input?.focus();
-                        }}
-                      >
-                        {precoDisplay}
-                      </div>
+                  <div className="flex items-center gap-1.5">
+                    <Label>Preço Unitário {tipoPrecoWatch !== "A_FIXAR" && <span className="text-destructive">*</span>}</Label>
+                    {tipoPrecoWatch === "A_FIXAR" && (
+                      <Tooltip>
+                        <TooltipTrigger type="button"><Info className="h-3.5 w-3.5 text-muted-foreground" /></TooltipTrigger>
+                        <TooltipContent className="max-w-[300px]">
+                          <p className="text-xs">Tipo A FIXAR: Preço pendente para hedge de volume. Após entregas (romaneios), acesse Fixação de Preço para definir valor real. Bloqueia liquidação; gera provisões estimadas.</p>
+                        </TooltipContent>
+                      </Tooltip>
                     )}
                   </div>
-                  {contratoForm.formState.errors.precoUnitario && (
+                  {tipoPrecoWatch === "A_FIXAR" ? (
+                    <Input
+                      value="R$ 0,00"
+                      placeholder="Preço provisório (R$ 0,00) — Fixe após entregas"
+                      disabled
+                      className="bg-muted/50 cursor-not-allowed"
+                    />
+                  ) : (
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        {...contratoForm.register("precoUnitario")}
+                        onFocus={handlePrecoFocus}
+                        onBlur={(e) => {
+                          contratoForm.register("precoUnitario").onBlur(e);
+                          handlePrecoBlur();
+                        }}
+                        className={precoDisplay ? "opacity-0 absolute inset-0" : ""}
+                      />
+                      {precoDisplay && (
+                        <div
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm cursor-text"
+                          onClick={() => {
+                            handlePrecoFocus();
+                            const input = document.querySelector<HTMLInputElement>('input[name="precoUnitario"]');
+                            input?.focus();
+                          }}
+                        >
+                          {precoDisplay}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {contratoForm.formState.errors.precoUnitario && tipoPrecoWatch !== "A_FIXAR" && (
                     <p className="text-xs text-destructive">{contratoForm.formState.errors.precoUnitario.message}</p>
                   )}
-                  {/* Price suggestion badge with breakdown tooltip */}
-                  {precoSugestao && !editingContrato && (
+                  {/* A_FIXAR badge */}
+                  {tipoPrecoWatch === "A_FIXAR" && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-md border border-amber-500/40 bg-amber-50 dark:bg-amber-950/20 px-2.5 py-1.5 text-xs cursor-help">
+                          <Clock className="h-3.5 w-3.5 text-amber-600" />
+                          <span className="text-amber-700 dark:text-amber-400 font-medium">A FIXAR — Pendente</span>
+                          {precoSugestao && (
+                            <span className="text-muted-foreground ml-1">
+                              | Estimado {formatCurrency(precoSugestao.valor, moedaCodigo)}/{getCodigoUnidade(contratoForm.watch("unidadeNegociacaoId"))}
+                            </span>
+                          )}
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="max-w-[340px]">
+                        <div className="space-y-1.5 text-xs">
+                          <p className="font-semibold">Contrato A Fixar</p>
+                          <p>Liquidação bloqueada até fixar. Saldo a fixar atualizado com romaneios.</p>
+                          {precoSugestao && (
+                            <>
+                              <p className="text-muted-foreground">Estimativa baseada no coeficiente/tabela do produto:</p>
+                              {precoSugestao.breakdown.map((b, i) => (
+                                <div key={i} className="flex justify-between gap-4">
+                                  <span>{b.tipo}{b.percentual > 0 ? ` (${b.percentual}%)` : ""}</span>
+                                  <span className="font-mono">{formatCurrency(b.valor, moedaCodigo)}</span>
+                                </div>
+                              ))}
+                              <div className="border-t border-border pt-1 flex justify-between font-semibold">
+                                <span>Total Provisório ({formatCurrency(precoSugestao.valor, moedaCodigo)} × {contratoForm.watch("quantidadeTotal") || 0})</span>
+                                <span className="font-mono">{formatCurrency(precoSugestao.valor * (contratoForm.watch("quantidadeTotal") || 0), moedaCodigo)}</span>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                  {/* Price suggestion badge for FIXO */}
+                  {precoSugestao && !editingContrato && tipoPrecoWatch !== "A_FIXAR" && (
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <div className="mt-1 inline-flex items-center gap-1 rounded-md border border-border bg-muted/60 px-2 py-1 text-xs text-muted-foreground cursor-help">
@@ -966,7 +1041,7 @@ export default function ContratosPage() {
                   {precoSugestaoLoading && (
                     <p className="text-xs text-muted-foreground mt-1">Calculando preço sugerido...</p>
                   )}
-                  {!precoSugestao && !precoSugestaoLoading && produtoIdWatch && !editingContrato && (
+                  {!precoSugestao && !precoSugestaoLoading && produtoIdWatch && !editingContrato && tipoPrecoWatch !== "A_FIXAR" && (
                     <p className="text-xs text-amber-600 mt-1">Configure coeficiente/tabela no produto para sugestão de preço.</p>
                   )}
                 </div>
@@ -1192,40 +1267,72 @@ export default function ContratosPage() {
           {/* ABA 3 — Fixação */}
           <TabsContent value="fixacao">
             <div className="space-y-4">
-              {/* Painel resumo */}
-              {editingContrato && (
-                <Card className="border-2 border-amber-500/30 bg-amber-50/30 dark:bg-amber-950/10">
-                  <CardContent className="pt-4">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                      <div>
-                        <p className="text-muted-foreground">Total Entregue</p>
-                        <p className="text-lg font-bold">{editingContrato.quantidadeEntregue.toLocaleString("pt-BR")}</p>
+              {/* Painel resumo com progress bar */}
+              {editingContrato && (() => {
+                const entregue = editingContrato.quantidadeEntregue;
+                const fixadoPerc = entregue > 0 ? Math.min(100, (totalFixado / entregue) * 100) : 0;
+                const unCod = getCodigoUnidade(editingContrato.unidadeNegociacaoId);
+                const simbolo = getSimboloMoeda(editingContrato.moedaId);
+                const moedaCod = getCodigoMoeda(editingContrato.moedaId);
+                return (
+                  <Card className="border-2 border-amber-500/30 bg-amber-50/30 dark:bg-amber-950/10">
+                    <CardContent className="pt-4 space-y-4">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div>
+                          <p className="text-muted-foreground">Total Entregue</p>
+                          <p className="text-lg font-bold">{entregue.toLocaleString("pt-BR")} {unCod}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Total Fixado</p>
+                          <p className="text-lg font-bold">{totalFixado.toLocaleString("pt-BR")} {unCod}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Saldo a Fixar</p>
+                          <p className={`text-lg font-bold ${saldoAFixar > 0 ? "text-amber-600" : "text-primary"}`}>
+                            {saldoAFixar.toLocaleString("pt-BR")} {unCod}
+                            {saldoAFixar > 0 && <span className="ml-1">⚠️</span>}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Preço Médio</p>
+                          <p className="text-lg font-bold">{simbolo} {precoMedioFixado.toFixed(2)}/{unCod}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-muted-foreground">Total Fixado</p>
-                        <p className="text-lg font-bold">{totalFixado.toLocaleString("pt-BR")}</p>
+                      {/* Progress Bar */}
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>Fixado {fixadoPerc.toFixed(0)}% ({totalFixado.toLocaleString("pt-BR")}/{entregue.toLocaleString("pt-BR")} {unCod})</span>
+                          <span>Pendente {(100 - fixadoPerc).toFixed(0)}% ({saldoAFixar.toLocaleString("pt-BR")} {unCod})</span>
+                        </div>
+                        <Progress
+                          value={fixadoPerc}
+                          className={`h-3 ${fixadoPerc >= 100 ? "[&>div]:bg-primary" : fixadoPerc > 0 ? "[&>div]:bg-amber-500" : "[&>div]:bg-muted"}`}
+                        />
                       </div>
-                      <div>
-                        <p className="text-muted-foreground">Saldo a Fixar</p>
-                        <p className={`text-lg font-bold ${saldoAFixar > 0 ? "text-amber-600" : "text-primary"}`}>
-                          {saldoAFixar.toLocaleString("pt-BR")}
-                          {saldoAFixar > 0 && <span className="ml-1">⚠️</span>}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Preço Médio</p>
-                        <p className="text-lg font-bold">{getSimboloMoeda(editingContrato.moedaId)} {precoMedioFixado.toFixed(2)}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+                      {/* Provisões inline summary */}
+                      {precoMedioFixado > 0 && (
+                        <div className="text-xs text-muted-foreground border-t border-border pt-2">
+                          Provisões: <strong>{formatCurrency(precoMedioFixado * totalFixado, moedaCod)}</strong> (fixado)
+                          {saldoAFixar > 0 && <> | Saldo estimado: <strong>{formatCurrency(precoMedioFixado * saldoAFixar, moedaCod)}</strong> (pendente × preço médio)</>}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })()}
 
-              {!viewOnly && (
+              {!viewOnly && saldoAFixar > 0 && (
                 <div className="flex justify-end">
                   <Button size="sm" onClick={openNewFixacao}>
                     <Plus className="mr-2 h-4 w-4" />Nova Fixação
                   </Button>
+                </div>
+              )}
+              {!viewOnly && saldoAFixar <= 0 && editingContrato && editingContrato.quantidadeEntregue > 0 && (
+                <div className="flex justify-end">
+                  <p className="text-xs text-primary font-medium flex items-center gap-1">
+                    <FileCheck className="h-3.5 w-3.5" /> Todo volume fixado — pronto para liquidação
+                  </p>
                 </div>
               )}
               <div className="overflow-auto">
@@ -1233,17 +1340,19 @@ export default function ContratosPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Data</TableHead>
-                      <TableHead className="text-right">Quantidade Fixada</TableHead>
-                      <TableHead className="text-right">Preço</TableHead>
-                      <TableHead>Moeda</TableHead>
+                      <TableHead className="text-right">Volume Fixado</TableHead>
+                      <TableHead className="text-right">Preço Unitário</TableHead>
+                      <TableHead className="text-right">Valor Total</TableHead>
+                      <TableHead>Observações</TableHead>
                       {!viewOnly && <TableHead className="text-right">Ações</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {fixacoes.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={viewOnly ? 4 : 5} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={viewOnly ? 5 : 6} className="text-center py-8 text-muted-foreground">
                           Nenhuma fixação registrada.
+                          {saldoAFixar > 0 && <><br /><span className="text-xs">Clique em "Nova Fixação" para definir preço.</span></>}
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -1252,7 +1361,8 @@ export default function ContratosPage() {
                           <TableCell>{format(new Date(f.dataFixacao), "dd/MM/yyyy HH:mm")}</TableCell>
                           <TableCell className="text-right">{f.quantidadeFixada.toLocaleString("pt-BR")} {getCodigoUnidade(f.unidadeFixacaoId)}</TableCell>
                           <TableCell className="text-right">{getSimboloMoeda(f.moedaId)} {f.precoFixado.toFixed(2)}</TableCell>
-                          <TableCell>{getCodigoMoeda(f.moedaId)}</TableCell>
+                          <TableCell className="text-right font-medium">{formatCurrency(f.quantidadeFixada * f.precoFixado, getCodigoMoeda(f.moedaId))}</TableCell>
+                          <TableCell className="text-muted-foreground text-xs max-w-[150px] truncate">{f.observacoes || "—"}</TableCell>
                           {!viewOnly && (
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-1">
@@ -1710,16 +1820,27 @@ export default function ContratosPage() {
         </Tabs>
       </CrudModal>
 
-      {/* Fixação Modal */}
+      {/* Fixação Modal — com preview dinâmico e validação de saldo */}
       <CrudModal
         open={fixacaoModalOpen}
         onClose={() => setFixacaoModalOpen(false)}
         title={editingFixacao ? "Editar Fixação" : "Nova Fixação"}
         saving={savingFixacao}
         onSave={onSaveFixacao}
-        maxWidth="sm:max-w-xl"
+        maxWidth="sm:max-w-2xl"
       >
         <div className="space-y-4">
+          {/* Saldo info */}
+          {editingContrato && (
+            <div className="rounded-md border border-amber-500/30 bg-amber-50/30 dark:bg-amber-950/10 p-3 text-sm">
+              <div className="flex justify-between">
+                <span>Saldo disponível para fixação:</span>
+                <strong className={saldoAFixar > 0 ? "text-amber-600" : "text-primary"}>
+                  {saldoAFixar.toLocaleString("pt-BR")} {getCodigoUnidade(editingContrato.unidadeNegociacaoId)}
+                </strong>
+              </div>
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label>Data <span className="text-destructive">*</span></Label>
@@ -1739,12 +1860,27 @@ export default function ContratosPage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-1.5">
-              <Label>Quantidade <span className="text-destructive">*</span></Label>
+              <Label>Volume a Fixar <span className="text-destructive">*</span></Label>
               <Input type="number" step="0.000001" {...fixacaoForm.register("quantidadeFixada")} />
+              {(() => {
+                const vol = fixacaoForm.watch("quantidadeFixada") || 0;
+                if (vol > saldoAFixar * 1.05) {
+                  return <p className="text-xs text-destructive">Volume excede saldo disponível (máx {(saldoAFixar * 1.05).toFixed(2)})</p>;
+                }
+                if (vol > saldoAFixar) {
+                  return <p className="text-xs text-amber-600">Over 5% tolerância agro — confirme manual</p>;
+                }
+                return null;
+              })()}
             </div>
             <div className="space-y-1.5">
-              <Label>Preço <span className="text-destructive">*</span></Label>
-              <Input type="number" step="0.000001" {...fixacaoForm.register("precoFixado")} />
+              <Label>Preço Unitário <span className="text-destructive">*</span></Label>
+              <Input type="number" step="0.01" {...fixacaoForm.register("precoFixado")} />
+              {precoSugestao && (
+                <p className="text-xs text-muted-foreground">
+                  Sugerido: {formatCurrency(precoSugestao.valor, moedaCodigo)}
+                </p>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label>Moeda</Label>
@@ -1758,9 +1894,37 @@ export default function ContratosPage() {
               </Select>
             </div>
           </div>
+          {/* Dynamic Preview */}
+          {(() => {
+            const vol = fixacaoForm.watch("quantidadeFixada") || 0;
+            const preco = fixacaoForm.watch("precoFixado") || 0;
+            const fixMoedaId = fixacaoForm.watch("moedaId");
+            const fixMoedaCod = mockMoedas.find((m) => m.id === fixMoedaId)?.codigo ?? "BRL";
+            const total = vol * preco;
+            const custoBase = precoSugestao?.breakdown?.find(b => b.tipo.includes("Custo") || b.tipo.includes("Pago"))?.valor ?? (precoSugestao?.valor ?? 0);
+            const margem = custoBase > 0 ? ((preco - custoBase) / custoBase * 100) : 0;
+            if (vol > 0 && preco > 0) {
+              return (
+                <div className="rounded-md border bg-muted/50 p-3 text-sm space-y-1">
+                  <p className="font-semibold text-xs text-muted-foreground">Preview</p>
+                  <div className="flex justify-between">
+                    <span>{vol.toLocaleString("pt-BR")} × {formatCurrency(preco, fixMoedaCod)}</span>
+                    <strong>{formatCurrency(total, fixMoedaCod)}</strong>
+                  </div>
+                  {custoBase > 0 && (
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Margem sobre custo base ({formatCurrency(custoBase, fixMoedaCod)})</span>
+                      <span className={margem >= 0 ? "text-primary" : "text-destructive"}>{margem.toFixed(1)}%</span>
+                    </div>
+                  )}
+                </div>
+              );
+            }
+            return null;
+          })()}
           <div className="space-y-1.5">
-            <Label>Observações</Label>
-            <Textarea rows={2} {...fixacaoForm.register("observacoes")} />
+            <Label>Observações (motivo da fixação) <span className="text-destructive">*</span></Label>
+            <Textarea rows={2} {...fixacaoForm.register("observacoes")} placeholder="Ex: Fixação com base no mercado B3 do dia..." />
           </div>
         </div>
       </CrudModal>
