@@ -1265,40 +1265,72 @@ export default function ContratosPage() {
           {/* ABA 3 — Fixação */}
           <TabsContent value="fixacao">
             <div className="space-y-4">
-              {/* Painel resumo */}
-              {editingContrato && (
-                <Card className="border-2 border-amber-500/30 bg-amber-50/30 dark:bg-amber-950/10">
-                  <CardContent className="pt-4">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                      <div>
-                        <p className="text-muted-foreground">Total Entregue</p>
-                        <p className="text-lg font-bold">{editingContrato.quantidadeEntregue.toLocaleString("pt-BR")}</p>
+              {/* Painel resumo com progress bar */}
+              {editingContrato && (() => {
+                const entregue = editingContrato.quantidadeEntregue;
+                const fixadoPerc = entregue > 0 ? Math.min(100, (totalFixado / entregue) * 100) : 0;
+                const unCod = getCodigoUnidade(editingContrato.unidadeNegociacaoId);
+                const simbolo = getSimboloMoeda(editingContrato.moedaId);
+                const moedaCod = getCodigoMoeda(editingContrato.moedaId);
+                return (
+                  <Card className="border-2 border-amber-500/30 bg-amber-50/30 dark:bg-amber-950/10">
+                    <CardContent className="pt-4 space-y-4">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div>
+                          <p className="text-muted-foreground">Total Entregue</p>
+                          <p className="text-lg font-bold">{entregue.toLocaleString("pt-BR")} {unCod}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Total Fixado</p>
+                          <p className="text-lg font-bold">{totalFixado.toLocaleString("pt-BR")} {unCod}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Saldo a Fixar</p>
+                          <p className={`text-lg font-bold ${saldoAFixar > 0 ? "text-amber-600" : "text-primary"}`}>
+                            {saldoAFixar.toLocaleString("pt-BR")} {unCod}
+                            {saldoAFixar > 0 && <span className="ml-1">⚠️</span>}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Preço Médio</p>
+                          <p className="text-lg font-bold">{simbolo} {precoMedioFixado.toFixed(2)}/{unCod}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-muted-foreground">Total Fixado</p>
-                        <p className="text-lg font-bold">{totalFixado.toLocaleString("pt-BR")}</p>
+                      {/* Progress Bar */}
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>Fixado {fixadoPerc.toFixed(0)}% ({totalFixado.toLocaleString("pt-BR")}/{entregue.toLocaleString("pt-BR")} {unCod})</span>
+                          <span>Pendente {(100 - fixadoPerc).toFixed(0)}% ({saldoAFixar.toLocaleString("pt-BR")} {unCod})</span>
+                        </div>
+                        <Progress
+                          value={fixadoPerc}
+                          className={`h-3 ${fixadoPerc >= 100 ? "[&>div]:bg-primary" : fixadoPerc > 0 ? "[&>div]:bg-amber-500" : "[&>div]:bg-muted"}`}
+                        />
                       </div>
-                      <div>
-                        <p className="text-muted-foreground">Saldo a Fixar</p>
-                        <p className={`text-lg font-bold ${saldoAFixar > 0 ? "text-amber-600" : "text-primary"}`}>
-                          {saldoAFixar.toLocaleString("pt-BR")}
-                          {saldoAFixar > 0 && <span className="ml-1">⚠️</span>}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Preço Médio</p>
-                        <p className="text-lg font-bold">{getSimboloMoeda(editingContrato.moedaId)} {precoMedioFixado.toFixed(2)}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+                      {/* Provisões inline summary */}
+                      {precoMedioFixado > 0 && (
+                        <div className="text-xs text-muted-foreground border-t border-border pt-2">
+                          Provisões: <strong>{formatCurrency(precoMedioFixado * totalFixado, moedaCod)}</strong> (fixado)
+                          {saldoAFixar > 0 && <> | Saldo estimado: <strong>{formatCurrency(precoMedioFixado * saldoAFixar, moedaCod)}</strong> (pendente × preço médio)</>}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })()}
 
-              {!viewOnly && (
+              {!viewOnly && saldoAFixar > 0 && (
                 <div className="flex justify-end">
                   <Button size="sm" onClick={openNewFixacao}>
                     <Plus className="mr-2 h-4 w-4" />Nova Fixação
                   </Button>
+                </div>
+              )}
+              {!viewOnly && saldoAFixar <= 0 && editingContrato && editingContrato.quantidadeEntregue > 0 && (
+                <div className="flex justify-end">
+                  <p className="text-xs text-primary font-medium flex items-center gap-1">
+                    <FileCheck className="h-3.5 w-3.5" /> Todo volume fixado — pronto para liquidação
+                  </p>
                 </div>
               )}
               <div className="overflow-auto">
@@ -1306,17 +1338,19 @@ export default function ContratosPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Data</TableHead>
-                      <TableHead className="text-right">Quantidade Fixada</TableHead>
-                      <TableHead className="text-right">Preço</TableHead>
-                      <TableHead>Moeda</TableHead>
+                      <TableHead className="text-right">Volume Fixado</TableHead>
+                      <TableHead className="text-right">Preço Unitário</TableHead>
+                      <TableHead className="text-right">Valor Total</TableHead>
+                      <TableHead>Observações</TableHead>
                       {!viewOnly && <TableHead className="text-right">Ações</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {fixacoes.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={viewOnly ? 4 : 5} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={viewOnly ? 5 : 6} className="text-center py-8 text-muted-foreground">
                           Nenhuma fixação registrada.
+                          {saldoAFixar > 0 && <><br /><span className="text-xs">Clique em "Nova Fixação" para definir preço.</span></>}
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -1325,7 +1359,8 @@ export default function ContratosPage() {
                           <TableCell>{format(new Date(f.dataFixacao), "dd/MM/yyyy HH:mm")}</TableCell>
                           <TableCell className="text-right">{f.quantidadeFixada.toLocaleString("pt-BR")} {getCodigoUnidade(f.unidadeFixacaoId)}</TableCell>
                           <TableCell className="text-right">{getSimboloMoeda(f.moedaId)} {f.precoFixado.toFixed(2)}</TableCell>
-                          <TableCell>{getCodigoMoeda(f.moedaId)}</TableCell>
+                          <TableCell className="text-right font-medium">{formatCurrency(f.quantidadeFixada * f.precoFixado, getCodigoMoeda(f.moedaId))}</TableCell>
+                          <TableCell className="text-muted-foreground text-xs max-w-[150px] truncate">{f.observacoes || "—"}</TableCell>
                           {!viewOnly && (
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-1">
