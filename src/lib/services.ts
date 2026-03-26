@@ -1798,13 +1798,20 @@ export const contratoFixacaoService = {
     const contrato = mockContratos.find((c) => c.id === data.contratoId && c.deletadoEm === null);
     if (!contrato) return { sucesso: false, mensagem: "Contrato não encontrado." };
 
-    // Calculate total already fixed
+    // Calculate saldo_a_fixar = entregue - ja_fixado
     const jaFixado = mockContratoFixacoes
       .filter((f) => f.deletadoEm === null && f.contratoId === data.contratoId && f.id !== data.id)
       .reduce((sum, f) => sum + f.quantidadeFixada, 0);
 
-    if (jaFixado + (data.quantidadeFixada ?? 0) > contrato.quantidadeTotal) {
-      return { sucesso: false, mensagem: "Quantidade fixada excede o saldo do contrato." };
+    const saldoDisponivel = contrato.quantidadeEntregue - jaFixado;
+    const volumeSolicitado = data.quantidadeFixada ?? 0;
+
+    if (volumeSolicitado > saldoDisponivel * 1.05) {
+      return { sucesso: false, mensagem: `Volume (${volumeSolicitado}) excede saldo disponível (${saldoDisponivel}). Máx permitido com tolerância 5%: ${(saldoDisponivel * 1.05).toFixed(2)}.` };
+    }
+
+    if (volumeSolicitado > saldoDisponivel) {
+      console.warn(`[AUDIT] Fixação com over 5%: volume ${volumeSolicitado} > saldo ${saldoDisponivel}. Tolerância agro aplicada.`);
     }
 
     const existing = data.id ? mockContratoFixacoes.find((f) => f.id === data.id && f.deletadoEm === null) : undefined;
