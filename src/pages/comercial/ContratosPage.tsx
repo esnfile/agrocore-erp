@@ -486,8 +486,11 @@ export default function ContratosPage() {
     setEditingFixacao(null);
     fixacaoForm.reset({
       dataFixacao: new Date().toISOString().slice(0, 16),
-      quantidadeFixada: 0, unidadeFixacaoId: editingContrato?.unidadeNegociacaoId ?? "",
-      precoFixado: 0, moedaId: editingContrato?.moedaId ?? "moeda1", observacoes: "",
+      quantidadeFixada: saldoAFixar > 0 ? saldoAFixar : 0,
+      unidadeFixacaoId: editingContrato?.unidadeNegociacaoId ?? "",
+      precoFixado: precoSugestao?.valor ?? 0,
+      moedaId: editingContrato?.moedaId ?? "moeda1",
+      observacoes: "",
     });
     setFixacaoModalOpen(true);
   };
