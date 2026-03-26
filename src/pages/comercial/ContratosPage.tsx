@@ -213,9 +213,16 @@ export default function ContratosPage() {
     }
   }, [produtoIdWatch, tipoContratoWatch, editingContrato]);
 
-  // Auto-fill price when product or type changes (only on creation)
+  // Auto-fill price when product or type changes (only on creation, only for FIXO)
   useEffect(() => {
     if (!produtoIdWatch || !empresaId || editingContrato) {
+      setPrecoSugestao(null);
+      return;
+    }
+    // A_FIXAR: price is always 0
+    if (tipoPrecoWatch === "A_FIXAR") {
+      contratoForm.setValue("precoUnitario", 0);
+      setPrecoDisplay("");
       setPrecoSugestao(null);
       return;
     }
@@ -231,7 +238,7 @@ export default function ContratosPage() {
       setPrecoSugestaoLoading(false);
     });
     return () => { cancelled = true; };
-  }, [produtoIdWatch, tipoContratoWatch, empresaId, editingContrato]);
+  }, [produtoIdWatch, tipoContratoWatch, empresaId, editingContrato, tipoPrecoWatch]);
 
   const loadContratos = async () => {
     if (!empresaId) return;
