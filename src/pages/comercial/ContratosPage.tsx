@@ -1818,16 +1818,27 @@ export default function ContratosPage() {
         </Tabs>
       </CrudModal>
 
-      {/* Fixação Modal */}
+      {/* Fixação Modal — com preview dinâmico e validação de saldo */}
       <CrudModal
         open={fixacaoModalOpen}
         onClose={() => setFixacaoModalOpen(false)}
         title={editingFixacao ? "Editar Fixação" : "Nova Fixação"}
         saving={savingFixacao}
         onSave={onSaveFixacao}
-        maxWidth="sm:max-w-xl"
+        maxWidth="sm:max-w-2xl"
       >
         <div className="space-y-4">
+          {/* Saldo info */}
+          {editingContrato && (
+            <div className="rounded-md border border-amber-500/30 bg-amber-50/30 dark:bg-amber-950/10 p-3 text-sm">
+              <div className="flex justify-between">
+                <span>Saldo disponível para fixação:</span>
+                <strong className={saldoAFixar > 0 ? "text-amber-600" : "text-primary"}>
+                  {saldoAFixar.toLocaleString("pt-BR")} {getCodigoUnidade(editingContrato.unidadeNegociacaoId)}
+                </strong>
+              </div>
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label>Data <span className="text-destructive">*</span></Label>
@@ -1847,12 +1858,27 @@ export default function ContratosPage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-1.5">
-              <Label>Quantidade <span className="text-destructive">*</span></Label>
+              <Label>Volume a Fixar <span className="text-destructive">*</span></Label>
               <Input type="number" step="0.000001" {...fixacaoForm.register("quantidadeFixada")} />
+              {(() => {
+                const vol = fixacaoForm.watch("quantidadeFixada") || 0;
+                if (vol > saldoAFixar * 1.05) {
+                  return <p className="text-xs text-destructive">Volume excede saldo disponível (máx {(saldoAFixar * 1.05).toFixed(2)})</p>;
+                }
+                if (vol > saldoAFixar) {
+                  return <p className="text-xs text-amber-600">Over 5% tolerância agro — confirme manual</p>;
+                }
+                return null;
+              })()}
             </div>
             <div className="space-y-1.5">
-              <Label>Preço <span className="text-destructive">*</span></Label>
-              <Input type="number" step="0.000001" {...fixacaoForm.register("precoFixado")} />
+              <Label>Preço Unitário <span className="text-destructive">*</span></Label>
+              <Input type="number" step="0.01" {...fixacaoForm.register("precoFixado")} />
+              {precoSugestao && (
+                <p className="text-xs text-muted-foreground">
+                  Sugerido: {formatCurrency(precoSugestao.valor, moedaCodigo)}
+                </p>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label>Moeda</Label>
@@ -1866,9 +1892,37 @@ export default function ContratosPage() {
               </Select>
             </div>
           </div>
+          {/* Dynamic Preview */}
+          {(() => {
+            const vol = fixacaoForm.watch("quantidadeFixada") || 0;
+            const preco = fixacaoForm.watch("precoFixado") || 0;
+            const fixMoedaId = fixacaoForm.watch("moedaId");
+            const fixMoedaCod = mockMoedas.find((m) => m.id === fixMoedaId)?.codigo ?? "BRL";
+            const total = vol * preco;
+            const custoBase = precoSugestao?.breakdown?.find(b => b.tipo.includes("Custo") || b.tipo.includes("Pago"))?.valor ?? (precoSugestao?.valor ?? 0);
+            const margem = custoBase > 0 ? ((preco - custoBase) / custoBase * 100) : 0;
+            if (vol > 0 && preco > 0) {
+              return (
+                <div className="rounded-md border bg-muted/50 p-3 text-sm space-y-1">
+                  <p className="font-semibold text-xs text-muted-foreground">Preview</p>
+                  <div className="flex justify-between">
+                    <span>{vol.toLocaleString("pt-BR")} × {formatCurrency(preco, fixMoedaCod)}</span>
+                    <strong>{formatCurrency(total, fixMoedaCod)}</strong>
+                  </div>
+                  {custoBase > 0 && (
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Margem sobre custo base ({formatCurrency(custoBase, fixMoedaCod)})</span>
+                      <span className={margem >= 0 ? "text-primary" : "text-destructive"}>{margem.toFixed(1)}%</span>
+                    </div>
+                  )}
+                </div>
+              );
+            }
+            return null;
+          })()}
           <div className="space-y-1.5">
-            <Label>Observações</Label>
-            <Textarea rows={2} {...fixacaoForm.register("observacoes")} />
+            <Label>Observações (motivo da fixação) <span className="text-destructive">*</span></Label>
+            <Textarea rows={2} {...fixacaoForm.register("observacoes")} placeholder="Ex: Fixação com base no mercado B3 do dia..." />
           </div>
         </div>
       </CrudModal>
