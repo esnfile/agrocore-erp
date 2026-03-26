@@ -1557,12 +1557,16 @@ export const contratoService = {
   ): Promise<Contrato> {
     await delay(400);
     const now = new Date().toISOString();
+    // A_FIXAR validation: price must be 0
+    if (data.tipoPreco === "A_FIXAR" && data.precoUnitario && data.precoUnitario !== 0) {
+      data.precoUnitario = 0;
+      console.warn("[AUDIT] Contrato A_FIXAR: preço forçado para 0 (provisório).");
+    }
+
     const existing = data.id ? mockContratos.find((c) => c.id === data.id && c.deletadoEm === null) : undefined;
     if (existing) {
-      // Allow override of numero only if explicitly different (log as critical)
-      if (data.numeroContrato && data.numeroContrato !== existing.numeroContrato) {
-        console.warn(`[AUDIT] Número do contrato alterado manualmente: ${existing.numeroContrato} → ${data.numeroContrato}`);
-      }
+      // Never allow manual numero override
+      delete (data as any).numeroContrato;
       Object.assign(existing, data, {
         grupoId: existing.grupoId, empresaId: existing.empresaId, filialId: existing.filialId,
         criadoEm: existing.criadoEm, criadoPor: existing.criadoPor,
@@ -1570,7 +1574,7 @@ export const contratoService = {
       });
       return existing;
     }
-    // Auto-generate number if not provided
+    // Auto-generate number
     const numeroContrato = this.gerarNumeroContrato(ctx.grupoId);
     // Convert quantity to base
     const produto = mockProdutos.find((p) => p.id === data.produtoId);
