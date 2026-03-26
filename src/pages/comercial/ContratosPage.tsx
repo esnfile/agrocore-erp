@@ -892,7 +892,16 @@ export default function ContratosPage() {
                 </div>
                 <div className="space-y-1.5">
                   <Label>Tipo de Preço <span className="text-destructive">*</span></Label>
-                  <Select value={contratoForm.watch("tipoPreco")} onValueChange={(v) => contratoForm.setValue("tipoPreco", v as any)}>
+                  <Select
+                    value={contratoForm.watch("tipoPreco")}
+                    onValueChange={(v) => {
+                      contratoForm.setValue("tipoPreco", v as any);
+                      if (v === "A_FIXAR") {
+                        contratoForm.setValue("precoUnitario", 0);
+                        setPrecoDisplay("");
+                      }
+                    }}
+                  >
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="FIXO">Fixo</SelectItem>
@@ -902,7 +911,7 @@ export default function ContratosPage() {
                 </div>
               </div>
 
-              {/* Row 4: Moeda + Preço Unitário + Breakdown (3 cols) */}
+              {/* Row 4: Moeda + Preço Unitário + Badge A_FIXAR (3 cols) */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
                   <Label>Moeda <span className="text-destructive">*</span></Label>
@@ -916,37 +925,93 @@ export default function ContratosPage() {
                   </Select>
                 </div>
                 <div className="space-y-1.5 md:col-span-2 lg:col-span-1">
-                  <Label>Preço Unitário <span className="text-destructive">*</span></Label>
-                  <div className="relative">
-                    <Input
-                      type="number"
-                      step="0.01"
-                      {...contratoForm.register("precoUnitario")}
-                      onFocus={handlePrecoFocus}
-                      onBlur={(e) => {
-                        contratoForm.register("precoUnitario").onBlur(e);
-                        handlePrecoBlur();
-                      }}
-                      className={precoDisplay ? "opacity-0 absolute inset-0" : ""}
-                    />
-                    {precoDisplay && (
-                      <div
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm cursor-text"
-                        onClick={() => {
-                          handlePrecoFocus();
-                          const input = document.querySelector<HTMLInputElement>('input[name="precoUnitario"]');
-                          input?.focus();
-                        }}
-                      >
-                        {precoDisplay}
-                      </div>
+                  <div className="flex items-center gap-1.5">
+                    <Label>Preço Unitário {tipoPrecoWatch !== "A_FIXAR" && <span className="text-destructive">*</span>}</Label>
+                    {tipoPrecoWatch === "A_FIXAR" && (
+                      <Tooltip>
+                        <TooltipTrigger type="button"><Info className="h-3.5 w-3.5 text-muted-foreground" /></TooltipTrigger>
+                        <TooltipContent className="max-w-[300px]">
+                          <p className="text-xs">Tipo A FIXAR: Preço pendente para hedge de volume. Após entregas (romaneios), acesse Fixação de Preço para definir valor real. Bloqueia liquidação; gera provisões estimadas.</p>
+                        </TooltipContent>
+                      </Tooltip>
                     )}
                   </div>
-                  {contratoForm.formState.errors.precoUnitario && (
+                  {tipoPrecoWatch === "A_FIXAR" ? (
+                    <Input
+                      value="R$ 0,00"
+                      placeholder="Preço provisório (R$ 0,00) — Fixe após entregas"
+                      disabled
+                      className="bg-muted/50 cursor-not-allowed"
+                    />
+                  ) : (
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        {...contratoForm.register("precoUnitario")}
+                        onFocus={handlePrecoFocus}
+                        onBlur={(e) => {
+                          contratoForm.register("precoUnitario").onBlur(e);
+                          handlePrecoBlur();
+                        }}
+                        className={precoDisplay ? "opacity-0 absolute inset-0" : ""}
+                      />
+                      {precoDisplay && (
+                        <div
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm cursor-text"
+                          onClick={() => {
+                            handlePrecoFocus();
+                            const input = document.querySelector<HTMLInputElement>('input[name="precoUnitario"]');
+                            input?.focus();
+                          }}
+                        >
+                          {precoDisplay}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {contratoForm.formState.errors.precoUnitario && tipoPrecoWatch !== "A_FIXAR" && (
                     <p className="text-xs text-destructive">{contratoForm.formState.errors.precoUnitario.message}</p>
                   )}
-                  {/* Price suggestion badge with breakdown tooltip */}
-                  {precoSugestao && !editingContrato && (
+                  {/* A_FIXAR badge */}
+                  {tipoPrecoWatch === "A_FIXAR" && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-md border border-amber-500/40 bg-amber-50 dark:bg-amber-950/20 px-2.5 py-1.5 text-xs cursor-help">
+                          <Clock className="h-3.5 w-3.5 text-amber-600" />
+                          <span className="text-amber-700 dark:text-amber-400 font-medium">A FIXAR — Pendente</span>
+                          {precoSugestao && (
+                            <span className="text-muted-foreground ml-1">
+                              | Estimado {formatCurrency(precoSugestao.valor, moedaCodigo)}/{getCodigoUnidade(contratoForm.watch("unidadeNegociacaoId"))}
+                            </span>
+                          )}
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="max-w-[340px]">
+                        <div className="space-y-1.5 text-xs">
+                          <p className="font-semibold">Contrato A Fixar</p>
+                          <p>Liquidação bloqueada até fixar. Saldo a fixar atualizado com romaneios.</p>
+                          {precoSugestao && (
+                            <>
+                              <p className="text-muted-foreground">Estimativa baseada no coeficiente/tabela do produto:</p>
+                              {precoSugestao.breakdown.map((b, i) => (
+                                <div key={i} className="flex justify-between gap-4">
+                                  <span>{b.tipo}{b.percentual > 0 ? ` (${b.percentual}%)` : ""}</span>
+                                  <span className="font-mono">{formatCurrency(b.valor, moedaCodigo)}</span>
+                                </div>
+                              ))}
+                              <div className="border-t border-border pt-1 flex justify-between font-semibold">
+                                <span>Total Provisório ({formatCurrency(precoSugestao.valor, moedaCodigo)} × {contratoForm.watch("quantidadeTotal") || 0})</span>
+                                <span className="font-mono">{formatCurrency(precoSugestao.valor * (contratoForm.watch("quantidadeTotal") || 0), moedaCodigo)}</span>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                  {/* Price suggestion badge for FIXO */}
+                  {precoSugestao && !editingContrato && tipoPrecoWatch !== "A_FIXAR" && (
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <div className="mt-1 inline-flex items-center gap-1 rounded-md border border-border bg-muted/60 px-2 py-1 text-xs text-muted-foreground cursor-help">
@@ -974,7 +1039,7 @@ export default function ContratosPage() {
                   {precoSugestaoLoading && (
                     <p className="text-xs text-muted-foreground mt-1">Calculando preço sugerido...</p>
                   )}
-                  {!precoSugestao && !precoSugestaoLoading && produtoIdWatch && !editingContrato && (
+                  {!precoSugestao && !precoSugestaoLoading && produtoIdWatch && !editingContrato && tipoPrecoWatch !== "A_FIXAR" && (
                     <p className="text-xs text-amber-600 mt-1">Configure coeficiente/tabela no produto para sugestão de preço.</p>
                   )}
                 </div>
