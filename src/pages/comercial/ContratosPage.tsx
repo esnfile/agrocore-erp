@@ -213,16 +213,9 @@ export default function ContratosPage() {
     }
   }, [produtoIdWatch, tipoContratoWatch, editingContrato]);
 
-  // Auto-fill price when product or type changes (only on creation, only for FIXO)
+  // Auto-fill price when product or type changes
   useEffect(() => {
-    if (!produtoIdWatch || !empresaId || editingContrato) {
-      setPrecoSugestao(null);
-      return;
-    }
-    // A_FIXAR: price is always 0
-    if (tipoPrecoWatch === "A_FIXAR") {
-      contratoForm.setValue("precoUnitario", 0);
-      setPrecoDisplay("");
+    if (!produtoIdWatch || !empresaId) {
       setPrecoSugestao(null);
       return;
     }
@@ -231,9 +224,15 @@ export default function ContratosPage() {
     produtoService.getPrecoProduto(produtoIdWatch, tipoContratoWatch, empresaId).then((result) => {
       if (cancelled) return;
       setPrecoSugestao(result);
-      if (result && result.valor > 0) {
+      // Only auto-fill price for new contracts with FIXO type
+      if (!editingContrato && tipoPrecoWatch !== "A_FIXAR" && result && result.valor > 0) {
         contratoForm.setValue("precoUnitario", result.valor);
         setPrecoDisplay(formatCurrency(result.valor, moedaCodigo));
+      }
+      // Force price to 0 for A_FIXAR
+      if (tipoPrecoWatch === "A_FIXAR") {
+        contratoForm.setValue("precoUnitario", 0);
+        setPrecoDisplay("");
       }
       setPrecoSugestaoLoading(false);
     });
