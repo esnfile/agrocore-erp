@@ -97,7 +97,7 @@ const fixacaoSchema = z.object({
   unidadeFixacaoId: z.string().min(1, "Unidade é obrigatória"),
   precoFixado: z.coerce.number().positive("Preço deve ser > 0"),
   moedaId: z.string().min(1, "Moeda é obrigatória"),
-  observacoes: z.string().optional(),
+  observacoes: z.string().min(1, "Observações são obrigatórias (motivo da fixação)"),
 });
 type FixacaoForm = z.infer<typeof fixacaoSchema>;
 
