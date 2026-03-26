@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -50,7 +51,7 @@ import type {
   ContratoLiquidacao,
   FinanceiroConta, FinanceiroParcela, FinanceiroBaixa,
 } from "@/lib/mock-data";
-import { Plus, Pencil, Trash2, Eye, Lock, FileCheck, AlertTriangle, ExternalLink, Info } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, Lock, FileCheck, AlertTriangle, ExternalLink, Info, Clock } from "lucide-react";
 import { SearchableSelect, type SearchableOption } from "@/components/SearchableSelect";
 
 // ---- Currency formatting helpers ----
