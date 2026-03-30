@@ -90,6 +90,8 @@ export const grupoService = {
     const existing = data.id ? mockGrupos.find((g) => g.id === data.id && g.deletadoEm === null) : undefined;
     if (existing) {
       existing.nome = (data.nome ?? existing.nome).trim();
+      existing.descricao = data.descricao ?? existing.descricao;
+      existing.ativo = data.ativo ?? existing.ativo;
       existing.atualizadoEm = now;
       existing.atualizadoPor = userId;
       return existing;
@@ -151,20 +153,20 @@ export const empresaService = {
     const userId = "u1";
     const existing = data.id ? mockEmpresas.find((e) => e.id === data.id && e.deletadoEm === null) : undefined;
     if (existing) {
-      Object.assign(existing, data, { atualizadoEm: now, atualizadoPor: userId });
+      existing.nome = (data.nome ?? existing.nome).trim();
+      existing.descricao = data.descricao ?? existing.descricao;
+      existing.ativo = data.ativo ?? existing.ativo;
+      existing.grupoId = data.grupoId ?? existing.grupoId;
+      existing.atualizadoEm = now;
+      existing.atualizadoPor = userId;
       return existing;
     }
     const nova: Empresa = {
       id: `e${Date.now()}`,
       grupoId: data.grupoId ?? "g1",
-      razaoSocial: data.razaoSocial ?? "",
-      nomeFantasia: data.nomeFantasia ?? "",
-      tipoPessoa: data.tipoPessoa ?? "PJ",
-      cpfCnpj: data.cpfCnpj ?? "",
-      inscricaoEstadual: data.inscricaoEstadual ?? "",
-      email: data.email ?? "",
-      telefone: data.telefone ?? "",
-      ativo: true,
+      nome: (data.nome ?? "").trim(),
+      descricao: data.descricao ?? "",
+      ativo: data.ativo ?? true,
       criadoEm: now,
       criadoPor: userId,
       atualizadoEm: now,
@@ -229,15 +231,19 @@ export const filialService = {
     const nova: Filial = {
       id: `f${Date.now()}`,
       empresaId: data.empresaId ?? "",
+      matrizFilial: data.matrizFilial ?? "FILIAL",
       nomeRazao: (data.nomeRazao ?? "").trim(),
       cpfCnpj: (data.cpfCnpj ?? "").trim(),
-      inscricaoEstadual: (data.inscricaoEstadual ?? "").trim(),
-      endereco: (data.endereco ?? "").trim(),
-      numeroKm: (data.numeroKm ?? "").trim(),
-      bairro: (data.bairro ?? "").trim(),
+      ie: (data.ie ?? "").trim(),
+      email: (data.email ?? "").trim(),
+      telefone: (data.telefone ?? "").trim(),
       cep: (data.cep ?? "").trim(),
+      logradouro: (data.logradouro ?? "").trim(),
+      numero: (data.numero ?? "").trim(),
+      complemento: (data.complemento ?? "").trim(),
+      bairro: (data.bairro ?? "").trim(),
       cidade: (data.cidade ?? "").trim(),
-      estado: (data.estado ?? "").trim(),
+      uf: (data.uf ?? "").trim(),
       ativo: data.ativo ?? true,
       criadoEm: now,
       criadoPor: userId,

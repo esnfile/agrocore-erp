@@ -391,7 +391,7 @@ export default function ProdutosPage() {
     setEmpresaRows(
       empresasGrupo.map((emp) => ({
         empresaId: emp.id,
-        empresaNome: emp.nomeFantasia || emp.razaoSocial,
+        empresaNome: emp.nome,
         coeficienteEmpresaId: "",
         custoBase: 0,
         custoCalculado: 0,
@@ -469,7 +469,7 @@ export default function ProdutosPage() {
       rows.push({
         id: pe?.id,
         empresaId: emp.id,
-        empresaNome: emp.nomeFantasia || emp.razaoSocial,
+        empresaNome: emp.nome,
         coeficienteEmpresaId: pe?.coeficienteEmpresaId ?? "",
         custoBase: pe?.custoBase ?? 0,
         custoCalculado: pe?.custoCalculado ?? 0,

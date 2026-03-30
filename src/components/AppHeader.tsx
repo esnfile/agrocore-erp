@@ -105,7 +105,7 @@ export function AppHeader() {
           <SelectContent>
             {empresas.map((e) => (
               <SelectItem key={e.id} value={e.id}>
-                {e.nomeFantasia}
+                {e.nome}
               </SelectItem>
             ))}
           </SelectContent>

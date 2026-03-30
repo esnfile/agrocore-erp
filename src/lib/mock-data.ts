@@ -18,13 +18,8 @@ export interface Grupo {
 export interface Empresa {
   id: string;
   grupoId: string;
-  tipoPessoa: "PF" | "PJ";
-  razaoSocial: string;
-  nomeFantasia: string;
-  cpfCnpj: string;
-  inscricaoEstadual: string;
-  email: string;
-  telefone: string;
+  nome: string;
+  descricao: string;
   ativo: boolean;
   criadoEm: string;
   criadoPor: string;
@@ -37,15 +32,19 @@ export interface Empresa {
 export interface Filial {
   id: string;
   empresaId: string;
+  matrizFilial: "MATRIZ" | "FILIAL";
   nomeRazao: string;
   cpfCnpj: string;
-  inscricaoEstadual: string;
-  endereco: string;
-  numeroKm: string;
-  bairro: string;
+  ie: string;
+  email: string;
+  telefone: string;
   cep: string;
+  logradouro: string;
+  numero: string;
+  complemento: string;
+  bairro: string;
   cidade: string;
-  estado: string;
+  uf: string;
   ativo: boolean;
   criadoEm: string;
   criadoPor: string;
@@ -171,13 +170,8 @@ export const empresas: Empresa[] = [
   {
     id: "e1",
     grupoId: "g1",
-    tipoPessoa: "PJ",
-    razaoSocial: "Fazenda Boa Vista Ltda",
-    nomeFantasia: "Fazenda Boa Vista",
-    cpfCnpj: "12.345.678/0001-90",
-    inscricaoEstadual: "123.456.789",
-    email: "contato@boavista.agro",
-    telefone: "(44) 3333-1111",
+    nome: "Fazenda Boa Vista",
+    descricao: "Empresa agropecuária — produção de grãos e pecuária",
     ativo: true,
     criadoEm: "2024-01-20T08:00:00Z",
     criadoPor: "u1",
@@ -189,13 +183,8 @@ export const empresas: Empresa[] = [
   {
     id: "e2",
     grupoId: "g1",
-    tipoPessoa: "PF",
-    razaoSocial: "João da Silva",
-    nomeFantasia: "Fazenda Silva",
-    cpfCnpj: "123.456.789-00",
-    inscricaoEstadual: "",
-    email: "joao@fazsilva.agro",
-    telefone: "(44) 3333-2222",
+    nome: "Fazenda Silva",
+    descricao: "Fazenda familiar — soja e milho",
     ativo: true,
     criadoEm: "2024-02-10T08:00:00Z",
     criadoPor: "u1",
@@ -211,15 +200,19 @@ export const filiais: Filial[] = [
   {
     id: "f1",
     empresaId: "e1",
+    matrizFilial: "MATRIZ",
     nomeRazao: "Matriz — Maringá",
     cpfCnpj: "12.345.678/0001-90",
-    inscricaoEstadual: "123.456.789",
-    endereco: "Rod. PR-317 Km 12",
-    numeroKm: "Km 12",
-    bairro: "Zona Rural",
+    ie: "123.456.789",
+    email: "contato@boavista.agro",
+    telefone: "(44) 3333-1111",
     cep: "87000-000",
+    logradouro: "Rod. PR-317",
+    numero: "Km 12",
+    complemento: "",
+    bairro: "Zona Rural",
     cidade: "Maringá",
-    estado: "PR",
+    uf: "PR",
     ativo: true,
     criadoEm: "2024-01-20T08:00:00Z",
     criadoPor: "u1",
@@ -231,15 +224,19 @@ export const filiais: Filial[] = [
   {
     id: "f2",
     empresaId: "e1",
+    matrizFilial: "FILIAL",
     nomeRazao: "Filial — Londrina",
     cpfCnpj: "12.345.678/0002-71",
-    inscricaoEstadual: "987.654.321",
-    endereco: "Rod. PR-445 Km 8",
-    numeroKm: "Km 8",
-    bairro: "Distrito Industrial",
+    ie: "987.654.321",
+    email: "londrina@boavista.agro",
+    telefone: "(43) 3333-2222",
     cep: "86000-000",
+    logradouro: "Rod. PR-445",
+    numero: "Km 8",
+    complemento: "",
+    bairro: "Distrito Industrial",
     cidade: "Londrina",
-    estado: "PR",
+    uf: "PR",
     ativo: true,
     criadoEm: "2024-03-01T08:00:00Z",
     criadoPor: "u1",
@@ -251,15 +248,19 @@ export const filiais: Filial[] = [
   {
     id: "f3",
     empresaId: "e2",
+    matrizFilial: "MATRIZ",
     nomeRazao: "Unidade — Campo Mourão",
     cpfCnpj: "98.765.432/0002-00",
-    inscricaoEstadual: "",
-    endereco: "Av. das Indústrias 500",
-    numeroKm: "500",
-    bairro: "Centro",
+    ie: "",
+    email: "joao@fazsilva.agro",
+    telefone: "(44) 3333-3333",
     cep: "87300-000",
+    logradouro: "Av. das Indústrias",
+    numero: "500",
+    complemento: "",
+    bairro: "Centro",
     cidade: "Campo Mourão",
-    estado: "PR",
+    uf: "PR",
     ativo: true,
     criadoEm: "2024-02-15T08:00:00Z",
     criadoPor: "u1",

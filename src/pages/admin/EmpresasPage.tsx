@@ -12,8 +12,9 @@ import { toast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,33 +26,11 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-// ---- Máscaras ----
-function maskCPF(value: string): string {
-  const digits = value.replace(/\D/g, "").slice(0, 11);
-  return digits
-    .replace(/(\d{3})(\d)/, "$1.$2")
-    .replace(/(\d{3})(\d)/, "$1.$2")
-    .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
-}
-
-function maskCNPJ(value: string): string {
-  const digits = value.replace(/\D/g, "").slice(0, 14);
-  return digits
-    .replace(/(\d{2})(\d)/, "$1.$2")
-    .replace(/(\d{3})(\d)/, "$1.$2")
-    .replace(/(\d{3})(\d)/, "$1/$2")
-    .replace(/(\d{4})(\d{1,2})$/, "$1-$2");
-}
-
 const schema = z.object({
   grupoId: z.string().min(1, "Selecione um grupo"),
-  tipoPessoa: z.enum(["PF", "PJ"]),
-  razaoSocial: z.string().min(3, "Mínimo 3 caracteres"),
-  nomeFantasia: z.string().min(2, "Mínimo 2 caracteres"),
-  cpfCnpj: z.string().min(1, "Obrigatório"),
-  inscricaoEstadual: z.string().optional(),
-  email: z.string().email("E-mail inválido"),
-  telefone: z.string().optional(),
+  nome: z.string().min(3, "Mínimo 3 caracteres").max(200, "Máximo 200 caracteres").transform((v) => v.trim()),
+  descricao: z.string().optional(),
+  ativo: z.boolean(),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -70,11 +49,8 @@ export default function EmpresasPage() {
     handleSubmit,
     reset,
     control,
-    watch,
     formState: { errors },
   } = useForm<FormData>({ resolver: zodResolver(schema) });
-
-  const tipoPessoa = watch("tipoPessoa") ?? "PJ";
 
   const columns: Column<Empresa>[] = [
     {
@@ -85,10 +61,8 @@ export default function EmpresasPage() {
         return g?.nome ?? row.grupoId;
       },
     },
-    { key: "nomeFantasia", header: "Nome Fantasia" },
-    { key: "razaoSocial", header: "Nome/Razão Social" },
-    { key: "cpfCnpj", header: "CPF/CNPJ" },
-    { key: "email", header: "E-mail" },
+    { key: "nome", header: "Nome" },
+    { key: "descricao", header: "Descrição" },
     {
       key: "ativo",
       header: "Status",
@@ -116,13 +90,9 @@ export default function EmpresasPage() {
     setEditingId(null);
     reset({
       grupoId: grupoAtual?.id ?? "",
-      tipoPessoa: "PJ",
-      razaoSocial: "",
-      nomeFantasia: "",
-      cpfCnpj: "",
-      inscricaoEstadual: "",
-      email: "",
-      telefone: "",
+      nome: "",
+      descricao: "",
+      ativo: true,
     });
     setModalOpen(true);
   };
@@ -131,13 +101,9 @@ export default function EmpresasPage() {
     setEditingId(row.id);
     reset({
       grupoId: row.grupoId,
-      tipoPessoa: row.tipoPessoa,
-      razaoSocial: row.razaoSocial,
-      nomeFantasia: row.nomeFantasia,
-      cpfCnpj: row.cpfCnpj,
-      inscricaoEstadual: row.inscricaoEstadual,
-      email: row.email,
-      telefone: row.telefone,
+      nome: row.nome,
+      descricao: row.descricao,
+      ativo: row.ativo,
     });
     setModalOpen(true);
   };
@@ -151,7 +117,7 @@ export default function EmpresasPage() {
       });
       toast({
         title: editingId ? "Empresa atualizada" : "Empresa criada",
-        description: `${formData.nomeFantasia} salva com sucesso.`,
+        description: `${formData.nome} salva com sucesso.`,
       });
       setModalOpen(false);
       loadData();
@@ -175,7 +141,7 @@ export default function EmpresasPage() {
       return;
     }
     await empresaService.excluir(deleteTarget.id);
-    toast({ title: "Empresa excluída", description: `${deleteTarget.nomeFantasia} foi removida.` });
+    toast({ title: "Empresa excluída", description: `${deleteTarget.nome} foi removida.` });
     setDeleteTarget(null);
     loadData();
   };
@@ -201,7 +167,7 @@ export default function EmpresasPage() {
       >
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           {/* Grupo */}
-          <div className="space-y-1.5 sm:col-span-2">
+          <div className="space-y-1.5">
             <Label>Grupo <span className="text-destructive">*</span></Label>
             <Controller
               name="grupoId"
@@ -222,83 +188,31 @@ export default function EmpresasPage() {
             {errors.grupoId && <p className="text-xs text-destructive">{errors.grupoId.message}</p>}
           </div>
 
-          {/* Tipo Pessoa */}
+          {/* Ativo */}
+          <div className="space-y-1.5 flex items-end gap-3">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="ativo">Ativo</Label>
+              <Controller
+                name="ativo"
+                control={control}
+                render={({ field }) => (
+                  <Switch id="ativo" checked={field.value} onCheckedChange={field.onChange} />
+                )}
+              />
+            </div>
+          </div>
+
+          {/* Nome */}
           <div className="space-y-1.5 sm:col-span-2">
-            <Label>Tipo de Pessoa</Label>
-            <Controller
-              name="tipoPessoa"
-              control={control}
-              render={({ field }) => (
-                <RadioGroup value={field.value} onValueChange={field.onChange} className="flex gap-4">
-                  <div className="flex items-center gap-2">
-                    <RadioGroupItem value="PJ" id="pj" />
-                    <Label htmlFor="pj" className="font-normal cursor-pointer">Pessoa Jurídica</Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <RadioGroupItem value="PF" id="pf" />
-                    <Label htmlFor="pf" className="font-normal cursor-pointer">Pessoa Física</Label>
-                  </div>
-                </RadioGroup>
-              )}
-            />
+            <Label htmlFor="nome">Nome <span className="text-destructive">*</span></Label>
+            <Input id="nome" maxLength={200} {...register("nome")} />
+            {errors.nome && <p className="text-xs text-destructive">{errors.nome.message}</p>}
           </div>
 
-          {/* Razão Social / Nome */}
-          <div className="space-y-1.5">
-            <Label htmlFor="razaoSocial">
-              {tipoPessoa === "PF" ? "Nome" : "Razão Social"} <span className="text-destructive">*</span>
-            </Label>
-            <Input id="razaoSocial" {...register("razaoSocial")} />
-            {errors.razaoSocial && <p className="text-xs text-destructive">{errors.razaoSocial.message}</p>}
-          </div>
-
-          {/* Nome Fantasia */}
-          <div className="space-y-1.5">
-            <Label htmlFor="nomeFantasia">Nome Fantasia <span className="text-destructive">*</span></Label>
-            <Input id="nomeFantasia" {...register("nomeFantasia")} />
-            {errors.nomeFantasia && <p className="text-xs text-destructive">{errors.nomeFantasia.message}</p>}
-          </div>
-
-          {/* CPF/CNPJ com máscara */}
-          <div className="space-y-1.5">
-            <Label htmlFor="cpfCnpj">
-              {tipoPessoa === "PF" ? "CPF" : "CNPJ"} <span className="text-destructive">*</span>
-            </Label>
-            <Controller
-              name="cpfCnpj"
-              control={control}
-              render={({ field }) => (
-                <Input
-                  id="cpfCnpj"
-                  value={field.value}
-                  onChange={(e) => {
-                    const masked = tipoPessoa === "PF" ? maskCPF(e.target.value) : maskCNPJ(e.target.value);
-                    field.onChange(masked);
-                  }}
-                  placeholder={tipoPessoa === "PF" ? "000.000.000-00" : "00.000.000/0000-00"}
-                />
-              )}
-            />
-            {errors.cpfCnpj && <p className="text-xs text-destructive">{errors.cpfCnpj.message}</p>}
-          </div>
-
-          {/* Inscrição Estadual */}
-          <div className="space-y-1.5">
-            <Label htmlFor="inscricaoEstadual">Inscrição Estadual</Label>
-            <Input id="inscricaoEstadual" {...register("inscricaoEstadual")} />
-          </div>
-
-          {/* Email */}
-          <div className="space-y-1.5">
-            <Label htmlFor="email">E-mail <span className="text-destructive">*</span></Label>
-            <Input id="email" {...register("email")} />
-            {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
-          </div>
-
-          {/* Telefone */}
-          <div className="space-y-1.5">
-            <Label htmlFor="telefone">Telefone</Label>
-            <Input id="telefone" {...register("telefone")} />
+          {/* Descrição */}
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="descricao">Descrição</Label>
+            <Textarea id="descricao" rows={3} {...register("descricao")} />
           </div>
         </div>
       </CrudModal>

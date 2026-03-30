@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
@@ -11,6 +11,9 @@ import type { Grupo } from "@/lib/mock-data";
 import { toast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,8 +29,10 @@ const schema = z.object({
   nome: z
     .string()
     .min(1, "Nome é obrigatório")
-    .max(150, "Máximo 150 caracteres")
+    .max(200, "Máximo 200 caracteres")
     .transform((v) => v.trim()),
+  descricao: z.string().optional(),
+  ativo: z.boolean(),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -44,21 +49,27 @@ export default function GruposPage() {
     register,
     handleSubmit,
     reset,
+    control,
     setError,
     formState: { errors },
   } = useForm<FormData>({ resolver: zodResolver(schema) });
 
   const columns: Column<Grupo>[] = [
     { key: "nome", header: "Nome" },
+    { key: "descricao", header: "Descrição" },
+    {
+      key: "ativo",
+      header: "Status",
+      render: (row) => (
+        <Badge variant={row.ativo ? "default" : "secondary"}>
+          {row.ativo ? "Ativo" : "Inativo"}
+        </Badge>
+      ),
+    },
     {
       key: "criadoEm",
       header: "Criado em",
       render: (row) => format(new Date(row.criadoEm), "dd/MM/yyyy HH:mm"),
-    },
-    {
-      key: "atualizadoEm",
-      header: "Atualizado em",
-      render: (row) => format(new Date(row.atualizadoEm), "dd/MM/yyyy HH:mm"),
     },
   ];
 
@@ -76,18 +87,17 @@ export default function GruposPage() {
 
   const openNew = () => {
     setEditingId(null);
-    reset({ nome: "" });
+    reset({ nome: "", descricao: "", ativo: true });
     setModalOpen(true);
   };
 
   const openEdit = (row: Grupo) => {
     setEditingId(row.id);
-    reset({ nome: row.nome });
+    reset({ nome: row.nome, descricao: row.descricao, ativo: row.ativo });
     setModalOpen(true);
   };
 
   const onSave = handleSubmit(async (formData) => {
-    // Validar duplicidade
     const duplicado = await grupoService.nomeExiste(formData.nome, editingId ?? undefined);
     if (duplicado) {
       setError("nome", { message: "Já existe um grupo com este nome" });
@@ -96,7 +106,12 @@ export default function GruposPage() {
 
     setSaving(true);
     try {
-      await grupoService.salvar({ id: editingId ?? undefined, nome: formData.nome });
+      await grupoService.salvar({
+        id: editingId ?? undefined,
+        nome: formData.nome,
+        descricao: formData.descricao ?? "",
+        ativo: formData.ativo,
+      });
       toast({
         title: editingId ? "Grupo atualizado" : "Grupo criado",
         description: `"${formData.nome}" salvo com sucesso.`,
@@ -143,7 +158,6 @@ export default function GruposPage() {
         onDelete={(row) => setDeleteTarget(row)}
       />
 
-      {/* Modal Cadastro/Edição */}
       <CrudModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
@@ -151,20 +165,35 @@ export default function GruposPage() {
         saving={saving}
         onSave={onSave}
       >
-        <div className="space-y-4" style={{ maxWidth: 600, padding: "0" }}>
-          <div className="space-y-1.5">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <div className="space-y-1.5 sm:col-span-2">
             <Label htmlFor="nome">
               Nome do Grupo <span className="text-destructive">*</span>
             </Label>
-            <Input id="nome" maxLength={150} {...register("nome")} />
+            <Input id="nome" maxLength={200} {...register("nome")} />
             {errors.nome && (
               <p className="text-xs text-destructive">{errors.nome.message}</p>
             )}
           </div>
+
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="descricao">Descrição</Label>
+            <Textarea id="descricao" rows={3} {...register("descricao")} />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Label htmlFor="ativo">Ativo</Label>
+            <Controller
+              name="ativo"
+              control={control}
+              render={({ field }) => (
+                <Switch id="ativo" checked={field.value} onCheckedChange={field.onChange} />
+              )}
+            />
+          </div>
         </div>
       </CrudModal>
 
-      {/* Dialog de confirmação de exclusão */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(v) => !v && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
