@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Check, X } from "lucide-react";
 import {
   empresas,
   descontoTipos as mockDescontoTipos,
@@ -58,12 +58,6 @@ const categoriaLabels: Record<CategoriaDesconto, string> = {
   comercial: "Comercial",
 };
 
-const aplicacaoLabels: Record<AplicacaoDesconto, string> = {
-  contrato: "Contrato",
-  romaneio: "Romaneio",
-  ambos: "Contrato • Romaneio",
-};
-
 // Helpers to convert between AplicacaoDesconto and boolean flags
 function aplicacaoToFlags(a: AplicacaoDesconto): { contrato: boolean; romaneio: boolean } {
   return { contrato: a === "contrato" || a === "ambos", romaneio: a === "romaneio" || a === "ambos" };
@@ -85,7 +79,7 @@ function AplicacaoTags({ value, onChange, disabled }: { value: AplicacaoDesconto
           checked={flags.contrato}
           onCheckedChange={(checked) => {
             const newContrato = !!checked;
-            if (!newContrato && !flags.romaneio) return; // at least one must be selected
+            if (!newContrato && !flags.romaneio) return;
             onChange(flagsToAplicacao(newContrato, flags.romaneio));
           }}
           disabled={disabled}
@@ -111,7 +105,7 @@ function AplicacaoTags({ value, onChange, disabled }: { value: AplicacaoDesconto
 }
 
 const emptyForm: DescontoTipo = {
-  id: "", nome: "", descricao: "", categoria: "tributario", tipo: "percentual", ordemAplicacao: 1, ativo: true,
+  id: "", nome: "", descricao: "", categoria: "tributario", tipo: "percentual", ordemAplicacao: 1, obrigatorio: false, aplicacao: "contrato", ativo: true,
 };
 
 export default function CondicoesDescontosPage() {
@@ -130,18 +124,24 @@ export default function CondicoesDescontosPage() {
   const [editingItem, setEditingItem] = useState<DescontoTipo | null>(null);
   const [form, setForm] = useState<DescontoTipo>(emptyForm);
 
-  // Empresa config editing inside modal
-  const [editingConfig, setEditingConfig] = useState<DescontoEmpresaConfig | null>(null);
-  const [configForm, setConfigForm] = useState<Partial<DescontoEmpresaConfig>>({});
+  // Inline editing for empresa configs
+  const [inlineEditId, setInlineEditId] = useState<string | null>(null);
+  const [inlineForm, setInlineForm] = useState<{ valorPadrao: number; ativo: boolean }>({ valorPadrao: 0, ativo: true });
+
+  // New empresa config form
+  const [showNewConfig, setShowNewConfig] = useState(false);
+  const [newConfigForm, setNewConfigForm] = useState<{ empresaId: string; valorPadrao: number; ativo: boolean }>({ empresaId: "", valorPadrao: 0, ativo: true });
 
   const empresaAtivas = empresas.filter(e => !e.deletadoEm);
-
   const getEmpresaNome = (id: string) => empresaAtivas.find(e => e.id === id)?.nome ?? id;
 
-  // Build a flat list joining descontos with their empresa configs for the main table
+  // Build listing joining descontos with their empresa configs
   const listagem = useMemo(() => {
     let items = descontos.filter(d => !filtroStatus || filtroStatus === "todos" || (filtroStatus === "ativo" ? d.ativo : !d.ativo));
     if (filtroTipo && filtroTipo !== "todos") items = items.filter(d => d.tipo === filtroTipo);
+    if (filtroAplicacao && filtroAplicacao !== "todos") {
+      items = items.filter(d => d.aplicacao === filtroAplicacao || d.aplicacao === "ambos");
+    }
 
     return items.map(d => {
       const configs = empresaConfigs.filter(c => c.descontoTipoId === d.id);
@@ -149,10 +149,6 @@ export default function CondicoesDescontosPage() {
 
       if (filtroEmpresa && filtroEmpresa !== "todos") {
         if (!empresasVinculadas.includes(filtroEmpresa)) return null;
-      }
-      if (filtroAplicacao && filtroAplicacao !== "todos") {
-        const hasApp = configs.some(c => c.aplicacao === filtroAplicacao || c.aplicacao === "ambos");
-        if (!hasApp) return null;
       }
 
       const mainConfig = filtroEmpresa && filtroEmpresa !== "todos"
@@ -163,8 +159,6 @@ export default function CondicoesDescontosPage() {
         ...d,
         empresaNome: mainConfig ? getEmpresaNome(mainConfig.empresaId) : "—",
         valorPadrao: mainConfig?.valorPadrao ?? 0,
-        aplicacao: mainConfig?.aplicacao ?? "—",
-        obrigatorio: mainConfig?.obrigatorio ?? false,
         totalEmpresas: configs.length,
       };
     }).filter(Boolean);
@@ -174,6 +168,8 @@ export default function CondicoesDescontosPage() {
     setEditingItem(null);
     setForm({ ...emptyForm, ordemAplicacao: descontos.length + 1 });
     setModalTab("basicos");
+    setInlineEditId(null);
+    setShowNewConfig(false);
     setModalOpen(true);
   };
 
@@ -181,10 +177,18 @@ export default function CondicoesDescontosPage() {
     setEditingItem(item);
     setForm({ ...item });
     setModalTab("basicos");
+    setInlineEditId(null);
+    setShowNewConfig(false);
     setModalOpen(true);
   };
 
+  const hasInlineEditing = inlineEditId !== null;
+
   const handleSave = () => {
+    if (hasInlineEditing) {
+      toast.error("Finalize a edição da configuração por empresa antes de salvar o tipo de desconto.");
+      return;
+    }
     if (!form.nome.trim()) { toast.error("Nome é obrigatório"); return; }
     if (editingItem) {
       setDescontos(prev => prev.map(d => d.id === editingItem.id ? { ...form } : d));
@@ -203,30 +207,43 @@ export default function CondicoesDescontosPage() {
     toast.success("Tipo de desconto removido");
   };
 
-  // Empresa config CRUD within modal
+  // Empresa config CRUD
   const configsForCurrent = editingItem ? empresaConfigs.filter(c => c.descontoTipoId === editingItem.id) : [];
 
-  const saveConfig = () => {
-    if (!configForm.empresaId) { toast.error("Selecione uma empresa"); return; }
-    if (editingConfig) {
-      setEmpresaConfigs(prev => prev.map(c => c.id === editingConfig.id ? { ...editingConfig, ...configForm } as DescontoEmpresaConfig : c));
-      toast.success("Configuração atualizada");
-    } else {
-      const newCfg: DescontoEmpresaConfig = {
-        id: `dec${Date.now()}`,
-        descontoTipoId: editingItem!.id,
-        empresaId: configForm.empresaId!,
-        valorPadrao: configForm.valorPadrao ?? 0,
-        obrigatorio: configForm.obrigatorio ?? false,
-        aplicacao: (configForm.aplicacao as AplicacaoDesconto) ?? "contrato",
-        ativo: configForm.ativo ?? true,
-        observacoes: configForm.observacoes ?? "",
-      };
-      setEmpresaConfigs(prev => [...prev, newCfg]);
-      toast.success("Empresa vinculada");
+  const saveNewConfig = () => {
+    if (!newConfigForm.empresaId) { toast.error("Selecione uma empresa"); return; }
+    if (configsForCurrent.some(c => c.empresaId === newConfigForm.empresaId)) {
+      toast.error("Esta empresa já está vinculada");
+      return;
     }
-    setEditingConfig(null);
-    setConfigForm({});
+    const newCfg: DescontoEmpresaConfig = {
+      id: `dec${Date.now()}`,
+      descontoTipoId: editingItem!.id,
+      empresaId: newConfigForm.empresaId,
+      valorPadrao: newConfigForm.valorPadrao,
+      ativo: newConfigForm.ativo,
+    };
+    setEmpresaConfigs(prev => [...prev, newCfg]);
+    toast.success("Empresa vinculada");
+    setShowNewConfig(false);
+    setNewConfigForm({ empresaId: "", valorPadrao: 0, ativo: true });
+  };
+
+  const startInlineEdit = (cfg: DescontoEmpresaConfig) => {
+    setInlineEditId(cfg.id);
+    setInlineForm({ valorPadrao: cfg.valorPadrao, ativo: cfg.ativo });
+    setShowNewConfig(false);
+  };
+
+  const saveInlineEdit = () => {
+    if (!inlineEditId) return;
+    setEmpresaConfigs(prev => prev.map(c => c.id === inlineEditId ? { ...c, valorPadrao: inlineForm.valorPadrao, ativo: inlineForm.ativo } : c));
+    toast.success("Configuração atualizada");
+    setInlineEditId(null);
+  };
+
+  const cancelInlineEdit = () => {
+    setInlineEditId(null);
   };
 
   const deleteConfig = (id: string) => {
@@ -302,16 +319,8 @@ export default function CondicoesDescontosPage() {
             <div className="line-clamp-2 min-w-[200px]" title={row.descricao}>{row.descricao}</div>
           )},
           { key: "categoria", header: "Categoria", render: (row) => categoriaLabels[row.categoria as CategoriaDesconto] ?? row.categoria },
-          { key: "empresaNome", header: "Empresa", render: (row) => (
-            <span>{row.empresaNome} {row.totalEmpresas > 1 && <span className="text-xs text-muted-foreground ml-1">(+{row.totalEmpresas - 1})</span>}</span>
-          )},
-          { key: "valorPadrao", header: "Valor Padrão", render: (row) => {
-            if (row.tipo === "percentual") return `${row.valorPadrao.toFixed(2)}%`;
-            return `R$ ${row.valorPadrao.toFixed(2)}`;
-          }},
           { key: "aplicacao", header: "Aplicação", render: (row) => {
-            const a = row.aplicacao as AplicacaoDesconto;
-            const flags = aplicacaoToFlags(a);
+            const flags = aplicacaoToFlags(row.aplicacao as AplicacaoDesconto);
             return (
               <div className="flex gap-1">
                 {flags.contrato && <Badge variant="outline" className="text-xs">Contrato</Badge>}
@@ -322,6 +331,13 @@ export default function CondicoesDescontosPage() {
           { key: "obrigatorio", header: "Obrigatório", render: (row) => (
             <Badge variant={row.obrigatorio ? "default" : "outline"}>{row.obrigatorio ? "Sim" : "Não"}</Badge>
           )},
+          { key: "empresaNome", header: "Empresa", render: (row) => (
+            <span>{row.empresaNome} {row.totalEmpresas > 1 && <span className="text-xs text-muted-foreground ml-1">(+{row.totalEmpresas - 1})</span>}</span>
+          )},
+          { key: "valorPadrao", header: "Valor Padrão", render: (row) => {
+            if (row.tipo === "percentual") return `${row.valorPadrao.toFixed(2)}%`;
+            return `R$ ${row.valorPadrao.toFixed(2)}`;
+          }},
           { key: "ativo", header: "Status", render: (row) => (
             <Badge variant={row.ativo ? "default" : "secondary"}>{row.ativo ? "Ativo" : "Inativo"}</Badge>
           )},
@@ -337,7 +353,7 @@ export default function CondicoesDescontosPage() {
       {/* Modal with 3 tabs */}
       <CrudModal
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={() => { if (hasInlineEditing) { toast.error("Finalize a edição da configuração antes de fechar."); return; } setModalOpen(false); }}
         title={editingItem ? `Editar: ${editingItem.nome}` : "Novo Tipo de Desconto"}
         onSave={handleSave}
         maxWidth="sm:max-w-4xl"
@@ -394,61 +410,62 @@ export default function CondicoesDescontosPage() {
               <Label>Descrição</Label>
               <Textarea value={form.descricao} onChange={e => setForm(prev => ({ ...prev, descricao: e.target.value }))} rows={3} placeholder="Descrição detalhada do tipo de desconto..." />
             </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+              <div className="space-y-2">
+                <Label>Aplicação</Label>
+                <AplicacaoTags
+                  value={form.aplicacao}
+                  onChange={v => setForm(prev => ({ ...prev, aplicacao: v }))}
+                />
+              </div>
+              <div className="flex items-end gap-3 pb-0.5">
+                <Switch
+                  id="obrigatorio"
+                  checked={form.obrigatorio}
+                  onCheckedChange={v => setForm(prev => ({ ...prev, obrigatorio: v }))}
+                />
+                <Label htmlFor="obrigatorio">Obrigatório</Label>
+              </div>
+            </div>
           </TabsContent>
 
           {/* Tab: Config por Empresa */}
           <TabsContent value="empresas" className="space-y-4">
             <div className="flex justify-end">
               <Button size="sm" variant="outline" onClick={() => {
-                setEditingConfig(null);
-                setConfigForm({ empresaId: "", valorPadrao: 0, obrigatorio: false, aplicacao: "contrato", ativo: true, observacoes: "" });
+                if (hasInlineEditing) { toast.error("Finalize a edição em andamento antes de vincular nova empresa."); return; }
+                setShowNewConfig(true);
+                setNewConfigForm({ empresaId: "", valorPadrao: 0, ativo: true });
               }}>
                 <Plus className="h-4 w-4 mr-1" /> Vincular Empresa
               </Button>
             </div>
 
-            {configForm.empresaId !== undefined && !editingConfig && (
+            {showNewConfig && (
               <div className="border rounded-md p-4 space-y-3 bg-muted/30">
                 <p className="text-sm font-medium">Nova Configuração</p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs">Empresa *</Label>
                     <SearchableSelect
-                      value={configForm.empresaId ?? ""}
-                      onChange={v => setConfigForm(prev => ({ ...prev, empresaId: v }))}
+                      value={newConfigForm.empresaId}
+                      onChange={v => setNewConfigForm(prev => ({ ...prev, empresaId: v }))}
                       placeholder="Selecione"
                       options={empresaAtivas.map(e => ({ id: e.id, label: e.nome }))}
                     />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Valor Padrão</Label>
-                    <Input type="number" step="0.01" value={configForm.valorPadrao ?? 0} onChange={e => setConfigForm(prev => ({ ...prev, valorPadrao: Number(e.target.value) }))} />
+                    <Input type="number" step="0.01" value={newConfigForm.valorPadrao} onChange={e => setNewConfigForm(prev => ({ ...prev, valorPadrao: Number(e.target.value) }))} />
                   </div>
-                   <div className="space-y-1">
-                    <Label className="text-xs">Aplicação</Label>
-                    <AplicacaoTags
-                      value={(configForm.aplicacao as AplicacaoDesconto) ?? "contrato"}
-                      onChange={v => setConfigForm(prev => ({ ...prev, aplicacao: v }))}
-                    />
-                  </div>
-                </div>
-                <div className="flex items-center gap-6">
-                  <div className="flex items-center gap-2">
-                    <Switch checked={configForm.obrigatorio ?? false} onCheckedChange={v => setConfigForm(prev => ({ ...prev, obrigatorio: v }))} />
-                    <Label className="text-xs">Obrigatório</Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Switch checked={configForm.ativo ?? true} onCheckedChange={v => setConfigForm(prev => ({ ...prev, ativo: v }))} />
+                  <div className="flex items-end gap-3 pb-0.5">
+                    <Switch checked={newConfigForm.ativo} onCheckedChange={v => setNewConfigForm(prev => ({ ...prev, ativo: v }))} />
                     <Label className="text-xs">Ativo</Label>
                   </div>
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Observações</Label>
-                  <Input value={configForm.observacoes ?? ""} onChange={e => setConfigForm(prev => ({ ...prev, observacoes: e.target.value }))} placeholder="Observações..." />
-                </div>
                 <div className="flex gap-2 justify-end">
-                  <Button size="sm" variant="outline" onClick={() => setConfigForm({})}>Cancelar</Button>
-                  <Button size="sm" onClick={saveConfig}>Salvar</Button>
+                  <Button size="sm" variant="outline" onClick={() => setShowNewConfig(false)}>Cancelar</Button>
+                  <Button size="sm" onClick={saveNewConfig}>Salvar</Button>
                 </div>
               </div>
             )}
@@ -458,85 +475,68 @@ export default function CondicoesDescontosPage() {
                 <TableRow>
                   <TableHead>Empresa</TableHead>
                   <TableHead>Valor Padrão</TableHead>
-                  <TableHead>Obrigatório</TableHead>
-                  <TableHead>Aplicação</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Observações</TableHead>
-                  <TableHead>Ações</TableHead>
+                  <TableHead className="w-24">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {configsForCurrent.length === 0 && (
-                  <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Nenhuma empresa vinculada</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Nenhuma empresa vinculada</TableCell></TableRow>
                 )}
-                {configsForCurrent.map(cfg => (
-                  <>
+                {configsForCurrent.map(cfg => {
+                  const isEditing = inlineEditId === cfg.id;
+                  return (
                     <TableRow key={cfg.id}>
                       <TableCell className="font-medium">{getEmpresaNome(cfg.empresaId)}</TableCell>
                       <TableCell>
-                        {form.tipo === "percentual" ? `${cfg.valorPadrao.toFixed(2)}%` : `R$ ${cfg.valorPadrao.toFixed(2)}`}
+                        {isEditing ? (
+                          <Input
+                            type="number"
+                            step="0.01"
+                            className="h-8 w-32"
+                            value={inlineForm.valorPadrao}
+                            onChange={e => setInlineForm(prev => ({ ...prev, valorPadrao: Number(e.target.value) }))}
+                          />
+                        ) : (
+                          form.tipo === "percentual" ? `${cfg.valorPadrao.toFixed(2)}%` : `R$ ${cfg.valorPadrao.toFixed(2)}`
+                        )}
                       </TableCell>
-                      <TableCell><Badge variant={cfg.obrigatorio ? "default" : "outline"}>{cfg.obrigatorio ? "Sim" : "Não"}</Badge></TableCell>
+                      <TableCell>
+                        {isEditing ? (
+                          <Switch
+                            checked={inlineForm.ativo}
+                            onCheckedChange={v => setInlineForm(prev => ({ ...prev, ativo: v }))}
+                          />
+                        ) : (
+                          <Badge variant={cfg.ativo ? "default" : "secondary"}>{cfg.ativo ? "Ativo" : "Inativo"}</Badge>
+                        )}
+                      </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
-                          {aplicacaoToFlags(cfg.aplicacao).contrato && <Badge variant="outline" className="text-xs">Contrato</Badge>}
-                          {aplicacaoToFlags(cfg.aplicacao).romaneio && <Badge variant="outline" className="text-xs">Romaneio</Badge>}
-                        </div>
-                      </TableCell>
-                      <TableCell><Badge variant={cfg.ativo ? "default" : "secondary"}>{cfg.ativo ? "Ativo" : "Inativo"}</Badge></TableCell>
-                      <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">{cfg.observacoes || "—"}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <Button size="icon" variant="ghost" onClick={() => {
-                            setEditingConfig(cfg);
-                            setConfigForm({ ...cfg });
-                          }}><Pencil className="h-3.5 w-3.5" /></Button>
-                          <Button size="icon" variant="ghost" onClick={() => deleteConfig(cfg.id)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+                          {isEditing ? (
+                            <>
+                              <Button size="icon" variant="ghost" className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50" onClick={saveInlineEdit}>
+                                <Check className="h-4 w-4" />
+                              </Button>
+                              <Button size="icon" variant="ghost" className="h-8 w-8 hover:text-destructive hover:bg-destructive/10" onClick={cancelInlineEdit}>
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => startInlineEdit(cfg)} disabled={hasInlineEditing}>
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => deleteConfig(cfg.id)} disabled={hasInlineEditing}>
+                                <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
-                    {editingConfig?.id === cfg.id && (
-                      <TableRow key={`edit-${cfg.id}`}>
-                        <TableCell colSpan={7} className="bg-muted/30 p-4">
-                          <div className="space-y-3">
-                            <p className="text-sm font-medium">Editando: {getEmpresaNome(editingConfig.empresaId)}</p>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                              <div className="space-y-1">
-                                <Label className="text-xs">Valor Padrão</Label>
-                                <Input type="number" step="0.01" value={configForm.valorPadrao ?? 0} onChange={e => setConfigForm(prev => ({ ...prev, valorPadrao: Number(e.target.value) }))} />
-                              </div>
-                              <div className="space-y-1">
-                                <Label className="text-xs">Aplicação</Label>
-                                <AplicacaoTags
-                                  value={configForm.aplicacao as AplicacaoDesconto}
-                                  onChange={v => setConfigForm(prev => ({ ...prev, aplicacao: v }))}
-                                />
-                              </div>
-                              <div className="flex items-center gap-4 pt-5">
-                                <div className="flex items-center gap-2">
-                                  <Switch checked={configForm.obrigatorio ?? false} onCheckedChange={v => setConfigForm(prev => ({ ...prev, obrigatorio: v }))} />
-                                  <Label className="text-xs">Obrigatório</Label>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Switch checked={configForm.ativo ?? true} onCheckedChange={v => setConfigForm(prev => ({ ...prev, ativo: v }))} />
-                                  <Label className="text-xs">Ativo</Label>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="space-y-1">
-                              <Label className="text-xs">Observações</Label>
-                              <Input value={configForm.observacoes ?? ""} onChange={e => setConfigForm(prev => ({ ...prev, observacoes: e.target.value }))} />
-                            </div>
-                            <div className="flex gap-2 justify-end">
-                              <Button size="sm" variant="outline" className="hover:bg-destructive/10 hover:text-destructive hover:border-destructive" onClick={() => { setEditingConfig(null); setConfigForm({}); }}>Cancelar</Button>
-                              <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={saveConfig}>Salvar</Button>
-                            </div>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </TabsContent>

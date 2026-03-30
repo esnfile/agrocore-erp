@@ -136,7 +136,7 @@ export default function ContratosPage() {
   
   // Filter only descontos applicable to contracts (contrato or ambos)
   const officialDescontosContrato = useMemo(() => 
-    officialDescontos.filter(d => d.aplicacao === "contrato" || d.aplicacao === "ambos"),
+    officialDescontos.filter(d => d.descontoTipo.aplicacao === "contrato" || d.descontoTipo.aplicacao === "ambos"),
     [officialDescontos]
   );
 
@@ -512,7 +512,7 @@ export default function ContratosPage() {
 
     // Validate mandatory descontos are applied (only for editing, when tab is available)
     if (editingContrato) {
-      const obrigatoriosContrato = officialDescontosContrato.filter(d => d.obrigatorio && d.ativo);
+      const obrigatoriosContrato = officialDescontosContrato.filter(d => d.descontoTipo.obrigatorio && d.ativo);
       const naoAplicados = obrigatoriosContrato.filter(cfg => 
         !condicoes.some(c => c.descricao.toUpperCase().includes(cfg.descontoTipo.nome.toUpperCase()))
       );
@@ -1672,8 +1672,8 @@ export default function ContratosPage() {
                               </TableCell>
                               <TableCell>
                                 <div className="flex gap-1">
-                                  {(cfg.aplicacao === "contrato" || cfg.aplicacao === "ambos") && <Badge variant="outline" className="text-xs">Contrato</Badge>}
-                                  {(cfg.aplicacao === "romaneio" || cfg.aplicacao === "ambos") && <Badge variant="outline" className="text-xs">Romaneio</Badge>}
+                                  {(dt.aplicacao === "contrato" || dt.aplicacao === "ambos") && <Badge variant="outline" className="text-xs">Contrato</Badge>}
+                                  {(dt.aplicacao === "romaneio" || dt.aplicacao === "ambos") && <Badge variant="outline" className="text-xs">Romaneio</Badge>}
                                 </div>
                               </TableCell>
                               <TableCell className="text-right">
@@ -1682,7 +1682,7 @@ export default function ContratosPage() {
                                   : `R$ ${cfg.valorPadrao.toFixed(2)}`}
                               </TableCell>
                               <TableCell>
-                                {cfg.obrigatorio ? (
+                                {dt.obrigatorio ? (
                                   <Badge variant="default" className="gap-1">
                                     <Lock className="h-3 w-3" /> Sim
                                   </Badge>
@@ -1712,7 +1712,7 @@ export default function ContratosPage() {
                                             tipo: dt.tipo === "percentual" ? "PERCENTUAL" : "VALOR_FIXO",
                                             valor: cfg.valorPadrao,
                                             ordemCalculo: dt.ordemAplicacao,
-                                            automatico: cfg.obrigatorio,
+                                            automatico: dt.obrigatorio,
                                           },
                                           { grupoId, empresaId: empresaIdWatch || empresaId, filialId: editingContrato.filialId }
                                         );
