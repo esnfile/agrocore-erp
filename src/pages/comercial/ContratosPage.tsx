@@ -886,9 +886,9 @@ export default function ContratosPage() {
           {/* ABA 1 — Dados */}
           <TabsContent value="dados">
             <TooltipProvider delayDuration={200}>
-            <fieldset disabled={viewOnly} className="space-y-5">
+            <fieldset disabled={viewOnly} className="space-y-6">
               {/* Row 0: Empresa + Filial (2 cols) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-1.5">
                   <Label>Empresa <span className="text-destructive">*</span></Label>
                   <Select
