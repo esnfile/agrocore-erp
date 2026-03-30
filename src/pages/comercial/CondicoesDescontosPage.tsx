@@ -424,16 +424,12 @@ export default function CondicoesDescontosPage() {
                     <Label className="text-xs">Valor Padrão</Label>
                     <Input type="number" step="0.01" value={configForm.valorPadrao ?? 0} onChange={e => setConfigForm(prev => ({ ...prev, valorPadrao: Number(e.target.value) }))} />
                   </div>
-                  <div className="space-y-1">
+                   <div className="space-y-1">
                     <Label className="text-xs">Aplicação</Label>
-                    <Select value={configForm.aplicacao as string ?? "contrato"} onValueChange={v => setConfigForm(prev => ({ ...prev, aplicacao: v as AplicacaoDesconto }))}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="contrato">Contrato</SelectItem>
-                        <SelectItem value="romaneio">Romaneio</SelectItem>
-                        <SelectItem value="ambos">Ambos</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <AplicacaoTags
+                      value={(configForm.aplicacao as AplicacaoDesconto) ?? "contrato"}
+                      onChange={v => setConfigForm(prev => ({ ...prev, aplicacao: v }))}
+                    />
                   </div>
                 </div>
                 <div className="flex items-center gap-6">
