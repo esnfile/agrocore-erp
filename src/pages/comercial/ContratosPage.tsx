@@ -1821,6 +1821,7 @@ export default function ContratosPage() {
                 )}
               </div>
             </div>
+            </TooltipProvider>
           </TabsContent>
 
           {/* ABA 6 — Liquidação */}
