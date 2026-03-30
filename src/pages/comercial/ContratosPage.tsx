@@ -133,6 +133,12 @@ export default function ContratosPage() {
   
   // Official discount types for contract
   const [officialDescontos, setOfficialDescontos] = useState<(DescontoEmpresaConfig & { descontoTipo: DescontoTipo })[]>([]);
+  
+  // Filter only descontos applicable to contracts (contrato or ambos)
+  const officialDescontosContrato = useMemo(() => 
+    officialDescontos.filter(d => d.aplicacao === "contrato" || d.aplicacao === "ambos"),
+    [officialDescontos]
+  );
 
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
