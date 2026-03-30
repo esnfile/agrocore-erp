@@ -29,7 +29,8 @@ import SafrasPage from "@/pages/fazenda/SafrasPage";
 import CultivosPage from "@/pages/fazenda/CultivosPage";
 import RomaneiosColheitasPage from "@/pages/fazenda/RomaneiosColheitasPage";
 import ContratosPage from "@/pages/comercial/ContratosPage";
-import ModelosCondicoesPage from "@/pages/comercial/ModelosCondicoesPage";
+import CondicoesDescontosPage from "@/pages/comercial/CondicoesDescontosPage";
+import MoedasCotacoesPage from "@/pages/comercial/MoedasCotacoesPage";
 import ClassificacaoTiposPage from "@/pages/produtos-estoque/ClassificacaoTiposPage";
 import ContasFinanceiroPage from "@/pages/financeiro/ContasPage";
 import FluxoCaixaPage from "@/pages/financeiro/FluxoCaixaPage";
@@ -79,7 +80,8 @@ const App = () => (
               <Route path="/fazenda/romaneios-colheitas" element={<RomaneiosColheitasPage />} />
               {/* Comercial */}
               <Route path="/comercial/contratos" element={<ContratosPage />} />
-              <Route path="/comercial/modelos-condicoes" element={<ModelosCondicoesPage />} />
+              <Route path="/comercial/condicoes-descontos" element={<CondicoesDescontosPage />} />
+              <Route path="/comercial/moedas-cotacoes" element={<MoedasCotacoesPage />} />
               {/* Financeiro */}
               <Route path="/financeiro/contas" element={<ContasFinanceiroPage />} />
               <Route path="/financeiro/fluxo-caixa" element={<FluxoCaixaPage />} />
