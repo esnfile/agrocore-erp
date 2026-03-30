@@ -192,10 +192,17 @@ export const modules: Module[] = [
     items: [
       { title: "Contratos", url: "/comercial/contratos", icon: FileText },
       {
-        title: "Tabelas",
-        icon: Layers,
+        title: "Gestão de Descontos",
+        icon: Tags,
         children: [
-          { title: "Modelos de Condições", url: "/comercial/modelos-condicoes", icon: Table2 },
+          { title: "Condições e Descontos", url: "/comercial/condicoes-descontos", icon: Table2 },
+        ],
+      },
+      {
+        title: "Configurações Gerais",
+        icon: Settings,
+        children: [
+          { title: "Moedas e Cotações", url: "/comercial/moedas-cotacoes", icon: DollarSign },
         ],
       },
     ],
