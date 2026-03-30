@@ -29,15 +29,19 @@ import {
 
 const schema = z.object({
   empresaId: z.string().min(1, "Selecione uma empresa"),
-  nomeRazao: z.string().min(3, "Mínimo 3 caracteres"),
-  cpfCnpj: z.string().min(1, "Obrigatório"),
-  inscricaoEstadual: z.string().optional(),
-  endereco: z.string().optional(),
-  numeroKm: z.string().optional(),
-  bairro: z.string().optional(),
-  cep: z.string().max(10, "Máximo 10 caracteres").optional(),
-  cidade: z.string().optional(),
-  estado: z.string().length(2, "UF deve ter 2 caracteres"),
+  matrizFilial: z.enum(["MATRIZ", "FILIAL"], { required_error: "Selecione o tipo" }),
+  nomeRazao: z.string().min(3, "Mínimo 3 caracteres").max(200, "Máximo 200 caracteres"),
+  cpfCnpj: z.string().min(1, "Obrigatório").max(18, "Máximo 18 caracteres"),
+  ie: z.string().max(30, "Máximo 30 caracteres").optional(),
+  email: z.string().max(320, "Máximo 320 caracteres").optional(),
+  telefone: z.string().max(20, "Máximo 20 caracteres").optional(),
+  cep: z.string().max(9, "Máximo 9 caracteres").optional(),
+  logradouro: z.string().max(200, "Máximo 200 caracteres").optional(),
+  numero: z.string().max(20, "Máximo 20 caracteres").optional(),
+  complemento: z.string().max(100, "Máximo 100 caracteres").optional(),
+  bairro: z.string().max(100, "Máximo 100 caracteres").optional(),
+  cidade: z.string().max(100, "Máximo 100 caracteres").optional(),
+  uf: z.string().length(2, "UF deve ter 2 caracteres"),
   ativo: z.boolean(),
 });
 
@@ -71,16 +75,25 @@ export default function FiliaisPage() {
       header: "Empresa",
       render: (row) => {
         const emp = empresas.find((e) => e.id === row.empresaId);
-        return emp?.nomeFantasia ?? row.empresaId;
+        return emp?.nome ?? row.empresaId;
       },
+    },
+    {
+      key: "matrizFilial",
+      header: "Tipo",
+      render: (row) => (
+        <Badge variant={row.matrizFilial === "MATRIZ" ? "default" : "outline"}>
+          {row.matrizFilial}
+        </Badge>
+      ),
     },
     { key: "nomeRazao", header: "Nome/Razão Social" },
     { key: "cpfCnpj", header: "CPF/CNPJ" },
     { key: "cidade", header: "Cidade" },
-    { key: "estado", header: "Estado" },
+    { key: "uf", header: "UF" },
     {
       key: "ativo",
-      header: "Ativo",
+      header: "Status",
       render: (row) => (
         <Badge variant={row.ativo ? "default" : "secondary"}>
           {row.ativo ? "Ativo" : "Inativo"}
@@ -128,7 +141,6 @@ export default function FiliaisPage() {
     setFiltroEmpresa("");
     setFiltroNome("");
     setFiltroCpfCnpj("");
-    // Reload sem filtros
     setLoading(true);
     filialService.listar().then((list) => {
       setData(list);
@@ -140,15 +152,19 @@ export default function FiliaisPage() {
     setEditingId(null);
     reset({
       empresaId: filtroEmpresa || "",
+      matrizFilial: "FILIAL",
       nomeRazao: "",
       cpfCnpj: "",
-      inscricaoEstadual: "",
-      endereco: "",
-      numeroKm: "",
-      bairro: "",
+      ie: "",
+      email: "",
+      telefone: "",
       cep: "",
+      logradouro: "",
+      numero: "",
+      complemento: "",
+      bairro: "",
       cidade: "",
-      estado: "",
+      uf: "",
       ativo: true,
     });
     setModalOpen(true);
@@ -158,22 +174,25 @@ export default function FiliaisPage() {
     setEditingId(row.id);
     reset({
       empresaId: row.empresaId,
+      matrizFilial: row.matrizFilial,
       nomeRazao: row.nomeRazao,
       cpfCnpj: row.cpfCnpj,
-      inscricaoEstadual: row.inscricaoEstadual,
-      endereco: row.endereco,
-      numeroKm: row.numeroKm,
-      bairro: row.bairro,
+      ie: row.ie,
+      email: row.email,
+      telefone: row.telefone,
       cep: row.cep,
+      logradouro: row.logradouro,
+      numero: row.numero,
+      complemento: row.complemento,
+      bairro: row.bairro,
       cidade: row.cidade,
-      estado: row.estado,
+      uf: row.uf,
       ativo: row.ativo,
     });
     setModalOpen(true);
   };
 
   const onSave = handleSubmit(async (formData) => {
-    // Verificar duplicidade CPF/CNPJ na mesma empresa
     const duplicado = await filialService.cpfCnpjExiste(
       formData.cpfCnpj.trim(),
       formData.empresaId,
@@ -194,13 +213,16 @@ export default function FiliaisPage() {
         ...formData,
         nomeRazao: formData.nomeRazao.trim(),
         cpfCnpj: formData.cpfCnpj.trim(),
-        inscricaoEstadual: (formData.inscricaoEstadual ?? "").trim(),
-        endereco: (formData.endereco ?? "").trim(),
-        numeroKm: (formData.numeroKm ?? "").trim(),
-        bairro: (formData.bairro ?? "").trim(),
+        ie: (formData.ie ?? "").trim(),
+        email: (formData.email ?? "").trim(),
+        telefone: (formData.telefone ?? "").trim(),
         cep: (formData.cep ?? "").trim(),
+        logradouro: (formData.logradouro ?? "").trim(),
+        numero: (formData.numero ?? "").trim(),
+        complemento: (formData.complemento ?? "").trim(),
+        bairro: (formData.bairro ?? "").trim(),
         cidade: (formData.cidade ?? "").trim(),
-        estado: formData.estado.trim().toUpperCase(),
+        uf: formData.uf.trim().toUpperCase(),
         id: editingId ?? undefined,
       });
       toast({
@@ -248,7 +270,7 @@ export default function FiliaisPage() {
             </SelectTrigger>
             <SelectContent>
               {empresas.map((e) => (
-                <SelectItem key={e.id} value={e.id}>{e.nomeFantasia}</SelectItem>
+                <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -298,7 +320,7 @@ export default function FiliaisPage() {
         maxWidth="sm:max-w-4xl"
       >
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          {/* Linha 1 — Empresa + Ativo */}
+          {/* Empresa + Tipo */}
           <div className="space-y-1.5">
             <Label>Empresa <span className="text-destructive">*</span></Label>
             <Controller
@@ -311,7 +333,7 @@ export default function FiliaisPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {empresas.map((e) => (
-                      <SelectItem key={e.id} value={e.id}>{e.nomeFantasia}</SelectItem>
+                      <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -320,8 +342,27 @@ export default function FiliaisPage() {
             {errors.empresaId && <p className="text-xs text-destructive">{errors.empresaId.message}</p>}
           </div>
 
-          <div className="space-y-1.5 flex items-end gap-3">
-            <div className="flex items-center gap-2">
+          <div className="flex items-end gap-6">
+            <div className="space-y-1.5">
+              <Label>Tipo <span className="text-destructive">*</span></Label>
+              <Controller
+                name="matrizFilial"
+                control={control}
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="MATRIZ">Matriz</SelectItem>
+                      <SelectItem value="FILIAL">Filial</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.matrizFilial && <p className="text-xs text-destructive">{errors.matrizFilial.message}</p>}
+            </div>
+            <div className="flex items-center gap-2 pb-1">
               <Label htmlFor="ativo">Ativo</Label>
               <Controller
                 name="ativo"
@@ -333,54 +374,43 @@ export default function FiliaisPage() {
             </div>
           </div>
 
-          {/* Linha 2 — Nome/Razão Social (full width) */}
+          {/* Nome/Razão Social */}
           <div className="space-y-1.5 sm:col-span-2">
             <Label htmlFor="nomeRazao">Nome/Razão Social <span className="text-destructive">*</span></Label>
             <Input id="nomeRazao" maxLength={200} {...register("nomeRazao")} />
             {errors.nomeRazao && <p className="text-xs text-destructive">{errors.nomeRazao.message}</p>}
           </div>
 
-          {/* Linha 3 — CPF/CNPJ + IE */}
+          {/* CPF/CNPJ + IE */}
           <div className="space-y-1.5">
             <Label htmlFor="cpfCnpj">CPF/CNPJ <span className="text-destructive">*</span></Label>
-            <Input id="cpfCnpj" maxLength={20} {...register("cpfCnpj")} />
+            <Input id="cpfCnpj" maxLength={18} {...register("cpfCnpj")} />
             {errors.cpfCnpj && <p className="text-xs text-destructive">{errors.cpfCnpj.message}</p>}
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="inscricaoEstadual">Inscrição Estadual</Label>
-            <Input id="inscricaoEstadual" maxLength={30} {...register("inscricaoEstadual")} />
+            <Label htmlFor="ie">Inscrição Estadual</Label>
+            <Input id="ie" maxLength={30} {...register("ie")} />
           </div>
 
-          {/* Linha 4 — Endereço + Número/KM */}
+          {/* Email + Telefone */}
           <div className="space-y-1.5">
-            <Label htmlFor="endereco">Endereço</Label>
-            <Input id="endereco" maxLength={150} {...register("endereco")} />
+            <Label htmlFor="email">E-mail</Label>
+            <Input id="email" maxLength={320} {...register("email")} />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="numeroKm">Número/KM</Label>
-            <Input id="numeroKm" maxLength={20} {...register("numeroKm")} />
+            <Label htmlFor="telefone">Telefone</Label>
+            <Input id="telefone" maxLength={20} {...register("telefone")} />
           </div>
 
-          {/* Linha 5 — Bairro + CEP */}
-          <div className="space-y-1.5">
-            <Label htmlFor="bairro">Bairro</Label>
-            <Input id="bairro" maxLength={70} {...register("bairro")} />
-          </div>
+          {/* Endereço */}
           <div className="space-y-1.5">
             <Label htmlFor="cep">CEP</Label>
-            <Input id="cep" maxLength={10} {...register("cep")} />
-            {errors.cep && <p className="text-xs text-destructive">{errors.cep.message}</p>}
-          </div>
-
-          {/* Linha 6 — Cidade + Estado */}
-          <div className="space-y-1.5">
-            <Label htmlFor="cidade">Cidade</Label>
-            <Input id="cidade" maxLength={100} {...register("cidade")} />
+            <Input id="cep" maxLength={9} {...register("cep")} />
           </div>
           <div className="space-y-1.5">
-            <Label>Estado (UF) <span className="text-destructive">*</span></Label>
+            <Label>UF <span className="text-destructive">*</span></Label>
             <Controller
-              name="estado"
+              name="uf"
               control={control}
               render={({ field }) => (
                 <Select value={field.value} onValueChange={field.onChange}>
@@ -395,7 +425,30 @@ export default function FiliaisPage() {
                 </Select>
               )}
             />
-            {errors.estado && <p className="text-xs text-destructive">{errors.estado.message}</p>}
+            {errors.uf && <p className="text-xs text-destructive">{errors.uf.message}</p>}
+          </div>
+
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="logradouro">Logradouro</Label>
+            <Input id="logradouro" maxLength={200} {...register("logradouro")} />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="numero">Número</Label>
+            <Input id="numero" maxLength={20} {...register("numero")} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="complemento">Complemento</Label>
+            <Input id="complemento" maxLength={100} {...register("complemento")} />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="bairro">Bairro</Label>
+            <Input id="bairro" maxLength={100} {...register("bairro")} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="cidade">Cidade</Label>
+            <Input id="cidade" maxLength={100} {...register("cidade")} />
           </div>
         </div>
       </CrudModal>
