@@ -1042,8 +1042,8 @@ export default function ContratosPage() {
                 </div>
               </div>
 
-              {/* Row 4: Moeda + Preço Unitário + Badge A_FIXAR (3 cols) */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Row 4: Moeda + Preço Unitário (2 cols) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label>Moeda <span className="text-destructive">*</span></Label>
                   <Select value={contratoForm.watch("moedaId")} onValueChange={(v) => contratoForm.setValue("moedaId", v)}>
@@ -1055,7 +1055,7 @@ export default function ContratosPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1.5 md:col-span-2 lg:col-span-1">
+                <div className="space-y-1.5">
                   <div className="flex items-center gap-1.5">
                     <Label>Preço Unitário {tipoPrecoWatch !== "A_FIXAR" && <span className="text-destructive">*</span>}</Label>
                     {tipoPrecoWatch === "A_FIXAR" && (
@@ -1174,7 +1174,6 @@ export default function ContratosPage() {
                     <p className="text-xs text-amber-600 mt-1">Configure coeficiente/tabela no produto para sugestão de preço.</p>
                   )}
                 </div>
-                <div className="space-y-1.5 lg:col-span-1 hidden lg:block" />
               </div>
 
               {/* Row 5: Datas de entrega (2 cols) */}
