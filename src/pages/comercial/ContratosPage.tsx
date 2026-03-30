@@ -863,6 +863,54 @@ export default function ContratosPage() {
           <TabsContent value="dados">
             <TooltipProvider delayDuration={200}>
             <fieldset disabled={viewOnly} className="space-y-5">
+              {/* Row 0: Empresa + Filial (2 cols) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label>Empresa <span className="text-destructive">*</span></Label>
+                  <Select
+                    value={contratoForm.watch("empresaId")}
+                    onValueChange={handleContratoEmpresaChange}
+                    disabled={viewOnly || !canEditEmpresaFilial}
+                  >
+                    <SelectTrigger className={!canEditEmpresaFilial ? "bg-muted/50 cursor-not-allowed" : ""}>
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {orgEmpresas.filter((e) => e.ativo).map((e) => (
+                        <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {contratoForm.formState.errors.empresaId && (
+                    <p className="text-xs text-destructive">{contratoForm.formState.errors.empresaId.message}</p>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Filial</Label>
+                  <Select
+                    value={contratoForm.watch("filialId") || ""}
+                    onValueChange={(v) => contratoForm.setValue("filialId", v)}
+                    disabled={viewOnly || !canEditEmpresaFilial}
+                  >
+                    <SelectTrigger className={!canEditEmpresaFilial ? "bg-muted/50 cursor-not-allowed" : ""}>
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {contratoFiliaisEmpresa.filter((f) => f.ativo).map((f) => (
+                        <SelectItem key={f.id} value={f.id}>{f.nomeRazao}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              {/* Movement lock warning */}
+              {editingContrato && hasMovements && (
+                <div className="rounded-md border border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400 flex items-center gap-2">
+                  <Lock className="h-3.5 w-3.5 flex-shrink-0" />
+                  <span>Empresa e filial não podem ser alteradas porque este contrato já possui movimentações vinculadas.</span>
+                </div>
+              )}
+
               {/* Row 1: Tipo + Número + Data (3 cols) */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
