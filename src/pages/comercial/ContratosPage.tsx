@@ -1211,7 +1211,7 @@ export default function ContratosPage() {
                         <SelectValue placeholder={tipoContratoWatch === "COMPRA" ? "Não aplicável" : "Selecione..."} />
                       </SelectTrigger>
                       <SelectContent>
-                        {filiaisEmpresa.filter((f) => f.ativo).map((f) => (
+                        {contratoFiliaisEmpresa.filter((f) => f.ativo).map((f) => (
                           <SelectItem key={f.id} value={f.id}>{f.nomeRazao}</SelectItem>
                         ))}
                       </SelectContent>
