@@ -1197,7 +1197,7 @@ export default function ContratosPage() {
                     <TooltipContent side="right"><p className="max-w-[280px] text-xs">Defina a origem, operação e destino para rastrear o fluxo físico do contrato.</p></TooltipContent>
                   </Tooltip>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-1.5">
                       <Label>Filial de Operação <span className="text-destructive">*</span></Label>
