@@ -6,14 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, RefreshCw } from "lucide-react";
 
-/* ── Mock: Moedas ── */
 const mockMoedas = [
   { id: "cur1", codigo: "BRL", nome: "Real Brasileiro", simbolo: "R$", ativo: true },
   { id: "cur2", codigo: "USD", nome: "Dólar Americano", simbolo: "$", ativo: true },
   { id: "cur3", codigo: "EUR", nome: "Euro", simbolo: "€", ativo: true },
 ];
 
-/* ── Mock: Cotações ── */
 const mockCotacoes = [
   { id: "c1", moeda: "USD", taxa: 5.4521, dataHora: "2026-03-30 09:30", fonte: "API Automática" },
   { id: "c2", moeda: "EUR", taxa: 5.9103, dataHora: "2026-03-30 09:30", fonte: "API Automática" },
@@ -35,7 +33,6 @@ export default function MoedasCotacoesPage() {
           <TabsTrigger value="cotacoes">Cotações</TabsTrigger>
         </TabsList>
 
-        {/* ── Moedas ── */}
         <TabsContent value="moedas" className="space-y-4">
           <div className="flex justify-end">
             <Button size="sm"><Plus className="h-4 w-4 mr-1" /> Nova Moeda</Button>
@@ -43,23 +40,16 @@ export default function MoedasCotacoesPage() {
           <DataTable
             data={mockMoedas}
             columns={[
-              { header: "Código", accessorKey: "codigo" },
-              { header: "Nome", accessorKey: "nome" },
-              { header: "Símbolo", accessorKey: "simbolo" },
-              {
-                header: "Status",
-                accessorKey: "ativo",
-                cell: ({ row }: any) => (
-                  <Badge variant={row.original.ativo ? "default" : "secondary"}>
-                    {row.original.ativo ? "Ativo" : "Inativo"}
-                  </Badge>
-                ),
-              },
+              { key: "codigo", header: "Código" },
+              { key: "nome", header: "Nome" },
+              { key: "simbolo", header: "Símbolo" },
+              { key: "ativo", header: "Status", render: (row) => (
+                <Badge variant={row.ativo ? "default" : "secondary"}>{row.ativo ? "Ativo" : "Inativo"}</Badge>
+              )},
             ]}
           />
         </TabsContent>
 
-        {/* ── Cotações ── */}
         <TabsContent value="cotacoes" className="space-y-4">
           <div className="flex justify-end gap-2">
             <Button size="sm" variant="outline"><RefreshCw className="h-4 w-4 mr-1" /> Atualizar Cotações</Button>
@@ -68,14 +58,10 @@ export default function MoedasCotacoesPage() {
           <DataTable
             data={mockCotacoes}
             columns={[
-              { header: "Moeda", accessorKey: "moeda" },
-              {
-                header: "Taxa (BRL)",
-                accessorKey: "taxa",
-                cell: ({ row }: any) => `R$ ${row.original.taxa.toFixed(4)}`,
-              },
-              { header: "Data/Hora", accessorKey: "dataHora" },
-              { header: "Fonte", accessorKey: "fonte" },
+              { key: "moeda", header: "Moeda" },
+              { key: "taxa", header: "Taxa (BRL)", render: (row) => `R$ ${row.taxa.toFixed(4)}` },
+              { key: "dataHora", header: "Data/Hora" },
+              { key: "fonte", header: "Fonte" },
             ]}
           />
         </TabsContent>
