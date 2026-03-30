@@ -281,6 +281,18 @@ export default function ContratosPage() {
     classificacaoTipoService.listarTodos().then(() => {});
   }, [empresaId]);
 
+  // Load filiais + descontos for the empresa selected in the contract form
+  useEffect(() => {
+    if (empresaIdWatch) {
+      filialService.listarPorEmpresa(empresaIdWatch).then(setContratoFiliaisEmpresa);
+      condicaoDescontoModeloService.listarPorEmpresa(empresaIdWatch).then(setModelosCondicao);
+      descontoTipoService.listarConfigsPorEmpresa(empresaIdWatch).then(setOfficialDescontos);
+    } else {
+      setContratoFiliaisEmpresa([]);
+      setOfficialDescontos([]);
+    }
+  }, [empresaIdWatch]);
+
   useEffect(() => {
     if (empresaId && filialOperacaoWatch) {
       pontoEstoqueService.listar(empresaId, filialOperacaoWatch).then(setPontos);
@@ -289,13 +301,14 @@ export default function ContratosPage() {
     }
   }, [empresaId, filialOperacaoWatch]);
 
+  // Pessoas are GLOBAL - not filtered by empresa
   const pessoasAtivas = useMemo(
-    () => mockPessoas.filter((p) => p.deletadoEm === null && p.ativo && p.empresaId === empresaId),
-    [empresaId]
+    () => mockPessoas.filter((p) => p.deletadoEm === null && p.ativo),
+    []
   );
   const produtosAtivos = useMemo(
-    () => mockProdutos.filter((p) => p.deletadoEm === null && p.ativo && p.empresaId === empresaId),
-    [empresaId]
+    () => mockProdutos.filter((p) => p.deletadoEm === null && p.ativo && p.empresaId === (empresaIdWatch || empresaId)),
+    [empresaIdWatch, empresaId]
   );
   const unidadesAtivas = useMemo(
     () => mockUnidades.filter((u) => u.deletadoEm === null && u.ativo),
