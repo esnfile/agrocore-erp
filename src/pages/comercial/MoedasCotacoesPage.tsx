@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CrudModal } from "@/components/CrudModal";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Pencil, Trash2, RefreshCw } from "lucide-react";
 import { moedas as mockMoedasData, cotacoesMoeda as mockCotacoesData, type Moeda, type CotacaoMoeda } from "@/lib/mock-data";
 import { toast } from "sonner";
@@ -17,11 +16,6 @@ export default function MoedasCotacoesPage() {
   const [tab, setTab] = useState("moedas");
   const [moedasList, setMoedasList] = useState<Moeda[]>(mockMoedasData);
   const [cotacoesList] = useState<CotacaoMoeda[]>(mockCotacoesData);
-
-  // Filters
-  const [filtroMoeda, setFiltroMoeda] = useState("todos");
-  const [filtroStatus, setFiltroStatus] = useState("todos");
-  const [filtroPeriodo, setFiltroPeriodo] = useState("");
 
   // Modal
   const [modalOpen, setModalOpen] = useState(false);
@@ -41,24 +35,19 @@ export default function MoedasCotacoesPage() {
     return cots.length > 0 ? cots[0].valorCompra : null;
   };
 
-  // Filtered moedas
+  // Moedas ativas (sem soft delete)
   const moedasFiltradas = useMemo(() => {
-    let items = moedasList.filter(m => !m.deletadoEm);
-    if (filtroMoeda !== "todos") items = items.filter(m => m.id === filtroMoeda);
-    if (filtroStatus !== "todos") items = items.filter(m => filtroStatus === "ativo" ? m.ativo : !m.ativo);
-    return items;
-  }, [moedasList, filtroMoeda, filtroStatus]);
+    return moedasList.filter(m => !m.deletadoEm);
+  }, [moedasList]);
 
-  // Filtered cotações
+  // Cotações com campo "moedaNome" para busca funcionar no DataTable
   const cotacoesFiltradas = useMemo(() => {
     let items = cotacoesList.filter(c => !c.deletadoEm);
     if (selectedMoedaId) items = items.filter(c => c.moedaOrigemId === selectedMoedaId);
-    if (filtroPeriodo) {
-      const start = new Date(filtroPeriodo);
-      items = items.filter(c => new Date(c.dataHoraCotacao) >= start);
-    }
-    return items.sort((a, b) => new Date(b.dataHoraCotacao).getTime() - new Date(a.dataHoraCotacao).getTime());
-  }, [cotacoesList, selectedMoedaId, filtroPeriodo]);
+    return items
+      .sort((a, b) => new Date(b.dataHoraCotacao).getTime() - new Date(a.dataHoraCotacao).getTime())
+      .map(c => ({ ...c, moedaNome: getMoedaNome(c.moedaOrigemId) }));
+  }, [cotacoesList, selectedMoedaId, moedasList]);
 
   const openCreate = () => {
     setEditingMoeda(null);
@@ -112,37 +101,6 @@ export default function MoedasCotacoesPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Moedas e Cotações" description="Gerencie moedas aceitas e acompanhe cotações atualizadas." />
-
-      {/* Filters */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div>
-          <Label className="text-xs mb-1 block">Moeda</Label>
-          <Select value={filtroMoeda} onValueChange={setFiltroMoeda}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todas</SelectItem>
-              {moedasList.filter(m => !m.deletadoEm).map(m => (
-                <SelectItem key={m.id} value={m.id}>{m.codigo} — {m.descricao}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label className="text-xs mb-1 block">Status</Label>
-          <Select value={filtroStatus} onValueChange={setFiltroStatus}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos</SelectItem>
-              <SelectItem value="ativo">Ativo</SelectItem>
-              <SelectItem value="inativo">Inativo</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label className="text-xs mb-1 block">Período (a partir de)</Label>
-          <Input type="date" value={filtroPeriodo} onChange={e => setFiltroPeriodo(e.target.value)} />
-        </div>
-      </div>
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
@@ -202,7 +160,7 @@ export default function MoedasCotacoesPage() {
           <DataTable
             data={cotacoesFiltradas}
             columns={[
-              { key: "moedaOrigemId", header: "Moeda", render: (row) => getMoedaNome(row.moedaOrigemId) },
+              { key: "moedaNome", header: "Moeda" },
               { key: "valorCompra", header: "Compra", render: (row) => `R$ ${row.valorCompra.toFixed(4)}` },
               { key: "valorVenda", header: "Venda", render: (row) => `R$ ${row.valorVenda.toFixed(4)}` },
               { key: "variacao", header: "Variação", render: (row) => (
