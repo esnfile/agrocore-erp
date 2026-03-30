@@ -1186,7 +1186,7 @@ export default function ContratosPage() {
                     <Select value={contratoForm.watch("filialOperacaoId") || ""} onValueChange={(v) => contratoForm.setValue("filialOperacaoId", v)}>
                       <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                       <SelectContent>
-                        {filiaisEmpresa.filter((f) => f.ativo).map((f) => (
+                        {contratoFiliaisEmpresa.filter((f) => f.ativo).map((f) => (
                           <SelectItem key={f.id} value={f.id}>{f.nomeRazao}</SelectItem>
                         ))}
                       </SelectContent>
