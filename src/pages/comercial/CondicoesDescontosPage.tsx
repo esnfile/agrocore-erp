@@ -427,7 +427,7 @@ export default function CondicoesDescontosPage() {
                   />
                   <Label htmlFor="obrigatorio">Obrigatório no contrato ou romaneio</Label>
                 </div>
-                <p className="text-xs text-muted-foreground pl-11">O contrato não poderá ser salvo sem aplicar este desconto.</p>
+                <p className="text-xs text-muted-foreground pl-11">O contrato ou romaneio não poderá ser salvo sem aplicar este desconto.</p>
               </div>
             </div>
           </TabsContent>
