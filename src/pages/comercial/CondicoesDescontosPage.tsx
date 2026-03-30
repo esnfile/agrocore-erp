@@ -320,7 +320,7 @@ export default function CondicoesDescontosPage() {
               </div>
               <div className="space-y-2">
                 <Label>Tipo</Label>
-                <Select value={form.tipo} onValueChange={v => setForm(prev => ({ ...prev, tipo: v as TipoDesconto }))}>
+                <Select value={form.tipo} onValueChange={v => setForm(prev => ({ ...prev, tipo: v as TipoDescontoCalculo }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="percentual">Percentual (%)</SelectItem>
