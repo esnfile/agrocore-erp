@@ -25,6 +25,9 @@ import PontosEstoquePage from "@/pages/produtos-estoque/PontosEstoquePage";
 import MovimentacaoEstoquePage from "@/pages/produtos-estoque/MovimentacaoEstoquePage";
 import ConsultaEstoquePage from "@/pages/produtos-estoque/ConsultaEstoquePage";
 import PlaceholderPage from "@/pages/PlaceholderPage";
+import SafrasPage from "@/pages/fazenda/SafrasPage";
+import CultivosPage from "@/pages/fazenda/CultivosPage";
+import RomaneiosColheitasPage from "@/pages/fazenda/RomaneiosColheitasPage";
 import ContratosPage from "@/pages/comercial/ContratosPage";
 import ModelosCondicoesPage from "@/pages/comercial/ModelosCondicoesPage";
 import ClassificacaoTiposPage from "@/pages/produtos-estoque/ClassificacaoTiposPage";
@@ -71,9 +74,9 @@ const App = () => (
               <Route path="/admin/pessoas" element={<PessoasPage />} />
               <Route path="/admin/grupo-pessoas" element={<GrupoPessoasPage />} />
               {/* Fazenda/Agricultura */}
-              <Route path="/fazenda/safras" element={<PlaceholderPage />} />
-              <Route path="/fazenda/cultivos" element={<PlaceholderPage />} />
-              <Route path="/fazenda/romaneios-colheitas" element={<PlaceholderPage />} />
+              <Route path="/fazenda/safras" element={<SafrasPage />} />
+              <Route path="/fazenda/cultivos" element={<CultivosPage />} />
+              <Route path="/fazenda/romaneios-colheitas" element={<RomaneiosColheitasPage />} />
               {/* Comercial */}
               <Route path="/comercial/contratos" element={<ContratosPage />} />
               <Route path="/comercial/modelos-condicoes" element={<ModelosCondicoesPage />} />
