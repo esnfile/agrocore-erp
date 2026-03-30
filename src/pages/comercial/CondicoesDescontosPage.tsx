@@ -14,11 +14,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Pencil, Trash2, Check, X } from "lucide-react";
-import {
-  empresas,
-  descontoTipos as mockDescontoTipos,
-  descontoEmpresaConfigs as mockDescontoEmpresaConfigs,
-} from "@/lib/mock-data";
+import { empresas } from "@/lib/mock-data";
+import { descontoStore } from "@/lib/mock-store";
 import type {
   DescontoTipo,
   DescontoEmpresaConfig,
