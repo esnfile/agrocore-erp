@@ -507,14 +507,10 @@ export default function CondicoesDescontosPage() {
                               </div>
                               <div className="space-y-1">
                                 <Label className="text-xs">Aplicação</Label>
-                                <Select value={configForm.aplicacao as string} onValueChange={v => setConfigForm(prev => ({ ...prev, aplicacao: v as AplicacaoDesconto }))}>
-                                  <SelectTrigger><SelectValue /></SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="contrato">Contrato</SelectItem>
-                                    <SelectItem value="romaneio">Romaneio</SelectItem>
-                                    <SelectItem value="ambos">Ambos</SelectItem>
-                                  </SelectContent>
-                                </Select>
+                                <AplicacaoTags
+                                  value={configForm.aplicacao as AplicacaoDesconto}
+                                  onChange={v => setConfigForm(prev => ({ ...prev, aplicacao: v }))}
+                                />
                               </div>
                               <div className="flex items-center gap-4 pt-5">
                                 <div className="flex items-center gap-2">
