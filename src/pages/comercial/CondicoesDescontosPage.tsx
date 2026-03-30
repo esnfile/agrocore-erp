@@ -309,7 +309,16 @@ export default function CondicoesDescontosPage() {
             if (row.tipo === "percentual") return `${row.valorPadrao.toFixed(2)}%`;
             return `R$ ${row.valorPadrao.toFixed(2)}`;
           }},
-          { key: "aplicacao", header: "Aplicação", render: (row) => aplicacaoLabels[row.aplicacao as AplicacaoDesconto] ?? row.aplicacao },
+          { key: "aplicacao", header: "Aplicação", render: (row) => {
+            const a = row.aplicacao as AplicacaoDesconto;
+            const flags = aplicacaoToFlags(a);
+            return (
+              <div className="flex gap-1">
+                {flags.contrato && <Badge variant="outline" className="text-xs">Contrato</Badge>}
+                {flags.romaneio && <Badge variant="outline" className="text-xs">Romaneio</Badge>}
+              </div>
+            );
+          }},
           { key: "obrigatorio", header: "Obrigatório", render: (row) => (
             <Badge variant={row.obrigatorio ? "default" : "outline"}>{row.obrigatorio ? "Sim" : "Não"}</Badge>
           )},
