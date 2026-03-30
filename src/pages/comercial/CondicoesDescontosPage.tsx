@@ -109,6 +109,10 @@ export default function CondicoesDescontosPage() {
   const [descontos, setDescontos] = useState(descontoStore.getDescontoTipos());
   const [empresaConfigs, setEmpresaConfigs] = useState(descontoStore.getDescontoEmpresaConfigs());
 
+  // Sync state changes back to the in-memory store so other pages see updates
+  useEffect(() => { descontoStore.setDescontoTipos(descontos); }, [descontos]);
+  useEffect(() => { descontoStore.setDescontoEmpresaConfigs(empresaConfigs); }, [empresaConfigs]);
+
   // Filters
   const [filtroEmpresa, setFiltroEmpresa] = useState("todos");
   const [filtroTipo, setFiltroTipo] = useState("todos");
