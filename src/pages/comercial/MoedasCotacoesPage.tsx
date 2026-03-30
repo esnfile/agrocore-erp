@@ -18,11 +18,6 @@ export default function MoedasCotacoesPage() {
   const [moedasList, setMoedasList] = useState<Moeda[]>(mockMoedasData);
   const [cotacoesList] = useState<CotacaoMoeda[]>(mockCotacoesData);
 
-  // Filters
-  const [filtroMoeda, setFiltroMoeda] = useState("todos");
-  const [filtroStatus, setFiltroStatus] = useState("todos");
-  const [filtroPeriodo, setFiltroPeriodo] = useState("");
-
   // Modal
   const [modalOpen, setModalOpen] = useState(false);
   const [editingMoeda, setEditingMoeda] = useState<Moeda | null>(null);
@@ -41,24 +36,19 @@ export default function MoedasCotacoesPage() {
     return cots.length > 0 ? cots[0].valorCompra : null;
   };
 
-  // Filtered moedas
+  // Moedas ativas (sem soft delete)
   const moedasFiltradas = useMemo(() => {
-    let items = moedasList.filter(m => !m.deletadoEm);
-    if (filtroMoeda !== "todos") items = items.filter(m => m.id === filtroMoeda);
-    if (filtroStatus !== "todos") items = items.filter(m => filtroStatus === "ativo" ? m.ativo : !m.ativo);
-    return items;
-  }, [moedasList, filtroMoeda, filtroStatus]);
+    return moedasList.filter(m => !m.deletadoEm);
+  }, [moedasList]);
 
-  // Filtered cotações
+  // Cotações com campo "moedaNome" para busca funcionar no DataTable
   const cotacoesFiltradas = useMemo(() => {
     let items = cotacoesList.filter(c => !c.deletadoEm);
     if (selectedMoedaId) items = items.filter(c => c.moedaOrigemId === selectedMoedaId);
-    if (filtroPeriodo) {
-      const start = new Date(filtroPeriodo);
-      items = items.filter(c => new Date(c.dataHoraCotacao) >= start);
-    }
-    return items.sort((a, b) => new Date(b.dataHoraCotacao).getTime() - new Date(a.dataHoraCotacao).getTime());
-  }, [cotacoesList, selectedMoedaId, filtroPeriodo]);
+    return items
+      .sort((a, b) => new Date(b.dataHoraCotacao).getTime() - new Date(a.dataHoraCotacao).getTime())
+      .map(c => ({ ...c, moedaNome: getMoedaNome(c.moedaOrigemId) }));
+  }, [cotacoesList, selectedMoedaId, moedasList]);
 
   const openCreate = () => {
     setEditingMoeda(null);
