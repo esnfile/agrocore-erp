@@ -1638,7 +1638,7 @@ export default function ContratosPage() {
                 </div>
 
                 {/* Official descontos from empresa registry */}
-                {officialDescontos.length > 0 && (
+                {officialDescontosContrato.length > 0 && (
                   <div className="overflow-auto">
                     <Table>
                       <TableHeader>
