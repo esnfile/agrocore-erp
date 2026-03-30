@@ -37,6 +37,7 @@ import {
   contratoLiquidacaoService, financeiroContaService,
   financeiroParcelaService, financeiroBaixaService,
   filialService, romaneioService, produtoService,
+  empresaService, descontoTipoService,
 } from "@/lib/services";
 import {
   pessoas as mockPessoas,
