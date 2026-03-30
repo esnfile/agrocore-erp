@@ -395,7 +395,7 @@ export default function CondicoesDescontosPage() {
                       value={configForm.empresaId ?? ""}
                       onValueChange={v => setConfigForm(prev => ({ ...prev, empresaId: v }))}
                       placeholder="Selecione"
-                      options={empresaAtivas.map(e => ({ value: e.id, label: e.nome }))}
+                      options={empresaAtivas.map(e => ({ id: e.id, label: e.nome }))}
                     />
                   </div>
                   <div className="space-y-1">
