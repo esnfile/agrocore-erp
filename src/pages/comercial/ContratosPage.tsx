@@ -136,7 +136,7 @@ export default function ContratosPage() {
   
   // Filter only descontos applicable to contracts (contrato or ambos)
   const officialDescontosContrato = useMemo(() => 
-    officialDescontos.filter(d => d.aplicacao === "contrato" || d.aplicacao === "ambos"),
+    officialDescontos.filter(d => d.descontoTipo.aplicacao === "contrato" || d.descontoTipo.aplicacao === "ambos"),
     [officialDescontos]
   );
 
