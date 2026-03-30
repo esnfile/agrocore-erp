@@ -44,6 +44,7 @@ import {
   produtos as mockProdutos,
   unidadesMedida as mockUnidades,
   moedas as mockMoedas,
+  empresas as mockEmpresas,
 } from "@/lib/mock-data";
 import type {
   Contrato, ContratoFixacao,
