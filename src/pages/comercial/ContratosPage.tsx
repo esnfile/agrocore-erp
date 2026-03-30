@@ -509,6 +509,24 @@ export default function ContratosPage() {
     if (!grupoId) return;
     const contractEmpresaId = data.empresaId || empresaId;
     if (!contractEmpresaId) return;
+
+    // Validate mandatory descontos are applied (only for editing, when tab is available)
+    if (editingContrato) {
+      const obrigatoriosContrato = officialDescontosContrato.filter(d => d.obrigatorio && d.ativo);
+      const naoAplicados = obrigatoriosContrato.filter(cfg => 
+        !condicoes.some(c => c.descricao.toUpperCase().includes(cfg.descontoTipo.nome.toUpperCase()))
+      );
+      if (naoAplicados.length > 0) {
+        toast({ 
+          title: "Descontos obrigatórios pendentes", 
+          description: `Aplique os descontos obrigatórios antes de salvar: ${naoAplicados.map(d => d.descontoTipo.nome).join(", ")}`,
+          variant: "destructive" 
+        });
+        setActiveTab("condicoes");
+        return;
+      }
+    }
+
     setSaving(true);
     try {
       await contratoService.salvar(
