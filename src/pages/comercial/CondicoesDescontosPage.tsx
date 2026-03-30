@@ -61,8 +61,54 @@ const categoriaLabels: Record<CategoriaDesconto, string> = {
 const aplicacaoLabels: Record<AplicacaoDesconto, string> = {
   contrato: "Contrato",
   romaneio: "Romaneio",
-  ambos: "Ambos",
+  ambos: "Contrato • Romaneio",
 };
+
+// Helpers to convert between AplicacaoDesconto and boolean flags
+function aplicacaoToFlags(a: AplicacaoDesconto): { contrato: boolean; romaneio: boolean } {
+  return { contrato: a === "contrato" || a === "ambos", romaneio: a === "romaneio" || a === "ambos" };
+}
+function flagsToAplicacao(contrato: boolean, romaneio: boolean): AplicacaoDesconto {
+  if (contrato && romaneio) return "ambos";
+  if (contrato) return "contrato";
+  if (romaneio) return "romaneio";
+  return "contrato"; // fallback
+}
+
+// Reusable tag selector component
+function AplicacaoTags({ value, onChange, disabled }: { value: AplicacaoDesconto; onChange: (v: AplicacaoDesconto) => void; disabled?: boolean }) {
+  const flags = aplicacaoToFlags(value);
+  return (
+    <div className="flex gap-2">
+      <label className={`inline-flex items-center gap-1.5 cursor-pointer rounded-md border px-3 py-1.5 text-xs font-medium transition-colors select-none ${flags.contrato ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-input hover:bg-accent"} ${disabled ? "opacity-50 pointer-events-none" : ""}`}>
+        <Checkbox
+          checked={flags.contrato}
+          onCheckedChange={(checked) => {
+            const newContrato = !!checked;
+            if (!newContrato && !flags.romaneio) return; // at least one must be selected
+            onChange(flagsToAplicacao(newContrato, flags.romaneio));
+          }}
+          disabled={disabled}
+          className="h-3.5 w-3.5 border-current data-[state=checked]:bg-transparent data-[state=checked]:text-current"
+        />
+        Contrato
+      </label>
+      <label className={`inline-flex items-center gap-1.5 cursor-pointer rounded-md border px-3 py-1.5 text-xs font-medium transition-colors select-none ${flags.romaneio ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-input hover:bg-accent"} ${disabled ? "opacity-50 pointer-events-none" : ""}`}>
+        <Checkbox
+          checked={flags.romaneio}
+          onCheckedChange={(checked) => {
+            const newRomaneio = !!checked;
+            if (!newRomaneio && !flags.contrato) return;
+            onChange(flagsToAplicacao(flags.contrato, newRomaneio));
+          }}
+          disabled={disabled}
+          className="h-3.5 w-3.5 border-current data-[state=checked]:bg-transparent data-[state=checked]:text-current"
+        />
+        Romaneio
+      </label>
+    </div>
+  );
+}
 
 const emptyForm: DescontoTipo = {
   id: "", nome: "", descricao: "", categoria: "tributario", tipo: "percentual", ordemAplicacao: 1, ativo: true,
