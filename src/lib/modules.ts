@@ -26,6 +26,9 @@ import {
   Ruler,
   Scale,
   ClipboardList,
+  Sprout,
+  Leaf,
+  CalendarDays,
   type LucideIcon,
 } from "lucide-react";
 
