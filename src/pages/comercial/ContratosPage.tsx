@@ -205,6 +205,17 @@ export default function ContratosPage() {
   const filialOperacaoWatch = contratoForm.watch("filialOperacaoId");
   const produtoIdWatch = contratoForm.watch("produtoId");
   const tipoContratoWatch = contratoForm.watch("tipoContrato");
+  const empresaIdWatch = contratoForm.watch("empresaId");
+
+  // Movement detection - determines if empresa/filial can be edited
+  const hasMovements = useMemo(() => {
+    if (!editingContrato) return false;
+    return romaneiosContrato.length > 0 || fixacoes.length > 0 || finContas.length > 0 || liquidacao !== null ||
+      editingContrato.status === "PARCIAL" || editingContrato.status === "FINALIZADO" ||
+      editingContrato.status === "CANCELADO" || editingContrato.status === "LIQUIDADO";
+  }, [editingContrato, romaneiosContrato, fixacoes, finContas, liquidacao]);
+
+  const canEditEmpresaFilial = !editingContrato || !hasMovements;
 
   // Price suggestion state
   const [precoSugestao, setPrecoSugestao] = useState<{
