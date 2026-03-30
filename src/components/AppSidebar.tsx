@@ -56,9 +56,10 @@ function RecursiveMenuItem({ item, pathname, depth = 0 }: { item: MenuItem; path
       <button
         onClick={() => navigate(item.url!)}
         className={cn(
-          "flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors",
-          "hover:bg-sidebar-accent/60 text-sidebar-foreground",
-          isExact && "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+          "flex w-full items-center gap-2 rounded-r-md px-3 py-2 text-sm transition-all",
+          "border-l-[3px] border-l-[hsl(var(--sidebar-indicator))]",
+          "hover:border-l-[hsl(var(--sidebar-indicator-hover))] hover:bg-sidebar-accent/60 text-sidebar-foreground",
+          isExact && "bg-sidebar-accent text-sidebar-accent-foreground font-medium border-l-[hsl(var(--sidebar-indicator-hover))]"
         )}
       >
         <item.icon className="h-4 w-4 shrink-0" />
