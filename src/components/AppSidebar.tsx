@@ -49,6 +49,8 @@ function RecursiveMenuItem({ item, pathname, depth = 0 }: { item: MenuItem; path
     setOpen(true);
   }, [cancelClose]);
 
+  const inPopup = depth > 0;
+
   // Leaf node — navigates
   if (item.url) {
     const isExact = pathname.startsWith(item.url);
@@ -56,10 +58,19 @@ function RecursiveMenuItem({ item, pathname, depth = 0 }: { item: MenuItem; path
       <button
         onClick={() => navigate(item.url!)}
         className={cn(
-          "flex w-full items-center gap-2 rounded-r-md px-3 py-2 text-sm transition-all",
-          "border-l-[3px] border-l-[hsl(var(--sidebar-indicator))]",
-          "hover:border-l-[hsl(var(--sidebar-indicator-hover))] hover:bg-sidebar-accent/60 text-sidebar-foreground",
-          isExact && "bg-sidebar-accent text-sidebar-accent-foreground font-medium border-l-[hsl(var(--sidebar-indicator-hover))]"
+          "flex w-full items-center gap-2 px-3 py-2 text-sm transition-all",
+          inPopup
+            ? cn(
+                "rounded-sm text-sidebar-foreground",
+                "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                "hover:shadow-[inset_3px_0_0_hsl(var(--sidebar-indicator-hover))]",
+                isExact && "bg-sidebar-accent text-sidebar-accent-foreground font-medium shadow-[inset_3px_0_0_hsl(var(--sidebar-indicator-hover))]"
+              )
+            : cn(
+                "rounded-md text-sidebar-foreground",
+                "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                isExact && "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+              )
         )}
       >
         <item.icon className="h-4 w-4 shrink-0" />
@@ -76,10 +87,19 @@ function RecursiveMenuItem({ item, pathname, depth = 0 }: { item: MenuItem; path
           onMouseEnter={handleEnter}
           onMouseLeave={scheduleClose}
           className={cn(
-            "flex w-full items-center gap-2 rounded-r-md px-3 py-2 text-sm transition-all",
-            "border-l-[3px] border-l-[hsl(var(--sidebar-indicator))]",
-            "hover:border-l-[hsl(var(--sidebar-indicator-hover))] hover:bg-sidebar-accent/60 text-sidebar-foreground",
-            active && "text-sidebar-primary font-medium border-l-[hsl(var(--sidebar-indicator-hover))]"
+            "flex w-full items-center gap-2 px-3 py-2 text-sm transition-all",
+            inPopup
+              ? cn(
+                  "rounded-sm text-sidebar-foreground",
+                  "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                  "hover:shadow-[inset_3px_0_0_hsl(var(--sidebar-indicator-hover))]",
+                  active && "text-sidebar-primary font-medium shadow-[inset_3px_0_0_hsl(var(--sidebar-indicator-hover))]"
+                )
+              : cn(
+                  "rounded-md text-sidebar-foreground",
+                  "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                  active && "text-sidebar-primary font-medium"
+                )
           )}
         >
           <item.icon className="h-4 w-4 shrink-0" />
@@ -95,7 +115,7 @@ function RecursiveMenuItem({ item, pathname, depth = 0 }: { item: MenuItem; path
         onMouseLeave={scheduleClose}
         className="w-auto min-w-[13rem] p-1 bg-sidebar/95 backdrop-blur-sm border border-sidebar-border shadow-lg"
       >
-        <div className="flex flex-col gap-0.5">
+        <div className="flex flex-col border-l-2 border-l-[hsl(var(--sidebar-indicator))]">
           {item.children!.map((child) => (
             <RecursiveMenuItem key={child.title} item={child} pathname={pathname} depth={depth + 1} />
           ))}
@@ -148,15 +168,19 @@ function CollapsedPopover({ item, pathname }: { item: MenuItem; pathname: string
         className="w-auto min-w-[13rem] p-1 bg-sidebar/95 backdrop-blur-sm border border-sidebar-border shadow-lg"
       >
         {item.url ? (
-          <RecursiveMenuItem item={item} pathname={pathname} />
+          <div className="flex flex-col border-l-2 border-l-[hsl(var(--sidebar-indicator))]">
+            <RecursiveMenuItem item={item} pathname={pathname} depth={1} />
+          </div>
         ) : item.children ? (
-          <div className="flex flex-col gap-0.5">
+          <div className="flex flex-col">
             <span className="px-3 py-1.5 text-xs font-semibold text-sidebar-foreground/50 uppercase">
               {item.title}
             </span>
-            {item.children.map((child) => (
-              <RecursiveMenuItem key={child.title} item={child} pathname={pathname} />
-            ))}
+            <div className="flex flex-col border-l-2 border-l-[hsl(var(--sidebar-indicator))] ml-0">
+              {item.children.map((child) => (
+                <RecursiveMenuItem key={child.title} item={child} pathname={pathname} depth={1} />
+              ))}
+            </div>
           </div>
         ) : null}
       </PopoverContent>
