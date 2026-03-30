@@ -287,7 +287,9 @@ export default function CondicoesDescontosPage() {
         data={listagem as any[]}
         columns={[
           { key: "nome", header: "Tipo de Desconto" },
-          { key: "descricao", header: "Descrição" },
+          { key: "descricao", header: "Descrição", render: (row) => (
+            <div className="line-clamp-2 min-w-[200px]" title={row.descricao}>{row.descricao}</div>
+          )},
           { key: "categoria", header: "Categoria", render: (row) => categoriaLabels[row.categoria as CategoriaDesconto] ?? row.categoria },
           { key: "empresaNome", header: "Empresa", render: (row) => (
             <span>{row.empresaNome} {row.totalEmpresas > 1 && <span className="text-xs text-muted-foreground ml-1">(+{row.totalEmpresas - 1})</span>}</span>
