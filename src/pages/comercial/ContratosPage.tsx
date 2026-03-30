@@ -1654,7 +1654,7 @@ export default function ContratosPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {officialDescontos.map((cfg) => {
+                        {officialDescontosContrato.map((cfg) => {
                           const dt = cfg.descontoTipo;
                           const isApplied = condicoes.some((c) =>
                             c.descricao.toUpperCase().includes(dt.nome.toUpperCase())
