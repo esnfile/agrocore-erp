@@ -104,6 +104,21 @@ export const modules: Module[] = [
     ],
   },
   {
+    title: "Fazenda/Agricultura",
+    icon: Sprout,
+    items: [
+      { title: "Gestão de Safras", url: "/fazenda/safras", icon: CalendarDays },
+      {
+        title: "Planejamento",
+        icon: Layers,
+        children: [
+          { title: "Cultivos", url: "/fazenda/cultivos", icon: Leaf },
+          { title: "Romaneios de Colheitas", url: "/fazenda/romaneios-colheitas", icon: ClipboardList },
+        ],
+      },
+    ],
+  },
+  {
     title: "Produtos e Estoque",
     icon: Package,
     items: [
