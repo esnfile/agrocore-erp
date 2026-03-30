@@ -48,10 +48,11 @@ import {
 } from "@/lib/mock-data";
 import type {
   Contrato, ContratoFixacao,
-  PontoEstoque, Moeda, Filial, Romaneio,
+  PontoEstoque, Moeda, Filial, Romaneio, Empresa,
   CondicaoDescontoModelo, ContratoCondicao, TipoCondicaoDesconto,
   ContratoLiquidacao,
   FinanceiroConta, FinanceiroParcela, FinanceiroBaixa,
+  DescontoTipo, DescontoEmpresaConfig,
 } from "@/lib/mock-data";
 import { Plus, Pencil, Trash2, Eye, Lock, FileCheck, AlertTriangle, ExternalLink, Info, Clock } from "lucide-react";
 import { SearchableSelect, type SearchableOption } from "@/components/SearchableSelect";
