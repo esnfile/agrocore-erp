@@ -418,13 +418,16 @@ export default function CondicoesDescontosPage() {
                   onChange={v => setForm(prev => ({ ...prev, aplicacao: v }))}
                 />
               </div>
-              <div className="flex items-end gap-3 pb-0.5">
-                <Switch
-                  id="obrigatorio"
-                  checked={form.obrigatorio}
-                  onCheckedChange={v => setForm(prev => ({ ...prev, obrigatorio: v }))}
-                />
-                <Label htmlFor="obrigatorio">Obrigatório</Label>
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <Switch
+                    id="obrigatorio"
+                    checked={form.obrigatorio}
+                    onCheckedChange={v => setForm(prev => ({ ...prev, obrigatorio: v }))}
+                  />
+                  <Label htmlFor="obrigatorio">Obrigatório no contrato</Label>
+                </div>
+                <p className="text-xs text-muted-foreground pl-11">O contrato não poderá ser salvo sem aplicar este desconto.</p>
               </div>
             </div>
           </TabsContent>
