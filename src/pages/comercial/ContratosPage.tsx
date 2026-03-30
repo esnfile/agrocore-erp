@@ -1749,9 +1749,9 @@ export default function ContratosPage() {
                   </div>
                 )}
 
-                {officialDescontos.length === 0 && (
+                {officialDescontosContrato.length === 0 && (
                   <div className="text-center py-4 text-sm text-muted-foreground border rounded-md">
-                    Nenhum desconto cadastrado para esta empresa. Configure no módulo Condições e Descontos.
+                    Nenhum desconto aplicável a contratos cadastrado para esta empresa. Configure no módulo Condições e Descontos.
                   </div>
                 )}
 
