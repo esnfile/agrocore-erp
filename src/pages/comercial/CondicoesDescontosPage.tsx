@@ -106,8 +106,8 @@ const emptyForm: DescontoTipo = {
 };
 
 export default function CondicoesDescontosPage() {
-  const [descontos, setDescontos] = useState(mockDescontoTipos);
-  const [empresaConfigs, setEmpresaConfigs] = useState(mockDescontoEmpresaConfigs);
+  const [descontos, setDescontos] = useState(descontoStore.getDescontoTipos());
+  const [empresaConfigs, setEmpresaConfigs] = useState(descontoStore.getDescontoEmpresaConfigs());
 
   // Filters
   const [filtroEmpresa, setFiltroEmpresa] = useState("todos");
