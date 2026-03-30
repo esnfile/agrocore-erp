@@ -1634,23 +1634,6 @@ export default function ContratosPage() {
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    {!viewOnly && (
-                      <>
-                        <Select onValueChange={(v) => onApplyModelo(v)}>
-                          <SelectTrigger className="w-[220px]">
-                            <SelectValue placeholder="Aplicar modelo..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {modelosCondicao.filter((m) => m.ativo).map((m) => (
-                              <SelectItem key={m.id} value={m.id}>{m.descricao}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Button size="sm" onClick={openNewCondicao}>
-                          <Plus className="mr-2 h-4 w-4" />Adicionar Manual
-                        </Button>
-                      </>
-                    )}
                   </div>
                 </div>
 
