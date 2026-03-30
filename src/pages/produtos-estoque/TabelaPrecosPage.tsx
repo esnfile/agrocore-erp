@@ -84,7 +84,7 @@ export default function TabelaPrecosPage() {
       const emp = empresasGrupo.find((e) => e.id === tpe.empresaId);
       return {
         id: tpe.id, empresaId: tpe.empresaId,
-        empresaNome: emp?.nomeFantasia || emp?.razaoSocial || tpe.empresaId,
+        empresaNome: emp?.nome || emp?.nome || tpe.empresaId,
         margemLucroPercentual: tpe.margemLucroPercentual,
       };
     }));
@@ -145,7 +145,7 @@ export default function TabelaPrecosPage() {
     }
     const emp = available[0];
     setEmpresaRows((prev) => [...prev, {
-      empresaId: emp.id, empresaNome: emp.nomeFantasia || emp.razaoSocial,
+      empresaId: emp.id, empresaNome: emp.nome,
       margemLucroPercentual: 0,
     }]);
   };
@@ -248,7 +248,7 @@ export default function TabelaPrecosPage() {
                           onValueChange={(v) => {
                             const emp = empresasGrupo.find((e) => e.id === v);
                             updateEmpresaRow(index, "empresaId", v);
-                            updateEmpresaRow(index, "empresaNome", emp?.nomeFantasia || emp?.razaoSocial || v);
+                            updateEmpresaRow(index, "empresaNome", emp?.nome || emp?.nome || v);
                           }}
                         >
                           <SelectTrigger className="w-[250px]">
@@ -257,7 +257,7 @@ export default function TabelaPrecosPage() {
                           <SelectContent>
                             {empresasGrupo.map((e) => (
                               <SelectItem key={e.id} value={e.id} disabled={empresaRows.some((r, i) => i !== index && r.empresaId === e.id)}>
-                                {e.nomeFantasia || e.razaoSocial}
+                                {e.nome}
                               </SelectItem>
                             ))}
                           </SelectContent>

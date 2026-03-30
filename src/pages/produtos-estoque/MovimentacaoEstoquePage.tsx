@@ -217,7 +217,7 @@ export default function MovimentacaoEstoquePage() {
                   <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                   <SelectContent>
                     {empresasList.map((e) => (
-                      <SelectItem key={e.id} value={e.id}>{e.nomeFantasia || e.razaoSocial}</SelectItem>
+                      <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

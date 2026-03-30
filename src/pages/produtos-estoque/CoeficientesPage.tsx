@@ -90,7 +90,7 @@ export default function CoeficientesPage() {
       const emp = empresasGrupo.find((e) => e.id === ce.empresaId);
       return {
         id: ce.id, empresaId: ce.empresaId,
-        empresaNome: emp?.nomeFantasia || emp?.razaoSocial || ce.empresaId,
+        empresaNome: emp?.nome || emp?.nome || ce.empresaId,
         percentualCustoVariavel: ce.percentualCustoVariavel,
         percentualCustoFixo: ce.percentualCustoFixo,
         percentualImpostos: ce.percentualImpostos,
@@ -158,7 +158,7 @@ export default function CoeficientesPage() {
     }
     const emp = available[0];
     setEmpresaRows((prev) => [...prev, {
-      empresaId: emp.id, empresaNome: emp.nomeFantasia || emp.razaoSocial,
+      empresaId: emp.id, empresaNome: emp.nome,
       percentualCustoVariavel: 0, percentualCustoFixo: 0, percentualImpostos: 0,
       aplicaSobre: "CUSTO_BASE",
     }]);
@@ -263,7 +263,7 @@ export default function CoeficientesPage() {
                             onValueChange={(v) => {
                               const emp = empresasGrupo.find((e) => e.id === v);
                               updateEmpresaRow(index, "empresaId", v);
-                              updateEmpresaRow(index, "empresaNome", emp?.nomeFantasia || emp?.razaoSocial || v);
+                              updateEmpresaRow(index, "empresaNome", emp?.nome || emp?.nome || v);
                             }}
                           >
                             <SelectTrigger className="w-[250px]">
@@ -272,7 +272,7 @@ export default function CoeficientesPage() {
                             <SelectContent>
                               {empresasGrupo.map((e) => (
                                 <SelectItem key={e.id} value={e.id} disabled={empresaRows.some((r, i) => i !== index && r.empresaId === e.id)}>
-                                  {e.nomeFantasia || e.razaoSocial}
+                                  {e.nome}
                                 </SelectItem>
                               ))}
                             </SelectContent>
