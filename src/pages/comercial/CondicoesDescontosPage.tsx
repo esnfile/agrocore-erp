@@ -44,7 +44,7 @@ const mockHistorico: DescontoHistorico[] = [
   { id: "h3", descontoTipoId: "dt2", data: "2025-02-10T09:00:00Z", usuario: "Admin", campo: "descricao", valorAnterior: "FUNRURAL antigo", valorNovo: "Contribuição ao Fundo de Assistência ao Trabalhador Rural" },
 ];
 
-const tipoLabels: Record<TipoDesconto, string> = {
+const tipoLabels: Record<TipoDescontoCalculo, string> = {
   percentual: "Percentual (%)",
   valor_fixo_unitario: "Fixo / Ton (R$)",
   valor_fixo_total: "Fixo Total (R$)",
