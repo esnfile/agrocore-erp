@@ -191,7 +191,11 @@ export default function CultivosPage() {
       toast({ title: "Cultivo atualizado", description: "Salvo com sucesso." });
     } else {
       const novo: Cultivo = {
-        ...formData, id: `cult${Date.now()}`, safraNome, observacao: formData.observacao ?? "",
+        safraId: formData.safraId, empresaId: formData.empresaId, filialId: formData.filialId,
+        produto: formData.produto, variedade: formData.variedade,
+        areaPlantadaHa: formData.areaPlantadaHa, dataPlantio: formData.dataPlantio,
+        dataColheitaPrevista: formData.dataColheitaPrevista, status: formData.status,
+        id: `cult${Date.now()}`, safraNome, observacao: formData.observacao ?? "",
         criadoEm: new Date().toISOString(), criadoPor: "u1",
         atualizadoEm: new Date().toISOString(), atualizadoPor: "u1",
         deletadoEm: null, deletadoPor: null,

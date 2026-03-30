@@ -187,7 +187,11 @@ export default function SafrasPage() {
       toast({ title: "Safra atualizada", description: `${formData.nome} salva com sucesso.` });
     } else {
       const nova: Safra = {
-        ...formData, id: `saf${Date.now()}`, descricao: formData.descricao ?? "",
+        empresaId: formData.empresaId, filialId: formData.filialId,
+        nome: formData.nome, anoSafra: formData.anoSafra,
+        dataInicio: formData.dataInicio, dataFim: formData.dataFim,
+        areaTotalHa: formData.areaTotalHa, status: formData.status,
+        id: `saf${Date.now()}`, descricao: formData.descricao ?? "",
         criadoEm: new Date().toISOString(), criadoPor: "u1",
         atualizadoEm: new Date().toISOString(), atualizadoPor: "u1",
         deletadoEm: null, deletadoPor: null,
