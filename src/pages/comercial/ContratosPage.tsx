@@ -1682,7 +1682,7 @@ export default function ContratosPage() {
                                   : `R$ ${cfg.valorPadrao.toFixed(2)}`}
                               </TableCell>
                               <TableCell>
-                                {cfg.obrigatorio ? (
+                                {dt.obrigatorio ? (
                                   <Badge variant="default" className="gap-1">
                                     <Lock className="h-3 w-3" /> Sim
                                   </Badge>
