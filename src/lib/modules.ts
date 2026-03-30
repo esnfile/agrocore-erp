@@ -26,6 +26,9 @@ import {
   Ruler,
   Scale,
   ClipboardList,
+  Sprout,
+  Leaf,
+  CalendarDays,
   type LucideIcon,
 } from "lucide-react";
 
@@ -96,6 +99,21 @@ export const modules: Module[] = [
               { title: "Permissões", url: "/admin/gersys_permissoes", icon: Lock },
             ],
           },
+        ],
+      },
+    ],
+  },
+  {
+    title: "Fazenda/Agricultura",
+    icon: Sprout,
+    items: [
+      { title: "Gestão de Safras", url: "/fazenda/safras", icon: CalendarDays },
+      {
+        title: "Planejamento",
+        icon: Layers,
+        children: [
+          { title: "Cultivos", url: "/fazenda/cultivos", icon: Leaf },
+          { title: "Romaneios de Colheitas", url: "/fazenda/romaneios-colheitas", icon: ClipboardList },
         ],
       },
     ],

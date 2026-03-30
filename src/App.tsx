@@ -70,10 +70,10 @@ const App = () => (
               {/* Pessoas */}
               <Route path="/admin/pessoas" element={<PessoasPage />} />
               <Route path="/admin/grupo-pessoas" element={<GrupoPessoasPage />} />
-              {/* Armazém */}
-              <Route path="/armazem/contratos" element={<PlaceholderPage />} />
-              <Route path="/armazem/entregas" element={<PlaceholderPage />} />
-              <Route path="/armazem/estoque" element={<PlaceholderPage />} />
+              {/* Fazenda/Agricultura */}
+              <Route path="/fazenda/safras" element={<PlaceholderPage />} />
+              <Route path="/fazenda/cultivos" element={<PlaceholderPage />} />
+              <Route path="/fazenda/romaneios-colheitas" element={<PlaceholderPage />} />
               {/* Comercial */}
               <Route path="/comercial/contratos" element={<ContratosPage />} />
               <Route path="/comercial/modelos-condicoes" element={<ModelosCondicoesPage />} />
