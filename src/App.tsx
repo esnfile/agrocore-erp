@@ -74,9 +74,9 @@ const App = () => (
               <Route path="/admin/pessoas" element={<PessoasPage />} />
               <Route path="/admin/grupo-pessoas" element={<GrupoPessoasPage />} />
               {/* Fazenda/Agricultura */}
-              <Route path="/fazenda/safras" element={<PlaceholderPage />} />
-              <Route path="/fazenda/cultivos" element={<PlaceholderPage />} />
-              <Route path="/fazenda/romaneios-colheitas" element={<PlaceholderPage />} />
+              <Route path="/fazenda/safras" element={<SafrasPage />} />
+              <Route path="/fazenda/cultivos" element={<CultivosPage />} />
+              <Route path="/fazenda/romaneios-colheitas" element={<RomaneiosColheitasPage />} />
               {/* Comercial */}
               <Route path="/comercial/contratos" element={<ContratosPage />} />
               <Route path="/comercial/modelos-condicoes" element={<ModelosCondicoesPage />} />
