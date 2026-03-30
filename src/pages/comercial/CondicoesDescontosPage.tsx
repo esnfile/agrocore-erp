@@ -13,35 +13,21 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Pencil, Trash2 } from "lucide-react";
-import { empresas } from "@/lib/mock-data";
+import {
+  empresas,
+  descontoTipos as mockDescontoTipos,
+  descontoEmpresaConfigs as mockDescontoEmpresaConfigs,
+} from "@/lib/mock-data";
+import type {
+  DescontoTipo,
+  DescontoEmpresaConfig,
+  TipoDescontoCalculo,
+  AplicacaoDesconto,
+  CategoriaDesconto,
+} from "@/lib/mock-data";
 import { toast } from "sonner";
 
 // ---- Types ----
-type TipoDesconto = "percentual" | "valor_fixo_unitario" | "valor_fixo_total";
-type AplicacaoDesconto = "contrato" | "romaneio" | "ambos";
-type CategoriaDesconto = "tributario" | "qualidade" | "operacional" | "comercial";
-
-interface DescontoTipo {
-  id: string;
-  nome: string;
-  descricao: string;
-  categoria: CategoriaDesconto;
-  tipo: TipoDesconto;
-  ordemAplicacao: number;
-  ativo: boolean;
-}
-
-interface DescontoEmpresaConfig {
-  id: string;
-  descontoTipoId: string;
-  empresaId: string;
-  valorPadrao: number;
-  obrigatorio: boolean;
-  aplicacao: AplicacaoDesconto;
-  ativo: boolean;
-  observacoes: string;
-}
-
 interface DescontoHistorico {
   id: string;
   descontoTipoId: string;
@@ -51,28 +37,6 @@ interface DescontoHistorico {
   valorAnterior: string;
   valorNovo: string;
 }
-
-// ---- Mock Data ----
-const mockDescontoTipos: DescontoTipo[] = [
-  { id: "dt1", nome: "FETHAB", descricao: "Fundo Estadual de Transporte e Habitação", categoria: "tributario", tipo: "valor_fixo_unitario", ordemAplicacao: 1, ativo: true },
-  { id: "dt2", nome: "FUNRURAL", descricao: "Contribuição ao Fundo de Assistência ao Trabalhador Rural", categoria: "tributario", tipo: "percentual", ordemAplicacao: 2, ativo: true },
-  { id: "dt3", nome: "TAXA_ARMAZEM", descricao: "Taxa de armazenagem por tonelada/mês", categoria: "operacional", tipo: "valor_fixo_unitario", ordemAplicacao: 3, ativo: true },
-  { id: "dt4", nome: "CLASSIFICACAO", descricao: "Desconto por resultado de classificação de grãos", categoria: "qualidade", tipo: "percentual", ordemAplicacao: 4, ativo: true },
-  { id: "dt5", nome: "IMPUREZA", descricao: "Desconto por impureza acima do padrão tolerado", categoria: "qualidade", tipo: "percentual", ordemAplicacao: 5, ativo: true },
-  { id: "dt6", nome: "UMIDADE", descricao: "Desconto por umidade acima do padrão de recebimento", categoria: "qualidade", tipo: "percentual", ordemAplicacao: 6, ativo: true },
-  { id: "dt7", nome: "ARDIDOS", descricao: "Desconto por grãos ardidos acima da tolerância", categoria: "qualidade", tipo: "percentual", ordemAplicacao: 7, ativo: true },
-  { id: "dt8", nome: "AVARIADOS", descricao: "Desconto por grãos avariados acima da tolerância", categoria: "qualidade", tipo: "percentual", ordemAplicacao: 8, ativo: false },
-];
-
-const mockDescontoEmpresaConfigs: DescontoEmpresaConfig[] = [
-  { id: "dec1", descontoTipoId: "dt1", empresaId: "e1", valorPadrao: 9.53, obrigatorio: true, aplicacao: "romaneio", ativo: true, observacoes: "Valor por ton - MT" },
-  { id: "dec2", descontoTipoId: "dt2", empresaId: "e1", valorPadrao: 1.5, obrigatorio: true, aplicacao: "contrato", ativo: true, observacoes: "" },
-  { id: "dec3", descontoTipoId: "dt3", empresaId: "e1", valorPadrao: 12.0, obrigatorio: false, aplicacao: "romaneio", ativo: true, observacoes: "R$/ton/mês" },
-  { id: "dec4", descontoTipoId: "dt5", empresaId: "e1", valorPadrao: 1.0, obrigatorio: false, aplicacao: "romaneio", ativo: true, observacoes: "% acima de 1%" },
-  { id: "dec5", descontoTipoId: "dt6", empresaId: "e1", valorPadrao: 1.5, obrigatorio: false, aplicacao: "romaneio", ativo: true, observacoes: "% acima de 14%" },
-  { id: "dec6", descontoTipoId: "dt1", empresaId: "e2", valorPadrao: 9.53, obrigatorio: true, aplicacao: "romaneio", ativo: true, observacoes: "" },
-  { id: "dec7", descontoTipoId: "dt2", empresaId: "e2", valorPadrao: 1.5, obrigatorio: true, aplicacao: "ambos", ativo: true, observacoes: "" },
-];
 
 const mockHistorico: DescontoHistorico[] = [
   { id: "h1", descontoTipoId: "dt1", data: "2025-03-01T10:00:00Z", usuario: "Admin", campo: "valorPadrao", valorAnterior: "8.50", valorNovo: "9.53" },
