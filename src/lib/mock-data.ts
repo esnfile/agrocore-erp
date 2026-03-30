@@ -18,13 +18,8 @@ export interface Grupo {
 export interface Empresa {
   id: string;
   grupoId: string;
-  tipoPessoa: "PF" | "PJ";
-  razaoSocial: string;
-  nomeFantasia: string;
-  cpfCnpj: string;
-  inscricaoEstadual: string;
-  email: string;
-  telefone: string;
+  nome: string;
+  descricao: string;
   ativo: boolean;
   criadoEm: string;
   criadoPor: string;
@@ -37,15 +32,19 @@ export interface Empresa {
 export interface Filial {
   id: string;
   empresaId: string;
+  matrizFilial: "MATRIZ" | "FILIAL";
   nomeRazao: string;
   cpfCnpj: string;
-  inscricaoEstadual: string;
-  endereco: string;
-  numeroKm: string;
-  bairro: string;
+  ie: string;
+  email: string;
+  telefone: string;
   cep: string;
+  logradouro: string;
+  numero: string;
+  complemento: string;
+  bairro: string;
   cidade: string;
-  estado: string;
+  uf: string;
   ativo: boolean;
   criadoEm: string;
   criadoPor: string;
