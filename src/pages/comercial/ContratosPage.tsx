@@ -1622,6 +1622,7 @@ export default function ContratosPage() {
 
           {/* ABA 5 — Condições e Descontos (Cadastro Oficial) */}
           <TabsContent value="condicoes">
+            <TooltipProvider delayDuration={200}>
             <div className="space-y-6">
               {/* Official Descontos from the registry */}
               <div className="space-y-4">
