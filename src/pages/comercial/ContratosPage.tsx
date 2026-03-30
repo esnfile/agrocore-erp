@@ -1177,7 +1177,7 @@ export default function ContratosPage() {
               </div>
 
               {/* Row 5: Datas de entrega (2 cols) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-1.5">
                   <Label>Data Entrega Início</Label>
                   <Input type="date" {...contratoForm.register("dataEntregaInicio")} />
