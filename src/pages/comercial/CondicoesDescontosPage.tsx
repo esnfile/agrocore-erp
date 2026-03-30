@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/PageHeader";
 import { DataTable } from "@/components/DataTable";
@@ -10,6 +10,7 @@ import { CrudModal } from "@/components/CrudModal";
 import { SearchableSelect } from "@/components/SearchableSelect";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Pencil, Trash2 } from "lucide-react";
@@ -60,8 +61,54 @@ const categoriaLabels: Record<CategoriaDesconto, string> = {
 const aplicacaoLabels: Record<AplicacaoDesconto, string> = {
   contrato: "Contrato",
   romaneio: "Romaneio",
-  ambos: "Ambos",
+  ambos: "Contrato • Romaneio",
 };
+
+// Helpers to convert between AplicacaoDesconto and boolean flags
+function aplicacaoToFlags(a: AplicacaoDesconto): { contrato: boolean; romaneio: boolean } {
+  return { contrato: a === "contrato" || a === "ambos", romaneio: a === "romaneio" || a === "ambos" };
+}
+function flagsToAplicacao(contrato: boolean, romaneio: boolean): AplicacaoDesconto {
+  if (contrato && romaneio) return "ambos";
+  if (contrato) return "contrato";
+  if (romaneio) return "romaneio";
+  return "contrato"; // fallback
+}
+
+// Reusable tag selector component
+function AplicacaoTags({ value, onChange, disabled }: { value: AplicacaoDesconto; onChange: (v: AplicacaoDesconto) => void; disabled?: boolean }) {
+  const flags = aplicacaoToFlags(value);
+  return (
+    <div className="flex gap-2">
+      <label className={`inline-flex items-center gap-1.5 cursor-pointer rounded-md border px-3 py-1.5 text-xs font-medium transition-colors select-none ${flags.contrato ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-input hover:bg-accent"} ${disabled ? "opacity-50 pointer-events-none" : ""}`}>
+        <Checkbox
+          checked={flags.contrato}
+          onCheckedChange={(checked) => {
+            const newContrato = !!checked;
+            if (!newContrato && !flags.romaneio) return; // at least one must be selected
+            onChange(flagsToAplicacao(newContrato, flags.romaneio));
+          }}
+          disabled={disabled}
+          className="h-3.5 w-3.5 border-current data-[state=checked]:bg-transparent data-[state=checked]:text-current"
+        />
+        Contrato
+      </label>
+      <label className={`inline-flex items-center gap-1.5 cursor-pointer rounded-md border px-3 py-1.5 text-xs font-medium transition-colors select-none ${flags.romaneio ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-input hover:bg-accent"} ${disabled ? "opacity-50 pointer-events-none" : ""}`}>
+        <Checkbox
+          checked={flags.romaneio}
+          onCheckedChange={(checked) => {
+            const newRomaneio = !!checked;
+            if (!newRomaneio && !flags.contrato) return;
+            onChange(flagsToAplicacao(flags.contrato, newRomaneio));
+          }}
+          disabled={disabled}
+          className="h-3.5 w-3.5 border-current data-[state=checked]:bg-transparent data-[state=checked]:text-current"
+        />
+        Romaneio
+      </label>
+    </div>
+  );
+}
 
 const emptyForm: DescontoTipo = {
   id: "", nome: "", descricao: "", categoria: "tributario", tipo: "percentual", ordemAplicacao: 1, ativo: true,
@@ -262,7 +309,16 @@ export default function CondicoesDescontosPage() {
             if (row.tipo === "percentual") return `${row.valorPadrao.toFixed(2)}%`;
             return `R$ ${row.valorPadrao.toFixed(2)}`;
           }},
-          { key: "aplicacao", header: "Aplicação", render: (row) => aplicacaoLabels[row.aplicacao as AplicacaoDesconto] ?? row.aplicacao },
+          { key: "aplicacao", header: "Aplicação", render: (row) => {
+            const a = row.aplicacao as AplicacaoDesconto;
+            const flags = aplicacaoToFlags(a);
+            return (
+              <div className="flex gap-1">
+                {flags.contrato && <Badge variant="outline" className="text-xs">Contrato</Badge>}
+                {flags.romaneio && <Badge variant="outline" className="text-xs">Romaneio</Badge>}
+              </div>
+            );
+          }},
           { key: "obrigatorio", header: "Obrigatório", render: (row) => (
             <Badge variant={row.obrigatorio ? "default" : "outline"}>{row.obrigatorio ? "Sim" : "Não"}</Badge>
           )},
@@ -368,16 +424,12 @@ export default function CondicoesDescontosPage() {
                     <Label className="text-xs">Valor Padrão</Label>
                     <Input type="number" step="0.01" value={configForm.valorPadrao ?? 0} onChange={e => setConfigForm(prev => ({ ...prev, valorPadrao: Number(e.target.value) }))} />
                   </div>
-                  <div className="space-y-1">
+                   <div className="space-y-1">
                     <Label className="text-xs">Aplicação</Label>
-                    <Select value={configForm.aplicacao as string ?? "contrato"} onValueChange={v => setConfigForm(prev => ({ ...prev, aplicacao: v as AplicacaoDesconto }))}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="contrato">Contrato</SelectItem>
-                        <SelectItem value="romaneio">Romaneio</SelectItem>
-                        <SelectItem value="ambos">Ambos</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <AplicacaoTags
+                      value={(configForm.aplicacao as AplicacaoDesconto) ?? "contrato"}
+                      onChange={v => setConfigForm(prev => ({ ...prev, aplicacao: v }))}
+                    />
                   </div>
                 </div>
                 <div className="flex items-center gap-6">
@@ -425,7 +477,12 @@ export default function CondicoesDescontosPage() {
                         {form.tipo === "percentual" ? `${cfg.valorPadrao.toFixed(2)}%` : `R$ ${cfg.valorPadrao.toFixed(2)}`}
                       </TableCell>
                       <TableCell><Badge variant={cfg.obrigatorio ? "default" : "outline"}>{cfg.obrigatorio ? "Sim" : "Não"}</Badge></TableCell>
-                      <TableCell>{aplicacaoLabels[cfg.aplicacao]}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          {aplicacaoToFlags(cfg.aplicacao).contrato && <Badge variant="outline" className="text-xs">Contrato</Badge>}
+                          {aplicacaoToFlags(cfg.aplicacao).romaneio && <Badge variant="outline" className="text-xs">Romaneio</Badge>}
+                        </div>
+                      </TableCell>
                       <TableCell><Badge variant={cfg.ativo ? "default" : "secondary"}>{cfg.ativo ? "Ativo" : "Inativo"}</Badge></TableCell>
                       <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">{cfg.observacoes || "—"}</TableCell>
                       <TableCell>
@@ -450,14 +507,10 @@ export default function CondicoesDescontosPage() {
                               </div>
                               <div className="space-y-1">
                                 <Label className="text-xs">Aplicação</Label>
-                                <Select value={configForm.aplicacao as string} onValueChange={v => setConfigForm(prev => ({ ...prev, aplicacao: v as AplicacaoDesconto }))}>
-                                  <SelectTrigger><SelectValue /></SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="contrato">Contrato</SelectItem>
-                                    <SelectItem value="romaneio">Romaneio</SelectItem>
-                                    <SelectItem value="ambos">Ambos</SelectItem>
-                                  </SelectContent>
-                                </Select>
+                                <AplicacaoTags
+                                  value={configForm.aplicacao as AplicacaoDesconto}
+                                  onChange={v => setConfigForm(prev => ({ ...prev, aplicacao: v }))}
+                                />
                               </div>
                               <div className="flex items-center gap-4 pt-5">
                                 <div className="flex items-center gap-2">
