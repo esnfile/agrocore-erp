@@ -103,37 +103,6 @@ export default function MoedasCotacoesPage() {
     <div className="space-y-6">
       <PageHeader title="Moedas e Cotações" description="Gerencie moedas aceitas e acompanhe cotações atualizadas." />
 
-      {/* Filters */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div>
-          <Label className="text-xs mb-1 block">Moeda</Label>
-          <Select value={filtroMoeda} onValueChange={setFiltroMoeda}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todas</SelectItem>
-              {moedasList.filter(m => !m.deletadoEm).map(m => (
-                <SelectItem key={m.id} value={m.id}>{m.codigo} — {m.descricao}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label className="text-xs mb-1 block">Status</Label>
-          <Select value={filtroStatus} onValueChange={setFiltroStatus}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos</SelectItem>
-              <SelectItem value="ativo">Ativo</SelectItem>
-              <SelectItem value="inativo">Inativo</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label className="text-xs mb-1 block">Período (a partir de)</Label>
-          <Input type="date" value={filtroPeriodo} onChange={e => setFiltroPeriodo(e.target.value)} />
-        </div>
-      </div>
-
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="moedas">Moedas</TabsTrigger>
