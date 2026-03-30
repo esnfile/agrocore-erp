@@ -3456,28 +3456,27 @@ export const contratoLiquidacaoService = {
 // ============================================================
 // Tipos de Desconto Oficiais (Cadastro Mestre)
 // ============================================================
-import {
-  descontoTipos as mockDescontoTipos,
-  descontoEmpresaConfigs as mockDescontoEmpresaConfigs,
-} from "./mock-data";
+import { descontoStore } from "./mock-store";
 import type { DescontoTipo, DescontoEmpresaConfig } from "./mock-data";
 
 export const descontoTipoService = {
   async listarAtivos(): Promise<DescontoTipo[]> {
     await delay();
-    return mockDescontoTipos.filter((d) => d.ativo);
+    return descontoStore.getDescontoTipos().filter((d) => d.ativo);
   },
   async listarTodos(): Promise<DescontoTipo[]> {
     await delay();
-    return [...mockDescontoTipos];
+    return [...descontoStore.getDescontoTipos()];
   },
   async listarConfigsPorEmpresa(empresaId: string): Promise<(DescontoEmpresaConfig & { descontoTipo: DescontoTipo })[]> {
     await delay();
-    return mockDescontoEmpresaConfigs
+    const tipos = descontoStore.getDescontoTipos();
+    const configs = descontoStore.getDescontoEmpresaConfigs();
+    return configs
       .filter((c) => c.empresaId === empresaId && c.ativo)
       .map((c) => ({
         ...c,
-        descontoTipo: mockDescontoTipos.find((d) => d.id === c.descontoTipoId)!,
+        descontoTipo: tipos.find((d) => d.id === c.descontoTipoId)!,
       }))
       .filter((c) => c.descontoTipo && c.descontoTipo.ativo);
   },

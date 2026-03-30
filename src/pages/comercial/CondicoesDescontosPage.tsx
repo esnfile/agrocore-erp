@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/PageHeader";
 import { DataTable } from "@/components/DataTable";
@@ -14,11 +14,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Pencil, Trash2, Check, X } from "lucide-react";
-import {
-  empresas,
-  descontoTipos as mockDescontoTipos,
-  descontoEmpresaConfigs as mockDescontoEmpresaConfigs,
-} from "@/lib/mock-data";
+import { empresas } from "@/lib/mock-data";
+import { descontoStore } from "@/lib/mock-store";
 import type {
   DescontoTipo,
   DescontoEmpresaConfig,
@@ -109,8 +106,12 @@ const emptyForm: DescontoTipo = {
 };
 
 export default function CondicoesDescontosPage() {
-  const [descontos, setDescontos] = useState(mockDescontoTipos);
-  const [empresaConfigs, setEmpresaConfigs] = useState(mockDescontoEmpresaConfigs);
+  const [descontos, setDescontos] = useState(descontoStore.getDescontoTipos());
+  const [empresaConfigs, setEmpresaConfigs] = useState(descontoStore.getDescontoEmpresaConfigs());
+
+  // Sync state changes back to the in-memory store so other pages see updates
+  useEffect(() => { descontoStore.setDescontoTipos(descontos); }, [descontos]);
+  useEffect(() => { descontoStore.setDescontoEmpresaConfigs(empresaConfigs); }, [empresaConfigs]);
 
   // Filters
   const [filtroEmpresa, setFiltroEmpresa] = useState("todos");
