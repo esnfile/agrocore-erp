@@ -1672,8 +1672,8 @@ export default function ContratosPage() {
                               </TableCell>
                               <TableCell>
                                 <div className="flex gap-1">
-                                  {(cfg.aplicacao === "contrato" || cfg.aplicacao === "ambos") && <Badge variant="outline" className="text-xs">Contrato</Badge>}
-                                  {(cfg.aplicacao === "romaneio" || cfg.aplicacao === "ambos") && <Badge variant="outline" className="text-xs">Romaneio</Badge>}
+                                  {(dt.aplicacao === "contrato" || dt.aplicacao === "ambos") && <Badge variant="outline" className="text-xs">Contrato</Badge>}
+                                  {(dt.aplicacao === "romaneio" || dt.aplicacao === "ambos") && <Badge variant="outline" className="text-xs">Romaneio</Badge>}
                                 </div>
                               </TableCell>
                               <TableCell className="text-right">
