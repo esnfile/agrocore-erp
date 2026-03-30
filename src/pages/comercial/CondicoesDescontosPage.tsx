@@ -235,7 +235,7 @@ export default function CondicoesDescontosPage() {
           <Label className="text-xs mb-1 block">Empresa</Label>
           <SearchableSelect
             value={filtroEmpresa}
-            onValueChange={setFiltroEmpresa}
+            onChange={setFiltroEmpresa}
             placeholder="Todas"
             options={[{ id: "todos", label: "Todas" }, ...empresaAtivas.map(e => ({ id: e.id, label: e.nome }))]}
           />
