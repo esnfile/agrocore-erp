@@ -37,19 +37,22 @@ import {
   contratoLiquidacaoService, financeiroContaService,
   financeiroParcelaService, financeiroBaixaService,
   filialService, romaneioService, produtoService,
+  empresaService, descontoTipoService,
 } from "@/lib/services";
 import {
   pessoas as mockPessoas,
   produtos as mockProdutos,
   unidadesMedida as mockUnidades,
   moedas as mockMoedas,
+  empresas as mockEmpresas,
 } from "@/lib/mock-data";
 import type {
   Contrato, ContratoFixacao,
-  PontoEstoque, Moeda, Filial, Romaneio,
+  PontoEstoque, Moeda, Filial, Romaneio, Empresa,
   CondicaoDescontoModelo, ContratoCondicao, TipoCondicaoDesconto,
   ContratoLiquidacao,
   FinanceiroConta, FinanceiroParcela, FinanceiroBaixa,
+  DescontoTipo, DescontoEmpresaConfig,
 } from "@/lib/mock-data";
 import { Plus, Pencil, Trash2, Eye, Lock, FileCheck, AlertTriangle, ExternalLink, Info, Clock } from "lucide-react";
 import { SearchableSelect, type SearchableOption } from "@/components/SearchableSelect";
@@ -72,6 +75,8 @@ function formatCurrency(value: number, moedaCodigo: string): string {
 
 // ---- Schemas ----
 const contratoSchema = z.object({
+  empresaId: z.string().min(1, "Empresa é obrigatória"),
+  filialId: z.string().optional(),
   tipoContrato: z.enum(["COMPRA", "VENDA"]),
   pessoaId: z.string().min(1, "Pessoa responsável é obrigatória"),
   produtoId: z.string().min(1, "Produto é obrigatório"),
@@ -115,13 +120,19 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function ContratosPage() {
-  const { grupoAtual, empresaAtual, filiais: orgFiliais } = useOrganization();
+  const { grupoAtual, empresaAtual, empresas: orgEmpresas, filiais: orgFiliais } = useOrganization();
   const empresaId = empresaAtual?.id ?? "";
   const grupoId = grupoAtual?.id ?? "";
 
   const [contratos, setContratos] = useState<Contrato[]>([]);
   const [loading, setLoading] = useState(false);
   const [filiaisEmpresa, setFiliaisEmpresa] = useState<Filial[]>([]);
+  
+  // Filiais for the empresa selected in the contract form (may differ from session empresa)
+  const [contratoFiliaisEmpresa, setContratoFiliaisEmpresa] = useState<Filial[]>([]);
+  
+  // Official discount types for contract
+  const [officialDescontos, setOfficialDescontos] = useState<(DescontoEmpresaConfig & { descontoTipo: DescontoTipo })[]>([]);
 
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -170,6 +181,7 @@ export default function ContratosPage() {
   const contratoForm = useForm<ContratoForm>({
     resolver: zodResolver(contratoSchema),
     defaultValues: {
+      empresaId: empresaId, filialId: "",
       tipoContrato: "COMPRA", pessoaId: "", produtoId: "",
       unidadeNegociacaoId: "", quantidadeTotal: 0, moedaId: "moeda1",
       precoUnitario: 0, tipoPreco: "FIXO",
@@ -193,6 +205,17 @@ export default function ContratosPage() {
   const filialOperacaoWatch = contratoForm.watch("filialOperacaoId");
   const produtoIdWatch = contratoForm.watch("produtoId");
   const tipoContratoWatch = contratoForm.watch("tipoContrato");
+  const empresaIdWatch = contratoForm.watch("empresaId");
+
+  // Movement detection - determines if empresa/filial can be edited
+  const hasMovements = useMemo(() => {
+    if (!editingContrato) return false;
+    return romaneiosContrato.length > 0 || fixacoes.length > 0 || finContas.length > 0 || liquidacao !== null ||
+      editingContrato.status === "PARCIAL" || editingContrato.status === "FINALIZADO" ||
+      editingContrato.status === "CANCELADO" || editingContrato.status === "LIQUIDADO";
+  }, [editingContrato, romaneiosContrato, fixacoes, finContas, liquidacao]);
+
+  const canEditEmpresaFilial = !editingContrato || !hasMovements;
 
   // Price suggestion state
   const [precoSugestao, setPrecoSugestao] = useState<{
@@ -258,6 +281,18 @@ export default function ContratosPage() {
     classificacaoTipoService.listarTodos().then(() => {});
   }, [empresaId]);
 
+  // Load filiais + descontos for the empresa selected in the contract form
+  useEffect(() => {
+    if (empresaIdWatch) {
+      filialService.listarPorEmpresa(empresaIdWatch).then(setContratoFiliaisEmpresa);
+      condicaoDescontoModeloService.listarPorEmpresa(empresaIdWatch).then(setModelosCondicao);
+      descontoTipoService.listarConfigsPorEmpresa(empresaIdWatch).then(setOfficialDescontos);
+    } else {
+      setContratoFiliaisEmpresa([]);
+      setOfficialDescontos([]);
+    }
+  }, [empresaIdWatch]);
+
   useEffect(() => {
     if (empresaId && filialOperacaoWatch) {
       pontoEstoqueService.listar(empresaId, filialOperacaoWatch).then(setPontos);
@@ -266,13 +301,14 @@ export default function ContratosPage() {
     }
   }, [empresaId, filialOperacaoWatch]);
 
+  // Pessoas are GLOBAL - not filtered by empresa
   const pessoasAtivas = useMemo(
-    () => mockPessoas.filter((p) => p.deletadoEm === null && p.ativo && p.empresaId === empresaId),
-    [empresaId]
+    () => mockPessoas.filter((p) => p.deletadoEm === null && p.ativo),
+    []
   );
   const produtosAtivos = useMemo(
-    () => mockProdutos.filter((p) => p.deletadoEm === null && p.ativo && p.empresaId === empresaId),
-    [empresaId]
+    () => mockProdutos.filter((p) => p.deletadoEm === null && p.ativo && p.empresaId === (empresaIdWatch || empresaId)),
+    [empresaIdWatch, empresaId]
   );
   const unidadesAtivas = useMemo(
     () => mockUnidades.filter((u) => u.deletadoEm === null && u.ativo),
@@ -367,6 +403,8 @@ export default function ContratosPage() {
     setEditingContrato(null);
     setViewOnly(false);
     contratoForm.reset({
+      empresaId: empresaId,
+      filialId: orgFiliais.length > 0 ? orgFiliais[0].id : "",
       tipoContrato: "COMPRA", pessoaId: "", produtoId: "",
       unidadeNegociacaoId: "", quantidadeTotal: 0, moedaId: "moeda1",
       precoUnitario: 0, tipoPreco: "FIXO",
@@ -390,6 +428,8 @@ export default function ContratosPage() {
     setEditingContrato(c);
     setViewOnly(false);
     contratoForm.reset({
+      empresaId: c.empresaId,
+      filialId: c.filialId ?? "",
       tipoContrato: c.tipoContrato,
       pessoaId: c.pessoaId,
       produtoId: c.produtoId,
@@ -415,6 +455,19 @@ export default function ContratosPage() {
     openEdit(c);
     setViewOnly(true);
   };
+
+  // Handle empresa change in contract form
+  const handleContratoEmpresaChange = useCallback((newEmpresaId: string) => {
+    contratoForm.setValue("empresaId", newEmpresaId, { shouldValidate: true });
+    // Clear dependent fields
+    contratoForm.setValue("filialId", "");
+    contratoForm.setValue("produtoId", "");
+    contratoForm.setValue("filialOperacaoId", "");
+    contratoForm.setValue("filialOrigemId", "");
+    contratoForm.setValue("filialDestinoId", "");
+    // Clear conditions
+    setCondicoes([]);
+  }, [contratoForm]);
 
   const loadSubEntities = async (contratoId: string) => {
     const [roms, f, conds, liqs] = await Promise.all([
@@ -447,18 +500,22 @@ export default function ContratosPage() {
   };
 
   const onSaveContrato = contratoForm.handleSubmit(async (data) => {
-    if (!grupoId || !empresaId) return;
+    if (!grupoId) return;
+    const contractEmpresaId = data.empresaId || empresaId;
+    if (!contractEmpresaId) return;
     setSaving(true);
     try {
       await contratoService.salvar(
         {
           ...data,
           id: editingContrato?.id,
+          empresaId: contractEmpresaId,
+          filialId: data.filialId || "",
           filialOperacaoId: data.filialOperacaoId || null,
           filialOrigemId: data.filialOrigemId || null,
           filialDestinoId: data.filialDestinoId || null,
         },
-        { grupoId, empresaId, filialId: data.filialOperacaoId || empresaId }
+        { grupoId, empresaId: contractEmpresaId, filialId: data.filialId || data.filialOperacaoId || contractEmpresaId }
       );
       toast({ title: "Sucesso", description: editingContrato ? "Contrato atualizado." : "Contrato criado." });
       setModalOpen(false);
@@ -806,6 +863,54 @@ export default function ContratosPage() {
           <TabsContent value="dados">
             <TooltipProvider delayDuration={200}>
             <fieldset disabled={viewOnly} className="space-y-5">
+              {/* Row 0: Empresa + Filial (2 cols) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label>Empresa <span className="text-destructive">*</span></Label>
+                  <Select
+                    value={contratoForm.watch("empresaId")}
+                    onValueChange={handleContratoEmpresaChange}
+                    disabled={viewOnly || !canEditEmpresaFilial}
+                  >
+                    <SelectTrigger className={!canEditEmpresaFilial ? "bg-muted/50 cursor-not-allowed" : ""}>
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {orgEmpresas.filter((e) => e.ativo).map((e) => (
+                        <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {contratoForm.formState.errors.empresaId && (
+                    <p className="text-xs text-destructive">{contratoForm.formState.errors.empresaId.message}</p>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Filial</Label>
+                  <Select
+                    value={contratoForm.watch("filialId") || ""}
+                    onValueChange={(v) => contratoForm.setValue("filialId", v)}
+                    disabled={viewOnly || !canEditEmpresaFilial}
+                  >
+                    <SelectTrigger className={!canEditEmpresaFilial ? "bg-muted/50 cursor-not-allowed" : ""}>
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {contratoFiliaisEmpresa.filter((f) => f.ativo).map((f) => (
+                        <SelectItem key={f.id} value={f.id}>{f.nomeRazao}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              {/* Movement lock warning */}
+              {editingContrato && hasMovements && (
+                <div className="rounded-md border border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400 flex items-center gap-2">
+                  <Lock className="h-3.5 w-3.5 flex-shrink-0" />
+                  <span>Empresa e filial não podem ser alteradas porque este contrato já possui movimentações vinculadas.</span>
+                </div>
+              )}
+
               {/* Row 1: Tipo + Número + Data (3 cols) */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
@@ -1081,7 +1186,7 @@ export default function ContratosPage() {
                     <Select value={contratoForm.watch("filialOperacaoId") || ""} onValueChange={(v) => contratoForm.setValue("filialOperacaoId", v)}>
                       <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                       <SelectContent>
-                        {filiaisEmpresa.filter((f) => f.ativo).map((f) => (
+                        {contratoFiliaisEmpresa.filter((f) => f.ativo).map((f) => (
                           <SelectItem key={f.id} value={f.id}>{f.nomeRazao}</SelectItem>
                         ))}
                       </SelectContent>
@@ -1106,7 +1211,7 @@ export default function ContratosPage() {
                         <SelectValue placeholder={tipoContratoWatch === "COMPRA" ? "Não aplicável" : "Selecione..."} />
                       </SelectTrigger>
                       <SelectContent>
-                        {filiaisEmpresa.filter((f) => f.ativo).map((f) => (
+                        {contratoFiliaisEmpresa.filter((f) => f.ativo).map((f) => (
                           <SelectItem key={f.id} value={f.id}>{f.nomeRazao}</SelectItem>
                         ))}
                       </SelectContent>
@@ -1131,7 +1236,7 @@ export default function ContratosPage() {
                         <SelectValue placeholder={tipoContratoWatch === "VENDA" ? "Não aplicável" : "Selecione..."} />
                       </SelectTrigger>
                       <SelectContent>
-                        {filiaisEmpresa.filter((f) => f.ativo).map((f) => (
+                        {contratoFiliaisEmpresa.filter((f) => f.ativo).map((f) => (
                           <SelectItem key={f.id} value={f.id}>{f.nomeRazao}</SelectItem>
                         ))}
                       </SelectContent>
@@ -1492,12 +1597,18 @@ export default function ContratosPage() {
             </div>
           </TabsContent>
 
-          {/* ABA 5 — Condições e Descontos */}
+          {/* ABA 5 — Condições e Descontos (Cadastro Oficial) */}
           <TabsContent value="condicoes">
             <div className="space-y-6">
+              {/* Official Descontos from the registry */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-foreground">Condições Financeiras</h3>
+                  <div>
+                    <h3 className="font-semibold text-foreground">Descontos Oficiais</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Descontos cadastrados no módulo Condições e Descontos para a empresa {mockEmpresas.find(e => e.id === (empresaIdWatch || empresaId))?.nome ?? "selecionada"}
+                    </p>
+                  </div>
                   <div className="flex gap-2">
                     {!viewOnly && (
                       <>
@@ -1512,73 +1623,190 @@ export default function ContratosPage() {
                           </SelectContent>
                         </Select>
                         <Button size="sm" onClick={openNewCondicao}>
-                          <Plus className="mr-2 h-4 w-4" />Adicionar
+                          <Plus className="mr-2 h-4 w-4" />Adicionar Manual
                         </Button>
                       </>
                     )}
                   </div>
                 </div>
-                <div className="overflow-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Ordem</TableHead>
-                        <TableHead>Descrição</TableHead>
-                        <TableHead>Tipo</TableHead>
-                        <TableHead className="text-right">Valor</TableHead>
-                        <TableHead>Automático</TableHead>
-                        {!viewOnly && <TableHead className="text-right">Ações</TableHead>}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {condicoes.length === 0 ? (
+
+                {/* Official descontos from empresa registry */}
+                {officialDescontos.length > 0 && (
+                  <div className="overflow-auto">
+                    <Table>
+                      <TableHeader>
                         <TableRow>
-                          <TableCell colSpan={viewOnly ? 5 : 6} className="text-center py-8 text-muted-foreground">
-                            Nenhuma condição vinculada a este contrato.
-                          </TableCell>
+                          <TableHead>Nome</TableHead>
+                          <TableHead>Descrição</TableHead>
+                          <TableHead>Tipo</TableHead>
+                          <TableHead>Aplicação</TableHead>
+                          <TableHead className="text-right">Valor Padrão</TableHead>
+                          <TableHead>Obrigatório</TableHead>
+                          <TableHead>Status</TableHead>
+                          {!viewOnly && <TableHead className="text-right">Ação</TableHead>}
                         </TableRow>
-                      ) : (
-                        condicoes.map((c) => (
-                          <TableRow key={c.id}>
-                            <TableCell>{c.ordemCalculo}</TableCell>
-                            <TableCell className="font-medium">{c.descricao}</TableCell>
-                            <TableCell>
-                              <Badge variant="outline">
-                                {c.tipo === "PERCENTUAL" ? "%" : "R$"}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              {c.tipo === "PERCENTUAL"
-                                ? `${c.valor.toFixed(2)}%`
-                                : `R$ ${c.valor.toFixed(2)}`}
-                            </TableCell>
-                            <TableCell>
-                              {c.automatico ? (
-                                <Badge variant="default" className="gap-1">
-                                  <Lock className="h-3 w-3" /> Sim
-                                </Badge>
-                              ) : (
-                                <Badge variant="secondary">Não</Badge>
-                              )}
-                            </TableCell>
-                            {!viewOnly && (
-                              <TableCell className="text-right">
-                                <div className="flex justify-end gap-1">
-                                  <Button variant="ghost" size="icon" onClick={() => openEditCondicao(c)}>
-                                    <Pencil className="h-4 w-4" />
-                                  </Button>
-                                  <Button variant="ghost" size="icon" onClick={() => onDeleteCondicao(c.id)}>
-                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                  </Button>
-                                </div>
+                      </TableHeader>
+                      <TableBody>
+                        {officialDescontos.map((cfg) => {
+                          const dt = cfg.descontoTipo;
+                          const isApplied = condicoes.some((c) =>
+                            c.descricao.toUpperCase().includes(dt.nome.toUpperCase())
+                          );
+                          return (
+                            <TableRow key={cfg.id} className={isApplied ? "bg-primary/5" : ""}>
+                              <TableCell className="font-medium">{dt.nome}</TableCell>
+                              <TableCell className="text-muted-foreground text-xs max-w-[200px]">
+                                <span className="line-clamp-2">{dt.descricao}</span>
                               </TableCell>
-                            )}
+                              <TableCell>
+                                <Badge variant="outline">
+                                  {dt.tipo === "percentual" ? "%" : "R$/ton"}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-xs capitalize">{cfg.aplicacao}</TableCell>
+                              <TableCell className="text-right">
+                                {dt.tipo === "percentual"
+                                  ? `${cfg.valorPadrao.toFixed(2)}%`
+                                  : `R$ ${cfg.valorPadrao.toFixed(2)}`}
+                              </TableCell>
+                              <TableCell>
+                                {cfg.obrigatorio ? (
+                                  <Badge variant="default" className="gap-1">
+                                    <Lock className="h-3 w-3" /> Sim
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="secondary">Não</Badge>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {isApplied ? (
+                                  <Badge variant="default">Aplicado</Badge>
+                                ) : (
+                                  <Badge variant="outline">Disponível</Badge>
+                                )}
+                              </TableCell>
+                              {!viewOnly && (
+                                <TableCell className="text-right">
+                                  {!isApplied ? (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={async () => {
+                                        if (!editingContrato) return;
+                                        await contratoCondicaoService.salvar(
+                                          {
+                                            contratoId: editingContrato.id,
+                                            descricao: dt.nome,
+                                            tipo: dt.tipo === "percentual" ? "PERCENTUAL" : "VALOR_FIXO",
+                                            valor: cfg.valorPadrao,
+                                            ordemCalculo: dt.ordemAplicacao,
+                                            automatico: cfg.obrigatorio,
+                                          },
+                                          { grupoId, empresaId: empresaIdWatch || empresaId, filialId: editingContrato.filialId }
+                                        );
+                                        const conds = await contratoCondicaoService.listarPorContrato(editingContrato.id);
+                                        setCondicoes(conds);
+                                        toast({ title: "Sucesso", description: `${dt.nome} aplicado ao contrato.` });
+                                      }}
+                                    >
+                                      <Plus className="h-4 w-4 mr-1" />Aplicar
+                                    </Button>
+                                  ) : (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="text-destructive"
+                                      onClick={async () => {
+                                        if (!editingContrato) return;
+                                        const cond = condicoes.find((c) =>
+                                          c.descricao.toUpperCase().includes(dt.nome.toUpperCase())
+                                        );
+                                        if (cond) {
+                                          await contratoCondicaoService.excluir(cond.id);
+                                          const conds = await contratoCondicaoService.listarPorContrato(editingContrato.id);
+                                          setCondicoes(conds);
+                                          toast({ title: "Sucesso", description: `${dt.nome} removido do contrato.` });
+                                        }
+                                      }}
+                                    >
+                                      <Trash2 className="h-4 w-4 mr-1" />Remover
+                                    </Button>
+                                  )}
+                                </TableCell>
+                              )}
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+
+                {officialDescontos.length === 0 && (
+                  <div className="text-center py-4 text-sm text-muted-foreground border rounded-md">
+                    Nenhum desconto cadastrado para esta empresa. Configure no módulo Condições e Descontos.
+                  </div>
+                )}
+
+                {/* Applied conditions (includes both official and manual) */}
+                {condicoes.length > 0 && (
+                  <div className="space-y-3 pt-4 border-t">
+                    <h4 className="font-semibold text-sm text-foreground">Condições Aplicadas ao Contrato</h4>
+                    <div className="overflow-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Ordem</TableHead>
+                            <TableHead>Descrição</TableHead>
+                            <TableHead>Tipo</TableHead>
+                            <TableHead className="text-right">Valor</TableHead>
+                            <TableHead>Automático</TableHead>
+                            {!viewOnly && <TableHead className="text-right">Ações</TableHead>}
                           </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
+                        </TableHeader>
+                        <TableBody>
+                          {condicoes.map((c) => (
+                            <TableRow key={c.id}>
+                              <TableCell>{c.ordemCalculo}</TableCell>
+                              <TableCell className="font-medium">{c.descricao}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline">
+                                  {c.tipo === "PERCENTUAL" ? "%" : "R$"}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {c.tipo === "PERCENTUAL"
+                                  ? `${c.valor.toFixed(2)}%`
+                                  : `R$ ${c.valor.toFixed(2)}`}
+                              </TableCell>
+                              <TableCell>
+                                {c.automatico ? (
+                                  <Badge variant="default" className="gap-1">
+                                    <Lock className="h-3 w-3" /> Sim
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="secondary">Não</Badge>
+                                )}
+                              </TableCell>
+                              {!viewOnly && (
+                                <TableCell className="text-right">
+                                  <div className="flex justify-end gap-1">
+                                    <Button variant="ghost" size="icon" onClick={() => openEditCondicao(c)}>
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                    <Button variant="ghost" size="icon" onClick={() => onDeleteCondicao(c.id)}>
+                                      <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              )}
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </TabsContent>
