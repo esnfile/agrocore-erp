@@ -1712,7 +1712,7 @@ export default function ContratosPage() {
                                             tipo: dt.tipo === "percentual" ? "PERCENTUAL" : "VALOR_FIXO",
                                             valor: cfg.valorPadrao,
                                             ordemCalculo: dt.ordemAplicacao,
-                                            automatico: cfg.obrigatorio,
+                                            automatico: dt.obrigatorio,
                                           },
                                           { grupoId, empresaId: empresaIdWatch || empresaId, filialId: editingContrato.filialId }
                                         );
