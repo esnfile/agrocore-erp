@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CrudModal } from "@/components/CrudModal";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Pencil, Trash2, RefreshCw } from "lucide-react";
+import { Plus, Pencil, Trash2, RefreshCw, X } from "lucide-react";
 import { moedas as mockMoedasData, cotacoesMoeda as mockCotacoesData, type Moeda, type CotacaoMoeda } from "@/lib/mock-data";
 import { toast } from "sonner";
 
@@ -105,9 +105,20 @@ export default function MoedasCotacoesPage() {
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="moedas">Moedas</TabsTrigger>
-          <TabsTrigger value="cotacoes">
+          <TabsTrigger value="cotacoes" className="flex items-center gap-1">
             Cotações
-            {selectedMoedaId && <Badge variant="secondary" className="ml-2 text-xs">{getMoedaNome(selectedMoedaId)}</Badge>}
+            {selectedMoedaId && (
+              <>
+                <Badge variant="secondary" className="ml-1 text-xs">{getMoedaNome(selectedMoedaId)}</Badge>
+                <button
+                  className="ml-0.5 rounded-full p-0.5 hover:bg-destructive/20 hover:text-destructive transition-colors"
+                  onClick={(e) => { e.stopPropagation(); setSelectedMoedaId(null); }}
+                  title="Limpar filtro"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </>
+            )}
           </TabsTrigger>
         </TabsList>
 
@@ -147,15 +158,10 @@ export default function MoedasCotacoesPage() {
         </TabsContent>
 
         <TabsContent value="cotacoes" className="space-y-4">
-          <div className="flex justify-between items-center">
-            {selectedMoedaId && (
-              <Button size="sm" variant="outline" onClick={() => setSelectedMoedaId(null)}>Limpar filtro de moeda</Button>
-            )}
-            <div className="flex gap-2 ml-auto">
-              <Button size="sm" variant="outline" onClick={() => toast.info("Simulação: cotações atualizadas via API")}>
-                <RefreshCw className="h-4 w-4 mr-1" /> Atualizar Cotações
-              </Button>
-            </div>
+          <div className="flex justify-end">
+            <Button size="sm" variant="outline" onClick={() => toast.info("Simulação: cotações atualizadas via API")}>
+              <RefreshCw className="h-4 w-4 mr-1" /> Atualizar Cotações
+            </Button>
           </div>
           <DataTable
             data={cotacoesFiltradas}
