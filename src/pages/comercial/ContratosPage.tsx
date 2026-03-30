@@ -500,18 +500,22 @@ export default function ContratosPage() {
   };
 
   const onSaveContrato = contratoForm.handleSubmit(async (data) => {
-    if (!grupoId || !empresaId) return;
+    if (!grupoId) return;
+    const contractEmpresaId = data.empresaId || empresaId;
+    if (!contractEmpresaId) return;
     setSaving(true);
     try {
       await contratoService.salvar(
         {
           ...data,
           id: editingContrato?.id,
+          empresaId: contractEmpresaId,
+          filialId: data.filialId || "",
           filialOperacaoId: data.filialOperacaoId || null,
           filialOrigemId: data.filialOrigemId || null,
           filialDestinoId: data.filialDestinoId || null,
         },
-        { grupoId, empresaId, filialId: data.filialOperacaoId || empresaId }
+        { grupoId, empresaId: contractEmpresaId, filialId: data.filialId || data.filialOperacaoId || contractEmpresaId }
       );
       toast({ title: "Sucesso", description: editingContrato ? "Contrato atualizado." : "Contrato criado." });
       setModalOpen(false);
