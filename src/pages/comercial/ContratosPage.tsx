@@ -1645,7 +1645,6 @@ export default function ContratosPage() {
                           <TableHead>Nome</TableHead>
                           <TableHead>Descrição</TableHead>
                           <TableHead>Tipo</TableHead>
-                          <TableHead>Aplicação</TableHead>
                           <TableHead className="text-right">Valor Padrão</TableHead>
                           <TableHead>Obrigatório</TableHead>
                           <TableHead>Status</TableHead>
@@ -1662,18 +1661,19 @@ export default function ContratosPage() {
                             <TableRow key={cfg.id} className={isApplied ? "bg-primary/5" : ""}>
                               <TableCell className="font-medium">{dt.nome}</TableCell>
                               <TableCell className="text-muted-foreground text-xs max-w-[200px]">
-                                <span className="line-clamp-2">{dt.descricao}</span>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="line-clamp-2 cursor-help">{dt.descricao}</span>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="bottom" className="max-w-[400px]">
+                                    <p className="text-xs whitespace-pre-wrap">{dt.descricao}</p>
+                                  </TooltipContent>
+                                </Tooltip>
                               </TableCell>
                               <TableCell>
                                 <Badge variant="outline">
                                   {dt.tipo === "percentual" ? "%" : "R$/ton"}
                                 </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex gap-1">
-                                  {(dt.aplicacao === "contrato" || dt.aplicacao === "ambos") && <Badge variant="outline" className="text-xs">Contrato</Badge>}
-                                  {(dt.aplicacao === "romaneio" || dt.aplicacao === "ambos") && <Badge variant="outline" className="text-xs">Romaneio</Badge>}
-                                </div>
                               </TableCell>
                               <TableCell className="text-right">
                                 {dt.tipo === "percentual"
