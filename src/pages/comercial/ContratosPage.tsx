@@ -936,7 +936,7 @@ export default function ContratosPage() {
               )}
 
               {/* Row 1: Tipo + Número + Data (3 cols) */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-1.5">
                   <Label>Tipo <span className="text-destructive">*</span></Label>
                   <Select value={contratoForm.watch("tipoContrato")} onValueChange={(v) => contratoForm.setValue("tipoContrato", v as any)}>
