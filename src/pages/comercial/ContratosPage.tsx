@@ -886,9 +886,9 @@ export default function ContratosPage() {
           {/* ABA 1 — Dados */}
           <TabsContent value="dados">
             <TooltipProvider delayDuration={200}>
-            <fieldset disabled={viewOnly} className="space-y-5">
+            <fieldset disabled={viewOnly} className="space-y-6">
               {/* Row 0: Empresa + Filial (2 cols) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-1.5">
                   <Label>Empresa <span className="text-destructive">*</span></Label>
                   <Select
@@ -936,7 +936,7 @@ export default function ContratosPage() {
               )}
 
               {/* Row 1: Tipo + Número + Data (3 cols) */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-1.5">
                   <Label>Tipo <span className="text-destructive">*</span></Label>
                   <Select value={contratoForm.watch("tipoContrato")} onValueChange={(v) => contratoForm.setValue("tipoContrato", v as any)}>
@@ -972,7 +972,7 @@ export default function ContratosPage() {
               </div>
 
               {/* Row 2: Pessoa + Produto (2 cols) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-1.5">
                   <Label>Pessoa Responsável <span className="text-destructive">*</span></Label>
                   <SearchableSelect
@@ -1002,7 +1002,7 @@ export default function ContratosPage() {
               </div>
 
               {/* Row 3: Quantidade + Unidade + Tipo Preço (3 cols) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-1.5">
                   <Label>Quantidade <span className="text-destructive">*</span></Label>
                   <Input type="number" step="0.000001" {...contratoForm.register("quantidadeTotal")} />
@@ -1043,7 +1043,7 @@ export default function ContratosPage() {
               </div>
 
               {/* Row 4: Moeda + Preço Unitário (2 cols) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-1.5">
                   <Label>Moeda <span className="text-destructive">*</span></Label>
                   <Select value={contratoForm.watch("moedaId")} onValueChange={(v) => contratoForm.setValue("moedaId", v)}>
@@ -1177,7 +1177,7 @@ export default function ContratosPage() {
               </div>
 
               {/* Row 5: Datas de entrega (2 cols) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-1.5">
                   <Label>Data Entrega Início</Label>
                   <Input type="date" {...contratoForm.register("dataEntregaInicio")} />
@@ -1197,7 +1197,7 @@ export default function ContratosPage() {
                     <TooltipContent side="right"><p className="max-w-[280px] text-xs">Defina a origem, operação e destino para rastrear o fluxo físico do contrato.</p></TooltipContent>
                   </Tooltip>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-1.5">
                       <Label>Filial de Operação <span className="text-destructive">*</span></Label>
