@@ -393,7 +393,7 @@ export default function CondicoesDescontosPage() {
                     <Label className="text-xs">Empresa *</Label>
                     <SearchableSelect
                       value={configForm.empresaId ?? ""}
-                      onValueChange={v => setConfigForm(prev => ({ ...prev, empresaId: v }))}
+                      onChange={v => setConfigForm(prev => ({ ...prev, empresaId: v }))}
                       placeholder="Selecione"
                       options={empresaAtivas.map(e => ({ id: e.id, label: e.nome }))}
                     />
