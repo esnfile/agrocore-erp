@@ -454,70 +454,74 @@ export default function CondicoesDescontosPage() {
                   <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Nenhuma empresa vinculada</TableCell></TableRow>
                 )}
                 {configsForCurrent.map(cfg => (
-                  <TableRow key={cfg.id}>
-                    <TableCell className="font-medium">{getEmpresaNome(cfg.empresaId)}</TableCell>
-                    <TableCell>
-                      {form.tipo === "percentual" ? `${cfg.valorPadrao.toFixed(2)}%` : `R$ ${cfg.valorPadrao.toFixed(2)}`}
-                    </TableCell>
-                    <TableCell><Badge variant={cfg.obrigatorio ? "default" : "outline"}>{cfg.obrigatorio ? "Sim" : "Não"}</Badge></TableCell>
-                    <TableCell>{aplicacaoLabels[cfg.aplicacao]}</TableCell>
-                    <TableCell><Badge variant={cfg.ativo ? "default" : "secondary"}>{cfg.ativo ? "Ativo" : "Inativo"}</Badge></TableCell>
-                    <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">{cfg.observacoes || "—"}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button size="icon" variant="ghost" onClick={() => {
-                          setEditingConfig(cfg);
-                          setConfigForm({ ...cfg });
-                        }}><Pencil className="h-3.5 w-3.5" /></Button>
-                        <Button size="icon" variant="ghost" onClick={() => deleteConfig(cfg.id)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                  <>
+                    <TableRow key={cfg.id}>
+                      <TableCell className="font-medium">{getEmpresaNome(cfg.empresaId)}</TableCell>
+                      <TableCell>
+                        {form.tipo === "percentual" ? `${cfg.valorPadrao.toFixed(2)}%` : `R$ ${cfg.valorPadrao.toFixed(2)}`}
+                      </TableCell>
+                      <TableCell><Badge variant={cfg.obrigatorio ? "default" : "outline"}>{cfg.obrigatorio ? "Sim" : "Não"}</Badge></TableCell>
+                      <TableCell>{aplicacaoLabels[cfg.aplicacao]}</TableCell>
+                      <TableCell><Badge variant={cfg.ativo ? "default" : "secondary"}>{cfg.ativo ? "Ativo" : "Inativo"}</Badge></TableCell>
+                      <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">{cfg.observacoes || "—"}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button size="icon" variant="ghost" onClick={() => {
+                            setEditingConfig(cfg);
+                            setConfigForm({ ...cfg });
+                          }}><Pencil className="h-3.5 w-3.5" /></Button>
+                          <Button size="icon" variant="ghost" onClick={() => deleteConfig(cfg.id)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                    {editingConfig?.id === cfg.id && (
+                      <TableRow key={`edit-${cfg.id}`}>
+                        <TableCell colSpan={7} className="bg-muted/30 p-4">
+                          <div className="space-y-3">
+                            <p className="text-sm font-medium">Editando: {getEmpresaNome(editingConfig.empresaId)}</p>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                              <div className="space-y-1">
+                                <Label className="text-xs">Valor Padrão</Label>
+                                <Input type="number" step="0.01" value={configForm.valorPadrao ?? 0} onChange={e => setConfigForm(prev => ({ ...prev, valorPadrao: Number(e.target.value) }))} />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs">Aplicação</Label>
+                                <Select value={configForm.aplicacao as string} onValueChange={v => setConfigForm(prev => ({ ...prev, aplicacao: v as AplicacaoDesconto }))}>
+                                  <SelectTrigger><SelectValue /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="contrato">Contrato</SelectItem>
+                                    <SelectItem value="romaneio">Romaneio</SelectItem>
+                                    <SelectItem value="ambos">Ambos</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="flex items-center gap-4 pt-5">
+                                <div className="flex items-center gap-2">
+                                  <Switch checked={configForm.obrigatorio ?? false} onCheckedChange={v => setConfigForm(prev => ({ ...prev, obrigatorio: v }))} />
+                                  <Label className="text-xs">Obrigatório</Label>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Switch checked={configForm.ativo ?? true} onCheckedChange={v => setConfigForm(prev => ({ ...prev, ativo: v }))} />
+                                  <Label className="text-xs">Ativo</Label>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Observações</Label>
+                              <Input value={configForm.observacoes ?? ""} onChange={e => setConfigForm(prev => ({ ...prev, observacoes: e.target.value }))} />
+                            </div>
+                            <div className="flex gap-2 justify-end">
+                              <Button size="sm" variant="outline" className="hover:bg-destructive/10 hover:text-destructive hover:border-destructive" onClick={() => { setEditingConfig(null); setConfigForm({}); }}>Cancelar</Button>
+                              <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={saveConfig}>Salvar</Button>
+                            </div>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </>
                 ))}
               </TableBody>
             </Table>
-
-            {/* Inline edit for existing config */}
-            {editingConfig && (
-              <div className="border rounded-md p-4 space-y-3 bg-muted/30">
-                <p className="text-sm font-medium">Editando: {getEmpresaNome(editingConfig.empresaId)}</p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs">Valor Padrão</Label>
-                    <Input type="number" step="0.01" value={configForm.valorPadrao ?? 0} onChange={e => setConfigForm(prev => ({ ...prev, valorPadrao: Number(e.target.value) }))} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Aplicação</Label>
-                    <Select value={configForm.aplicacao as string} onValueChange={v => setConfigForm(prev => ({ ...prev, aplicacao: v as AplicacaoDesconto }))}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="contrato">Contrato</SelectItem>
-                        <SelectItem value="romaneio">Romaneio</SelectItem>
-                        <SelectItem value="ambos">Ambos</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex items-center gap-4 pt-5">
-                    <div className="flex items-center gap-2">
-                      <Switch checked={configForm.obrigatorio ?? false} onCheckedChange={v => setConfigForm(prev => ({ ...prev, obrigatorio: v }))} />
-                      <Label className="text-xs">Obrigatório</Label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Switch checked={configForm.ativo ?? true} onCheckedChange={v => setConfigForm(prev => ({ ...prev, ativo: v }))} />
-                      <Label className="text-xs">Ativo</Label>
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Observações</Label>
-                  <Input value={configForm.observacoes ?? ""} onChange={e => setConfigForm(prev => ({ ...prev, observacoes: e.target.value }))} />
-                </div>
-                <div className="flex gap-2 justify-end">
-                  <Button size="sm" variant="outline" onClick={() => { setEditingConfig(null); setConfigForm({}); }}>Cancelar</Button>
-                  <Button size="sm" onClick={saveConfig}>Salvar</Button>
-                </div>
-              </div>
-            )}
           </TabsContent>
 
           {/* Tab: Histórico */}
