@@ -76,9 +76,10 @@ function RecursiveMenuItem({ item, pathname, depth = 0 }: { item: MenuItem; path
           onMouseEnter={handleEnter}
           onMouseLeave={scheduleClose}
           className={cn(
-            "flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors",
-            "hover:bg-sidebar-accent/60 text-sidebar-foreground",
-            active && "text-sidebar-primary font-medium"
+            "flex w-full items-center gap-2 rounded-r-md px-3 py-2 text-sm transition-all",
+            "border-l-[3px] border-l-[hsl(var(--sidebar-indicator))]",
+            "hover:border-l-[hsl(var(--sidebar-indicator-hover))] hover:bg-sidebar-accent/60 text-sidebar-foreground",
+            active && "text-sidebar-primary font-medium border-l-[hsl(var(--sidebar-indicator-hover))]"
           )}
         >
           <item.icon className="h-4 w-4 shrink-0" />

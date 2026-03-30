@@ -92,6 +92,8 @@
     --sidebar-accent-foreground: 200 10% 85%;
     --sidebar-border: 200 18% 14%;
     --sidebar-ring: 125 46% 38%;
+    --sidebar-indicator: 125 46% 38%;
+    --sidebar-indicator-hover: 30 90% 50%;
 
     --success: 125 50% 38%;
     --success-foreground: 0 0% 100%;
