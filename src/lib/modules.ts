@@ -101,15 +101,6 @@ export const modules: Module[] = [
     ],
   },
   {
-    title: "Armazém",
-    icon: WarehouseIcon,
-    items: [
-      { title: "Contratos", url: "/armazem/contratos", icon: FileText },
-      { title: "Entregas", url: "/armazem/entregas", icon: Truck },
-      { title: "Estoque", url: "/armazem/estoque", icon: BarChart3 },
-    ],
-  },
-  {
     title: "Produtos e Estoque",
     icon: Package,
     items: [
