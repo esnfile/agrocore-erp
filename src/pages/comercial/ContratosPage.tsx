@@ -133,6 +133,12 @@ export default function ContratosPage() {
   
   // Official discount types for contract
   const [officialDescontos, setOfficialDescontos] = useState<(DescontoEmpresaConfig & { descontoTipo: DescontoTipo })[]>([]);
+  
+  // Filter only descontos applicable to contracts (contrato or ambos)
+  const officialDescontosContrato = useMemo(() => 
+    officialDescontos.filter(d => d.aplicacao === "contrato" || d.aplicacao === "ambos"),
+    [officialDescontos]
+  );
 
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -503,6 +509,24 @@ export default function ContratosPage() {
     if (!grupoId) return;
     const contractEmpresaId = data.empresaId || empresaId;
     if (!contractEmpresaId) return;
+
+    // Validate mandatory descontos are applied (only for editing, when tab is available)
+    if (editingContrato) {
+      const obrigatoriosContrato = officialDescontosContrato.filter(d => d.obrigatorio && d.ativo);
+      const naoAplicados = obrigatoriosContrato.filter(cfg => 
+        !condicoes.some(c => c.descricao.toUpperCase().includes(cfg.descontoTipo.nome.toUpperCase()))
+      );
+      if (naoAplicados.length > 0) {
+        toast({ 
+          title: "Descontos obrigatórios pendentes", 
+          description: `Aplique os descontos obrigatórios antes de salvar: ${naoAplicados.map(d => d.descontoTipo.nome).join(", ")}`,
+          variant: "destructive" 
+        });
+        setActiveTab("condicoes");
+        return;
+      }
+    }
+
     setSaving(true);
     try {
       await contratoService.salvar(
@@ -1610,28 +1634,11 @@ export default function ContratosPage() {
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    {!viewOnly && (
-                      <>
-                        <Select onValueChange={(v) => onApplyModelo(v)}>
-                          <SelectTrigger className="w-[220px]">
-                            <SelectValue placeholder="Aplicar modelo..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {modelosCondicao.filter((m) => m.ativo).map((m) => (
-                              <SelectItem key={m.id} value={m.id}>{m.descricao}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Button size="sm" onClick={openNewCondicao}>
-                          <Plus className="mr-2 h-4 w-4" />Adicionar Manual
-                        </Button>
-                      </>
-                    )}
                   </div>
                 </div>
 
                 {/* Official descontos from empresa registry */}
-                {officialDescontos.length > 0 && (
+                {officialDescontosContrato.length > 0 && (
                   <div className="overflow-auto">
                     <Table>
                       <TableHeader>
@@ -1647,7 +1654,7 @@ export default function ContratosPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {officialDescontos.map((cfg) => {
+                        {officialDescontosContrato.map((cfg) => {
                           const dt = cfg.descontoTipo;
                           const isApplied = condicoes.some((c) =>
                             c.descricao.toUpperCase().includes(dt.nome.toUpperCase())
@@ -1742,9 +1749,9 @@ export default function ContratosPage() {
                   </div>
                 )}
 
-                {officialDescontos.length === 0 && (
+                {officialDescontosContrato.length === 0 && (
                   <div className="text-center py-4 text-sm text-muted-foreground border rounded-md">
-                    Nenhum desconto cadastrado para esta empresa. Configure no módulo Condições e Descontos.
+                    Nenhum desconto aplicável a contratos cadastrado para esta empresa. Configure no módulo Condições e Descontos.
                   </div>
                 )}
 
