@@ -425,7 +425,7 @@ export default function CondicoesDescontosPage() {
                     checked={form.obrigatorio}
                     onCheckedChange={v => setForm(prev => ({ ...prev, obrigatorio: v }))}
                   />
-                  <Label htmlFor="obrigatorio">Obrigatório no contrato</Label>
+                  <Label htmlFor="obrigatorio">Obrigatório no contrato ou romaneio</Label>
                 </div>
                 <p className="text-xs text-muted-foreground pl-11">O contrato não poderá ser salvo sem aplicar este desconto.</p>
               </div>
