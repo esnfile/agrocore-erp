@@ -512,7 +512,7 @@ export default function ContratosPage() {
 
     // Validate mandatory descontos are applied (only for editing, when tab is available)
     if (editingContrato) {
-      const obrigatoriosContrato = officialDescontosContrato.filter(d => d.obrigatorio && d.ativo);
+      const obrigatoriosContrato = officialDescontosContrato.filter(d => d.descontoTipo.obrigatorio && d.ativo);
       const naoAplicados = obrigatoriosContrato.filter(cfg => 
         !condicoes.some(c => c.descricao.toUpperCase().includes(cfg.descontoTipo.nome.toUpperCase()))
       );
