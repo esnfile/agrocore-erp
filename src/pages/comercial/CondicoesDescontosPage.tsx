@@ -237,7 +237,7 @@ export default function CondicoesDescontosPage() {
             value={filtroEmpresa}
             onValueChange={setFiltroEmpresa}
             placeholder="Todas"
-            options={[{ value: "todos", label: "Todas" }, ...empresaAtivas.map(e => ({ value: e.id, label: e.nome }))]}
+            options={[{ id: "todos", label: "Todas" }, ...empresaAtivas.map(e => ({ id: e.id, label: e.nome }))]}
           />
         </div>
         <div>
