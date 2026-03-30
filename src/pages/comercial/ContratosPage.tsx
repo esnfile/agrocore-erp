@@ -403,6 +403,8 @@ export default function ContratosPage() {
     setEditingContrato(null);
     setViewOnly(false);
     contratoForm.reset({
+      empresaId: empresaId,
+      filialId: orgFiliais.length > 0 ? orgFiliais[0].id : "",
       tipoContrato: "COMPRA", pessoaId: "", produtoId: "",
       unidadeNegociacaoId: "", quantidadeTotal: 0, moedaId: "moeda1",
       precoUnitario: 0, tipoPreco: "FIXO",
@@ -426,6 +428,8 @@ export default function ContratosPage() {
     setEditingContrato(c);
     setViewOnly(false);
     contratoForm.reset({
+      empresaId: c.empresaId,
+      filialId: c.filialId ?? "",
       tipoContrato: c.tipoContrato,
       pessoaId: c.pessoaId,
       produtoId: c.produtoId,
@@ -451,6 +455,19 @@ export default function ContratosPage() {
     openEdit(c);
     setViewOnly(true);
   };
+
+  // Handle empresa change in contract form
+  const handleContratoEmpresaChange = useCallback((newEmpresaId: string) => {
+    contratoForm.setValue("empresaId", newEmpresaId, { shouldValidate: true });
+    // Clear dependent fields
+    contratoForm.setValue("filialId", "");
+    contratoForm.setValue("produtoId", "");
+    contratoForm.setValue("filialOperacaoId", "");
+    contratoForm.setValue("filialOrigemId", "");
+    contratoForm.setValue("filialDestinoId", "");
+    // Clear conditions
+    setCondicoes([]);
+  }, [contratoForm]);
 
   const loadSubEntities = async (contratoId: string) => {
     const [roms, f, conds, liqs] = await Promise.all([
