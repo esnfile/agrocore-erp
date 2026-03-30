@@ -1670,7 +1670,12 @@ export default function ContratosPage() {
                                   {dt.tipo === "percentual" ? "%" : "R$/ton"}
                                 </Badge>
                               </TableCell>
-                              <TableCell className="text-xs capitalize">{cfg.aplicacao}</TableCell>
+                              <TableCell>
+                                <div className="flex gap-1">
+                                  {(cfg.aplicacao === "contrato" || cfg.aplicacao === "ambos") && <Badge variant="outline" className="text-xs">Contrato</Badge>}
+                                  {(cfg.aplicacao === "romaneio" || cfg.aplicacao === "ambos") && <Badge variant="outline" className="text-xs">Romaneio</Badge>}
+                                </div>
+                              </TableCell>
                               <TableCell className="text-right">
                                 {dt.tipo === "percentual"
                                   ? `${cfg.valorPadrao.toFixed(2)}%`
