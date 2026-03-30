@@ -120,13 +120,19 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function ContratosPage() {
-  const { grupoAtual, empresaAtual, filiais: orgFiliais } = useOrganization();
+  const { grupoAtual, empresaAtual, empresas: orgEmpresas, filiais: orgFiliais } = useOrganization();
   const empresaId = empresaAtual?.id ?? "";
   const grupoId = grupoAtual?.id ?? "";
 
   const [contratos, setContratos] = useState<Contrato[]>([]);
   const [loading, setLoading] = useState(false);
   const [filiaisEmpresa, setFiliaisEmpresa] = useState<Filial[]>([]);
+  
+  // Filiais for the empresa selected in the contract form (may differ from session empresa)
+  const [contratoFiliaisEmpresa, setContratoFiliaisEmpresa] = useState<Filial[]>([]);
+  
+  // Official discount types for contract
+  const [officialDescontos, setOfficialDescontos] = useState<(DescontoEmpresaConfig & { descontoTipo: DescontoTipo })[]>([]);
 
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
