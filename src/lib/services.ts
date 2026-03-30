@@ -151,20 +151,20 @@ export const empresaService = {
     const userId = "u1";
     const existing = data.id ? mockEmpresas.find((e) => e.id === data.id && e.deletadoEm === null) : undefined;
     if (existing) {
-      Object.assign(existing, data, { atualizadoEm: now, atualizadoPor: userId });
+      existing.nome = (data.nome ?? existing.nome).trim();
+      existing.descricao = data.descricao ?? existing.descricao;
+      existing.ativo = data.ativo ?? existing.ativo;
+      existing.grupoId = data.grupoId ?? existing.grupoId;
+      existing.atualizadoEm = now;
+      existing.atualizadoPor = userId;
       return existing;
     }
     const nova: Empresa = {
       id: `e${Date.now()}`,
       grupoId: data.grupoId ?? "g1",
-      razaoSocial: data.razaoSocial ?? "",
-      nomeFantasia: data.nomeFantasia ?? "",
-      tipoPessoa: data.tipoPessoa ?? "PJ",
-      cpfCnpj: data.cpfCnpj ?? "",
-      inscricaoEstadual: data.inscricaoEstadual ?? "",
-      email: data.email ?? "",
-      telefone: data.telefone ?? "",
-      ativo: true,
+      nome: (data.nome ?? "").trim(),
+      descricao: data.descricao ?? "",
+      ativo: data.ativo ?? true,
       criadoEm: now,
       criadoPor: userId,
       atualizadoEm: now,
