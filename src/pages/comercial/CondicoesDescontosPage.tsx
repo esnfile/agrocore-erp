@@ -477,7 +477,12 @@ export default function CondicoesDescontosPage() {
                         {form.tipo === "percentual" ? `${cfg.valorPadrao.toFixed(2)}%` : `R$ ${cfg.valorPadrao.toFixed(2)}`}
                       </TableCell>
                       <TableCell><Badge variant={cfg.obrigatorio ? "default" : "outline"}>{cfg.obrigatorio ? "Sim" : "Não"}</Badge></TableCell>
-                      <TableCell>{aplicacaoLabels[cfg.aplicacao]}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          {aplicacaoToFlags(cfg.aplicacao).contrato && <Badge variant="outline" className="text-xs">Contrato</Badge>}
+                          {aplicacaoToFlags(cfg.aplicacao).romaneio && <Badge variant="outline" className="text-xs">Romaneio</Badge>}
+                        </div>
+                      </TableCell>
                       <TableCell><Badge variant={cfg.ativo ? "default" : "secondary"}>{cfg.ativo ? "Ativo" : "Inativo"}</Badge></TableCell>
                       <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">{cfg.observacoes || "—"}</TableCell>
                       <TableCell>
