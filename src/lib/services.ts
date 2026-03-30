@@ -90,6 +90,8 @@ export const grupoService = {
     const existing = data.id ? mockGrupos.find((g) => g.id === data.id && g.deletadoEm === null) : undefined;
     if (existing) {
       existing.nome = (data.nome ?? existing.nome).trim();
+      existing.descricao = data.descricao ?? existing.descricao;
+      existing.ativo = data.ativo ?? existing.ativo;
       existing.atualizadoEm = now;
       existing.atualizadoPor = userId;
       return existing;
