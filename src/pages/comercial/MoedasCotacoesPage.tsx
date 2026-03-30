@@ -161,7 +161,7 @@ export default function MoedasCotacoesPage() {
           <DataTable
             data={cotacoesFiltradas}
             columns={[
-              { key: "moedaOrigemId", header: "Moeda", render: (row) => getMoedaNome(row.moedaOrigemId) },
+              { key: "moedaNome", header: "Moeda" },
               { key: "valorCompra", header: "Compra", render: (row) => `R$ ${row.valorCompra.toFixed(4)}` },
               { key: "valorVenda", header: "Venda", render: (row) => `R$ ${row.valorVenda.toFixed(4)}` },
               { key: "variacao", header: "Variação", render: (row) => (
