@@ -44,6 +44,7 @@ import CentrosCustoPage from "@/pages/financeiro/CentrosCustoPage";
 import MovimentacoesPage from "@/pages/financeiro/MovimentacoesPage";
 import AdiantamentosPage from "@/pages/financeiro/AdiantamentosPage";
 import RomaneiosPage from "@/pages/romaneios/RomaneiosPage";
+import RomaneioFormPage from "@/pages/romaneios/RomaneioFormPage";
 import MotoristasPage from "@/pages/romaneios/MotoristasPage";
 import VeiculosPage from "@/pages/romaneios/VeiculosPage";
 import NotFound from "./pages/NotFound";
