@@ -1059,7 +1059,7 @@ export default function ContratosPage() {
                     </Select>
                   </div>
                   <div className="space-y-1.5">
-                    <div className="flex items-botton gap-1.5">
+                    <div className="flex items-center gap-1.5">
                       <Label>Número do Contrato</Label>
                       <Tooltip>
                         <TooltipTrigger type="button">
