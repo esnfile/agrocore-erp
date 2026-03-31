@@ -504,7 +504,16 @@ export default function ContratosPage() {
   const getCodigoUnidade = (id: string) => mockUnidades.find((u) => u.id === id)?.codigo ?? id;
   const getSimboloMoeda = (id: string) => mockMoedas.find((m) => m.id === id)?.simbolo ?? "";
   const getCodigoMoeda = (id: string) => mockMoedas.find((m) => m.id === id)?.codigo ?? id;
-  const getNomeFilial = (id: string | null) => filiaisEmpresa.find((f) => f.id === id)?.nomeRazao ?? "—";
+  const getNomeFilial = (id: string | null) => {
+    if (!id) return "—";
+    // Search across all known filiais
+    const fromLocal = localFiliais.find((f) => f.id === id);
+    if (fromLocal) return fromLocal.nomeRazao;
+    const fromEmpresa = filiaisEmpresa.find((f) => f.id === id);
+    if (fromEmpresa) return fromEmpresa.nomeRazao;
+    return id;
+  };
+  const getNomeEmpresa = (id: string) => orgEmpresas.find((e) => e.id === id)?.nome ?? mockEmpresas.find((e) => e.id === id)?.nome ?? id;
 
   // ---- Fixação computed values ----
   const totalEntregue = useMemo(() => {
