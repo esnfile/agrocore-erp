@@ -1028,7 +1028,7 @@ export default function ContratosPage() {
                           ))}
                       </SelectContent>
                     </Select>
-                  </div>
+                </FormRow>
                 </div>
                 {/* Movement lock warning */}
                 {editingContrato && hasMovements && (
