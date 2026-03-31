@@ -1042,7 +1042,7 @@ export default function ContratosPage() {
 
                 {/* Row 1: Tipo + Número + Data (3 cols) */}
                 <FormRow columns={3}>
-                  <div className="space-y-1.5">
+                  <div className="w-full">
                     <Label>
                       Tipo <span className="text-destructive">*</span>
                     </Label>
@@ -1059,7 +1059,7 @@ export default function ContratosPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-1.5">
+                  <div className="w-full">
                     <Label>Número do Contrato</Label>
                     <Tooltip>
                       <TooltipTrigger type="button">
@@ -1078,7 +1078,7 @@ export default function ContratosPage() {
                       className="bg-muted/50 cursor-not-allowed"
                     />
                   </div>
-                  <div className="space-y-1.5">
+                  <div className="w-full">
                     <Label>
                       Data do Contrato <span className="text-destructive">*</span>
                     </Label>
