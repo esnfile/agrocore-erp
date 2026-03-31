@@ -671,6 +671,12 @@ export default function ContratosPage() {
       }
     }
 
+    // Detect if contract will move out of current filter
+    const willMoveOut = editingContrato && (
+      (localEmpresaId !== TODAS_EMPRESAS && contractEmpresaId !== localEmpresaId) ||
+      (localFilialId !== TODAS_FILIAIS && data.filialId && data.filialId !== localFilialId)
+    );
+
     setSaving(true);
     try {
       await contratoService.salvar(
@@ -689,7 +695,14 @@ export default function ContratosPage() {
           filialId: data.filialId || data.filialOperacaoId || contractEmpresaId,
         },
       );
-      toast({ title: "Sucesso", description: editingContrato ? "Contrato atualizado." : "Contrato criado." });
+      if (willMoveOut) {
+        toast({
+          title: "Contrato movido",
+          description: "O contrato foi movido para outro contexto organizacional e pode não aparecer nos filtros atuais.",
+        });
+      } else {
+        toast({ title: "Sucesso", description: editingContrato ? "Contrato atualizado." : "Contrato criado." });
+      }
       setModalOpen(false);
       loadContratos();
     } catch {
