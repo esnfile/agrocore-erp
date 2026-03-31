@@ -5,6 +5,7 @@ import { z } from "zod";
 import { format } from "date-fns";
 import { PageHeader } from "@/components/PageHeader";
 import { CrudModal } from "@/components/CrudModal";
+import { FormRow } from "@/components/FormRow";
 import { toast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -980,7 +981,7 @@ export default function ContratosPage() {
             <TooltipProvider delayDuration={200}>
               <fieldset disabled={viewOnly} className="space-y-5">
                 {/* Row 0: Empresa + Filial (2 cols) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormRow columns={2}>
                   <div className="space-y-1.5">
                     <Label>
                       Empresa <span className="text-destructive">*</span>
@@ -1028,7 +1029,7 @@ export default function ContratosPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
+                </FormRow>
                 {/* Movement lock warning */}
                 {editingContrato && hasMovements && (
                   <div className="rounded-md border border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400 flex items-center gap-2">
@@ -1040,7 +1041,7 @@ export default function ContratosPage() {
                 )}
 
                 {/* Row 1: Tipo + Número + Data (3 cols) */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormRow columns={3}>
                   <div className="space-y-1.5">
                     <Label>
                       Tipo <span className="text-destructive">*</span>
@@ -1088,10 +1089,10 @@ export default function ContratosPage() {
                       <p className="text-xs text-destructive">{contratoForm.formState.errors.dataContrato.message}</p>
                     )}
                   </div>
-                </div>
+                </FormRow>
 
                 {/* Row 2: Pessoa + Produto (2 cols) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormRow columns={2}>
                   <div className="space-y-1.5">
                     <Label>
                       Pessoa Responsável <span className="text-destructive">*</span>
@@ -1122,10 +1123,10 @@ export default function ContratosPage() {
                       <p className="text-xs text-destructive">{contratoForm.formState.errors.produtoId.message}</p>
                     )}
                   </div>
-                </div>
+                </FormRow>
 
                 {/* Row 3: Quantidade + Unidade + Tipo Preço (3 cols) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <FormRow columns={3}>
                   <div className="space-y-1.5">
                     <Label>
                       Quantidade <span className="text-destructive">*</span>
@@ -1180,10 +1181,10 @@ export default function ContratosPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
+                </FormRow>
 
                 {/* Row 4: Moeda + Preço Unitário (2 cols) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormRow columns={2}>
                   <div className="space-y-1.5">
                     <Label>
                       Moeda <span className="text-destructive">*</span>
@@ -1361,10 +1362,10 @@ export default function ContratosPage() {
                         </p>
                       )}
                   </div>
-                </div>
+                </FormRow>
 
                 {/* Row 5: Datas de entrega (2 cols) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormRow columns={2}>
                   <div className="space-y-1.5">
                     <Label>Data Entrega Início</Label>
                     <Input type="date" {...contratoForm.register("dataEntregaInicio")} />
@@ -1373,7 +1374,7 @@ export default function ContratosPage() {
                     <Label>Data Entrega Fim</Label>
                     <Input type="date" {...contratoForm.register("dataEntregaFim")} />
                   </div>
-                </div>
+                </FormRow>
 
                 {/* Row 6: Filiais logísticas (3 cols) with tooltips */}
                 <div className="rounded-md border p-4 space-y-4">
