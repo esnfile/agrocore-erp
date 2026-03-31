@@ -1,41 +1,50 @@
 
 
-# Plan: 3 Correcoes UI — Moedas/Cotacoes e Condicoes/Descontos
+# Criar componente FormRow reutilizavel para layout em grid
 
-## Correcao 1 — Moedas e Cotacoes: filtro e alinhamento
+## Resumo
 
-**Problema**: O botao "Limpar filtro de moeda" na aba Cotacoes ocupa espaco e desalinha as abas quando oculto.
+Criar um componente utilitario `FormRow` que qualquer pagina do sistema pode usar para organizar campos de formulario em grid responsivo (1 a 4 colunas). O componente sera simples, declarativo e 100% retrocompativel -- nenhuma tela existente sera afetada.
 
-**Solucao**:
-- Remover o botao "Limpar filtro de moeda" da area de conteudo da aba Cotacoes
-- Quando houver filtro ativo, adicionar um icone X clicavel ao lado do Badge na aba Cotacoes (dentro do TabsTrigger)
-- Mover o botao "Atualizar Cotacoes" para dentro do DataTable header area, alinhado com o campo buscar (usar o mesmo pattern da aba Moedas com `flex justify-end`)
+## O que sera criado
 
-**Arquivo**: `src/pages/comercial/MoedasCotacoesPage.tsx`
+### Novo arquivo: `src/components/FormRow.tsx`
 
-## Correcao 2 — Descricao truncada na listagem de Descontos
+Componente que aceita:
+- `columns` (1-4, padrao 1) -- numero de colunas em desktop
+- `gap` (opcional, padrao "6") -- espacamento entre campos
+- `children` -- os campos do formulario
 
-**Problema**: Coluna descricao quebra muitas linhas em telas menores.
+Renderiza um CSS Grid responsivo: `grid-cols-1` em mobile, `md:grid-cols-{N}` em desktop.
 
-**Solucao**:
-- Na coluna `descricao` do DataTable, aplicar `render` com classes CSS: `line-clamp-2 min-w-[200px]` para limitar a 2 linhas com reticencias e largura minima
+### Aplicacao imediata: `ContratosPage.tsx`
 
-**Arquivo**: `src/pages/comercial/CondicoesDescontosPage.tsx`
+Substituir os `div` manuais de grid na aba "Dados do Contrato" por `FormRow`, corrigindo de vez o alinhamento:
+- `<FormRow columns={3}>` para Tipo, Numero, Data
+- `<FormRow columns={2}>` para Moeda, Preco Unitario
 
-## Correcao 3 — Edicao inline expande abaixo da linha correta
+### Nenhuma alteracao em CrudModal ou SimpleCrudPage
 
-**Problema**: Ao clicar editar em uma config de empresa, o formulario de edicao aparece sempre apos a ultima linha da tabela, independente de qual linha foi clicada.
+O CrudModal continua recebendo `children` livremente. Qualquer pagina que quiser grid basta importar `FormRow` e envolver seus campos. Paginas que nao usarem continuam em coluna unica.
 
-**Solucao**:
-- Remover o bloco de edicao fixo abaixo da tabela (linhas 479-518)
-- Integrar o formulario de edicao inline diretamente na tabela: apos cada `TableRow` do config, renderizar condicionalmente uma `TableRow` com `colSpan={7}` contendo o formulario de edicao quando `editingConfig?.id === cfg.id`
-- Manter o formulario de "Vincular Empresa" (novo) no topo, como ja esta
-- Botao Salvar: classe `bg-green-600 hover:bg-green-700 text-white`
-- Botao Cancelar: classe `variant="outline"` com `hover:bg-destructive/10 hover:text-destructive hover:border-destructive`
+## Exemplo de uso (qualquer pagina)
 
-**Arquivo**: `src/pages/comercial/CondicoesDescontosPage.tsx`
+```text
+<FormRow columns={3}>
+  <campo1 />
+  <campo2 />
+  <campo3 />
+</FormRow>
+<FormRow columns={2}>
+  <campo4 />
+  <campo5 />
+</FormRow>
+```
 
-## Arquivos modificados
-1. `src/pages/comercial/MoedasCotacoesPage.tsx`
-2. `src/pages/comercial/CondicoesDescontosPage.tsx`
+## Detalhes tecnicos
+
+- Componente com ~15 linhas usando Tailwind classes dinamicas
+- Classes pre-definidas para columns 1-4 (necessario para Tailwind JIT)
+- Gap configuravel via prop
+- Responsividade automatica: empilha em mobile, grid em desktop
 
