@@ -1183,7 +1183,7 @@ export default function ContratosPage() {
 
                 {/* Row 4: Moeda + Preço Unitário (2 cols) */}
                 <FormRow columns={2}>
-                  <div className="w-full">
+                  <div className="w-full pr-0">
                     <Label>
                       Moeda <span className="text-destructive">*</span>
                     </Label>
