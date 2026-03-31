@@ -1060,19 +1060,17 @@ export default function ContratosPage() {
                     </Select>
                   </div>
                   <div className="space-y-1.5">
-                    <div className="flex items-center gap-1.5">
-                      <Label>Número do Contrato</Label>
-                      <Tooltip>
-                        <TooltipTrigger type="button">
-                          <Info className="h-3.5 w-3.5 text-muted-foreground" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="max-w-[220px] text-xs">
-                            Número sequencial gerado pelo sistema (CTR-AAAAMM-NNNN). Não editável.
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
+                    <Label>Número do Contrato</Label>
+                    <Tooltip>
+                      <TooltipTrigger type="button">
+                        <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-[220px] text-xs">
+                          Número sequencial gerado pelo sistema (CTR-AAAAMM-NNNN). Não editável.
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
                     <Input
                       value={editingContrato?.numeroContrato ?? ""}
                       placeholder="Gerado automaticamente"
