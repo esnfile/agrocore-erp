@@ -1206,7 +1206,7 @@ export default function ContratosPage() {
                     </Select>
                   </div>
                   <div className="space-y-1.5">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-3">
                       <Label>
                         Preço Unitário {tipoPrecoWatch !== "A_FIXAR" && <span className="text-destructive">*</span>}
                       </Label>
