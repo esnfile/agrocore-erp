@@ -1062,7 +1062,7 @@ export default function ContratosPage() {
                   <div className="w-full">
                     <Label>Número do Contrato</Label>
                     <Tooltip>
-                      <TooltipTrigger type="button">
+                      <TooltipTrigger type="button" className="ml-[6px]">
                         <Info className="h-3.5 w-3.5 text-muted-foreground" />
                       </TooltipTrigger>
                       <TooltipContent>
