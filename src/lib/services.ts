@@ -3138,9 +3138,8 @@ export const romaneioPesagemService = {
     await delay();
     return mockRomaneioPesagens.filter((p) => p.romaneioId === romaneioId);
   },
-  async salvar(data: { romaneioId: string; tipoPesagem: TipoPesagem; peso: number }, ctx: { grupoId: string; empresaId: string; filialId: string }): Promise<RomaneioPesagem | { erro: string }> {
+  async salvar(data: { romaneioId: string; tipoPesagem: TipoPesagem; peso: number; origemLeitura?: string; operador?: string; observacao?: string }, ctx: { grupoId: string; empresaId: string; filialId: string }): Promise<RomaneioPesagem | { erro: string }> {
     await delay();
-    // Block duplicate type
     const existing = mockRomaneioPesagens.find((p) => p.romaneioId === data.romaneioId && p.tipoPesagem === data.tipoPesagem);
     if (existing) {
       return { erro: `Já existe uma pesagem de ${data.tipoPesagem === "ENTRADA" ? "ENTRADA" : "SAÍDA"} registrada. Edite a existente.` };
@@ -3152,6 +3151,9 @@ export const romaneioPesagemService = {
       tipoPesagem: data.tipoPesagem,
       peso: data.peso,
       dataHora: now,
+      origemLeitura: (data.origemLeitura as any) || "MANUAL",
+      operador: data.operador || "u1",
+      observacao: data.observacao || "",
       criadoEm: now, criadoPor: "u1",
       editadoEm: null, editadoPor: null,
     };
