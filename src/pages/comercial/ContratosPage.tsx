@@ -1362,7 +1362,7 @@ export default function ContratosPage() {
                         </p>
                       )}
                   </div>
-                </div>
+                </FormRow>
 
                 {/* Row 5: Datas de entrega (2 cols) */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
