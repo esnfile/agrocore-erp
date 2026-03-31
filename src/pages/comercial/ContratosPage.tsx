@@ -1374,7 +1374,7 @@ export default function ContratosPage() {
                     <Label>Data Entrega Fim</Label>
                     <Input type="date" {...contratoForm.register("dataEntregaFim")} />
                   </div>
-                </div>
+                </FormRow>
 
                 {/* Row 6: Filiais logísticas (3 cols) with tooltips */}
                 <div className="rounded-md border p-4 space-y-4">
