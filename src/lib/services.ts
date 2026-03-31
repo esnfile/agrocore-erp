@@ -2893,14 +2893,19 @@ export const romaneioService = {
         return existing;
       }
     }
-    // Determinar unidadeRomaneioId a partir do produto
     const produto = mockProdutos.find((p) => p.id === data.produtoId);
     const unidadeRomaneioId = data.unidadeRomaneioId || produto?.unidadeBaseId || "um1";
+    const origem = data.origem || "AVULSO";
+    const tipoRomaneio = data.tipoRomaneio || "ENTRADA";
 
-    const status: StatusRomaneio = data.contratoId ? "ABERTO" : "AGUARDANDO_CONTRATO";
     const novo: Romaneio = {
       id: `rom${Date.now()}`, grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      origem,
+      tipoRomaneio,
       contratoId: data.contratoId || null,
+      safraId: data.safraId || null,
+      cultivoId: data.cultivoId || null,
+      pessoaId: data.pessoaId || null,
       produtoId: data.produtoId || "",
       motoristaId: data.motoristaId || null,
       motoristaNome: data.motoristaNome || "",
@@ -2909,8 +2914,10 @@ export const romaneioService = {
       placaVeiculo: data.placaVeiculo || "",
       pontoEstoqueId: data.pontoEstoqueId || null,
       unidadeRomaneioId,
-      status,
-      pesoBruto: 0, pesoTara: 0, pesoLiquido: 0,
+      status: data.status || "RASCUNHO",
+      pesoEntrada: 0, pesoSaida: 0, pesoCarregado: 0, pesoTara: 0, pesoLiquidoFisico: 0,
+      pesoClassificado: 0, totalPercentualDescontos: 0, totalPesoDescontado: 0, dataClassificacao: null,
+      pesoBruto: 0, pesoLiquido: 0, pesoTaraLegacy: 0,
       classificacaoUmidade: 0, classificacaoImpureza: 0, classificacaoArdidos: 0, classificacaoAvariados: 0,
       pesoLiquidoSecoLimpo: 0,
       observacao: data.observacao || "",
