@@ -97,6 +97,8 @@ const App = () => (
               <Route path="/financeiro/adiantamentos" element={<AdiantamentosPage />} />
               {/* Romaneios */}
               <Route path="/romaneios" element={<RomaneiosPage />} />
+              <Route path="/romaneios/novo" element={<RomaneioFormPage />} />
+              <Route path="/romaneios/:id" element={<RomaneioFormPage />} />
               <Route path="/romaneios/motoristas" element={<MotoristasPage />} />
               <Route path="/romaneios/veiculos" element={<VeiculosPage />} />
               {/* Produtos e Estoque — Tabelas */}
