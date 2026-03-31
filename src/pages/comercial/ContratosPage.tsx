@@ -14,30 +14,37 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel,
-  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
-  AlertDialogHeader, AlertDialogTitle,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import {
-  contratoService, contratoFixacaoService,
-  pontoEstoqueService, moedaService,
-  condicaoDescontoModeloService, contratoCondicaoService,
+  contratoService,
+  contratoFixacaoService,
+  pontoEstoqueService,
+  moedaService,
+  condicaoDescontoModeloService,
+  contratoCondicaoService,
   classificacaoTipoService,
-  contratoLiquidacaoService, financeiroContaService,
-  financeiroParcelaService, financeiroBaixaService,
-  filialService, romaneioService, produtoService,
-  empresaService, descontoTipoService,
+  contratoLiquidacaoService,
+  financeiroContaService,
+  financeiroParcelaService,
+  financeiroBaixaService,
+  filialService,
+  romaneioService,
+  produtoService,
+  empresaService,
+  descontoTipoService,
 } from "@/lib/services";
 import {
   pessoas as mockPessoas,
@@ -47,12 +54,22 @@ import {
   empresas as mockEmpresas,
 } from "@/lib/mock-data";
 import type {
-  Contrato, ContratoFixacao,
-  PontoEstoque, Moeda, Filial, Romaneio, Empresa,
-  CondicaoDescontoModelo, ContratoCondicao, TipoCondicaoDesconto,
+  Contrato,
+  ContratoFixacao,
+  PontoEstoque,
+  Moeda,
+  Filial,
+  Romaneio,
+  Empresa,
+  CondicaoDescontoModelo,
+  ContratoCondicao,
+  TipoCondicaoDesconto,
   ContratoLiquidacao,
-  FinanceiroConta, FinanceiroParcela, FinanceiroBaixa,
-  DescontoTipo, DescontoEmpresaConfig,
+  FinanceiroConta,
+  FinanceiroParcela,
+  FinanceiroBaixa,
+  DescontoTipo,
+  DescontoEmpresaConfig,
 } from "@/lib/mock-data";
 import { Plus, Pencil, Trash2, Eye, Lock, FileCheck, AlertTriangle, ExternalLink, Info, Clock } from "lucide-react";
 import { SearchableSelect, type SearchableOption } from "@/components/SearchableSelect";
@@ -95,7 +112,6 @@ const contratoSchema = z.object({
 });
 type ContratoForm = z.infer<typeof contratoSchema>;
 
-
 const fixacaoSchema = z.object({
   dataFixacao: z.string().min(1, "Data é obrigatória"),
   quantidadeFixada: z.coerce.number().positive("Quantidade deve ser > 0"),
@@ -127,17 +143,20 @@ export default function ContratosPage() {
   const [contratos, setContratos] = useState<Contrato[]>([]);
   const [loading, setLoading] = useState(false);
   const [filiaisEmpresa, setFiliaisEmpresa] = useState<Filial[]>([]);
-  
+
   // Filiais for the empresa selected in the contract form (may differ from session empresa)
   const [contratoFiliaisEmpresa, setContratoFiliaisEmpresa] = useState<Filial[]>([]);
-  
+
   // Official discount types for contract
-  const [officialDescontos, setOfficialDescontos] = useState<(DescontoEmpresaConfig & { descontoTipo: DescontoTipo })[]>([]);
-  
+  const [officialDescontos, setOfficialDescontos] = useState<
+    (DescontoEmpresaConfig & { descontoTipo: DescontoTipo })[]
+  >([]);
+
   // Filter only descontos applicable to contracts (contrato or ambos)
-  const officialDescontosContrato = useMemo(() => 
-    officialDescontos.filter(d => d.descontoTipo.aplicacao === "contrato" || d.descontoTipo.aplicacao === "ambos"),
-    [officialDescontos]
+  const officialDescontosContrato = useMemo(
+    () =>
+      officialDescontos.filter((d) => d.descontoTipo.aplicacao === "contrato" || d.descontoTipo.aplicacao === "ambos"),
+    [officialDescontos],
   );
 
   // Modal state
@@ -187,13 +206,22 @@ export default function ContratosPage() {
   const contratoForm = useForm<ContratoForm>({
     resolver: zodResolver(contratoSchema),
     defaultValues: {
-      empresaId: empresaId, filialId: "",
-      tipoContrato: "COMPRA", pessoaId: "", produtoId: "",
-      unidadeNegociacaoId: "", quantidadeTotal: 0, moedaId: "moeda1",
-      precoUnitario: 0, tipoPreco: "FIXO",
+      empresaId: empresaId,
+      filialId: "",
+      tipoContrato: "COMPRA",
+      pessoaId: "",
+      produtoId: "",
+      unidadeNegociacaoId: "",
+      quantidadeTotal: 0,
+      moedaId: "moeda1",
+      precoUnitario: 0,
+      tipoPreco: "FIXO",
       dataContrato: new Date().toISOString().slice(0, 10),
-      dataEntregaInicio: "", dataEntregaFim: "",
-      filialOperacaoId: "", filialOrigemId: "", filialDestinoId: "",
+      dataEntregaInicio: "",
+      dataEntregaFim: "",
+      filialOperacaoId: "",
+      filialOrigemId: "",
+      filialDestinoId: "",
       observacoes: "",
     },
   });
@@ -202,8 +230,11 @@ export default function ContratosPage() {
     resolver: zodResolver(fixacaoSchema),
     defaultValues: {
       dataFixacao: new Date().toISOString().slice(0, 16),
-      quantidadeFixada: 0, unidadeFixacaoId: "", precoFixado: 0,
-      moedaId: "moeda1", observacoes: "",
+      quantidadeFixada: 0,
+      unidadeFixacaoId: "",
+      precoFixado: 0,
+      moedaId: "moeda1",
+      observacoes: "",
     },
   });
 
@@ -216,9 +247,16 @@ export default function ContratosPage() {
   // Movement detection - determines if empresa/filial can be edited
   const hasMovements = useMemo(() => {
     if (!editingContrato) return false;
-    return romaneiosContrato.length > 0 || fixacoes.length > 0 || finContas.length > 0 || liquidacao !== null ||
-      editingContrato.status === "PARCIAL" || editingContrato.status === "FINALIZADO" ||
-      editingContrato.status === "CANCELADO" || editingContrato.status === "LIQUIDADO";
+    return (
+      romaneiosContrato.length > 0 ||
+      fixacoes.length > 0 ||
+      finContas.length > 0 ||
+      liquidacao !== null ||
+      editingContrato.status === "PARCIAL" ||
+      editingContrato.status === "FINALIZADO" ||
+      editingContrato.status === "CANCELADO" ||
+      editingContrato.status === "LIQUIDADO"
+    );
   }, [editingContrato, romaneiosContrato, fixacoes, finContas, liquidacao]);
 
   const canEditEmpresaFilial = !editingContrato || !hasMovements;
@@ -265,7 +303,9 @@ export default function ContratosPage() {
       }
       setPrecoSugestaoLoading(false);
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [produtoIdWatch, tipoContratoWatch, empresaId, editingContrato, tipoPrecoWatch]);
 
   const loadContratos = async () => {
@@ -276,7 +316,9 @@ export default function ContratosPage() {
     setLoading(false);
   };
 
-  useEffect(() => { loadContratos(); }, [empresaId]);
+  useEffect(() => {
+    loadContratos();
+  }, [empresaId]);
 
   useEffect(() => {
     if (empresaId) {
@@ -308,51 +350,44 @@ export default function ContratosPage() {
   }, [empresaId, filialOperacaoWatch]);
 
   // Pessoas are GLOBAL - not filtered by empresa
-  const pessoasAtivas = useMemo(
-    () => mockPessoas.filter((p) => p.deletadoEm === null && p.ativo),
-    []
-  );
+  const pessoasAtivas = useMemo(() => mockPessoas.filter((p) => p.deletadoEm === null && p.ativo), []);
   const produtosAtivos = useMemo(
     () => mockProdutos.filter((p) => p.deletadoEm === null && p.ativo && p.empresaId === (empresaIdWatch || empresaId)),
-    [empresaIdWatch, empresaId]
+    [empresaIdWatch, empresaId],
   );
-  const unidadesAtivas = useMemo(
-    () => mockUnidades.filter((u) => u.deletadoEm === null && u.ativo),
-    []
-  );
+  const unidadesAtivas = useMemo(() => mockUnidades.filter((u) => u.deletadoEm === null && u.ativo), []);
 
   // Searchable options for Pessoa
   const pessoaOptions: SearchableOption[] = useMemo(
-    () => pessoasAtivas.map((p) => ({
-      id: p.id,
-      label: p.nomeRazao,
-      sublabel: p.cpfCnpj,
-      meta: p.relacaoComercial.join(", "),
-    })),
-    [pessoasAtivas]
+    () =>
+      pessoasAtivas.map((p) => ({
+        id: p.id,
+        label: p.nomeRazao,
+        sublabel: p.cpfCnpj,
+        meta: p.relacaoComercial.join(", "),
+      })),
+    [pessoasAtivas],
   );
 
   // Searchable options for Produto
   const produtoOptions: SearchableOption[] = useMemo(
-    () => produtosAtivos.map((p) => {
-      const unBase = mockUnidades.find((u) => u.id === p.unidadeBaseId);
-      return {
-        id: p.id,
-        label: p.descricao,
-        sublabel: p.codigoBarras || undefined,
-        meta: unBase?.codigo ?? "",
-      };
-    }),
-    [produtosAtivos]
+    () =>
+      produtosAtivos.map((p) => {
+        const unBase = mockUnidades.find((u) => u.id === p.unidadeBaseId);
+        return {
+          id: p.id,
+          label: p.descricao,
+          sublabel: p.codigoBarras || undefined,
+          meta: unBase?.codigo ?? "",
+        };
+      }),
+    [produtosAtivos],
   );
 
   // Currency watch
   const moedaIdWatch = contratoForm.watch("moedaId");
   const precoWatch = contratoForm.watch("precoUnitario");
-  const moedaCodigo = useMemo(
-    () => mockMoedas.find((m) => m.id === moedaIdWatch)?.codigo ?? "BRL",
-    [moedaIdWatch]
-  );
+  const moedaCodigo = useMemo(() => mockMoedas.find((m) => m.id === moedaIdWatch)?.codigo ?? "BRL", [moedaIdWatch]);
   const [precoDisplay, setPrecoDisplay] = useState("");
 
   // Sync price display on blur
@@ -387,7 +422,7 @@ export default function ContratosPage() {
 
   // ---- Fixação computed values ----
   const totalEntregue = useMemo(() => {
-    return romaneiosContrato.filter(r => r.status === "FINALIZADO").reduce((s, r) => s + r.pesoLiquido, 0);
+    return romaneiosContrato.filter((r) => r.status === "FINALIZADO").reduce((s, r) => s + r.pesoLiquido, 0);
   }, [romaneiosContrato]);
 
   const totalFixado = useMemo(() => {
@@ -411,12 +446,20 @@ export default function ContratosPage() {
     contratoForm.reset({
       empresaId: empresaId,
       filialId: orgFiliais.length > 0 ? orgFiliais[0].id : "",
-      tipoContrato: "COMPRA", pessoaId: "", produtoId: "",
-      unidadeNegociacaoId: "", quantidadeTotal: 0, moedaId: "moeda1",
-      precoUnitario: 0, tipoPreco: "FIXO",
+      tipoContrato: "COMPRA",
+      pessoaId: "",
+      produtoId: "",
+      unidadeNegociacaoId: "",
+      quantidadeTotal: 0,
+      moedaId: "moeda1",
+      precoUnitario: 0,
+      tipoPreco: "FIXO",
       dataContrato: new Date().toISOString().slice(0, 10),
-      dataEntregaInicio: "", dataEntregaFim: "",
-      filialOperacaoId: "", filialOrigemId: "", filialDestinoId: "",
+      dataEntregaInicio: "",
+      dataEntregaFim: "",
+      filialOperacaoId: "",
+      filialOrigemId: "",
+      filialDestinoId: "",
       observacoes: "",
     });
     setRomaneiosContrato([]);
@@ -463,17 +506,20 @@ export default function ContratosPage() {
   };
 
   // Handle empresa change in contract form
-  const handleContratoEmpresaChange = useCallback((newEmpresaId: string) => {
-    contratoForm.setValue("empresaId", newEmpresaId, { shouldValidate: true });
-    // Clear dependent fields
-    contratoForm.setValue("filialId", "");
-    contratoForm.setValue("produtoId", "");
-    contratoForm.setValue("filialOperacaoId", "");
-    contratoForm.setValue("filialOrigemId", "");
-    contratoForm.setValue("filialDestinoId", "");
-    // Clear conditions
-    setCondicoes([]);
-  }, [contratoForm]);
+  const handleContratoEmpresaChange = useCallback(
+    (newEmpresaId: string) => {
+      contratoForm.setValue("empresaId", newEmpresaId, { shouldValidate: true });
+      // Clear dependent fields
+      contratoForm.setValue("filialId", "");
+      contratoForm.setValue("produtoId", "");
+      contratoForm.setValue("filialOperacaoId", "");
+      contratoForm.setValue("filialOrigemId", "");
+      contratoForm.setValue("filialDestinoId", "");
+      // Clear conditions
+      setCondicoes([]);
+    },
+    [contratoForm],
+  );
 
   const loadSubEntities = async (contratoId: string) => {
     const [roms, f, conds, liqs] = await Promise.all([
@@ -512,15 +558,15 @@ export default function ContratosPage() {
 
     // Validate mandatory descontos are applied (only for editing, when tab is available)
     if (editingContrato) {
-      const obrigatoriosContrato = officialDescontosContrato.filter(d => d.descontoTipo.obrigatorio && d.ativo);
-      const naoAplicados = obrigatoriosContrato.filter(cfg => 
-        !condicoes.some(c => c.descricao.toUpperCase().includes(cfg.descontoTipo.nome.toUpperCase()))
+      const obrigatoriosContrato = officialDescontosContrato.filter((d) => d.descontoTipo.obrigatorio && d.ativo);
+      const naoAplicados = obrigatoriosContrato.filter(
+        (cfg) => !condicoes.some((c) => c.descricao.toUpperCase().includes(cfg.descontoTipo.nome.toUpperCase())),
       );
       if (naoAplicados.length > 0) {
-        toast({ 
-          title: "Descontos obrigatórios pendentes", 
-          description: `Aplique os descontos obrigatórios antes de salvar: ${naoAplicados.map(d => d.descontoTipo.nome).join(", ")}`,
-          variant: "destructive" 
+        toast({
+          title: "Descontos obrigatórios pendentes",
+          description: `Aplique os descontos obrigatórios antes de salvar: ${naoAplicados.map((d) => d.descontoTipo.nome).join(", ")}`,
+          variant: "destructive",
         });
         setActiveTab("condicoes");
         return;
@@ -539,14 +585,20 @@ export default function ContratosPage() {
           filialOrigemId: data.filialOrigemId || null,
           filialDestinoId: data.filialDestinoId || null,
         },
-        { grupoId, empresaId: contractEmpresaId, filialId: data.filialId || data.filialOperacaoId || contractEmpresaId }
+        {
+          grupoId,
+          empresaId: contractEmpresaId,
+          filialId: data.filialId || data.filialOperacaoId || contractEmpresaId,
+        },
       );
       toast({ title: "Sucesso", description: editingContrato ? "Contrato atualizado." : "Contrato criado." });
       setModalOpen(false);
       loadContratos();
     } catch {
       toast({ title: "Erro", description: "Falha ao salvar contrato.", variant: "destructive" });
-    } finally { setSaving(false); }
+    } finally {
+      setSaving(false);
+    }
   });
 
   const onDeleteContrato = async () => {
@@ -594,7 +646,7 @@ export default function ContratosPage() {
     try {
       const result = await contratoFixacaoService.salvar(
         { ...data, contratoId: editingContrato.id, id: editingFixacao?.id },
-        { grupoId, empresaId, filialId: "" }
+        { grupoId, empresaId, filialId: "" },
       );
       if (result.sucesso) {
         toast({ title: "Sucesso", description: result.mensagem });
@@ -605,7 +657,9 @@ export default function ContratosPage() {
       }
     } catch {
       toast({ title: "Erro", description: "Falha ao salvar fixação.", variant: "destructive" });
-    } finally { setSavingFixacao(false); }
+    } finally {
+      setSavingFixacao(false);
+    }
   });
 
   const onDeleteFixacao = async (id: string) => {
@@ -618,9 +672,11 @@ export default function ContratosPage() {
   // ---- Condições CRUD ----
   const onApplyModelo = async (modeloId: string) => {
     if (!editingContrato) return;
-    const novas = await contratoCondicaoService.aplicarModelo(
-      editingContrato.id, modeloId, { grupoId, empresaId, filialId: editingContrato.filialId }
-    );
+    const novas = await contratoCondicaoService.aplicarModelo(editingContrato.id, modeloId, {
+      grupoId,
+      empresaId,
+      filialId: editingContrato.filialId,
+    });
     setCondicoes(novas);
     toast({ title: "Sucesso", description: "Condições do modelo aplicadas ao contrato." });
   };
@@ -667,7 +723,7 @@ export default function ContratosPage() {
           ordemCalculo: Number(condOrdem) || 1,
           automatico: condAutomatico,
         },
-        { grupoId, empresaId, filialId: editingContrato.filialId }
+        { grupoId, empresaId, filialId: editingContrato.filialId },
       );
       toast({ title: "Sucesso", description: editingCondicao ? "Condição atualizada." : "Condição adicionada." });
       setCondicaoModalOpen(false);
@@ -675,7 +731,9 @@ export default function ContratosPage() {
       setCondicoes(conds);
     } catch {
       toast({ title: "Erro", description: "Falha ao salvar condição.", variant: "destructive" });
-    } finally { setSavingCondicao(false); }
+    } finally {
+      setSavingCondicao(false);
+    }
   };
 
   const onDeleteCondicao = async (id: string) => {
@@ -687,7 +745,9 @@ export default function ContratosPage() {
   };
 
   // ---- Financeiro real ----
-  const totalParcelasPendentes = finParcelas.filter((p) => p.status === "PENDENTE" || p.status === "PARCIAL").reduce((s, p) => s + p.saldoParcela, 0);
+  const totalParcelasPendentes = finParcelas
+    .filter((p) => p.status === "PENDENTE" || p.status === "PARCIAL")
+    .reduce((s, p) => s + p.saldoParcela, 0);
   const totalBaixas = finBaixas.reduce((s, b) => s + b.valorPago, 0);
 
   // ---- Liquidação handlers ----
@@ -710,9 +770,11 @@ export default function ContratosPage() {
     }
     setLiquidacaoLoading(true);
     try {
-      const result = await contratoLiquidacaoService.gerarPrevia(
-        editingContrato.id, opcaoEncerrar, { grupoId, empresaId, filialId: editingContrato.filialId }
-      );
+      const result = await contratoLiquidacaoService.gerarPrevia(editingContrato.id, opcaoEncerrar, {
+        grupoId,
+        empresaId,
+        filialId: editingContrato.filialId,
+      });
       if (result.sucesso && result.liquidacao) {
         setLiquidacao(result.liquidacao);
         toast({ title: "Sucesso", description: result.mensagem });
@@ -721,7 +783,9 @@ export default function ContratosPage() {
       }
     } catch {
       toast({ title: "Erro", description: "Falha ao gerar prévia.", variant: "destructive" });
-    } finally { setLiquidacaoLoading(false); }
+    } finally {
+      setLiquidacaoLoading(false);
+    }
   };
 
   const onConfirmarLiquidacao = async () => {
@@ -729,9 +793,11 @@ export default function ContratosPage() {
     setLiquidacaoLoading(true);
     setConfirmDialogOpen(false);
     try {
-      const result = await contratoLiquidacaoService.confirmar(
-        liquidacao.id, opcaoTitulos, { grupoId, empresaId, filialId: editingContrato.filialId }
-      );
+      const result = await contratoLiquidacaoService.confirmar(liquidacao.id, opcaoTitulos, {
+        grupoId,
+        empresaId,
+        filialId: editingContrato.filialId,
+      });
       if (result.sucesso) {
         toast({ title: "Sucesso", description: result.mensagem });
         await loadSubEntities(editingContrato.id);
@@ -743,7 +809,9 @@ export default function ContratosPage() {
       }
     } catch {
       toast({ title: "Erro", description: "Falha ao confirmar liquidação.", variant: "destructive" });
-    } finally { setLiquidacaoLoading(false); }
+    } finally {
+      setLiquidacaoLoading(false);
+    }
   };
 
   const onCancelarLiquidacao = async () => {
@@ -759,9 +827,10 @@ export default function ContratosPage() {
       }
     } catch {
       toast({ title: "Erro", description: "Falha ao cancelar.", variant: "destructive" });
-    } finally { setLiquidacaoLoading(false); }
+    } finally {
+      setLiquidacaoLoading(false);
+    }
   };
-
 
   if (!grupoId) {
     return (
@@ -790,7 +859,10 @@ export default function ContratosPage() {
       <PageHeader title="Contratos" description="Gestão de contratos comerciais de compra e venda" />
 
       <div className="mb-4 flex justify-end">
-        <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" />Novo Contrato</Button>
+        <Button onClick={openNew}>
+          <Plus className="mr-2 h-4 w-4" />
+          Novo Contrato
+        </Button>
       </div>
 
       {/* Listagem */}
@@ -830,12 +902,18 @@ export default function ContratosPage() {
                     </TableCell>
                     <TableCell>{getNomePessoa(c.pessoaId)}</TableCell>
                     <TableCell>{getNomeProduto(c.produtoId)}</TableCell>
-                    <TableCell className="text-right">{c.quantidadeTotal.toLocaleString("pt-BR")} {getCodigoUnidade(c.unidadeNegociacaoId)}</TableCell>
+                    <TableCell className="text-right">
+                      {c.quantidadeTotal.toLocaleString("pt-BR")} {getCodigoUnidade(c.unidadeNegociacaoId)}
+                    </TableCell>
                     <TableCell className="text-right">{c.quantidadeEntregue.toLocaleString("pt-BR")}</TableCell>
                     <TableCell className="text-right">{c.quantidadeSaldo.toLocaleString("pt-BR")}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(c.precoUnitario, mockMoedas.find(m => m.id === c.moedaId)?.codigo ?? "BRL")}</TableCell>
+                    <TableCell className="text-right">
+                      {formatCurrency(c.precoUnitario, mockMoedas.find((m) => m.id === c.moedaId)?.codigo ?? "BRL")}
+                    </TableCell>
                     <TableCell>{getCodigoMoeda(c.moedaId)}</TableCell>
-                    <TableCell><StatusBadge status={c.status} /></TableCell>
+                    <TableCell>
+                      <StatusBadge status={c.status} />
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         <Button variant="ghost" size="icon" onClick={() => openView(c)} title="Visualizar">
@@ -861,7 +939,13 @@ export default function ContratosPage() {
       <CrudModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        title={viewOnly ? `Contrato ${editingContrato?.numeroContrato}` : editingContrato ? "Editar Contrato" : "Novo Contrato"}
+        title={
+          viewOnly
+            ? `Contrato ${editingContrato?.numeroContrato}`
+            : editingContrato
+              ? "Editar Contrato"
+              : "Novo Contrato"
+        }
         saving={saving}
         onSave={viewOnly ? undefined : onSaveContrato}
         maxWidth="sm:max-w-5xl"
@@ -870,421 +954,595 @@ export default function ContratosPage() {
           <div className="flex items-center justify-between mb-4">
             <TabsList>
               <TabsTrigger value="dados">Dados do Contrato</TabsTrigger>
-              <TabsTrigger value="romaneios" disabled={!editingContrato}>Romaneios</TabsTrigger>
+              <TabsTrigger value="romaneios" disabled={!editingContrato}>
+                Romaneios
+              </TabsTrigger>
               {(editingContrato?.tipoPreco === "A_FIXAR" || tipoPrecoWatch === "A_FIXAR") && (
-                <TabsTrigger value="fixacao" disabled={!editingContrato}>Fixação de Preço</TabsTrigger>
+                <TabsTrigger value="fixacao" disabled={!editingContrato}>
+                  Fixação de Preço
+                </TabsTrigger>
               )}
-              <TabsTrigger value="financeiro" disabled={!editingContrato}>Financeiro</TabsTrigger>
-              <TabsTrigger value="condicoes" disabled={!editingContrato}>Condições e Descontos</TabsTrigger>
-              <TabsTrigger value="liquidacao" disabled={!editingContrato}>Liquidação</TabsTrigger>
+              <TabsTrigger value="financeiro" disabled={!editingContrato}>
+                Financeiro
+              </TabsTrigger>
+              <TabsTrigger value="condicoes" disabled={!editingContrato}>
+                Condições e Descontos
+              </TabsTrigger>
+              <TabsTrigger value="liquidacao" disabled={!editingContrato}>
+                Liquidação
+              </TabsTrigger>
             </TabsList>
-            {editingContrato && (
-              <StatusBadge status={editingContrato.status} />
-            )}
+            {editingContrato && <StatusBadge status={editingContrato.status} />}
           </div>
 
           {/* ABA 1 — Dados */}
           <TabsContent value="dados">
             <TooltipProvider delayDuration={200}>
-            <fieldset disabled={viewOnly} className="space-y-6">
-              {/* Row 0: Empresa + Filial (2 cols) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-1.5">
-                  <Label>Empresa <span className="text-destructive">*</span></Label>
-                  <Select
-                    value={contratoForm.watch("empresaId")}
-                    onValueChange={handleContratoEmpresaChange}
-                    disabled={viewOnly || !canEditEmpresaFilial}
-                  >
-                    <SelectTrigger className={!canEditEmpresaFilial ? "bg-muted/50 cursor-not-allowed" : ""}>
-                      <SelectValue placeholder="Selecione..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {orgEmpresas.filter((e) => e.ativo).map((e) => (
-                        <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {contratoForm.formState.errors.empresaId && (
-                    <p className="text-xs text-destructive">{contratoForm.formState.errors.empresaId.message}</p>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Filial</Label>
-                  <Select
-                    value={contratoForm.watch("filialId") || ""}
-                    onValueChange={(v) => contratoForm.setValue("filialId", v)}
-                    disabled={viewOnly || !canEditEmpresaFilial}
-                  >
-                    <SelectTrigger className={!canEditEmpresaFilial ? "bg-muted/50 cursor-not-allowed" : ""}>
-                      <SelectValue placeholder="Selecione..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {contratoFiliaisEmpresa.filter((f) => f.ativo).map((f) => (
-                        <SelectItem key={f.id} value={f.id}>{f.nomeRazao}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              {/* Movement lock warning */}
-              {editingContrato && hasMovements && (
-                <div className="rounded-md border border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400 flex items-center gap-2">
-                  <Lock className="h-3.5 w-3.5 flex-shrink-0" />
-                  <span>Empresa e filial não podem ser alteradas porque este contrato já possui movimentações vinculadas.</span>
-                </div>
-              )}
-
-              {/* Row 1: Tipo + Número + Data (3 cols) */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="space-y-1.5">
-                  <Label>Tipo <span className="text-destructive">*</span></Label>
-                  <Select value={contratoForm.watch("tipoContrato")} onValueChange={(v) => contratoForm.setValue("tipoContrato", v as any)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="COMPRA">Compra</SelectItem>
-                      <SelectItem value="VENDA">Venda</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <Label>Número do Contrato</Label>
-                    <Tooltip>
-                      <TooltipTrigger type="button"><Info className="h-3.5 w-3.5 text-muted-foreground" /></TooltipTrigger>
-                      <TooltipContent><p className="max-w-[220px] text-xs">Número sequencial gerado pelo sistema (CTR-AAAAMM-NNNN). Não editável.</p></TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <Input
-                    value={editingContrato?.numeroContrato ?? ""}
-                    placeholder="Gerado automaticamente"
-                    disabled
-                    className="bg-muted/50 cursor-not-allowed"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Data do Contrato <span className="text-destructive">*</span></Label>
-                  <Input type="date" {...contratoForm.register("dataContrato")} />
-                  {contratoForm.formState.errors.dataContrato && (
-                    <p className="text-xs text-destructive">{contratoForm.formState.errors.dataContrato.message}</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Row 2: Pessoa + Produto (2 cols) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-1.5">
-                  <Label>Pessoa Responsável <span className="text-destructive">*</span></Label>
-                  <SearchableSelect
-                    options={pessoaOptions}
-                    value={contratoForm.watch("pessoaId")}
-                    onChange={(v) => contratoForm.setValue("pessoaId", v, { shouldValidate: true })}
-                    placeholder="Buscar por nome, CPF/CNPJ..."
-                    disabled={viewOnly}
-                  />
-                  {contratoForm.formState.errors.pessoaId && (
-                    <p className="text-xs text-destructive">{contratoForm.formState.errors.pessoaId.message}</p>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Produto <span className="text-destructive">*</span></Label>
-                  <SearchableSelect
-                    options={produtoOptions}
-                    value={contratoForm.watch("produtoId")}
-                    onChange={(v) => contratoForm.setValue("produtoId", v, { shouldValidate: true })}
-                    placeholder="Buscar por nome, código..."
-                    disabled={viewOnly}
-                  />
-                  {contratoForm.formState.errors.produtoId && (
-                    <p className="text-xs text-destructive">{contratoForm.formState.errors.produtoId.message}</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Row 3: Quantidade + Unidade + Tipo Preço (3 cols) */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="space-y-1.5">
-                  <Label>Quantidade <span className="text-destructive">*</span></Label>
-                  <Input type="number" step="0.000001" {...contratoForm.register("quantidadeTotal")} />
-                  {contratoForm.formState.errors.quantidadeTotal && (
-                    <p className="text-xs text-destructive">{contratoForm.formState.errors.quantidadeTotal.message}</p>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Unidade <span className="text-destructive">*</span></Label>
-                  <Select value={contratoForm.watch("unidadeNegociacaoId")} onValueChange={(v) => contratoForm.setValue("unidadeNegociacaoId", v)}>
-                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                    <SelectContent>
-                      {unidadesAtivas.map((u) => (
-                        <SelectItem key={u.id} value={u.id}>{u.codigo} — {u.descricao}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Tipo de Preço <span className="text-destructive">*</span></Label>
-                  <Select
-                    value={contratoForm.watch("tipoPreco")}
-                    onValueChange={(v) => {
-                      contratoForm.setValue("tipoPreco", v as any);
-                      if (v === "A_FIXAR") {
-                        contratoForm.setValue("precoUnitario", 0);
-                        setPrecoDisplay("");
-                      }
-                    }}
-                  >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="FIXO">Fixo</SelectItem>
-                      <SelectItem value="A_FIXAR">A Fixar</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Row 4: Moeda + Preço Unitário (2 cols) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-1.5">
-                  <Label>Moeda <span className="text-destructive">*</span></Label>
-                  <Select value={contratoForm.watch("moedaId")} onValueChange={(v) => contratoForm.setValue("moedaId", v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {moedas.filter((m) => m.ativo).map((m) => (
-                        <SelectItem key={m.id} value={m.id}>{m.codigo} — {m.descricao}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <Label>Preço Unitário {tipoPrecoWatch !== "A_FIXAR" && <span className="text-destructive">*</span>}</Label>
-                    {tipoPrecoWatch === "A_FIXAR" && (
-                      <Tooltip>
-                        <TooltipTrigger type="button"><Info className="h-3.5 w-3.5 text-muted-foreground" /></TooltipTrigger>
-                        <TooltipContent className="max-w-[300px]">
-                          <p className="text-xs">Tipo A FIXAR: Preço pendente para hedge de volume. Após entregas (romaneios), acesse Fixação de Preço para definir valor real. Bloqueia liquidação; gera provisões estimadas.</p>
-                        </TooltipContent>
-                      </Tooltip>
+              <fieldset disabled={viewOnly} className="space-y-5">
+                {/* Row 0: Empresa + Filial (2 cols) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>
+                      Empresa <span className="text-destructive">*</span>
+                    </Label>
+                    <Select
+                      value={contratoForm.watch("empresaId")}
+                      onValueChange={handleContratoEmpresaChange}
+                      disabled={viewOnly || !canEditEmpresaFilial}
+                    >
+                      <SelectTrigger className={!canEditEmpresaFilial ? "bg-muted/50 cursor-not-allowed" : ""}>
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {orgEmpresas
+                          .filter((e) => e.ativo)
+                          .map((e) => (
+                            <SelectItem key={e.id} value={e.id}>
+                              {e.nome}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                    {contratoForm.formState.errors.empresaId && (
+                      <p className="text-xs text-destructive">{contratoForm.formState.errors.empresaId.message}</p>
                     )}
                   </div>
-                  {tipoPrecoWatch === "A_FIXAR" ? (
+                  <div className="space-y-1.5">
+                    <Label>Filial</Label>
+                    <Select
+                      value={contratoForm.watch("filialId") || ""}
+                      onValueChange={(v) => contratoForm.setValue("filialId", v)}
+                      disabled={viewOnly || !canEditEmpresaFilial}
+                    >
+                      <SelectTrigger className={!canEditEmpresaFilial ? "bg-muted/50 cursor-not-allowed" : ""}>
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {contratoFiliaisEmpresa
+                          .filter((f) => f.ativo)
+                          .map((f) => (
+                            <SelectItem key={f.id} value={f.id}>
+                              {f.nomeRazao}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                {/* Movement lock warning */}
+                {editingContrato && hasMovements && (
+                  <div className="rounded-md border border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400 flex items-center gap-2">
+                    <Lock className="h-3.5 w-3.5 flex-shrink-0" />
+                    <span>
+                      Empresa e filial não podem ser alteradas porque este contrato já possui movimentações vinculadas.
+                    </span>
+                  </div>
+                )}
+
+                {/* Row 1: Tipo + Número + Data (3 cols) */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>
+                      Tipo <span className="text-destructive">*</span>
+                    </Label>
+                    <Select
+                      value={contratoForm.watch("tipoContrato")}
+                      onValueChange={(v) => contratoForm.setValue("tipoContrato", v as any)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="COMPRA">Compra</SelectItem>
+                        <SelectItem value="VENDA">Venda</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="flex items-botton gap-1.5">
+                      <Label>Número do Contrato</Label>
+                      <Tooltip>
+                        <TooltipTrigger type="button">
+                          <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="max-w-[220px] text-xs">
+                            Número sequencial gerado pelo sistema (CTR-AAAAMM-NNNN). Não editável.
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
                     <Input
-                      value="R$ 0,00"
-                      placeholder="Preço provisório (R$ 0,00) — Fixe após entregas"
+                      value={editingContrato?.numeroContrato ?? ""}
+                      placeholder="Gerado automaticamente"
                       disabled
                       className="bg-muted/50 cursor-not-allowed"
                     />
-                  ) : (
-                    <div className="relative">
-                      <Input
-                        type="number"
-                        step="0.01"
-                        {...contratoForm.register("precoUnitario")}
-                        onFocus={handlePrecoFocus}
-                        onBlur={(e) => {
-                          contratoForm.register("precoUnitario").onBlur(e);
-                          handlePrecoBlur();
-                        }}
-                        className={precoDisplay ? "opacity-0 absolute inset-0" : ""}
-                      />
-                      {precoDisplay && (
-                        <div
-                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm cursor-text"
-                          onClick={() => {
-                            handlePrecoFocus();
-                            const input = document.querySelector<HTMLInputElement>('input[name="precoUnitario"]');
-                            input?.focus();
-                          }}
-                        >
-                          {precoDisplay}
-                        </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>
+                      Data do Contrato <span className="text-destructive">*</span>
+                    </Label>
+                    <Input type="date" {...contratoForm.register("dataContrato")} />
+                    {contratoForm.formState.errors.dataContrato && (
+                      <p className="text-xs text-destructive">{contratoForm.formState.errors.dataContrato.message}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Row 2: Pessoa + Produto (2 cols) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>
+                      Pessoa Responsável <span className="text-destructive">*</span>
+                    </Label>
+                    <SearchableSelect
+                      options={pessoaOptions}
+                      value={contratoForm.watch("pessoaId")}
+                      onChange={(v) => contratoForm.setValue("pessoaId", v, { shouldValidate: true })}
+                      placeholder="Buscar por nome, CPF/CNPJ..."
+                      disabled={viewOnly}
+                    />
+                    {contratoForm.formState.errors.pessoaId && (
+                      <p className="text-xs text-destructive">{contratoForm.formState.errors.pessoaId.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>
+                      Produto <span className="text-destructive">*</span>
+                    </Label>
+                    <SearchableSelect
+                      options={produtoOptions}
+                      value={contratoForm.watch("produtoId")}
+                      onChange={(v) => contratoForm.setValue("produtoId", v, { shouldValidate: true })}
+                      placeholder="Buscar por nome, código..."
+                      disabled={viewOnly}
+                    />
+                    {contratoForm.formState.errors.produtoId && (
+                      <p className="text-xs text-destructive">{contratoForm.formState.errors.produtoId.message}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Row 3: Quantidade + Unidade + Tipo Preço (3 cols) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>
+                      Quantidade <span className="text-destructive">*</span>
+                    </Label>
+                    <Input type="number" step="0.000001" {...contratoForm.register("quantidadeTotal")} />
+                    {contratoForm.formState.errors.quantidadeTotal && (
+                      <p className="text-xs text-destructive">
+                        {contratoForm.formState.errors.quantidadeTotal.message}
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>
+                      Unidade <span className="text-destructive">*</span>
+                    </Label>
+                    <Select
+                      value={contratoForm.watch("unidadeNegociacaoId")}
+                      onValueChange={(v) => contratoForm.setValue("unidadeNegociacaoId", v)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {unidadesAtivas.map((u) => (
+                          <SelectItem key={u.id} value={u.id}>
+                            {u.codigo} — {u.descricao}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>
+                      Tipo de Preço <span className="text-destructive">*</span>
+                    </Label>
+                    <Select
+                      value={contratoForm.watch("tipoPreco")}
+                      onValueChange={(v) => {
+                        contratoForm.setValue("tipoPreco", v as any);
+                        if (v === "A_FIXAR") {
+                          contratoForm.setValue("precoUnitario", 0);
+                          setPrecoDisplay("");
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="FIXO">Fixo</SelectItem>
+                        <SelectItem value="A_FIXAR">A Fixar</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Row 4: Moeda + Preço Unitário (2 cols) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>
+                      Moeda <span className="text-destructive">*</span>
+                    </Label>
+                    <Select
+                      value={contratoForm.watch("moedaId")}
+                      onValueChange={(v) => contratoForm.setValue("moedaId", v)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {moedas
+                          .filter((m) => m.ativo)
+                          .map((m) => (
+                            <SelectItem key={m.id} value={m.id}>
+                              {m.codigo} — {m.descricao}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <Label>
+                        Preço Unitário {tipoPrecoWatch !== "A_FIXAR" && <span className="text-destructive">*</span>}
+                      </Label>
+                      {tipoPrecoWatch === "A_FIXAR" && (
+                        <Tooltip>
+                          <TooltipTrigger type="button">
+                            <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-[300px]">
+                            <p className="text-xs">
+                              Tipo A FIXAR: Preço pendente para hedge de volume. Após entregas (romaneios), acesse
+                              Fixação de Preço para definir valor real. Bloqueia liquidação; gera provisões estimadas.
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
                       )}
                     </div>
-                  )}
-                  {contratoForm.formState.errors.precoUnitario && tipoPrecoWatch !== "A_FIXAR" && (
-                    <p className="text-xs text-destructive">{contratoForm.formState.errors.precoUnitario.message}</p>
-                  )}
-                  {/* A_FIXAR badge */}
-                  {tipoPrecoWatch === "A_FIXAR" && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-md border border-amber-500/40 bg-amber-50 dark:bg-amber-950/20 px-2.5 py-1.5 text-xs cursor-help">
-                          <Clock className="h-3.5 w-3.5 text-amber-600" />
-                          <span className="text-amber-700 dark:text-amber-400 font-medium">A FIXAR — Pendente</span>
-                          {precoSugestao && (
-                            <span className="text-muted-foreground ml-1">
-                              | Estimado {formatCurrency(precoSugestao.valor, moedaCodigo)}/{getCodigoUnidade(contratoForm.watch("unidadeNegociacaoId"))}
-                            </span>
-                          )}
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" className="max-w-[340px]">
-                        <div className="space-y-1.5 text-xs">
-                          <p className="font-semibold">Contrato A Fixar</p>
-                          <p>Liquidação bloqueada até fixar. Saldo a fixar atualizado com romaneios.</p>
-                          {precoSugestao && (
-                            <>
-                              <p className="text-muted-foreground">Estimativa baseada no coeficiente/tabela do produto:</p>
-                              {precoSugestao.breakdown.map((b, i) => (
-                                <div key={i} className="flex justify-between gap-4">
-                                  <span>{b.tipo}{b.percentual > 0 ? ` (${b.percentual}%)` : ""}</span>
-                                  <span className="font-mono">{formatCurrency(b.valor, moedaCodigo)}</span>
-                                </div>
-                              ))}
-                              <div className="border-t border-border pt-1 flex justify-between font-semibold">
-                                <span>Total Provisório ({formatCurrency(precoSugestao.valor, moedaCodigo)} × {contratoForm.watch("quantidadeTotal") || 0})</span>
-                                <span className="font-mono">{formatCurrency(precoSugestao.valor * (contratoForm.watch("quantidadeTotal") || 0), moedaCodigo)}</span>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </TooltipContent>
-                    </Tooltip>
-                  )}
-                  {/* Price suggestion badge for FIXO */}
-                  {precoSugestao && !editingContrato && tipoPrecoWatch !== "A_FIXAR" && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="mt-1 inline-flex items-center gap-1 rounded-md border border-border bg-muted/60 px-2 py-1 text-xs text-muted-foreground cursor-help">
-                          <Info className="h-3 w-3" />
-                          <span>Sugerido: <strong className="text-foreground">{formatCurrency(precoSugestao.valor, moedaCodigo)}</strong> — {precoSugestao.origem}</span>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" className="max-w-[320px]">
-                        <div className="space-y-1 text-xs">
-                          <p className="font-semibold">Composição do Preço</p>
-                          {precoSugestao.breakdown.map((b, i) => (
-                            <div key={i} className="flex justify-between gap-4">
-                              <span>{b.tipo}{b.percentual > 0 ? ` (${b.percentual}%)` : ""}</span>
-                              <span className="font-mono">{formatCurrency(b.valor, moedaCodigo)}</span>
-                            </div>
-                          ))}
-                          <div className="border-t border-border pt-1 flex justify-between gap-4 font-semibold">
-                            <span>Total</span>
-                            <span className="font-mono">{formatCurrency(precoSugestao.valor, moedaCodigo)}</span>
+                    {tipoPrecoWatch === "A_FIXAR" ? (
+                      <Input
+                        value="R$ 0,00"
+                        placeholder="Preço provisório (R$ 0,00) — Fixe após entregas"
+                        disabled
+                        className="bg-muted/50 cursor-not-allowed"
+                      />
+                    ) : (
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          {...contratoForm.register("precoUnitario")}
+                          onFocus={handlePrecoFocus}
+                          onBlur={(e) => {
+                            contratoForm.register("precoUnitario").onBlur(e);
+                            handlePrecoBlur();
+                          }}
+                          className={precoDisplay ? "opacity-0 absolute inset-0" : ""}
+                        />
+                        {precoDisplay && (
+                          <div
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm cursor-text"
+                            onClick={() => {
+                              handlePrecoFocus();
+                              const input = document.querySelector<HTMLInputElement>('input[name="precoUnitario"]');
+                              input?.focus();
+                            }}
+                          >
+                            {precoDisplay}
                           </div>
-                        </div>
+                        )}
+                      </div>
+                    )}
+                    {contratoForm.formState.errors.precoUnitario && tipoPrecoWatch !== "A_FIXAR" && (
+                      <p className="text-xs text-destructive">{contratoForm.formState.errors.precoUnitario.message}</p>
+                    )}
+                    {/* A_FIXAR badge */}
+                    {tipoPrecoWatch === "A_FIXAR" && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-md border border-amber-500/40 bg-amber-50 dark:bg-amber-950/20 px-2.5 py-1.5 text-xs cursor-help">
+                            <Clock className="h-3.5 w-3.5 text-amber-600" />
+                            <span className="text-amber-700 dark:text-amber-400 font-medium">A FIXAR — Pendente</span>
+                            {precoSugestao && (
+                              <span className="text-muted-foreground ml-1">
+                                | Estimado {formatCurrency(precoSugestao.valor, moedaCodigo)}/
+                                {getCodigoUnidade(contratoForm.watch("unidadeNegociacaoId"))}
+                              </span>
+                            )}
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="max-w-[340px]">
+                          <div className="space-y-1.5 text-xs">
+                            <p className="font-semibold">Contrato A Fixar</p>
+                            <p>Liquidação bloqueada até fixar. Saldo a fixar atualizado com romaneios.</p>
+                            {precoSugestao && (
+                              <>
+                                <p className="text-muted-foreground">
+                                  Estimativa baseada no coeficiente/tabela do produto:
+                                </p>
+                                {precoSugestao.breakdown.map((b, i) => (
+                                  <div key={i} className="flex justify-between gap-4">
+                                    <span>
+                                      {b.tipo}
+                                      {b.percentual > 0 ? ` (${b.percentual}%)` : ""}
+                                    </span>
+                                    <span className="font-mono">{formatCurrency(b.valor, moedaCodigo)}</span>
+                                  </div>
+                                ))}
+                                <div className="border-t border-border pt-1 flex justify-between font-semibold">
+                                  <span>
+                                    Total Provisório ({formatCurrency(precoSugestao.valor, moedaCodigo)} ×{" "}
+                                    {contratoForm.watch("quantidadeTotal") || 0})
+                                  </span>
+                                  <span className="font-mono">
+                                    {formatCurrency(
+                                      precoSugestao.valor * (contratoForm.watch("quantidadeTotal") || 0),
+                                      moedaCodigo,
+                                    )}
+                                  </span>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                    {/* Price suggestion badge for FIXO */}
+                    {precoSugestao && !editingContrato && tipoPrecoWatch !== "A_FIXAR" && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="mt-1 inline-flex items-center gap-1 rounded-md border border-border bg-muted/60 px-2 py-1 text-xs text-muted-foreground cursor-help">
+                            <Info className="h-3 w-3" />
+                            <span>
+                              Sugerido:{" "}
+                              <strong className="text-foreground">
+                                {formatCurrency(precoSugestao.valor, moedaCodigo)}
+                              </strong>{" "}
+                              — {precoSugestao.origem}
+                            </span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="max-w-[320px]">
+                          <div className="space-y-1 text-xs">
+                            <p className="font-semibold">Composição do Preço</p>
+                            {precoSugestao.breakdown.map((b, i) => (
+                              <div key={i} className="flex justify-between gap-4">
+                                <span>
+                                  {b.tipo}
+                                  {b.percentual > 0 ? ` (${b.percentual}%)` : ""}
+                                </span>
+                                <span className="font-mono">{formatCurrency(b.valor, moedaCodigo)}</span>
+                              </div>
+                            ))}
+                            <div className="border-t border-border pt-1 flex justify-between gap-4 font-semibold">
+                              <span>Total</span>
+                              <span className="font-mono">{formatCurrency(precoSugestao.valor, moedaCodigo)}</span>
+                            </div>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                    {precoSugestaoLoading && (
+                      <p className="text-xs text-muted-foreground mt-1">Calculando preço sugerido...</p>
+                    )}
+                    {!precoSugestao &&
+                      !precoSugestaoLoading &&
+                      produtoIdWatch &&
+                      !editingContrato &&
+                      tipoPrecoWatch !== "A_FIXAR" && (
+                        <p className="text-xs text-amber-600 mt-1">
+                          Configure coeficiente/tabela no produto para sugestão de preço.
+                        </p>
+                      )}
+                  </div>
+                </div>
+
+                {/* Row 5: Datas de entrega (2 cols) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>Data Entrega Início</Label>
+                    <Input type="date" {...contratoForm.register("dataEntregaInicio")} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Data Entrega Fim</Label>
+                    <Input type="date" {...contratoForm.register("dataEntregaFim")} />
+                  </div>
+                </div>
+
+                {/* Row 6: Filiais logísticas (3 cols) with tooltips */}
+                <div className="rounded-md border p-4 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-semibold text-sm text-foreground">Filiais Logísticas</h4>
+                    <Tooltip>
+                      <TooltipTrigger type="button">
+                        <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                      </TooltipTrigger>
+                      <TooltipContent side="right">
+                        <p className="max-w-[280px] text-xs">
+                          Defina a origem, operação e destino para rastrear o fluxo físico do contrato.
+                        </p>
                       </TooltipContent>
                     </Tooltip>
-                  )}
-                  {precoSugestaoLoading && (
-                    <p className="text-xs text-muted-foreground mt-1">Calculando preço sugerido...</p>
-                  )}
-                  {!precoSugestao && !precoSugestaoLoading && produtoIdWatch && !editingContrato && tipoPrecoWatch !== "A_FIXAR" && (
-                    <p className="text-xs text-amber-600 mt-1">Configure coeficiente/tabela no produto para sugestão de preço.</p>
-                  )}
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <Label>
+                          Filial de Operação <span className="text-destructive">*</span>
+                        </Label>
+                        <Tooltip>
+                          <TooltipTrigger type="button">
+                            <Info className="h-3 w-3 text-muted-foreground" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="max-w-[240px] text-xs">
+                              Filial responsável pela execução do contrato (emite NF-e, gerencia logística) — sempre
+                              obrigatória.
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <Select
+                        value={contratoForm.watch("filialOperacaoId") || ""}
+                        onValueChange={(v) => contratoForm.setValue("filialOperacaoId", v)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {contratoFiliaisEmpresa
+                            .filter((f) => f.ativo)
+                            .map((f) => (
+                              <SelectItem key={f.id} value={f.id}>
+                                {f.nomeRazao}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <Label>
+                          Filial de Origem
+                          {tipoContratoWatch === "VENDA" && <span className="text-destructive ml-0.5">*</span>}
+                        </Label>
+                        <Tooltip>
+                          <TooltipTrigger type="button">
+                            <Info className="h-3 w-3 text-muted-foreground" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="max-w-[240px] text-xs">
+                              Local físico onde o produto está armazenado antes da entrega (armazém de saída) —
+                              obrigatória para VENDAS.
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <Select
+                        value={contratoForm.watch("filialOrigemId") || ""}
+                        onValueChange={(v) => contratoForm.setValue("filialOrigemId", v)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue
+                            placeholder={tipoContratoWatch === "COMPRA" ? "Não aplicável" : "Selecione..."}
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {contratoFiliaisEmpresa
+                            .filter((f) => f.ativo)
+                            .map((f) => (
+                              <SelectItem key={f.id} value={f.id}>
+                                {f.nomeRazao}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <Label>
+                          Filial de Destino
+                          {tipoContratoWatch === "COMPRA" && <span className="text-destructive ml-0.5">*</span>}
+                        </Label>
+                        <Tooltip>
+                          <TooltipTrigger type="button">
+                            <Info className="h-3 w-3 text-muted-foreground" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="max-w-[240px] text-xs">
+                              Local físico onde o produto será entregue (armazém de chegada) — obrigatória para COMPRAS.
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <Select
+                        value={contratoForm.watch("filialDestinoId") || ""}
+                        onValueChange={(v) => contratoForm.setValue("filialDestinoId", v)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={tipoContratoWatch === "VENDA" ? "Não aplicável" : "Selecione..."} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {contratoFiliaisEmpresa
+                            .filter((f) => f.ativo)
+                            .map((f) => (
+                              <SelectItem key={f.id} value={f.id}>
+                                {f.nomeRazao}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              {/* Row 5: Datas de entrega (2 cols) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Row 7: Observações */}
                 <div className="space-y-1.5">
-                  <Label>Data Entrega Início</Label>
-                  <Input type="date" {...contratoForm.register("dataEntregaInicio")} />
+                  <Label>Observações</Label>
+                  <Textarea rows={3} {...contratoForm.register("observacoes")} />
                 </div>
-                <div className="space-y-1.5">
-                  <Label>Data Entrega Fim</Label>
-                  <Input type="date" {...contratoForm.register("dataEntregaFim")} />
-                </div>
-              </div>
 
-              {/* Row 6: Filiais logísticas (3 cols) with tooltips */}
-              <div className="rounded-md border p-4 space-y-4">
-                <div className="flex items-center gap-2">
-                  <h4 className="font-semibold text-sm text-foreground">Filiais Logísticas</h4>
-                  <Tooltip>
-                    <TooltipTrigger type="button"><Info className="h-3.5 w-3.5 text-muted-foreground" /></TooltipTrigger>
-                    <TooltipContent side="right"><p className="max-w-[280px] text-xs">Defina a origem, operação e destino para rastrear o fluxo físico do contrato.</p></TooltipContent>
-                  </Tooltip>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-1.5">
-                      <Label>Filial de Operação <span className="text-destructive">*</span></Label>
-                      <Tooltip>
-                        <TooltipTrigger type="button"><Info className="h-3 w-3 text-muted-foreground" /></TooltipTrigger>
-                        <TooltipContent><p className="max-w-[240px] text-xs">Filial responsável pela execução do contrato (emite NF-e, gerencia logística) — sempre obrigatória.</p></TooltipContent>
-                      </Tooltip>
+                {/* Info panel for existing contract */}
+                {editingContrato && (
+                  <div className="rounded-md bg-muted p-3 text-sm space-y-1">
+                    <div>
+                      Quantidade Entregue:{" "}
+                      <strong>
+                        {editingContrato.quantidadeEntregue.toLocaleString("pt-BR")}{" "}
+                        {getCodigoUnidade(editingContrato.unidadeNegociacaoId)}
+                      </strong>
                     </div>
-                    <Select value={contratoForm.watch("filialOperacaoId") || ""} onValueChange={(v) => contratoForm.setValue("filialOperacaoId", v)}>
-                      <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                      <SelectContent>
-                        {contratoFiliaisEmpresa.filter((f) => f.ativo).map((f) => (
-                          <SelectItem key={f.id} value={f.id}>{f.nomeRazao}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-1.5">
-                      <Label>
-                        Filial de Origem
-                        {tipoContratoWatch === "VENDA" && <span className="text-destructive ml-0.5">*</span>}
-                      </Label>
-                      <Tooltip>
-                        <TooltipTrigger type="button"><Info className="h-3 w-3 text-muted-foreground" /></TooltipTrigger>
-                        <TooltipContent><p className="max-w-[240px] text-xs">Local físico onde o produto está armazenado antes da entrega (armazém de saída) — obrigatória para VENDAS.</p></TooltipContent>
-                      </Tooltip>
+                    <div>
+                      Saldo:{" "}
+                      <strong>
+                        {editingContrato.quantidadeSaldo.toLocaleString("pt-BR")}{" "}
+                        {getCodigoUnidade(editingContrato.unidadeNegociacaoId)}
+                      </strong>
                     </div>
-                    <Select
-                      value={contratoForm.watch("filialOrigemId") || ""}
-                      onValueChange={(v) => contratoForm.setValue("filialOrigemId", v)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder={tipoContratoWatch === "COMPRA" ? "Não aplicável" : "Selecione..."} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {contratoFiliaisEmpresa.filter((f) => f.ativo).map((f) => (
-                          <SelectItem key={f.id} value={f.id}>{f.nomeRazao}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    {editingContrato.filialOperacaoId && (
+                      <div>
+                        Filial Operação: <strong>{getNomeFilial(editingContrato.filialOperacaoId)}</strong>
+                      </div>
+                    )}
+                    {editingContrato.filialOrigemId && (
+                      <div>
+                        Filial Origem: <strong>{getNomeFilial(editingContrato.filialOrigemId)}</strong>
+                      </div>
+                    )}
+                    {editingContrato.filialDestinoId && (
+                      <div>
+                        Filial Destino: <strong>{getNomeFilial(editingContrato.filialDestinoId)}</strong>
+                      </div>
+                    )}
                   </div>
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-1.5">
-                      <Label>
-                        Filial de Destino
-                        {tipoContratoWatch === "COMPRA" && <span className="text-destructive ml-0.5">*</span>}
-                      </Label>
-                      <Tooltip>
-                        <TooltipTrigger type="button"><Info className="h-3 w-3 text-muted-foreground" /></TooltipTrigger>
-                        <TooltipContent><p className="max-w-[240px] text-xs">Local físico onde o produto será entregue (armazém de chegada) — obrigatória para COMPRAS.</p></TooltipContent>
-                      </Tooltip>
-                    </div>
-                    <Select
-                      value={contratoForm.watch("filialDestinoId") || ""}
-                      onValueChange={(v) => contratoForm.setValue("filialDestinoId", v)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder={tipoContratoWatch === "VENDA" ? "Não aplicável" : "Selecione..."} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {contratoFiliaisEmpresa.filter((f) => f.ativo).map((f) => (
-                          <SelectItem key={f.id} value={f.id}>{f.nomeRazao}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Row 7: Observações */}
-              <div className="space-y-1.5">
-                <Label>Observações</Label>
-                <Textarea rows={3} {...contratoForm.register("observacoes")} />
-              </div>
-
-              {/* Info panel for existing contract */}
-              {editingContrato && (
-                <div className="rounded-md bg-muted p-3 text-sm space-y-1">
-                  <div>Quantidade Entregue: <strong>{editingContrato.quantidadeEntregue.toLocaleString("pt-BR")} {getCodigoUnidade(editingContrato.unidadeNegociacaoId)}</strong></div>
-                  <div>Saldo: <strong>{editingContrato.quantidadeSaldo.toLocaleString("pt-BR")} {getCodigoUnidade(editingContrato.unidadeNegociacaoId)}</strong></div>
-                  {editingContrato.filialOperacaoId && <div>Filial Operação: <strong>{getNomeFilial(editingContrato.filialOperacaoId)}</strong></div>}
-                  {editingContrato.filialOrigemId && <div>Filial Origem: <strong>{getNomeFilial(editingContrato.filialOrigemId)}</strong></div>}
-                  {editingContrato.filialDestinoId && <div>Filial Destino: <strong>{getNomeFilial(editingContrato.filialDestinoId)}</strong></div>}
-                </div>
-              )}
-            </fieldset>
+                )}
+              </fieldset>
             </TooltipProvider>
           </TabsContent>
 
@@ -1304,11 +1562,16 @@ export default function ContratosPage() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                       <div>
                         <p className="text-muted-foreground">Total Entregue</p>
-                        <p className="text-lg font-bold">{editingContrato.quantidadeEntregue.toLocaleString("pt-BR")} {getCodigoUnidade(editingContrato.unidadeNegociacaoId)}</p>
+                        <p className="text-lg font-bold">
+                          {editingContrato.quantidadeEntregue.toLocaleString("pt-BR")}{" "}
+                          {getCodigoUnidade(editingContrato.unidadeNegociacaoId)}
+                        </p>
                       </div>
                       <div>
                         <p className="text-muted-foreground">Total Fixado</p>
-                        <p className="text-lg font-bold">{totalFixado.toLocaleString("pt-BR")} {getCodigoUnidade(editingContrato.unidadeNegociacaoId)}</p>
+                        <p className="text-lg font-bold">
+                          {totalFixado.toLocaleString("pt-BR")} {getCodigoUnidade(editingContrato.unidadeNegociacaoId)}
+                        </p>
                       </div>
                       <div>
                         <p className="text-muted-foreground">Saldo a Fixar</p>
@@ -1320,7 +1583,8 @@ export default function ContratosPage() {
                       <div>
                         <p className="text-muted-foreground">Preço Médio Atual</p>
                         <p className="text-lg font-bold">
-                          {getSimboloMoeda(editingContrato.moedaId)} {precoMedioFixado.toFixed(2)}/{getCodigoUnidade(editingContrato.unidadeNegociacaoId)}
+                          {getSimboloMoeda(editingContrato.moedaId)} {precoMedioFixado.toFixed(2)}/
+                          {getCodigoUnidade(editingContrato.unidadeNegociacaoId)}
                         </p>
                       </div>
                     </div>
@@ -1335,7 +1599,9 @@ export default function ContratosPage() {
 
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold text-foreground">Romaneios Vinculados</h3>
-                <p className="text-xs text-muted-foreground">Somente leitura — romaneios são criados no módulo Romaneios</p>
+                <p className="text-xs text-muted-foreground">
+                  Somente leitura — romaneios são criados no módulo Romaneios
+                </p>
               </div>
               <div className="overflow-auto">
                 <Table>
@@ -1368,11 +1634,17 @@ export default function ContratosPage() {
                           <TableCell>{format(new Date(r.criadoEm), "dd/MM/yyyy HH:mm")}</TableCell>
                           <TableCell className="text-right">{r.pesoBruto > 0 ? r.pesoBruto.toFixed(3) : "—"}</TableCell>
                           <TableCell className="text-right">{r.pesoTara > 0 ? r.pesoTara.toFixed(3) : "—"}</TableCell>
-                          <TableCell className="text-right font-medium">{r.pesoLiquido > 0 ? r.pesoLiquido.toFixed(3) : "—"}</TableCell>
+                          <TableCell className="text-right font-medium">
+                            {r.pesoLiquido > 0 ? r.pesoLiquido.toFixed(3) : "—"}
+                          </TableCell>
                           <TableCell>{r.motoristaNome || "—"}</TableCell>
                           <TableCell>{r.placaVeiculo || "—"}</TableCell>
                           <TableCell>
-                            <Badge variant={r.status === "FINALIZADO" ? "outline" : r.status === "ABERTO" ? "default" : "secondary"}>
+                            <Badge
+                              variant={
+                                r.status === "FINALIZADO" ? "outline" : r.status === "ABERTO" ? "default" : "secondary"
+                              }
+                            >
                               {r.status}
                             </Badge>
                           </TableCell>
@@ -1396,63 +1668,84 @@ export default function ContratosPage() {
           <TabsContent value="fixacao">
             <div className="space-y-4">
               {/* Painel resumo com progress bar */}
-              {editingContrato && (() => {
-                const entregue = editingContrato.quantidadeEntregue;
-                const fixadoPerc = entregue > 0 ? Math.min(100, (totalFixado / entregue) * 100) : 0;
-                const unCod = getCodigoUnidade(editingContrato.unidadeNegociacaoId);
-                const simbolo = getSimboloMoeda(editingContrato.moedaId);
-                const moedaCod = getCodigoMoeda(editingContrato.moedaId);
-                return (
-                  <Card className="border-2 border-amber-500/30 bg-amber-50/30 dark:bg-amber-950/10">
-                    <CardContent className="pt-4 space-y-4">
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                        <div>
-                          <p className="text-muted-foreground">Total Entregue</p>
-                          <p className="text-lg font-bold">{entregue.toLocaleString("pt-BR")} {unCod}</p>
+              {editingContrato &&
+                (() => {
+                  const entregue = editingContrato.quantidadeEntregue;
+                  const fixadoPerc = entregue > 0 ? Math.min(100, (totalFixado / entregue) * 100) : 0;
+                  const unCod = getCodigoUnidade(editingContrato.unidadeNegociacaoId);
+                  const simbolo = getSimboloMoeda(editingContrato.moedaId);
+                  const moedaCod = getCodigoMoeda(editingContrato.moedaId);
+                  return (
+                    <Card className="border-2 border-amber-500/30 bg-amber-50/30 dark:bg-amber-950/10">
+                      <CardContent className="pt-4 space-y-4">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                          <div>
+                            <p className="text-muted-foreground">Total Entregue</p>
+                            <p className="text-lg font-bold">
+                              {entregue.toLocaleString("pt-BR")} {unCod}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Total Fixado</p>
+                            <p className="text-lg font-bold">
+                              {totalFixado.toLocaleString("pt-BR")} {unCod}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Saldo a Fixar</p>
+                            <p className={`text-lg font-bold ${saldoAFixar > 0 ? "text-amber-600" : "text-primary"}`}>
+                              {saldoAFixar.toLocaleString("pt-BR")} {unCod}
+                              {saldoAFixar > 0 && <span className="ml-1">⚠️</span>}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Preço Médio</p>
+                            <p className="text-lg font-bold">
+                              {simbolo} {precoMedioFixado.toFixed(2)}/{unCod}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-muted-foreground">Total Fixado</p>
-                          <p className="text-lg font-bold">{totalFixado.toLocaleString("pt-BR")} {unCod}</p>
+                        {/* Progress Bar */}
+                        <div className="space-y-1.5">
+                          <div className="flex justify-between text-xs text-muted-foreground">
+                            <span>
+                              Fixado {fixadoPerc.toFixed(0)}% ({totalFixado.toLocaleString("pt-BR")}/
+                              {entregue.toLocaleString("pt-BR")} {unCod})
+                            </span>
+                            <span>
+                              Pendente {(100 - fixadoPerc).toFixed(0)}% ({saldoAFixar.toLocaleString("pt-BR")} {unCod})
+                            </span>
+                          </div>
+                          <Progress
+                            value={fixadoPerc}
+                            className={`h-3 ${fixadoPerc >= 100 ? "[&>div]:bg-primary" : fixadoPerc > 0 ? "[&>div]:bg-amber-500" : "[&>div]:bg-muted"}`}
+                          />
                         </div>
-                        <div>
-                          <p className="text-muted-foreground">Saldo a Fixar</p>
-                          <p className={`text-lg font-bold ${saldoAFixar > 0 ? "text-amber-600" : "text-primary"}`}>
-                            {saldoAFixar.toLocaleString("pt-BR")} {unCod}
-                            {saldoAFixar > 0 && <span className="ml-1">⚠️</span>}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Preço Médio</p>
-                          <p className="text-lg font-bold">{simbolo} {precoMedioFixado.toFixed(2)}/{unCod}</p>
-                        </div>
-                      </div>
-                      {/* Progress Bar */}
-                      <div className="space-y-1.5">
-                        <div className="flex justify-between text-xs text-muted-foreground">
-                          <span>Fixado {fixadoPerc.toFixed(0)}% ({totalFixado.toLocaleString("pt-BR")}/{entregue.toLocaleString("pt-BR")} {unCod})</span>
-                          <span>Pendente {(100 - fixadoPerc).toFixed(0)}% ({saldoAFixar.toLocaleString("pt-BR")} {unCod})</span>
-                        </div>
-                        <Progress
-                          value={fixadoPerc}
-                          className={`h-3 ${fixadoPerc >= 100 ? "[&>div]:bg-primary" : fixadoPerc > 0 ? "[&>div]:bg-amber-500" : "[&>div]:bg-muted"}`}
-                        />
-                      </div>
-                      {/* Provisões inline summary */}
-                      {precoMedioFixado > 0 && (
-                        <div className="text-xs text-muted-foreground border-t border-border pt-2">
-                          Provisões: <strong>{formatCurrency(precoMedioFixado * totalFixado, moedaCod)}</strong> (fixado)
-                          {saldoAFixar > 0 && <> | Saldo estimado: <strong>{formatCurrency(precoMedioFixado * saldoAFixar, moedaCod)}</strong> (pendente × preço médio)</>}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                );
-              })()}
+                        {/* Provisões inline summary */}
+                        {precoMedioFixado > 0 && (
+                          <div className="text-xs text-muted-foreground border-t border-border pt-2">
+                            Provisões: <strong>{formatCurrency(precoMedioFixado * totalFixado, moedaCod)}</strong>{" "}
+                            (fixado)
+                            {saldoAFixar > 0 && (
+                              <>
+                                {" "}
+                                | Saldo estimado:{" "}
+                                <strong>{formatCurrency(precoMedioFixado * saldoAFixar, moedaCod)}</strong> (pendente ×
+                                preço médio)
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
               {!viewOnly && saldoAFixar > 0 && (
                 <div className="flex justify-end">
                   <Button size="sm" onClick={openNewFixacao}>
-                    <Plus className="mr-2 h-4 w-4" />Nova Fixação
+                    <Plus className="mr-2 h-4 w-4" />
+                    Nova Fixação
                   </Button>
                 </div>
               )}
@@ -1480,17 +1773,30 @@ export default function ContratosPage() {
                       <TableRow>
                         <TableCell colSpan={viewOnly ? 5 : 6} className="text-center py-8 text-muted-foreground">
                           Nenhuma fixação registrada.
-                          {saldoAFixar > 0 && <><br /><span className="text-xs">Clique em "Nova Fixação" para definir preço.</span></>}
+                          {saldoAFixar > 0 && (
+                            <>
+                              <br />
+                              <span className="text-xs">Clique em "Nova Fixação" para definir preço.</span>
+                            </>
+                          )}
                         </TableCell>
                       </TableRow>
                     ) : (
                       fixacoes.map((f) => (
                         <TableRow key={f.id}>
                           <TableCell>{format(new Date(f.dataFixacao), "dd/MM/yyyy HH:mm")}</TableCell>
-                          <TableCell className="text-right">{f.quantidadeFixada.toLocaleString("pt-BR")} {getCodigoUnidade(f.unidadeFixacaoId)}</TableCell>
-                          <TableCell className="text-right">{getSimboloMoeda(f.moedaId)} {f.precoFixado.toFixed(2)}</TableCell>
-                          <TableCell className="text-right font-medium">{formatCurrency(f.quantidadeFixada * f.precoFixado, getCodigoMoeda(f.moedaId))}</TableCell>
-                          <TableCell className="text-muted-foreground text-xs max-w-[150px] truncate">{f.observacoes || "—"}</TableCell>
+                          <TableCell className="text-right">
+                            {f.quantidadeFixada.toLocaleString("pt-BR")} {getCodigoUnidade(f.unidadeFixacaoId)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {getSimboloMoeda(f.moedaId)} {f.precoFixado.toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            {formatCurrency(f.quantidadeFixada * f.precoFixado, getCodigoMoeda(f.moedaId))}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-xs max-w-[150px] truncate">
+                            {f.observacoes || "—"}
+                          </TableCell>
                           {!viewOnly && (
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-1">
@@ -1525,19 +1831,27 @@ export default function ContratosPage() {
                   <div className="rounded-md bg-card p-3 border">
                     <p className="text-muted-foreground">Valor Total</p>
                     <p className="text-lg font-bold text-foreground">
-                      {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")} {finContas.reduce((s, c) => s + c.valorTotal, 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")}{" "}
+                      {finContas
+                        .reduce((s, c) => s + c.valorTotal, 0)
+                        .toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                   </div>
                   <div className="rounded-md bg-card p-3 border">
                     <p className="text-muted-foreground">Total Pago</p>
                     <p className="text-lg font-bold text-primary">
-                      {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")} {totalBaixas.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")}{" "}
+                      {totalBaixas.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                   </div>
                   <div className="rounded-md bg-card p-3 border">
                     <p className="text-muted-foreground">Saldo Pendente</p>
                     <p className="text-lg font-bold text-destructive">
-                      {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")} {totalParcelasPendentes.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")}{" "}
+                      {totalParcelasPendentes.toLocaleString("pt-BR", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
                     </p>
                   </div>
                 </div>
@@ -1567,11 +1881,21 @@ export default function ContratosPage() {
                               <TableCell className="text-xs">{conta?.descricao ?? p.contaId}</TableCell>
                               <TableCell>{p.numeroParcela}</TableCell>
                               <TableCell>{format(new Date(p.dataVencimento), "dd/MM/yyyy")}</TableCell>
-                              <TableCell className="text-right">{p.valorParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
-                              <TableCell className="text-right">{p.valorPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
-                              <TableCell className="text-right">{p.saldoParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                              <TableCell className="text-right">
+                                {p.valorParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {p.valorPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {p.saldoParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                              </TableCell>
                               <TableCell>
-                                <Badge variant={p.status === "PAGO" ? "default" : p.status === "PARCIAL" ? "secondary" : "outline"}>
+                                <Badge
+                                  variant={
+                                    p.status === "PAGO" ? "default" : p.status === "PARCIAL" ? "secondary" : "outline"
+                                  }
+                                >
                                   {p.status}
                                 </Badge>
                               </TableCell>
@@ -1601,7 +1925,9 @@ export default function ContratosPage() {
                         {finBaixas.map((b) => (
                           <TableRow key={b.id}>
                             <TableCell>{format(new Date(b.dataPagamento), "dd/MM/yyyy HH:mm")}</TableCell>
-                            <TableCell className="text-right">{b.valorPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                            <TableCell className="text-right">
+                              {b.valorPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                            </TableCell>
                             <TableCell>{b.formaPagamento}</TableCell>
                             <TableCell className="text-xs text-muted-foreground">{b.observacoes || "—"}</TableCell>
                           </TableRow>
@@ -1623,204 +1949,212 @@ export default function ContratosPage() {
           {/* ABA 5 — Condições e Descontos (Cadastro Oficial) */}
           <TabsContent value="condicoes">
             <TooltipProvider delayDuration={200}>
-            <div className="space-y-6">
-              {/* Official Descontos from the registry */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold text-foreground">Descontos Oficiais</h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Descontos cadastrados no módulo Condições e Descontos para a empresa {mockEmpresas.find(e => e.id === (empresaIdWatch || empresaId))?.nome ?? "selecionada"}
-                    </p>
+              <div className="space-y-6">
+                {/* Official Descontos from the registry */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-foreground">Descontos Oficiais</h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Descontos cadastrados no módulo Condições e Descontos para a empresa{" "}
+                        {mockEmpresas.find((e) => e.id === (empresaIdWatch || empresaId))?.nome ?? "selecionada"}
+                      </p>
+                    </div>
+                    <div className="flex gap-2"></div>
                   </div>
-                  <div className="flex gap-2">
-                  </div>
-                </div>
 
-                {/* Official descontos from empresa registry */}
-                {officialDescontosContrato.length > 0 && (
-                  <div className="overflow-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Nome</TableHead>
-                          <TableHead>Descrição</TableHead>
-                          <TableHead>Tipo</TableHead>
-                          <TableHead className="text-right">Valor Padrão</TableHead>
-                          <TableHead>Obrigatório</TableHead>
-                          <TableHead>Status</TableHead>
-                          {!viewOnly && <TableHead className="text-right">Ação</TableHead>}
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {officialDescontosContrato.map((cfg) => {
-                          const dt = cfg.descontoTipo;
-                          const isApplied = condicoes.some((c) =>
-                            c.descricao.toUpperCase().includes(dt.nome.toUpperCase())
-                          );
-                          return (
-                            <TableRow key={cfg.id} className={isApplied ? "bg-primary/5" : ""}>
-                              <TableCell className="font-medium">{dt.nome}</TableCell>
-                              <TableCell className="text-muted-foreground text-xs max-w-[200px]">
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <span className="line-clamp-2 cursor-help">{dt.descricao}</span>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="bottom" className="max-w-[400px]">
-                                    <p className="text-xs whitespace-pre-wrap">{dt.descricao}</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant="outline">
-                                  {dt.tipo === "percentual" ? "%" : "R$/ton"}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-right">
-                                {dt.tipo === "percentual"
-                                  ? `${cfg.valorPadrao.toFixed(2)}%`
-                                  : `R$ ${cfg.valorPadrao.toFixed(2)}`}
-                              </TableCell>
-                              <TableCell>
-                                {dt.obrigatorio ? (
-                                  <Badge variant="default" className="gap-1">
-                                    <Lock className="h-3 w-3" /> Sim
-                                  </Badge>
-                                ) : (
-                                  <Badge variant="secondary">Não</Badge>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                {isApplied ? (
-                                  <Badge variant="default">Aplicado</Badge>
-                                ) : (
-                                  <Badge variant="outline">Disponível</Badge>
-                                )}
-                              </TableCell>
-                              {!viewOnly && (
-                                <TableCell className="text-right">
-                                  {!isApplied ? (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={async () => {
-                                        if (!editingContrato) return;
-                                        await contratoCondicaoService.salvar(
-                                          {
-                                            contratoId: editingContrato.id,
-                                            descricao: dt.nome,
-                                            tipo: dt.tipo === "percentual" ? "PERCENTUAL" : "VALOR_FIXO",
-                                            valor: cfg.valorPadrao,
-                                            ordemCalculo: dt.ordemAplicacao,
-                                            automatico: dt.obrigatorio,
-                                          },
-                                          { grupoId, empresaId: empresaIdWatch || empresaId, filialId: editingContrato.filialId }
-                                        );
-                                        const conds = await contratoCondicaoService.listarPorContrato(editingContrato.id);
-                                        setCondicoes(conds);
-                                        toast({ title: "Sucesso", description: `${dt.nome} aplicado ao contrato.` });
-                                      }}
-                                    >
-                                      <Plus className="h-4 w-4 mr-1" />Aplicar
-                                    </Button>
-                                  ) : (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="text-destructive"
-                                      onClick={async () => {
-                                        if (!editingContrato) return;
-                                        const cond = condicoes.find((c) =>
-                                          c.descricao.toUpperCase().includes(dt.nome.toUpperCase())
-                                        );
-                                        if (cond) {
-                                          await contratoCondicaoService.excluir(cond.id);
-                                          const conds = await contratoCondicaoService.listarPorContrato(editingContrato.id);
-                                          setCondicoes(conds);
-                                          toast({ title: "Sucesso", description: `${dt.nome} removido do contrato.` });
-                                        }
-                                      }}
-                                    >
-                                      <Trash2 className="h-4 w-4 mr-1" />Remover
-                                    </Button>
-                                  )}
-                                </TableCell>
-                              )}
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-
-                {officialDescontosContrato.length === 0 && (
-                  <div className="text-center py-4 text-sm text-muted-foreground border rounded-md">
-                    Nenhum desconto aplicável a contratos cadastrado para esta empresa. Configure no módulo Condições e Descontos.
-                  </div>
-                )}
-
-                {/* Applied conditions (includes both official and manual) */}
-                {condicoes.length > 0 && (
-                  <div className="space-y-3 pt-4 border-t">
-                    <h4 className="font-semibold text-sm text-foreground">Condições Aplicadas ao Contrato</h4>
+                  {/* Official descontos from empresa registry */}
+                  {officialDescontosContrato.length > 0 && (
                     <div className="overflow-auto">
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Ordem</TableHead>
+                            <TableHead>Nome</TableHead>
                             <TableHead>Descrição</TableHead>
                             <TableHead>Tipo</TableHead>
-                            <TableHead className="text-right">Valor</TableHead>
-                            <TableHead>Automático</TableHead>
-                            {!viewOnly && <TableHead className="text-right">Ações</TableHead>}
+                            <TableHead className="text-right">Valor Padrão</TableHead>
+                            <TableHead>Obrigatório</TableHead>
+                            <TableHead>Status</TableHead>
+                            {!viewOnly && <TableHead className="text-right">Ação</TableHead>}
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {condicoes.map((c) => (
-                            <TableRow key={c.id}>
-                              <TableCell>{c.ordemCalculo}</TableCell>
-                              <TableCell className="font-medium">{c.descricao}</TableCell>
-                              <TableCell>
-                                <Badge variant="outline">
-                                  {c.tipo === "PERCENTUAL" ? "%" : "R$"}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-right">
-                                {c.tipo === "PERCENTUAL"
-                                  ? `${c.valor.toFixed(2)}%`
-                                  : `R$ ${c.valor.toFixed(2)}`}
-                              </TableCell>
-                              <TableCell>
-                                {c.automatico ? (
-                                  <Badge variant="default" className="gap-1">
-                                    <Lock className="h-3 w-3" /> Sim
-                                  </Badge>
-                                ) : (
-                                  <Badge variant="secondary">Não</Badge>
-                                )}
-                              </TableCell>
-                              {!viewOnly && (
-                                <TableCell className="text-right">
-                                  <div className="flex justify-end gap-1">
-                                    <Button variant="ghost" size="icon" onClick={() => openEditCondicao(c)}>
-                                      <Pencil className="h-4 w-4" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" onClick={() => onDeleteCondicao(c.id)}>
-                                      <Trash2 className="h-4 w-4 text-destructive" />
-                                    </Button>
-                                  </div>
+                          {officialDescontosContrato.map((cfg) => {
+                            const dt = cfg.descontoTipo;
+                            const isApplied = condicoes.some((c) =>
+                              c.descricao.toUpperCase().includes(dt.nome.toUpperCase()),
+                            );
+                            return (
+                              <TableRow key={cfg.id} className={isApplied ? "bg-primary/5" : ""}>
+                                <TableCell className="font-medium">{dt.nome}</TableCell>
+                                <TableCell className="text-muted-foreground text-xs max-w-[200px]">
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="line-clamp-2 cursor-help">{dt.descricao}</span>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="bottom" className="max-w-[400px]">
+                                      <p className="text-xs whitespace-pre-wrap">{dt.descricao}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
                                 </TableCell>
-                              )}
-                            </TableRow>
-                          ))}
+                                <TableCell>
+                                  <Badge variant="outline">{dt.tipo === "percentual" ? "%" : "R$/ton"}</Badge>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {dt.tipo === "percentual"
+                                    ? `${cfg.valorPadrao.toFixed(2)}%`
+                                    : `R$ ${cfg.valorPadrao.toFixed(2)}`}
+                                </TableCell>
+                                <TableCell>
+                                  {dt.obrigatorio ? (
+                                    <Badge variant="default" className="gap-1">
+                                      <Lock className="h-3 w-3" /> Sim
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="secondary">Não</Badge>
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  {isApplied ? (
+                                    <Badge variant="default">Aplicado</Badge>
+                                  ) : (
+                                    <Badge variant="outline">Disponível</Badge>
+                                  )}
+                                </TableCell>
+                                {!viewOnly && (
+                                  <TableCell className="text-right">
+                                    {!isApplied ? (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={async () => {
+                                          if (!editingContrato) return;
+                                          await contratoCondicaoService.salvar(
+                                            {
+                                              contratoId: editingContrato.id,
+                                              descricao: dt.nome,
+                                              tipo: dt.tipo === "percentual" ? "PERCENTUAL" : "VALOR_FIXO",
+                                              valor: cfg.valorPadrao,
+                                              ordemCalculo: dt.ordemAplicacao,
+                                              automatico: dt.obrigatorio,
+                                            },
+                                            {
+                                              grupoId,
+                                              empresaId: empresaIdWatch || empresaId,
+                                              filialId: editingContrato.filialId,
+                                            },
+                                          );
+                                          const conds = await contratoCondicaoService.listarPorContrato(
+                                            editingContrato.id,
+                                          );
+                                          setCondicoes(conds);
+                                          toast({ title: "Sucesso", description: `${dt.nome} aplicado ao contrato.` });
+                                        }}
+                                      >
+                                        <Plus className="h-4 w-4 mr-1" />
+                                        Aplicar
+                                      </Button>
+                                    ) : (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-destructive"
+                                        onClick={async () => {
+                                          if (!editingContrato) return;
+                                          const cond = condicoes.find((c) =>
+                                            c.descricao.toUpperCase().includes(dt.nome.toUpperCase()),
+                                          );
+                                          if (cond) {
+                                            await contratoCondicaoService.excluir(cond.id);
+                                            const conds = await contratoCondicaoService.listarPorContrato(
+                                              editingContrato.id,
+                                            );
+                                            setCondicoes(conds);
+                                            toast({
+                                              title: "Sucesso",
+                                              description: `${dt.nome} removido do contrato.`,
+                                            });
+                                          }
+                                        }}
+                                      >
+                                        <Trash2 className="h-4 w-4 mr-1" />
+                                        Remover
+                                      </Button>
+                                    )}
+                                  </TableCell>
+                                )}
+                              </TableRow>
+                            );
+                          })}
                         </TableBody>
                       </Table>
                     </div>
-                  </div>
-                )}
+                  )}
+
+                  {officialDescontosContrato.length === 0 && (
+                    <div className="text-center py-4 text-sm text-muted-foreground border rounded-md">
+                      Nenhum desconto aplicável a contratos cadastrado para esta empresa. Configure no módulo Condições
+                      e Descontos.
+                    </div>
+                  )}
+
+                  {/* Applied conditions (includes both official and manual) */}
+                  {condicoes.length > 0 && (
+                    <div className="space-y-3 pt-4 border-t">
+                      <h4 className="font-semibold text-sm text-foreground">Condições Aplicadas ao Contrato</h4>
+                      <div className="overflow-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Ordem</TableHead>
+                              <TableHead>Descrição</TableHead>
+                              <TableHead>Tipo</TableHead>
+                              <TableHead className="text-right">Valor</TableHead>
+                              <TableHead>Automático</TableHead>
+                              {!viewOnly && <TableHead className="text-right">Ações</TableHead>}
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {condicoes.map((c) => (
+                              <TableRow key={c.id}>
+                                <TableCell>{c.ordemCalculo}</TableCell>
+                                <TableCell className="font-medium">{c.descricao}</TableCell>
+                                <TableCell>
+                                  <Badge variant="outline">{c.tipo === "PERCENTUAL" ? "%" : "R$"}</Badge>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {c.tipo === "PERCENTUAL" ? `${c.valor.toFixed(2)}%` : `R$ ${c.valor.toFixed(2)}`}
+                                </TableCell>
+                                <TableCell>
+                                  {c.automatico ? (
+                                    <Badge variant="default" className="gap-1">
+                                      <Lock className="h-3 w-3" /> Sim
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="secondary">Não</Badge>
+                                  )}
+                                </TableCell>
+                                {!viewOnly && (
+                                  <TableCell className="text-right">
+                                    <div className="flex justify-end gap-1">
+                                      <Button variant="ghost" size="icon" onClick={() => openEditCondicao(c)}>
+                                        <Pencil className="h-4 w-4" />
+                                      </Button>
+                                      <Button variant="ghost" size="icon" onClick={() => onDeleteCondicao(c.id)}>
+                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                )}
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
             </TooltipProvider>
           </TabsContent>
 
@@ -1836,8 +2170,11 @@ export default function ContratosPage() {
                       <div>
                         <p className="font-semibold text-destructive">Liquidação Bloqueada</p>
                         <p className="text-sm text-muted-foreground mt-1">
-                          Defina fixações para todo o volume entregue antes de liquidar.
-                          Saldo a fixar: <strong>{saldoAFixar.toLocaleString("pt-BR")} {getCodigoUnidade(editingContrato.unidadeNegociacaoId)}</strong>
+                          Defina fixações para todo o volume entregue antes de liquidar. Saldo a fixar:{" "}
+                          <strong>
+                            {saldoAFixar.toLocaleString("pt-BR")}{" "}
+                            {getCodigoUnidade(editingContrato.unidadeNegociacaoId)}
+                          </strong>
                         </p>
                         <Button variant="outline" size="sm" className="mt-2" onClick={() => setActiveTab("fixacao")}>
                           Gerenciar Fixações →
@@ -1857,7 +2194,10 @@ export default function ContratosPage() {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="rounded-md bg-card p-4 border space-y-1">
                       <p className="text-sm text-muted-foreground">Qtd. Contratada</p>
-                      <p className="text-lg font-bold">{liquidacao.quantidadeContratada.toLocaleString("pt-BR")} {getCodigoUnidade(editingContrato.unidadeNegociacaoId)}</p>
+                      <p className="text-lg font-bold">
+                        {liquidacao.quantidadeContratada.toLocaleString("pt-BR")}{" "}
+                        {getCodigoUnidade(editingContrato.unidadeNegociacaoId)}
+                      </p>
                     </div>
                     <div className="rounded-md bg-card p-4 border space-y-1">
                       <p className="text-sm text-muted-foreground">Qtd. Entregue</p>
@@ -1879,19 +2219,31 @@ export default function ContratosPage() {
                     <div className="rounded-md bg-card p-4 border space-y-1">
                       <p className="text-sm text-muted-foreground">Valor Bruto</p>
                       <p className="text-lg font-bold">
-                        {getSimboloMoeda(editingContrato.moedaId)} {liquidacao.valorBruto.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {getSimboloMoeda(editingContrato.moedaId)}{" "}
+                        {liquidacao.valorBruto.toLocaleString("pt-BR", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
                       </p>
                     </div>
                     <div className="rounded-md bg-card p-4 border space-y-1">
                       <p className="text-sm text-muted-foreground">Descontos</p>
                       <p className="text-lg font-bold text-destructive">
-                        - {getSimboloMoeda(editingContrato.moedaId)} {liquidacao.valorDescontos.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        - {getSimboloMoeda(editingContrato.moedaId)}{" "}
+                        {liquidacao.valorDescontos.toLocaleString("pt-BR", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
                       </p>
                     </div>
                     <div className="rounded-md bg-card p-4 border space-y-1">
                       <p className="text-sm text-muted-foreground">Valor Líquido</p>
                       <p className="text-lg font-bold text-primary">
-                        {getSimboloMoeda(editingContrato.moedaId)} {liquidacao.valorLiquido.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {getSimboloMoeda(editingContrato.moedaId)}{" "}
+                        {liquidacao.valorLiquido.toLocaleString("pt-BR", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
                       </p>
                     </div>
                   </div>
@@ -1899,9 +2251,11 @@ export default function ContratosPage() {
               ) : (
                 <div className="space-y-6">
                   {/* Romaneios usados na liquidação */}
-                  {romaneiosContrato.filter(r => r.status === "FINALIZADO").length > 0 && (
+                  {romaneiosContrato.filter((r) => r.status === "FINALIZADO").length > 0 && (
                     <div className="space-y-3">
-                      <h4 className="font-semibold text-foreground text-sm">Volume Físico Entregue (Romaneios Finalizados)</h4>
+                      <h4 className="font-semibold text-foreground text-sm">
+                        Volume Físico Entregue (Romaneios Finalizados)
+                      </h4>
                       <div className="overflow-auto">
                         <Table>
                           <TableHeader>
@@ -1913,18 +2267,25 @@ export default function ContratosPage() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {romaneiosContrato.filter(r => r.status === "FINALIZADO").map((r) => (
-                              <TableRow key={r.id}>
-                                <TableCell className="font-mono text-xs">{r.id.substring(0, 8)}</TableCell>
-                                <TableCell>{format(new Date(r.criadoEm), "dd/MM/yyyy")}</TableCell>
-                                <TableCell className="text-right font-medium">{r.pesoLiquido.toFixed(3)}</TableCell>
-                                <TableCell><Badge variant="outline">FINALIZADO</Badge></TableCell>
-                              </TableRow>
-                            ))}
+                            {romaneiosContrato
+                              .filter((r) => r.status === "FINALIZADO")
+                              .map((r) => (
+                                <TableRow key={r.id}>
+                                  <TableCell className="font-mono text-xs">{r.id.substring(0, 8)}</TableCell>
+                                  <TableCell>{format(new Date(r.criadoEm), "dd/MM/yyyy")}</TableCell>
+                                  <TableCell className="text-right font-medium">{r.pesoLiquido.toFixed(3)}</TableCell>
+                                  <TableCell>
+                                    <Badge variant="outline">FINALIZADO</Badge>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
                             <TableRow className="font-bold bg-muted/50">
                               <TableCell colSpan={2}>TOTAL ENTREGUE</TableCell>
                               <TableCell className="text-right">
-                                {romaneiosContrato.filter(r => r.status === "FINALIZADO").reduce((s, r) => s + r.pesoLiquido, 0).toFixed(3)}
+                                {romaneiosContrato
+                                  .filter((r) => r.status === "FINALIZADO")
+                                  .reduce((s, r) => s + r.pesoLiquido, 0)
+                                  .toFixed(3)}
                               </TableCell>
                               <TableCell />
                             </TableRow>
@@ -1943,7 +2304,10 @@ export default function ContratosPage() {
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="rounded-md bg-card p-4 border space-y-1">
                           <p className="text-sm text-muted-foreground">Qtd. Contratada</p>
-                          <p className="text-lg font-bold">{liquidacao.quantidadeContratada.toLocaleString("pt-BR")} {editingContrato ? getCodigoUnidade(editingContrato.unidadeNegociacaoId) : ""}</p>
+                          <p className="text-lg font-bold">
+                            {liquidacao.quantidadeContratada.toLocaleString("pt-BR")}{" "}
+                            {editingContrato ? getCodigoUnidade(editingContrato.unidadeNegociacaoId) : ""}
+                          </p>
                         </div>
                         <div className="rounded-md bg-card p-4 border space-y-1">
                           <p className="text-sm text-muted-foreground">Qtd. Entregue</p>
@@ -1956,7 +2320,8 @@ export default function ContratosPage() {
                         <div className="rounded-md bg-card p-4 border space-y-1">
                           <p className="text-sm text-muted-foreground">Preço Unitário</p>
                           <p className="text-lg font-bold">
-                            {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")} {liquidacao.precoUnitario.toFixed(2)}
+                            {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")}{" "}
+                            {liquidacao.precoUnitario.toFixed(2)}
                             {editingContrato?.tipoPreco === "A_FIXAR" && (
                               <span className="text-xs text-muted-foreground ml-1">(média ponderada)</span>
                             )}
@@ -1965,19 +2330,31 @@ export default function ContratosPage() {
                         <div className="rounded-md bg-card p-4 border space-y-1">
                           <p className="text-sm text-muted-foreground">Valor Bruto</p>
                           <p className="text-lg font-bold">
-                            {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")} {liquidacao.valorBruto.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")}{" "}
+                            {liquidacao.valorBruto.toLocaleString("pt-BR", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
                           </p>
                         </div>
                         <div className="rounded-md bg-card p-4 border space-y-1">
                           <p className="text-sm text-muted-foreground">Descontos</p>
                           <p className="text-lg font-bold text-destructive">
-                            - {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")} {liquidacao.valorDescontos.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            - {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")}{" "}
+                            {liquidacao.valorDescontos.toLocaleString("pt-BR", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
                           </p>
                         </div>
                         <div className="rounded-md bg-card p-4 border space-y-1">
                           <p className="text-sm text-muted-foreground">Valor Líquido</p>
                           <p className="text-lg font-bold text-primary">
-                            {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")} {liquidacao.valorLiquido.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")}{" "}
+                            {liquidacao.valorLiquido.toLocaleString("pt-BR", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
                           </p>
                         </div>
                       </div>
@@ -1999,14 +2376,20 @@ export default function ContratosPage() {
                                 {fixacoes.map((f) => (
                                   <TableRow key={f.id}>
                                     <TableCell>{format(new Date(f.dataFixacao), "dd/MM/yyyy")}</TableCell>
-                                    <TableCell className="text-right">{f.quantidadeFixada.toLocaleString("pt-BR")}</TableCell>
-                                    <TableCell className="text-right">{getSimboloMoeda(f.moedaId)} {f.precoFixado.toFixed(2)}</TableCell>
+                                    <TableCell className="text-right">
+                                      {f.quantidadeFixada.toLocaleString("pt-BR")}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      {getSimboloMoeda(f.moedaId)} {f.precoFixado.toFixed(2)}
+                                    </TableCell>
                                   </TableRow>
                                 ))}
                                 <TableRow className="font-bold bg-muted/50">
                                   <TableCell>PREÇO MÉDIO PONDERADO</TableCell>
                                   <TableCell className="text-right">{totalFixado.toLocaleString("pt-BR")}</TableCell>
-                                  <TableCell className="text-right">{getSimboloMoeda(editingContrato.moedaId)} {precoMedioFixado.toFixed(2)}</TableCell>
+                                  <TableCell className="text-right">
+                                    {getSimboloMoeda(editingContrato.moedaId)} {precoMedioFixado.toFixed(2)}
+                                  </TableCell>
                                 </TableRow>
                               </TableBody>
                             </Table>
@@ -2019,7 +2402,9 @@ export default function ContratosPage() {
                         <div className="space-y-2">
                           <Label className="text-sm">Tratamento de Títulos Financeiros</Label>
                           <Select value={opcaoTitulos} onValueChange={(v) => setOpcaoTitulos(v as any)}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="ATUALIZAR">Atualizar parcelas pendentes</SelectItem>
                               <SelectItem value="COMPLEMENTAR">Criar título complementar</SelectItem>
@@ -2030,7 +2415,8 @@ export default function ContratosPage() {
 
                       <div className="flex gap-2 pt-2">
                         <Button onClick={() => setConfirmDialogOpen(true)} disabled={liquidacaoLoading}>
-                          <FileCheck className="mr-2 h-4 w-4" />Confirmar e Efetivar
+                          <FileCheck className="mr-2 h-4 w-4" />
+                          Confirmar e Efetivar
                         </Button>
                         <Button variant="outline" onClick={onGerarPrevia} disabled={liquidacaoLoading}>
                           Recalcular Simulação
@@ -2043,11 +2429,9 @@ export default function ContratosPage() {
                   ) : (
                     <div className="flex flex-col items-center gap-4 py-6">
                       <p className="text-sm text-muted-foreground">Nenhuma liquidação gerada para este contrato.</p>
-                      <Button
-                        onClick={onGerarPrevia}
-                        disabled={liquidacaoLoading || !canLiquidate}
-                      >
-                        <FileCheck className="mr-2 h-4 w-4" />Gerar Simulação de Liquidação
+                      <Button onClick={onGerarPrevia} disabled={liquidacaoLoading || !canLiquidate}>
+                        <FileCheck className="mr-2 h-4 w-4" />
+                        Gerar Simulação de Liquidação
                       </Button>
                       {editingContrato?.tipoPreco === "A_FIXAR" && saldoAFixar > 0 && (
                         <p className="text-xs text-destructive">Fixe todo o volume entregue antes de liquidar.</p>
@@ -2084,16 +2468,27 @@ export default function ContratosPage() {
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label>Data <span className="text-destructive">*</span></Label>
+              <Label>
+                Data <span className="text-destructive">*</span>
+              </Label>
               <Input type="datetime-local" {...fixacaoForm.register("dataFixacao")} />
             </div>
             <div className="space-y-1.5">
-              <Label>Unidade <span className="text-destructive">*</span></Label>
-              <Select value={fixacaoForm.watch("unidadeFixacaoId")} onValueChange={(v) => fixacaoForm.setValue("unidadeFixacaoId", v)}>
-                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+              <Label>
+                Unidade <span className="text-destructive">*</span>
+              </Label>
+              <Select
+                value={fixacaoForm.watch("unidadeFixacaoId")}
+                onValueChange={(v) => fixacaoForm.setValue("unidadeFixacaoId", v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
                 <SelectContent>
                   {unidadesAtivas.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>{u.codigo} — {u.descricao}</SelectItem>
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.codigo} — {u.descricao}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -2101,12 +2496,18 @@ export default function ContratosPage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-1.5">
-              <Label>Volume a Fixar <span className="text-destructive">*</span></Label>
+              <Label>
+                Volume a Fixar <span className="text-destructive">*</span>
+              </Label>
               <Input type="number" step="0.000001" {...fixacaoForm.register("quantidadeFixada")} />
               {(() => {
                 const vol = fixacaoForm.watch("quantidadeFixada") || 0;
                 if (vol > saldoAFixar * 1.05) {
-                  return <p className="text-xs text-destructive">Volume excede saldo disponível (máx {(saldoAFixar * 1.05).toFixed(2)})</p>;
+                  return (
+                    <p className="text-xs text-destructive">
+                      Volume excede saldo disponível (máx {(saldoAFixar * 1.05).toFixed(2)})
+                    </p>
+                  );
                 }
                 if (vol > saldoAFixar) {
                   return <p className="text-xs text-amber-600">Over 5% tolerância agro — confirme manual</p>;
@@ -2115,7 +2516,9 @@ export default function ContratosPage() {
               })()}
             </div>
             <div className="space-y-1.5">
-              <Label>Preço Unitário <span className="text-destructive">*</span></Label>
+              <Label>
+                Preço Unitário <span className="text-destructive">*</span>
+              </Label>
               <Input type="number" step="0.01" {...fixacaoForm.register("precoFixado")} />
               {precoSugestao && (
                 <p className="text-xs text-muted-foreground">
@@ -2126,11 +2529,17 @@ export default function ContratosPage() {
             <div className="space-y-1.5">
               <Label>Moeda</Label>
               <Select value={fixacaoForm.watch("moedaId")} onValueChange={(v) => fixacaoForm.setValue("moedaId", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
-                  {moedas.filter((m) => m.ativo).map((m) => (
-                    <SelectItem key={m.id} value={m.id}>{m.codigo}</SelectItem>
-                  ))}
+                  {moedas
+                    .filter((m) => m.ativo)
+                    .map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.codigo}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
@@ -2142,14 +2551,19 @@ export default function ContratosPage() {
             const fixMoedaId = fixacaoForm.watch("moedaId");
             const fixMoedaCod = mockMoedas.find((m) => m.id === fixMoedaId)?.codigo ?? "BRL";
             const total = vol * preco;
-            const custoBase = precoSugestao?.breakdown?.find(b => b.tipo.includes("Custo") || b.tipo.includes("Pago"))?.valor ?? (precoSugestao?.valor ?? 0);
-            const margem = custoBase > 0 ? ((preco - custoBase) / custoBase * 100) : 0;
+            const custoBase =
+              precoSugestao?.breakdown?.find((b) => b.tipo.includes("Custo") || b.tipo.includes("Pago"))?.valor ??
+              precoSugestao?.valor ??
+              0;
+            const margem = custoBase > 0 ? ((preco - custoBase) / custoBase) * 100 : 0;
             if (vol > 0 && preco > 0) {
               return (
                 <div className="rounded-md border bg-muted/50 p-3 text-sm space-y-1">
                   <p className="font-semibold text-xs text-muted-foreground">Preview</p>
                   <div className="flex justify-between">
-                    <span>{vol.toLocaleString("pt-BR")} × {formatCurrency(preco, fixMoedaCod)}</span>
+                    <span>
+                      {vol.toLocaleString("pt-BR")} × {formatCurrency(preco, fixMoedaCod)}
+                    </span>
                     <strong>{formatCurrency(total, fixMoedaCod)}</strong>
                   </div>
                   {custoBase > 0 && (
@@ -2164,8 +2578,14 @@ export default function ContratosPage() {
             return null;
           })()}
           <div className="space-y-1.5">
-            <Label>Observações (motivo da fixação) <span className="text-destructive">*</span></Label>
-            <Textarea rows={2} {...fixacaoForm.register("observacoes")} placeholder="Ex: Fixação com base no mercado B3 do dia..." />
+            <Label>
+              Observações (motivo da fixação) <span className="text-destructive">*</span>
+            </Label>
+            <Textarea
+              rows={2}
+              {...fixacaoForm.register("observacoes")}
+              placeholder="Ex: Fixação com base no mercado B3 do dia..."
+            />
           </div>
         </div>
       </CrudModal>
@@ -2181,7 +2601,9 @@ export default function ContratosPage() {
       >
         <div className="space-y-4">
           <div className="space-y-1.5">
-            <Label>Descrição <span className="text-destructive">*</span></Label>
+            <Label>
+              Descrição <span className="text-destructive">*</span>
+            </Label>
             <Input
               value={condDescricao}
               onChange={(e) => setCondDescricao(e.target.value)}
@@ -2192,9 +2614,17 @@ export default function ContratosPage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-1.5">
-              <Label>Tipo <span className="text-destructive">*</span></Label>
-              <Select value={condTipo} onValueChange={(v) => setCondTipo(v as TipoCondicaoDesconto)} disabled={editingCondicao?.automatico}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Label>
+                Tipo <span className="text-destructive">*</span>
+              </Label>
+              <Select
+                value={condTipo}
+                onValueChange={(v) => setCondTipo(v as TipoCondicaoDesconto)}
+                disabled={editingCondicao?.automatico}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="PERCENTUAL">Percentual (%)</SelectItem>
                   <SelectItem value="VALOR_FIXO">Valor Fixo (R$)</SelectItem>
@@ -2202,7 +2632,9 @@ export default function ContratosPage() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>Valor <span className="text-destructive">*</span></Label>
+              <Label>
+                Valor <span className="text-destructive">*</span>
+              </Label>
               <Input
                 type="number"
                 step="0.000001"
@@ -2241,7 +2673,10 @@ export default function ContratosPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={onDeleteContrato} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={onDeleteContrato}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -2254,16 +2689,13 @@ export default function ContratosPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar e Efetivar Liquidação</AlertDialogTitle>
             <AlertDialogDescription>
-              Ao confirmar, o contrato será encerrado (LIQUIDADO) e os títulos financeiros serão atualizados.
-              Estoque NÃO será alterado (já foi movimentado pelos romaneios).
-              Esta ação não pode ser desfeita facilmente.
+              Ao confirmar, o contrato será encerrado (LIQUIDADO) e os títulos financeiros serão atualizados. Estoque
+              NÃO será alterado (já foi movimentado pelos romaneios). Esta ação não pode ser desfeita facilmente.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={onConfirmarLiquidacao}>
-              Confirmar e Efetivar
-            </AlertDialogAction>
+            <AlertDialogAction onClick={onConfirmarLiquidacao}>Confirmar e Efetivar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
