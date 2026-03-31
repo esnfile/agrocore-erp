@@ -2893,14 +2893,19 @@ export const romaneioService = {
         return existing;
       }
     }
-    // Determinar unidadeRomaneioId a partir do produto
     const produto = mockProdutos.find((p) => p.id === data.produtoId);
     const unidadeRomaneioId = data.unidadeRomaneioId || produto?.unidadeBaseId || "um1";
+    const origem = data.origem || "AVULSO";
+    const tipoRomaneio = data.tipoRomaneio || "ENTRADA";
 
-    const status: StatusRomaneio = data.contratoId ? "ABERTO" : "AGUARDANDO_CONTRATO";
     const novo: Romaneio = {
       id: `rom${Date.now()}`, grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      origem,
+      tipoRomaneio,
       contratoId: data.contratoId || null,
+      safraId: data.safraId || null,
+      cultivoId: data.cultivoId || null,
+      pessoaId: data.pessoaId || null,
       produtoId: data.produtoId || "",
       motoristaId: data.motoristaId || null,
       motoristaNome: data.motoristaNome || "",
@@ -2909,8 +2914,10 @@ export const romaneioService = {
       placaVeiculo: data.placaVeiculo || "",
       pontoEstoqueId: data.pontoEstoqueId || null,
       unidadeRomaneioId,
-      status,
-      pesoBruto: 0, pesoTara: 0, pesoLiquido: 0,
+      status: data.status || "RASCUNHO",
+      pesoEntrada: 0, pesoSaida: 0, pesoCarregado: 0, pesoTara: 0, pesoLiquidoFisico: 0,
+      pesoClassificado: 0, totalPercentualDescontos: 0, totalPesoDescontado: 0, dataClassificacao: null,
+      pesoBruto: 0, pesoLiquido: 0, pesoTaraLegacy: 0,
       classificacaoUmidade: 0, classificacaoImpureza: 0, classificacaoArdidos: 0, classificacaoAvariados: 0,
       pesoLiquidoSecoLimpo: 0,
       observacao: data.observacao || "",
@@ -3053,13 +3060,14 @@ export const romaneioService = {
     await delay();
     const r = mockRomaneios.find((x) => x.id === romaneioId && x.deletadoEm === null);
     if (!r) return { sucesso: false, mensagem: "Romaneio não encontrado." };
-    if (r.status !== "AGUARDANDO_CONTRATO") return { sucesso: false, mensagem: "Apenas romaneios aguardando contrato podem ser vinculados." };
+    if (r.status !== "AGUARDANDO_CONTRATO" && r.status !== "AGUARDANDO_VINCULO") return { sucesso: false, mensagem: "Apenas romaneios aguardando vínculo podem ser vinculados." };
     const contrato = mockContratos.find((c) => c.id === contratoId && c.deletadoEm === null);
     if (!contrato) return { sucesso: false, mensagem: "Contrato não encontrado." };
 
     const now = new Date().toISOString();
     r.contratoId = contratoId;
-    r.status = "ABERTO";
+    r.origem = "CONTRATO";
+    r.status = r.pesoLiquidoFisico > 0 ? "AGUARDANDO_CLASSIFICACAO" : "ABERTO";
     r.atualizadoEm = now; r.atualizadoPor = "u1";
     return { sucesso: true, mensagem: "Contrato vinculado ao romaneio." };
   },
@@ -3071,11 +3079,55 @@ export const romaneioService = {
     const entrada = pesagens.find((p) => p.tipoPesagem === "ENTRADA");
     const saida = pesagens.find((p) => p.tipoPesagem === "SAIDA");
 
-    rom.pesoBruto = entrada ? entrada.peso : 0;
-    rom.pesoTara = saida ? saida.peso : 0;
-    rom.pesoLiquido = (entrada && saida) ? rom.pesoBruto - rom.pesoTara : 0;
+    rom.pesoEntrada = entrada ? entrada.peso : 0;
+    rom.pesoSaida = saida ? saida.peso : 0;
+
+    // Determine carregado/tara based on tipoRomaneio
+    if (rom.tipoRomaneio === "ENTRADA") {
+      rom.pesoCarregado = rom.pesoEntrada;
+      rom.pesoTara = rom.pesoSaida;
+    } else {
+      rom.pesoCarregado = rom.pesoSaida;
+      rom.pesoTara = rom.pesoEntrada;
+    }
+
+    rom.pesoLiquidoFisico = (entrada && saida) ? Math.abs(rom.pesoCarregado - rom.pesoTara) : 0;
+
+    // Legacy compat
+    rom.pesoBruto = rom.pesoCarregado;
+    rom.pesoTaraLegacy = rom.pesoTara;
+    rom.pesoLiquido = rom.pesoLiquidoFisico;
+
+    // Update status based on pesagens
+    if (rom.status !== "FINALIZADO" && rom.status !== "CANCELADO" && rom.status !== "CLASSIFICADO" && rom.status !== "AGUARDANDO_CLASSIFICACAO") {
+      if (entrada && saida && rom.pesoLiquidoFisico > 0) {
+        if (rom.origem === "AVULSO" && !rom.contratoId && !rom.safraId) {
+          rom.status = "AGUARDANDO_VINCULO";
+        } else {
+          rom.status = "AGUARDANDO_CLASSIFICACAO";
+        }
+      } else if (entrada || saida) {
+        rom.status = "PESAGEM_PARCIAL";
+      }
+    }
+
     rom.atualizadoEm = new Date().toISOString();
     rom.atualizadoPor = "u1";
+  },
+  async vincularColheita(romaneioId: string, safraId: string, cultivoId: string): Promise<{ sucesso: boolean; mensagem: string }> {
+    await delay();
+    const r = mockRomaneios.find((x) => x.id === romaneioId && x.deletadoEm === null);
+    if (!r) return { sucesso: false, mensagem: "Romaneio não encontrado." };
+    if (r.status !== "AGUARDANDO_VINCULO") return { sucesso: false, mensagem: "Apenas romaneios aguardando vínculo podem ser vinculados." };
+
+    const now = new Date().toISOString();
+    r.safraId = safraId;
+    r.cultivoId = cultivoId;
+    r.origem = "COLHEITA";
+    r.status = "AGUARDANDO_CLASSIFICACAO";
+    r.atualizadoEm = now;
+    r.atualizadoPor = "u1";
+    return { sucesso: true, mensagem: "Colheita vinculada ao romaneio." };
   },
 };
 
@@ -3087,9 +3139,8 @@ export const romaneioPesagemService = {
     await delay();
     return mockRomaneioPesagens.filter((p) => p.romaneioId === romaneioId);
   },
-  async salvar(data: { romaneioId: string; tipoPesagem: TipoPesagem; peso: number }, ctx: { grupoId: string; empresaId: string; filialId: string }): Promise<RomaneioPesagem | { erro: string }> {
+  async salvar(data: { romaneioId: string; tipoPesagem: TipoPesagem; peso: number; origemLeitura?: string; operador?: string; observacao?: string }, ctx: { grupoId: string; empresaId: string; filialId: string }): Promise<RomaneioPesagem | { erro: string }> {
     await delay();
-    // Block duplicate type
     const existing = mockRomaneioPesagens.find((p) => p.romaneioId === data.romaneioId && p.tipoPesagem === data.tipoPesagem);
     if (existing) {
       return { erro: `Já existe uma pesagem de ${data.tipoPesagem === "ENTRADA" ? "ENTRADA" : "SAÍDA"} registrada. Edite a existente.` };
@@ -3101,6 +3152,9 @@ export const romaneioPesagemService = {
       tipoPesagem: data.tipoPesagem,
       peso: data.peso,
       dataHora: now,
+      origemLeitura: (data.origemLeitura as any) || "MANUAL",
+      operador: data.operador || "u1",
+      observacao: data.observacao || "",
       criadoEm: now, criadoPor: "u1",
       editadoEm: null, editadoPor: null,
     };

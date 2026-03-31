@@ -44,6 +44,7 @@ import CentrosCustoPage from "@/pages/financeiro/CentrosCustoPage";
 import MovimentacoesPage from "@/pages/financeiro/MovimentacoesPage";
 import AdiantamentosPage from "@/pages/financeiro/AdiantamentosPage";
 import RomaneiosPage from "@/pages/romaneios/RomaneiosPage";
+import RomaneioFormPage from "@/pages/romaneios/RomaneioFormPage";
 import MotoristasPage from "@/pages/romaneios/MotoristasPage";
 import VeiculosPage from "@/pages/romaneios/VeiculosPage";
 import NotFound from "./pages/NotFound";
@@ -96,6 +97,8 @@ const App = () => (
               <Route path="/financeiro/adiantamentos" element={<AdiantamentosPage />} />
               {/* Romaneios */}
               <Route path="/romaneios" element={<RomaneiosPage />} />
+              <Route path="/romaneios/novo" element={<RomaneioFormPage />} />
+              <Route path="/romaneios/:id" element={<RomaneioFormPage />} />
               <Route path="/romaneios/motoristas" element={<MotoristasPage />} />
               <Route path="/romaneios/veiculos" element={<VeiculosPage />} />
               {/* Produtos e Estoque — Tabelas */}

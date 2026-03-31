@@ -3385,15 +3385,20 @@ export const veiculos: Veiculo[] = [];
 // ============================================================
 // Romaneios
 // ============================================================
-export type StatusRomaneio = "ABERTO" | "FINALIZADO" | "AGUARDANDO_CONTRATO" | "CANCELADO";
+export type StatusRomaneio = "RASCUNHO" | "AGUARDANDO_PESAGEM" | "PESAGEM_PARCIAL" | "AGUARDANDO_VINCULO" | "AGUARDANDO_CLASSIFICACAO" | "CLASSIFICADO" | "FINALIZADO" | "CANCELADO"
+  // Legacy compat
+  | "ABERTO" | "AGUARDANDO_CONTRATO";
+
+export type OrigemRomaneio = "CONTRATO" | "COLHEITA" | "AVULSO";
+export type TipoRomaneio = "ENTRADA" | "SAIDA";
 
 export interface RomaneioClassificacaoItem {
-  tipo: "umidade" | "impureza" | "ardidos" | "avariados";
+  tipo: string;
   label: string;
   base: number;
   apurado: number;
-  desconto: number; // percentual
-  pesoDescontado: number; // kg descontado
+  desconto: number;
+  pesoDescontado: number;
 }
 
 export interface Romaneio {
@@ -3401,7 +3406,12 @@ export interface Romaneio {
   grupoId: string;
   empresaId: string;
   filialId: string;
+  origem: OrigemRomaneio;
+  tipoRomaneio: TipoRomaneio;
   contratoId: string | null;
+  safraId: string | null;
+  cultivoId: string | null;
+  pessoaId: string | null;
   produtoId: string;
   motoristaId: string | null;
   motoristaNome: string;
@@ -3409,17 +3419,29 @@ export interface Romaneio {
   veiculoId: string | null;
   placaVeiculo: string;
   pontoEstoqueId: string | null;
-  unidadeRomaneioId: string; // Unidade em que as pesagens foram feitas
+  unidadeRomaneioId: string;
   status: StatusRomaneio;
-  pesoBruto: number;
+  // Pesos
+  pesoEntrada: number;
+  pesoSaida: number;
+  pesoCarregado: number;
   pesoTara: number;
+  pesoLiquidoFisico: number;
+  // Classification results
+  pesoClassificado: number;
+  totalPercentualDescontos: number;
+  totalPesoDescontado: number;
+  dataClassificacao: string | null;
+  // Legacy compat fields
+  pesoBruto: number;
   pesoLiquido: number;
-  // Classificação de qualidade
+  pesoTaraLegacy: number;
   classificacaoUmidade: number;
   classificacaoImpureza: number;
   classificacaoArdidos: number;
   classificacaoAvariados: number;
   pesoLiquidoSecoLimpo: number;
+  //
   observacao: string;
   criadoEm: string;
   criadoPor: string;
@@ -3435,6 +3457,7 @@ export const romaneios: Romaneio[] = [];
 // Romaneio Pesagens
 // ============================================================
 export type TipoPesagem = "ENTRADA" | "SAIDA";
+export type OrigemLeitura = "MANUAL" | "BALANCA";
 
 export interface RomaneioPesagem {
   id: string;
@@ -3445,6 +3468,9 @@ export interface RomaneioPesagem {
   tipoPesagem: TipoPesagem;
   peso: number;
   dataHora: string;
+  origemLeitura: OrigemLeitura;
+  operador: string;
+  observacao: string;
   criadoEm: string;
   criadoPor: string;
   editadoEm: string | null;
