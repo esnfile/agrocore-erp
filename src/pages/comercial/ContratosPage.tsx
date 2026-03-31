@@ -141,8 +141,83 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function ContratosPage() {
   const { grupoAtual, empresaAtual, empresas: orgEmpresas, filiais: orgFiliais } = useOrganization();
-  const empresaId = empresaAtual?.id ?? "";
+  const empresaIdGlobal = empresaAtual?.id ?? "";
   const grupoId = grupoAtual?.id ?? "";
+
+  // ---- LOCAL CONTEXT (Parte 1 & 5) ----
+  const [localEmpresaId, setLocalEmpresaId] = useState<string>(empresaIdGlobal || TODAS_EMPRESAS);
+  const [localFilialId, setLocalFilialId] = useState<string>(TODAS_FILIAIS);
+  const [isSyncedWithGlobal, setIsSyncedWithGlobal] = useState(true);
+  const [globalChangedWarning, setGlobalChangedWarning] = useState(false);
+  const prevGlobalEmpresaRef = useRef(empresaIdGlobal);
+  const [localFiliais, setLocalFiliais] = useState<Filial[]>([]);
+
+  // Initialize local context from global on first load
+  useEffect(() => {
+    if (empresaIdGlobal && isSyncedWithGlobal) {
+      setLocalEmpresaId(empresaIdGlobal);
+    }
+  }, []);
+
+  // Load filiais for local empresa selection
+  useEffect(() => {
+    if (localEmpresaId && localEmpresaId !== TODAS_EMPRESAS) {
+      filialService.listarPorEmpresa(localEmpresaId).then(setLocalFiliais);
+    } else {
+      setLocalFiliais([]);
+    }
+  }, [localEmpresaId]);
+
+  // Detect global context changes (Parte 5)
+  useEffect(() => {
+    const prevGlobal = prevGlobalEmpresaRef.current;
+    prevGlobalEmpresaRef.current = empresaIdGlobal;
+    if (prevGlobal && prevGlobal !== empresaIdGlobal) {
+      if (isSyncedWithGlobal) {
+        // Still synced - follow global
+        setLocalEmpresaId(empresaIdGlobal);
+        setLocalFilialId(TODAS_FILIAIS);
+      } else {
+        // Desynced - show warning
+        setGlobalChangedWarning(true);
+      }
+    }
+  }, [empresaIdGlobal, isSyncedWithGlobal]);
+
+  const handleLocalEmpresaChange = useCallback((value: string) => {
+    setLocalEmpresaId(value);
+    setLocalFilialId(TODAS_FILIAIS);
+    setIsSyncedWithGlobal(false);
+    setGlobalChangedWarning(false);
+  }, []);
+
+  const handleLocalFilialChange = useCallback((value: string) => {
+    setLocalFilialId(value);
+    setIsSyncedWithGlobal(false);
+    setGlobalChangedWarning(false);
+  }, []);
+
+  const handleUsarContextoGlobal = useCallback(() => {
+    setLocalEmpresaId(empresaIdGlobal || TODAS_EMPRESAS);
+    setLocalFilialId(TODAS_FILIAIS);
+    setIsSyncedWithGlobal(true);
+    setGlobalChangedWarning(false);
+  }, [empresaIdGlobal]);
+
+  // Effective empresa for loading (backwards compat)
+  const empresaId = localEmpresaId === TODAS_EMPRESAS ? "" : localEmpresaId;
+
+  // Context label
+  const contextLabel = useMemo(() => {
+    const empNome = localEmpresaId === TODAS_EMPRESAS
+      ? "Todas as Empresas"
+      : orgEmpresas.find(e => e.id === localEmpresaId)?.nome ?? "";
+    const filNome = localFilialId === TODAS_FILIAIS
+      ? "Todas as Filiais"
+      : localFiliais.find(f => f.id === localFilialId)?.nomeRazao ?? "";
+    if (localEmpresaId === TODAS_EMPRESAS) return `Exibindo contratos consolidados — ${empNome}`;
+    return `Exibindo contratos da ${empNome} / ${filNome}`;
+  }, [localEmpresaId, localFilialId, orgEmpresas, localFiliais]);
 
   const [contratos, setContratos] = useState<Contrato[]>([]);
   const [loading, setLoading] = useState(false);
