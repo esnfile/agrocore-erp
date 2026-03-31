@@ -3060,13 +3060,14 @@ export const romaneioService = {
     await delay();
     const r = mockRomaneios.find((x) => x.id === romaneioId && x.deletadoEm === null);
     if (!r) return { sucesso: false, mensagem: "Romaneio não encontrado." };
-    if (r.status !== "AGUARDANDO_CONTRATO") return { sucesso: false, mensagem: "Apenas romaneios aguardando contrato podem ser vinculados." };
+    if (r.status !== "AGUARDANDO_CONTRATO" && r.status !== "AGUARDANDO_VINCULO") return { sucesso: false, mensagem: "Apenas romaneios aguardando vínculo podem ser vinculados." };
     const contrato = mockContratos.find((c) => c.id === contratoId && c.deletadoEm === null);
     if (!contrato) return { sucesso: false, mensagem: "Contrato não encontrado." };
 
     const now = new Date().toISOString();
     r.contratoId = contratoId;
-    r.status = "ABERTO";
+    r.origem = "CONTRATO";
+    r.status = r.pesoLiquidoFisico > 0 ? "AGUARDANDO_CLASSIFICACAO" : "ABERTO";
     r.atualizadoEm = now; r.atualizadoPor = "u1";
     return { sucesso: true, mensagem: "Contrato vinculado ao romaneio." };
   },
