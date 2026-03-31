@@ -1126,7 +1126,7 @@ export default function ContratosPage() {
                 </div>
 
                 {/* Row 3: Quantidade + Unidade + Tipo Preço (3 cols) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <FormRow columns={3}>
                   <div className="space-y-1.5">
                     <Label>
                       Quantidade <span className="text-destructive">*</span>
