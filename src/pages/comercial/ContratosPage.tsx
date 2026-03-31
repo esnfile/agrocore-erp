@@ -941,26 +941,70 @@ export default function ContratosPage() {
     );
   }
 
-  if (!empresaId) {
-    return (
-      <>
-        <PageHeader title="Contratos" description="Gestão de contratos comerciais" />
-        <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
-          Selecione uma Empresa para visualizar contratos.
-        </div>
-      </>
-    );
-  }
-
   return (
     <>
       <PageHeader title="Contratos" description="Gestão de contratos comerciais de compra e venda" />
 
-      <div className="mb-4 flex justify-end">
-        <Button onClick={openNew}>
-          <Plus className="mr-2 h-4 w-4" />
-          Novo Contrato
-        </Button>
+      {/* PARTE 1 — Faixa de contexto organizacional */}
+      <div className="mb-4 rounded-lg border bg-card p-4 space-y-3">
+        <div className="flex flex-wrap items-end gap-4">
+          <div className="space-y-1.5 min-w-[200px]">
+            <Label className="text-xs font-medium flex items-center gap-1.5">
+              <Building2 className="h-3.5 w-3.5" /> Empresa
+            </Label>
+            <Select value={localEmpresaId} onValueChange={handleLocalEmpresaChange}>
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder="Selecione..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={TODAS_EMPRESAS}>Todas as Empresas</SelectItem>
+                {orgEmpresas.map((e) => (
+                  <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5 min-w-[200px]">
+            <Label className="text-xs font-medium flex items-center gap-1.5">
+              <GitBranch className="h-3.5 w-3.5" /> Filial
+            </Label>
+            <Select
+              value={localFilialId}
+              onValueChange={handleLocalFilialChange}
+              disabled={localEmpresaId === TODAS_EMPRESAS}
+            >
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder="Selecione..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={TODAS_FILIAIS}>Todas as Filiais</SelectItem>
+                {localFiliais.map((f) => (
+                  <SelectItem key={f.id} value={f.id}>{f.nomeRazao}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex-1" />
+          <Button onClick={openNew}>
+            <Plus className="mr-2 h-4 w-4" />
+            Novo Contrato
+          </Button>
+        </div>
+        <div className="flex items-center gap-3">
+          <p className="text-xs text-muted-foreground italic">{contextLabel}</p>
+          {globalChangedWarning && (
+            <div className="flex items-center gap-2 rounded-md border border-amber-400/50 bg-amber-50/50 dark:bg-amber-950/20 px-3 py-1.5 text-xs">
+              <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
+              <span className="text-amber-700 dark:text-amber-400">
+                O contexto global da sessão foi alterado. A listagem continua usando o filtro próprio desta página.
+              </span>
+              <Button variant="outline" size="sm" className="h-6 text-xs ml-2" onClick={handleUsarContextoGlobal}>
+                <RefreshCw className="mr-1 h-3 w-3" />
+                Usar contexto da sessão
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Listagem */}
@@ -969,15 +1013,15 @@ export default function ContratosPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Empresa</TableHead>
+                <TableHead>Filial</TableHead>
                 <TableHead>Número</TableHead>
-                <TableHead>Tipo</TableHead>
                 <TableHead>Pessoa</TableHead>
                 <TableHead>Produto</TableHead>
-                <TableHead className="text-right">Qtd. Total</TableHead>
-                <TableHead className="text-right">Entregue</TableHead>
-                <TableHead className="text-right">Saldo</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead className="text-right">Vol. Total</TableHead>
+                <TableHead className="text-right">Vol. Pendente</TableHead>
                 <TableHead className="text-right">Preço</TableHead>
-                <TableHead>Moeda</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
@@ -992,23 +1036,23 @@ export default function ContratosPage() {
               ) : (
                 contratos.map((c) => (
                   <TableRow key={c.id}>
+                    <TableCell className="text-xs">{getNomeEmpresa(c.empresaId)}</TableCell>
+                    <TableCell className="text-xs">{getNomeFilial(c.filialId)}</TableCell>
                     <TableCell className="font-medium">{c.numeroContrato}</TableCell>
+                    <TableCell>{getNomePessoa(c.pessoaId)}</TableCell>
+                    <TableCell>{getNomeProduto(c.produtoId)}</TableCell>
                     <TableCell>
                       <Badge variant={c.tipoContrato === "COMPRA" ? "default" : "secondary"}>
                         {c.tipoContrato === "COMPRA" ? "Compra" : "Venda"}
                       </Badge>
                     </TableCell>
-                    <TableCell>{getNomePessoa(c.pessoaId)}</TableCell>
-                    <TableCell>{getNomeProduto(c.produtoId)}</TableCell>
                     <TableCell className="text-right">
                       {c.quantidadeTotal.toLocaleString("pt-BR")} {getCodigoUnidade(c.unidadeNegociacaoId)}
                     </TableCell>
-                    <TableCell className="text-right">{c.quantidadeEntregue.toLocaleString("pt-BR")}</TableCell>
                     <TableCell className="text-right">{c.quantidadeSaldo.toLocaleString("pt-BR")}</TableCell>
                     <TableCell className="text-right">
                       {formatCurrency(c.precoUnitario, mockMoedas.find((m) => m.id === c.moedaId)?.codigo ?? "BRL")}
                     </TableCell>
-                    <TableCell>{getCodigoMoeda(c.moedaId)}</TableCell>
                     <TableCell>
                       <StatusBadge status={c.status} />
                     </TableCell>
