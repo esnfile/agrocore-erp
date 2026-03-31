@@ -981,7 +981,7 @@ export default function ContratosPage() {
             <TooltipProvider delayDuration={200}>
               <fieldset disabled={viewOnly} className="space-y-5">
                 {/* Row 0: Empresa + Filial (2 cols) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormRow columns={2}>
                   <div className="space-y-1.5">
                     <Label>
                       Empresa <span className="text-destructive">*</span>
