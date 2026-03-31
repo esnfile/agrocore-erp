@@ -1180,8 +1180,8 @@ export default function ContratosPage() {
                         <SelectItem value="A_FIXAR">A Fixar</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
                 </FormRow>
-                </div>
 
                 {/* Row 4: Moeda + Preço Unitário (2 cols) */}
                 <FormRow columns={2}>
