@@ -1206,24 +1206,22 @@ export default function ContratosPage() {
                     </Select>
                   </div>
                   <div className="space-y-1.5">
-                    <div className="flex items-center gap-3">
-                      <Label>
-                        Preço Unitário {tipoPrecoWatch !== "A_FIXAR" && <span className="text-destructive">*</span>}
-                      </Label>
-                      {tipoPrecoWatch === "A_FIXAR" && (
-                        <Tooltip>
-                          <TooltipTrigger type="button">
-                            <Info className="h-3.5 w-3.5 text-muted-foreground" />
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-[300px]">
-                            <p className="text-xs">
-                              Tipo A FIXAR: Preço pendente para hedge de volume. Após entregas (romaneios), acesse
-                              Fixação de Preço para definir valor real. Bloqueia liquidação; gera provisões estimadas.
-                            </p>
-                          </TooltipContent>
-                        </Tooltip>
-                      )}
-                    </div>
+                    <Label>
+                      Preço Unitário {tipoPrecoWatch !== "A_FIXAR" && <span className="text-destructive">*</span>}
+                    </Label>
+                    {tipoPrecoWatch === "A_FIXAR" && (
+                      <Tooltip>
+                        <TooltipTrigger type="button">
+                          <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-[300px]">
+                          <p className="text-xs">
+                            Tipo A FIXAR: Preço pendente para hedge de volume. Após entregas (romaneios), acesse Fixação
+                            de Preço para definir valor real. Bloqueia liquidação; gera provisões estimadas.
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
                     {tipoPrecoWatch === "A_FIXAR" ? (
                       <Input
                         value="R$ 0,00"
