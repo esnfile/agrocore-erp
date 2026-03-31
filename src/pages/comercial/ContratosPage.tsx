@@ -388,16 +388,23 @@ export default function ContratosPage() {
   }, [produtoIdWatch, tipoContratoWatch, empresaId, editingContrato, tipoPrecoWatch]);
 
   const loadContratos = async () => {
-    if (!empresaId) return;
+    if (!grupoId) return;
     setLoading(true);
-    const list = await contratoService.listarPorEmpresa(empresaId);
+    let list: Contrato[];
+    if (localEmpresaId === TODAS_EMPRESAS) {
+      list = await contratoService.listarTodos(grupoId);
+    } else if (localFilialId === TODAS_FILIAIS) {
+      list = await contratoService.listarPorEmpresa(localEmpresaId);
+    } else {
+      list = await contratoService.listar(localEmpresaId, localFilialId);
+    }
     setContratos(list);
     setLoading(false);
   };
 
   useEffect(() => {
     loadContratos();
-  }, [empresaId]);
+  }, [localEmpresaId, localFilialId, grupoId]);
 
   useEffect(() => {
     if (empresaId) {
