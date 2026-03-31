@@ -982,7 +982,7 @@ export default function ContratosPage() {
               <fieldset disabled={viewOnly} className="space-y-5">
                 {/* Row 0: Empresa + Filial (2 cols) */}
                 <FormRow columns={2}>
-                  <div className="space-y-1.5">
+                  <div className="w-full">
                     <Label>
                       Empresa <span className="text-destructive">*</span>
                     </Label>
@@ -1008,7 +1008,7 @@ export default function ContratosPage() {
                       <p className="text-xs text-destructive">{contratoForm.formState.errors.empresaId.message}</p>
                     )}
                   </div>
-                  <div className="space-y-1.5">
+                  <div className="w-full">
                     <Label>Filial</Label>
                     <Select
                       value={contratoForm.watch("filialId") || ""}
@@ -1091,7 +1091,7 @@ export default function ContratosPage() {
 
                 {/* Row 2: Pessoa + Produto (2 cols) */}
                 <FormRow columns={2}>
-                  <div className="space-y-1.5">
+                  <div className="w-full">
                     <Label>
                       Pessoa Responsável <span className="text-destructive">*</span>
                     </Label>
@@ -1106,7 +1106,7 @@ export default function ContratosPage() {
                       <p className="text-xs text-destructive">{contratoForm.formState.errors.pessoaId.message}</p>
                     )}
                   </div>
-                  <div className="space-y-1.5">
+                  <div className="w-full">
                     <Label>
                       Produto <span className="text-destructive">*</span>
                     </Label>
@@ -1125,7 +1125,7 @@ export default function ContratosPage() {
 
                 {/* Row 3: Quantidade + Unidade + Tipo Preço (3 cols) */}
                 <FormRow columns={3}>
-                  <div className="space-y-1.5">
+                  <div className="w-full">
                     <Label>
                       Quantidade <span className="text-destructive">*</span>
                     </Label>
@@ -1136,7 +1136,7 @@ export default function ContratosPage() {
                       </p>
                     )}
                   </div>
-                  <div className="space-y-1.5">
+                  <div className="w-full">
                     <Label>
                       Unidade <span className="text-destructive">*</span>
                     </Label>
@@ -1156,7 +1156,7 @@ export default function ContratosPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-1.5">
+                  <div className="w-full">
                     <Label>
                       Tipo de Preço <span className="text-destructive">*</span>
                     </Label>
@@ -1183,7 +1183,7 @@ export default function ContratosPage() {
 
                 {/* Row 4: Moeda + Preço Unitário (2 cols) */}
                 <FormRow columns={2}>
-                  <div className="space-y-1.5">
+                  <div className="w-full">
                     <Label>
                       Moeda <span className="text-destructive">*</span>
                     </Label>
@@ -1205,7 +1205,7 @@ export default function ContratosPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-1.5">
+                  <div className="w-full">
                     <Label>
                       Preço Unitário {tipoPrecoWatch !== "A_FIXAR" && <span className="text-destructive">*</span>}
                     </Label>
@@ -1362,11 +1362,11 @@ export default function ContratosPage() {
 
                 {/* Row 5: Datas de entrega (2 cols) */}
                 <FormRow columns={2}>
-                  <div className="space-y-1.5">
+                  <div className="w-full">
                     <Label>Data Entrega Início</Label>
                     <Input type="date" {...contratoForm.register("dataEntregaInicio")} />
                   </div>
-                  <div className="space-y-1.5">
+                  <div className="w-full">
                     <Label>Data Entrega Fim</Label>
                     <Input type="date" {...contratoForm.register("dataEntregaFim")} />
                   </div>
