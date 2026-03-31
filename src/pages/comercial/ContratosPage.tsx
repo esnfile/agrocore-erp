@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -72,8 +72,11 @@ import type {
   DescontoTipo,
   DescontoEmpresaConfig,
 } from "@/lib/mock-data";
-import { Plus, Pencil, Trash2, Eye, Lock, FileCheck, AlertTriangle, ExternalLink, Info, Clock } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, Lock, FileCheck, AlertTriangle, ExternalLink, Info, Clock, Building2, GitBranch, RefreshCw } from "lucide-react";
 import { SearchableSelect, type SearchableOption } from "@/components/SearchableSelect";
+
+const TODAS_EMPRESAS = "__TODAS__";
+const TODAS_FILIAIS = "__TODAS__";
 
 // ---- Currency formatting helpers ----
 function formatCurrency(value: number, moedaCodigo: string): string {
