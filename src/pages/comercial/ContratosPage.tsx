@@ -538,9 +538,12 @@ export default function ContratosPage() {
   const openNew = () => {
     setEditingContrato(null);
     setViewOnly(false);
+    // Parte 4: Inherit listing context
+    const newEmpresaId = localEmpresaId === TODAS_EMPRESAS ? "" : localEmpresaId;
+    const newFilialId = localFilialId === TODAS_FILIAIS ? "" : localFilialId;
     contratoForm.reset({
-      empresaId: empresaId,
-      filialId: orgFiliais.length > 0 ? orgFiliais[0].id : "",
+      empresaId: newEmpresaId,
+      filialId: newFilialId,
       tipoContrato: "COMPRA",
       pessoaId: "",
       produtoId: "",
