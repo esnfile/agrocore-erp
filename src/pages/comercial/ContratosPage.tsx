@@ -1122,7 +1122,7 @@ export default function ContratosPage() {
                     {contratoForm.formState.errors.produtoId && (
                       <p className="text-xs text-destructive">{contratoForm.formState.errors.produtoId.message}</p>
                     )}
-                  </div>
+                </FormRow>
                 </div>
 
                 {/* Row 3: Quantidade + Unidade + Tipo Preço (3 cols) */}
