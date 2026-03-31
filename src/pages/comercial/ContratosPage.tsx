@@ -1088,8 +1088,8 @@ export default function ContratosPage() {
                     {contratoForm.formState.errors.dataContrato && (
                       <p className="text-xs text-destructive">{contratoForm.formState.errors.dataContrato.message}</p>
                     )}
+                  </div>
                 </FormRow>
-                </div>
 
                 {/* Row 2: Pessoa + Produto (2 cols) */}
                 <FormRow columns={2}>
