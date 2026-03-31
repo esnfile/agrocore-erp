@@ -1041,7 +1041,7 @@ export default function ContratosPage() {
                 )}
 
                 {/* Row 1: Tipo + Número + Data (3 cols) */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormRow columns={3}>
                   <div className="space-y-1.5">
                     <Label>
                       Tipo <span className="text-destructive">*</span>
