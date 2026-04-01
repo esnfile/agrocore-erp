@@ -173,23 +173,25 @@ export function StepFechamento({ romaneio, onRefresh, ctx }: StepFechamentoProps
       </div>
 
       {/* CORREÇÃO 4: Contract balance info when linked */}
-      {contratoVinculado && (
+      {contratoVinculado && (() => {
+        const uInfo = resolveContratoUnidadeInfo(contratoVinculado);
+        return (
         <Card className={excedeContrato ? "border-destructive" : ""}>
           <CardHeader className="pb-2"><CardTitle className="text-sm">Saldo Contratual</CardTitle></CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               <div>
                 <span className="text-muted-foreground text-xs">Total Contratado</span>
-                <p className="font-bold font-mono">{contratoVinculado.quantidadeTotal.toFixed(0)} kg</p>
+                <p className="font-bold font-mono">{fmtDualUnit(uInfo.totalOriginal, uInfo)}</p>
               </div>
               <div>
                 <span className="text-muted-foreground text-xs">Já Entregue</span>
-                <p className="font-bold font-mono">{contratoVinculado.quantidadeEntregue.toFixed(0)} kg</p>
+                <p className="font-bold font-mono">{fmtDualUnit(uInfo.entregueOriginal, uInfo)}</p>
               </div>
               <div>
                 <span className="text-muted-foreground text-xs">Saldo Disponível</span>
                 <p className={`font-bold font-mono ${contratoVinculado.quantidadeSaldo <= 0 ? "text-destructive" : "text-green-700"}`}>
-                  {contratoVinculado.quantidadeSaldo.toFixed(0)} kg
+                  {fmtDualUnit(uInfo.saldoOriginal, uInfo)}
                 </p>
               </div>
               <div>
@@ -201,12 +203,13 @@ export function StepFechamento({ romaneio, onRefresh, ctx }: StepFechamentoProps
             </div>
             {excedeContrato && (
               <div className="mt-3 rounded-md bg-destructive/10 border border-destructive/30 p-2 text-xs text-destructive">
-                ⚠ O peso classificado excede o saldo disponível do contrato em {(pesoComercial - contratoVinculado.quantidadeSaldo).toFixed(0)} kg. Finalização bloqueada.
+                ⚠ O peso classificado excede o saldo disponível do contrato em {(pesoComercial - uInfo.saldoKg).toFixed(0)} kg. Finalização bloqueada.
               </div>
             )}
           </CardContent>
         </Card>
-      )}
+        );
+      })()}
 
       {/* Ponto de Estoque — same field as Step 1 */}
       <Card>

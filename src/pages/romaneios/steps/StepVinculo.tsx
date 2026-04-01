@@ -198,7 +198,9 @@ export function StepVinculo({ romaneio, onRefresh, ctx }: StepVinculoProps) {
               </Select>
             </div>
             {/* Validation summary with balance info */}
-            {selectedContrato && (
+            {selectedContrato && (() => {
+              const uInfo = resolveContratoUnidadeInfo(selectedContrato);
+              return (
               <div className="rounded-md bg-green-50 border border-green-200 p-3 text-xs space-y-1">
                 <div className="flex items-center gap-1 text-green-700 font-medium">
                   <ShieldCheck className="h-3 w-3" /> Validação
@@ -208,10 +210,12 @@ export function StepVinculo({ romaneio, onRefresh, ctx }: StepVinculoProps) {
                 <p className="text-green-700">✓ Tipo compatível ({selectedContrato.tipoContrato})</p>
                 <p className={selectedContrato.quantidadeSaldo > 0 ? "text-green-700" : "text-destructive"}>
                   {selectedContrato.quantidadeSaldo > 0
-                    ? `✓ Saldo disponível: ${selectedContrato.quantidadeSaldo.toFixed(0)} kg`
+                    ? `✓ Saldo disponível: ${fmtDualUnit(uInfo.saldoOriginal, uInfo)}`
                     : `✗ Sem saldo disponível`}
                 </p>
               </div>
+              );
+            })()
             )}
           </div>
           <DialogFooter>

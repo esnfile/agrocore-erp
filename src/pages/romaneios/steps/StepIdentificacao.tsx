@@ -336,26 +336,25 @@ export function StepIdentificacao({ romaneio, pesagensCount, onSaved, ctx }: Ste
                   <SelectTrigger><SelectValue placeholder="Selecione o contrato" /></SelectTrigger>
                   <SelectContent>
                     {contratos.map((c) => {
-                      const saldoDisponivel = c.quantidadeSaldo;
-                      const semSaldo = saldoDisponivel <= 0;
+                      const semSaldo = c.quantidadeSaldo <= 0;
                       return (
                         <SelectItem key={c.id} value={c.id} disabled={semSaldo}>
                           {c.numeroContrato} — {c.tipoContrato}
-                          {semSaldo ? " (sem saldo)" : ` (saldo: ${saldoDisponivel.toFixed(0)} kg)`}
+                          {semSaldo ? " (sem saldo)" : ` ${fmtContratoSaldo(c)}`}
                         </SelectItem>
                       );
                     })}
                   </SelectContent>
                 </Select>
-                {/* CORREÇÃO 4: Show contract balance info */}
                 {contratoId && (() => {
                   const ct = contratos.find((c) => c.id === contratoId);
                   if (!ct) return null;
+                  const uInfo = resolveContratoUnidadeInfo(ct);
                   return (
                     <div className="mt-2 rounded-md bg-muted/50 border p-2 text-xs space-y-0.5">
-                      <p><span className="text-muted-foreground">Total contratado:</span> <strong>{ct.quantidadeTotal.toFixed(0)} kg</strong></p>
-                      <p><span className="text-muted-foreground">Já entregue:</span> <strong>{ct.quantidadeEntregue.toFixed(0)} kg</strong></p>
-                      <p><span className="text-muted-foreground">Saldo disponível:</span> <strong className={ct.quantidadeSaldo <= 0 ? "text-destructive" : "text-green-700"}>{ct.quantidadeSaldo.toFixed(0)} kg</strong></p>
+                      <p><span className="text-muted-foreground">Total contratado:</span> <strong>{fmtDualUnit(uInfo.totalOriginal, uInfo)}</strong></p>
+                      <p><span className="text-muted-foreground">Já entregue:</span> <strong>{fmtDualUnit(uInfo.entregueOriginal, uInfo)}</strong></p>
+                      <p><span className="text-muted-foreground">Saldo disponível:</span> <strong className={ct.quantidadeSaldo <= 0 ? "text-destructive" : "text-green-700"}>{fmtDualUnit(uInfo.saldoOriginal, uInfo)}</strong></p>
                     </div>
                   );
                 })()}
