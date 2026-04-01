@@ -6,13 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { CheckCircle, XCircle, AlertTriangle, Scale } from "lucide-react";
+import { CheckCircle, XCircle, AlertTriangle, Scale, Pencil } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { romaneioService, pontoEstoqueService } from "@/lib/services";
 import { produtos as mockProdutos } from "@/lib/mock-data";
 import type { Romaneio, PontoEstoque } from "@/lib/mock-data";
-import { STATUS_LABELS, ORIGEM_LABELS, SAFRAS_REF, CULTIVOS_REF } from "../romaneio-types";
-import { FormRow } from "@/components/FormRow";
+import { STATUS_LABELS, ORIGEM_LABELS, TIPO_LABELS, SAFRAS_REF, CULTIVOS_REF, STATUS_BADGE_CLASSES, type StatusRomaneioNew } from "../romaneio-types";
+import { empresas, filiais } from "@/lib/mock-data";
 
 interface StepFechamentoProps {
   romaneio: Romaneio;
@@ -23,10 +23,13 @@ interface StepFechamentoProps {
 export function StepFechamento({ romaneio, onRefresh, ctx }: StepFechamentoProps) {
   const [pontosEstoque, setPontosEstoque] = useState<PontoEstoque[]>([]);
   const [pontosLoaded, setPontosLoaded] = useState(false);
+  const [editingPonto, setEditingPonto] = useState(false);
   const [confirmFinalizar, setConfirmFinalizar] = useState(false);
   const [confirmCancelar, setConfirmCancelar] = useState(false);
 
   const produtoNome = mockProdutos.find((p) => p.id === romaneio.produtoId)?.descricao || romaneio.produtoId;
+  const empresaNome = empresas.find((e) => e.id === romaneio.empresaId)?.nome || romaneio.empresaId.substring(0, 8);
+  const filialNome = filiais.find((f) => f.id === romaneio.filialId)?.nomeRazao || romaneio.filialId.substring(0, 8);
 
   const loadPontos = async () => {
     if (pontosLoaded) return;
@@ -35,11 +38,17 @@ export function StepFechamento({ romaneio, onRefresh, ctx }: StepFechamentoProps
     setPontosLoaded(true);
   };
 
+  const pontoNome = useMemo(() => {
+    if (!romaneio.pontoEstoqueId) return "Não definido";
+    const ponto = pontosEstoque.find((p) => p.id === romaneio.pontoEstoqueId);
+    return ponto ? `${ponto.descricao} (${ponto.tipo})` : romaneio.pontoEstoqueId.substring(0, 8);
+  }, [romaneio.pontoEstoqueId, pontosEstoque]);
+
   // Validations for finalization
   const bloqueios = useMemo(() => {
     const erros: string[] = [];
     if (romaneio.status === "CANCELADO") erros.push("Romaneio cancelado");
-    if (romaneio.status === "FINALIZADO") return []; // Already done
+    if (romaneio.status === "FINALIZADO") return [];
     if (!romaneio.contratoId && !romaneio.safraId) erros.push("Sem vínculo definitivo (contrato ou colheita)");
     if (romaneio.pesoLiquidoFisico <= 0) erros.push("Peso líquido físico inválido");
     if (romaneio.pesoClassificado <= 0 && romaneio.status !== "CLASSIFICADO") erros.push("Classificação não concluída");
@@ -53,10 +62,17 @@ export function StepFechamento({ romaneio, onRefresh, ctx }: StepFechamentoProps
     if (!ctx) return;
     await romaneioService.salvar({ id: romaneio.id, pontoEstoqueId: pontoId || null }, ctx);
     toast({ title: "Ponto de estoque atualizado" });
+    setEditingPonto(false);
     onRefresh();
   };
 
   const handleFinalizar = async () => {
+    // Final validation
+    if (!romaneio.pontoEstoqueId) {
+      toast({ title: "Ponto de estoque é obrigatório para finalizar.", variant: "destructive" });
+      setConfirmFinalizar(false);
+      return;
+    }
     const result = await romaneioService.finalizar(romaneio.id);
     if (result.sucesso) {
       toast({ title: result.mensagem });
@@ -74,9 +90,9 @@ export function StepFechamento({ romaneio, onRefresh, ctx }: StepFechamentoProps
     onRefresh();
   };
 
-  const pontoNome = pontosEstoque.find((p) => p.id === romaneio.pontoEstoqueId)?.descricao || (romaneio.pontoEstoqueId ? romaneio.pontoEstoqueId.substring(0, 8) : "Não definido");
-
   const isEditable = romaneio.status !== "FINALIZADO" && romaneio.status !== "CANCELADO";
+
+  const fmtPeso = (v: number) => v > 0 ? `${v.toFixed(0)} kg` : "—";
 
   return (
     <div className="space-y-6">
@@ -86,8 +102,11 @@ export function StepFechamento({ romaneio, onRefresh, ctx }: StepFechamentoProps
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-y-3 gap-x-6 text-sm">
             <div><span className="text-muted-foreground">ID:</span> <strong>{romaneio.id.substring(0, 8)}</strong></div>
-            <div><span className="text-muted-foreground">Origem:</span> <Badge variant="outline" className="ml-1">{ORIGEN_LABELS_SAFE(romaneio.origem)}</Badge></div>
-            <div><span className="text-muted-foreground">Status:</span> <Badge variant="outline" className="ml-1">{STATUS_LABELS[romaneio.status as keyof typeof STATUS_LABELS] || romaneio.status}</Badge></div>
+            <div><span className="text-muted-foreground">Origem:</span> <Badge variant="outline" className="ml-1">{ORIGEM_LABELS[romaneio.origem]}</Badge></div>
+            <div><span className="text-muted-foreground">Tipo:</span> <Badge variant="outline" className="ml-1">{TIPO_LABELS[romaneio.tipoRomaneio]}</Badge></div>
+            <div><span className="text-muted-foreground">Empresa:</span> <strong>{empresaNome}</strong></div>
+            <div><span className="text-muted-foreground">Filial:</span> <strong>{filialNome}</strong></div>
+            <div><span className="text-muted-foreground">Status:</span> <Badge variant="outline" className={`ml-1 ${STATUS_BADGE_CLASSES[romaneio.status as StatusRomaneioNew] || ""}`}>{STATUS_LABELS[romaneio.status as keyof typeof STATUS_LABELS] || romaneio.status}</Badge></div>
             <div><span className="text-muted-foreground">Produto:</span> <strong>{produtoNome}</strong></div>
             <div><span className="text-muted-foreground">Motorista:</span> <strong>{romaneio.motoristaNome}</strong></div>
             <div><span className="text-muted-foreground">Veículo:</span> <strong>{romaneio.placaVeiculo}</strong></div>
@@ -103,11 +122,11 @@ export function StepFechamento({ romaneio, onRefresh, ctx }: StepFechamentoProps
         <CardHeader className="pb-2"><CardTitle className="text-sm">Pesagens</CardTitle></CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
-            <div><span className="text-muted-foreground text-xs">Peso Entrada</span><p className="font-bold font-mono">{romaneio.pesoEntrada > 0 ? `${romaneio.pesoEntrada.toFixed(3)} ton` : "—"}</p></div>
-            <div><span className="text-muted-foreground text-xs">Peso Saída</span><p className="font-bold font-mono">{romaneio.pesoSaida > 0 ? `${romaneio.pesoSaida.toFixed(3)} ton` : "—"}</p></div>
-            <div><span className="text-muted-foreground text-xs">Peso Carregado</span><p className="font-bold font-mono">{romaneio.pesoCarregado > 0 ? `${romaneio.pesoCarregado.toFixed(3)} ton` : "—"}</p></div>
-            <div><span className="text-muted-foreground text-xs">Tara</span><p className="font-bold font-mono">{romaneio.pesoTara > 0 ? `${romaneio.pesoTara.toFixed(3)} ton` : "—"}</p></div>
-            <div><span className="text-muted-foreground text-xs">Peso Líquido Físico</span><p className="font-bold font-mono text-green-700">{romaneio.pesoLiquidoFisico > 0 ? `${romaneio.pesoLiquidoFisico.toFixed(3)} ton` : "—"}</p></div>
+            <div><span className="text-muted-foreground text-xs">Peso Entrada</span><p className="font-bold font-mono">{fmtPeso(romaneio.pesoEntrada)}</p></div>
+            <div><span className="text-muted-foreground text-xs">Peso Saída</span><p className="font-bold font-mono">{fmtPeso(romaneio.pesoSaida)}</p></div>
+            <div><span className="text-muted-foreground text-xs">Peso Carregado</span><p className="font-bold font-mono">{fmtPeso(romaneio.pesoCarregado)}</p></div>
+            <div><span className="text-muted-foreground text-xs">Tara</span><p className="font-bold font-mono">{fmtPeso(romaneio.pesoTara)}</p></div>
+            <div><span className="text-muted-foreground text-xs">Peso Líquido Físico</span><p className="font-bold font-mono text-green-700">{fmtPeso(romaneio.pesoLiquidoFisico)}</p></div>
           </div>
         </CardContent>
       </Card>
@@ -118,37 +137,51 @@ export function StepFechamento({ romaneio, onRefresh, ctx }: StepFechamentoProps
           <CardContent className="p-6 text-center">
             <Scale className="mx-auto h-6 w-6 text-blue-600 mb-2" />
             <p className="text-xs text-blue-600 font-medium">PESO FÍSICO</p>
-            <p className="text-2xl font-bold text-blue-800">{romaneio.pesoLiquidoFisico > 0 ? `${romaneio.pesoLiquidoFisico.toFixed(3)} ton` : "—"}</p>
+            <p className="text-2xl font-bold text-blue-800">{fmtPeso(romaneio.pesoLiquidoFisico)}</p>
           </CardContent>
         </Card>
         <Card className="border-2 border-green-200 bg-green-50/30">
           <CardContent className="p-6 text-center">
             <Scale className="mx-auto h-6 w-6 text-green-600 mb-2" />
             <p className="text-xs text-green-600 font-medium">PESO CLASSIFICADO / COMERCIAL</p>
-            <p className="text-2xl font-bold text-green-800">{romaneio.pesoClassificado > 0 ? `${romaneio.pesoClassificado.toFixed(3)} ton` : (romaneio.pesoLiquidoSecoLimpo > 0 ? `${romaneio.pesoLiquidoSecoLimpo.toFixed(3)} ton` : "—")}</p>
+            <p className="text-2xl font-bold text-green-800">{romaneio.pesoClassificado > 0 ? fmtPeso(romaneio.pesoClassificado) : (romaneio.pesoLiquidoSecoLimpo > 0 ? fmtPeso(romaneio.pesoLiquidoSecoLimpo) : "—")}</p>
             {romaneio.totalPercentualDescontos > 0 && (
-              <p className="text-xs text-orange-600 mt-1">Descontos: -{romaneio.totalPesoDescontado.toFixed(3)} ton ({romaneio.totalPercentualDescontos.toFixed(2)}%)</p>
+              <p className="text-xs text-orange-600 mt-1">Descontos: -{romaneio.totalPesoDescontado.toFixed(0)} kg ({romaneio.totalPercentualDescontos.toFixed(2)}%)</p>
             )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Ponto de Estoque */}
+      {/* Ponto de Estoque — same field as Step 1, shown as confirmation */}
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-sm">Ponto de Estoque</CardTitle></CardHeader>
         <CardContent>
-          {isEditable ? (
-            <div>
+          {!editingPonto ? (
+            <div className="flex items-center justify-between">
+              <div>
+                {romaneio.pontoEstoqueId ? (
+                  <p className="font-medium">{pontoNome}</p>
+                ) : (
+                  <p className="text-sm text-destructive font-medium">⚠ Ponto de estoque não definido — obrigatório para finalizar</p>
+                )}
+              </div>
+              {isEditable && (
+                <Button variant="outline" size="sm" className="gap-1" onClick={() => { setEditingPonto(true); loadPontos(); }}>
+                  <Pencil className="h-3 w-3" /> Alterar
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-2">
               <Label>Ponto de Estoque *</Label>
-              <Select value={romaneio.pontoEstoqueId || ""} onValueChange={handlePontoChange} onOpenChange={() => loadPontos()}>
+              <Select value={romaneio.pontoEstoqueId || ""} onValueChange={handlePontoChange}>
                 <SelectTrigger><SelectValue placeholder="Selecione o ponto de estoque" /></SelectTrigger>
                 <SelectContent>
                   {pontosEstoque.map((p) => <SelectItem key={p.id} value={p.id}>{p.descricao} ({p.tipo})</SelectItem>)}
                 </SelectContent>
               </Select>
+              <Button variant="ghost" size="sm" onClick={() => setEditingPonto(false)}>Cancelar</Button>
             </div>
-          ) : (
-            <p className="font-medium">{pontoNome}</p>
           )}
         </CardContent>
       </Card>
@@ -219,9 +252,4 @@ export function StepFechamento({ romaneio, onRefresh, ctx }: StepFechamentoProps
       </AlertDialog>
     </div>
   );
-}
-
-// Helper to avoid TS issues with legacy status values
-function ORIGEN_LABELS_SAFE(origem: string): string {
-  return ORIGEM_LABELS[origem as keyof typeof ORIGEM_LABELS] || origem;
 }

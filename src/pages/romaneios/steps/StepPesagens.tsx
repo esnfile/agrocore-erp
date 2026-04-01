@@ -91,6 +91,8 @@ export function StepPesagens({ romaneio, pesagens, onRefresh, ctx }: StepPesagen
     setPesagemOpen(true);
   };
 
+  const fmtPeso = (v: number) => v > 0 ? `${v.toFixed(0)} kg` : "—";
+
   return (
     <div className="space-y-6">
       {/* Resumo visual */}
@@ -99,7 +101,7 @@ export function StepPesagens({ romaneio, pesagens, onRefresh, ctx }: StepPesagen
           <CardContent className="p-4 text-center">
             <ArrowDown className={`mx-auto h-5 w-5 mb-1 ${temEntrada ? "text-primary" : "text-muted-foreground"}`} />
             <p className="text-xs text-muted-foreground">Entrada</p>
-            <p className="text-lg font-bold">{romaneio.pesoEntrada > 0 ? `${romaneio.pesoEntrada.toFixed(3)} ton` : "—"}</p>
+            <p className="text-lg font-bold">{fmtPeso(romaneio.pesoEntrada)}</p>
             {temEntrada && <Badge variant="default" className="text-[10px] mt-1">✓ Registrada</Badge>}
           </CardContent>
         </Card>
@@ -107,7 +109,7 @@ export function StepPesagens({ romaneio, pesagens, onRefresh, ctx }: StepPesagen
           <CardContent className="p-4 text-center">
             <ArrowUp className={`mx-auto h-5 w-5 mb-1 ${temSaida ? "text-primary" : "text-muted-foreground"}`} />
             <p className="text-xs text-muted-foreground">Saída</p>
-            <p className="text-lg font-bold">{romaneio.pesoSaida > 0 ? `${romaneio.pesoSaida.toFixed(3)} ton` : "—"}</p>
+            <p className="text-lg font-bold">{fmtPeso(romaneio.pesoSaida)}</p>
             {temSaida && <Badge variant="default" className="text-[10px] mt-1">✓ Registrada</Badge>}
           </CardContent>
         </Card>
@@ -115,20 +117,20 @@ export function StepPesagens({ romaneio, pesagens, onRefresh, ctx }: StepPesagen
           <CardContent className="p-4 text-center">
             <Scale className="mx-auto h-5 w-5 mb-1 text-muted-foreground" />
             <p className="text-xs text-muted-foreground">Peso Carregado</p>
-            <p className="text-lg font-bold">{romaneio.pesoCarregado > 0 ? `${romaneio.pesoCarregado.toFixed(3)} ton` : "—"}</p>
+            <p className="text-lg font-bold">{fmtPeso(romaneio.pesoCarregado)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
             <p className="text-xs text-muted-foreground mt-1">Tara</p>
-            <p className="text-lg font-bold">{romaneio.pesoTara > 0 ? `${romaneio.pesoTara.toFixed(3)} ton` : "—"}</p>
+            <p className="text-lg font-bold">{fmtPeso(romaneio.pesoTara)}</p>
           </CardContent>
         </Card>
         <Card className={romaneio.pesoLiquidoFisico > 0 ? "border-green-500/30 bg-green-50/30" : ""}>
           <CardContent className="p-4 text-center">
             <p className="text-xs text-muted-foreground mt-1">Peso Líquido Físico</p>
             <p className={`text-lg font-bold ${romaneio.pesoLiquidoFisico > 0 ? "text-green-700" : ""}`}>
-              {romaneio.pesoLiquidoFisico > 0 ? `${romaneio.pesoLiquidoFisico.toFixed(3)} ton` : "—"}
+              {fmtPeso(romaneio.pesoLiquidoFisico)}
             </p>
           </CardContent>
         </Card>
@@ -163,7 +165,7 @@ export function StepPesagens({ romaneio, pesagens, onRefresh, ctx }: StepPesagen
             <TableHeader>
               <TableRow>
                 <TableHead>Tipo</TableHead>
-                <TableHead>Peso (ton)</TableHead>
+                <TableHead>Peso (kg)</TableHead>
                 <TableHead>Data/Hora</TableHead>
                 <TableHead>Origem</TableHead>
                 <TableHead>Observação</TableHead>
@@ -193,12 +195,13 @@ export function StepPesagens({ romaneio, pesagens, onRefresh, ctx }: StepPesagen
                   <TableCell>
                     {editingId === p.id ? (
                       <div className="flex items-center gap-2">
-                        <Input type="number" step="0.001" min="0" value={editPeso} onChange={(e) => setEditPeso(parseFloat(e.target.value) || 0)} className="h-8 w-28 font-mono" autoFocus />
+                        <Input type="number" step="1" min="0" value={editPeso} onChange={(e) => setEditPeso(parseFloat(e.target.value) || 0)} className="h-8 w-28 font-mono" autoFocus />
+                        <span className="text-xs text-muted-foreground">kg</span>
                         <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>Cancelar</Button>
                         <Button size="sm" className="gap-1" onClick={salvarEdicao}><Check className="h-3 w-3" /> Salvar</Button>
                       </div>
                     ) : (
-                      <span className="font-mono">{p.peso.toFixed(3)}</span>
+                      <span className="font-mono">{p.peso.toFixed(0)} kg</span>
                     )}
                   </TableCell>
                   <TableCell className="text-xs">{format(new Date(p.dataHora), "dd/MM/yyyy HH:mm:ss")}</TableCell>
@@ -248,8 +251,8 @@ export function StepPesagens({ romaneio, pesagens, onRefresh, ctx }: StepPesagen
               </div>
             </FormRow>
             <div>
-              <Label>Peso (toneladas) *</Label>
-              <Input type="number" step="0.001" min="0" value={pesagemPeso} onChange={(e) => setPesagemPeso(e.target.value)} placeholder="0.000" />
+              <Label>Peso (kg) *</Label>
+              <Input type="number" step="1" min="0" value={pesagemPeso} onChange={(e) => setPesagemPeso(e.target.value)} placeholder="0" />
             </div>
             <div>
               <Label>Observação</Label>

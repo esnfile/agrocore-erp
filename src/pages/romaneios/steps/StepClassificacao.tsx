@@ -10,7 +10,7 @@ import { toast } from "@/hooks/use-toast";
 import { romaneioService } from "@/lib/services";
 import { produtoClassificacoes, classificacaoDescontos, classificacaoTipos } from "@/lib/mock-data";
 import type { Romaneio } from "@/lib/mock-data";
-import { ORIGEM_LABELS, SAFRAS_REF, CULTIVOS_REF } from "../romaneio-types";
+import { ORIGEM_LABELS, SAFRAS_REF } from "../romaneio-types";
 import { FormRow } from "@/components/FormRow";
 import { produtos as mockProdutos } from "@/lib/mock-data";
 
@@ -129,7 +129,7 @@ export function StepClassificacao({ romaneio, onRefresh, ctx }: StepClassificaca
       status: "CLASSIFICADO",
     }, ctx);
 
-    toast({ title: `Classificação salva. Peso classificado: ${resultado.pesoClassificado.toFixed(3)} ton` });
+    toast({ title: `Classificação salva. Peso classificado: ${resultado.pesoClassificado.toFixed(0)} kg` });
     onRefresh();
   };
 
@@ -142,7 +142,7 @@ export function StepClassificacao({ romaneio, onRefresh, ctx }: StepClassificaca
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div><span className="text-muted-foreground">Origem:</span> <Badge variant="outline" className="ml-1">{ORIGEM_LABELS[romaneio.origem]}</Badge></div>
             <div><span className="text-muted-foreground">Produto:</span> <strong className="ml-1">{produtoNome}</strong></div>
-            <div><span className="text-muted-foreground">Peso Físico:</span> <strong className="ml-1">{romaneio.pesoLiquidoFisico.toFixed(3)} ton</strong></div>
+            <div><span className="text-muted-foreground">Peso Físico:</span> <strong className="ml-1">{romaneio.pesoLiquidoFisico.toFixed(0)} kg</strong></div>
             <div>
               <span className="text-muted-foreground">Vínculo:</span>
               <span className="ml-1">
@@ -197,7 +197,7 @@ export function StepClassificacao({ romaneio, onRefresh, ctx }: StepClassificaca
                     </div>
                     {l.diferenca > 0 && (
                       <p className="text-xs text-orange-600">
-                        Diferença: {l.diferenca.toFixed(1)} × {l.percentualFaixa.toFixed(2)}% = {l.percentualFinal.toFixed(2)}% → -{l.pesoDescontado.toFixed(3)} ton
+                        Diferença: {l.diferenca.toFixed(1)} × {l.percentualFaixa.toFixed(2)}% = {l.percentualFinal.toFixed(2)}% → -{l.pesoDescontado.toFixed(0)} kg
                       </p>
                     )}
                   </div>
@@ -224,14 +224,14 @@ export function StepClassificacao({ romaneio, onRefresh, ctx }: StepClassificaca
                     <TableCell className="text-xs font-medium">Peso Líquido Físico</TableCell>
                     <TableCell className="text-xs text-right">—</TableCell>
                     <TableCell className="text-xs text-right">—</TableCell>
-                    <TableCell className="text-xs text-right font-mono">{romaneio.pesoLiquidoFisico.toFixed(3)} ton</TableCell>
+                    <TableCell className="text-xs text-right font-mono">{romaneio.pesoLiquidoFisico.toFixed(0)} kg</TableCell>
                   </TableRow>
                   {resultado.linhas.map((l) => (
                     <TableRow key={l.classificacaoTipoId}>
                       <TableCell className="text-xs">{l.descricao}</TableCell>
                       <TableCell className="text-xs text-right text-orange-600">{l.percentualFinal > 0 ? `-${l.percentualFinal.toFixed(2)}%` : "0%"}</TableCell>
-                      <TableCell className="text-xs text-right text-orange-600 font-mono">{l.pesoDescontado > 0 ? `-${l.pesoDescontado.toFixed(3)} ton` : "—"}</TableCell>
-                      <TableCell className="text-xs text-right font-mono">{l.pesoApos.toFixed(3)} ton</TableCell>
+                      <TableCell className="text-xs text-right text-orange-600 font-mono">{l.pesoDescontado > 0 ? `-${l.pesoDescontado.toFixed(0)} kg` : "—"}</TableCell>
+                      <TableCell className="text-xs text-right font-mono">{l.pesoApos.toFixed(0)} kg</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -241,16 +241,16 @@ export function StepClassificacao({ romaneio, onRefresh, ctx }: StepClassificaca
               <div className="flex items-center justify-between pt-4 border-t mt-4">
                 <div>
                   <p className="text-xs text-muted-foreground">Total Descontos</p>
-                  <p className="text-sm font-bold text-orange-600">{resultado.totalPesoDescontado.toFixed(3)} ton ({resultado.totalPercDescontos.toFixed(2)}%)</p>
+                  <p className="text-sm font-bold text-orange-600">{resultado.totalPesoDescontado.toFixed(0)} kg ({resultado.totalPercDescontos.toFixed(2)}%)</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Peso Líquido Físico</p>
-                  <p className="text-sm font-bold">{romaneio.pesoLiquidoFisico.toFixed(3)} ton</p>
+                  <p className="text-sm font-bold">{romaneio.pesoLiquidoFisico.toFixed(0)} kg</p>
                 </div>
                 <div className="text-right">
                   <p className="text-xs text-muted-foreground">Peso Classificado / Comercial</p>
                   <p className={`text-lg font-bold ${resultado.pesoClassificado > 0 ? "text-green-700" : "text-destructive"}`}>
-                    {resultado.pesoClassificado.toFixed(3)} ton
+                    {resultado.pesoClassificado.toFixed(0)} kg
                   </p>
                 </div>
               </div>

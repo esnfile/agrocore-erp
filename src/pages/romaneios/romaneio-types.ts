@@ -26,6 +26,19 @@ export const STATUS_LABELS: Record<StatusRomaneioNew, string> = {
   CANCELADO: "Cancelado",
 };
 
+// Badge className for each status — used directly in className prop
+export const STATUS_BADGE_CLASSES: Record<StatusRomaneioNew, string> = {
+  RASCUNHO: "bg-gray-100 text-gray-700 border-gray-300",
+  AGUARDANDO_PESAGEM: "bg-amber-100 text-amber-800 border-amber-300",
+  PESAGEM_PARCIAL: "bg-amber-100 text-amber-800 border-amber-300",
+  AGUARDANDO_VINCULO: "bg-slate-100 text-slate-700 border-slate-300",
+  AGUARDANDO_CLASSIFICACAO: "bg-sky-100 text-sky-700 border-sky-300",
+  CLASSIFICADO: "bg-blue-100 text-blue-700 border-blue-300",
+  FINALIZADO: "bg-green-600 text-white border-green-700",
+  CANCELADO: "bg-red-100 text-red-700 border-red-300",
+};
+
+// Keep STATUS_COLORS for backward compat but prefer STATUS_BADGE_CLASSES
 export const STATUS_COLORS: Record<StatusRomaneioNew, "default" | "secondary" | "destructive" | "outline"> = {
   RASCUNHO: "outline",
   AGUARDANDO_PESAGEM: "secondary",
