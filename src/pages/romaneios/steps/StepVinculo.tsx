@@ -190,7 +190,7 @@ export function StepVinculo({ romaneio, onRefresh, ctx }: StepVinculoProps) {
                     return (
                       <SelectItem key={c.id} value={c.id} disabled={semSaldo}>
                         {c.numeroContrato} — {c.tipoContrato}
-                        {semSaldo ? " (sem saldo)" : ` (saldo: ${c.quantidadeSaldo.toFixed(0)} kg)`}
+                        {semSaldo ? " (sem saldo)" : ` ${fmtContratoSaldo(c)}`}
                       </SelectItem>
                     );
                   })}
