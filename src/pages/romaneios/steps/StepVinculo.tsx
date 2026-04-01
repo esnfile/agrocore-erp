@@ -215,8 +215,8 @@ export function StepVinculo({ romaneio, onRefresh, ctx }: StepVinculoProps) {
                 </p>
               </div>
               );
-            })()
-            )}
+            })()}
+
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setVincularTipo(null)}>Cancelar</Button>
