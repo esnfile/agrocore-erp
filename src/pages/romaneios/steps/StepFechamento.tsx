@@ -55,9 +55,11 @@ export function StepFechamento({ romaneio, onRefresh, ctx }: StepFechamentoProps
     return ponto ? `${ponto.descricao} (${ponto.tipo})` : romaneio.pontoEstoqueId.substring(0, 8);
   }, [romaneio.pontoEstoqueId, pontosEstoque]);
 
-  // CORREÇÃO 4: Check contract balance vs peso classificado
+  // CORREÇÃO 4: Check contract balance vs peso classificado (compare in kg)
   const pesoComercial = romaneio.pesoClassificado > 0 ? romaneio.pesoClassificado : romaneio.pesoLiquidoSecoLimpo;
-  const excedeContrato = contratoVinculado && pesoComercial > 0 && pesoComercial > contratoVinculado.quantidadeSaldo;
+  const contratoUInfo = contratoVinculado ? resolveContratoUnidadeInfo(contratoVinculado) : null;
+  const saldoContratoKg = contratoUInfo ? contratoUInfo.saldoKg : 0;
+  const excedeContrato = contratoVinculado && pesoComercial > 0 && pesoComercial > saldoContratoKg;
 
   // Validations for finalization
   const bloqueios = useMemo(() => {
