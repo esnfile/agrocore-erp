@@ -95,7 +95,7 @@ export default function RomaneioFormPage() {
       <RomaneioStepper currentStep={currentStep} status={status} onStepClick={handleStepClick} />
 
       {currentStep === 1 && (
-        <StepIdentificacao romaneio={romaneio} onSaved={handleSaved} ctx={ctx} />
+        <StepIdentificacao romaneio={romaneio} pesagensCount={pesagens.length} onSaved={handleSaved} ctx={ctx} />
       )}
 
       {currentStep === 2 && romaneio && (
