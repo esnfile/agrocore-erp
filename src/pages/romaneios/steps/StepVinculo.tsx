@@ -10,7 +10,7 @@ import { toast } from "@/hooks/use-toast";
 import { romaneioService, contratoService } from "@/lib/services";
 import { produtos as mockProdutos } from "@/lib/mock-data";
 import type { Romaneio, Contrato } from "@/lib/mock-data";
-import { ORIGEM_LABELS, TIPO_LABELS, SAFRAS_REF, CULTIVOS_REF } from "../romaneio-types";
+import { ORIGEM_LABELS, TIPO_LABELS, SAFRAS_REF, CULTIVOS_REF, resolveContratoUnidadeInfo, fmtDualUnit, fmtContratoSaldo } from "../romaneio-types";
 
 interface StepVinculoProps {
   romaneio: Romaneio;
@@ -190,7 +190,7 @@ export function StepVinculo({ romaneio, onRefresh, ctx }: StepVinculoProps) {
                     return (
                       <SelectItem key={c.id} value={c.id} disabled={semSaldo}>
                         {c.numeroContrato} — {c.tipoContrato}
-                        {semSaldo ? " (sem saldo)" : ` (saldo: ${c.quantidadeSaldo.toFixed(0)} kg)`}
+                        {semSaldo ? " (sem saldo)" : ` ${fmtContratoSaldo(c)}`}
                       </SelectItem>
                     );
                   })}
@@ -198,7 +198,9 @@ export function StepVinculo({ romaneio, onRefresh, ctx }: StepVinculoProps) {
               </Select>
             </div>
             {/* Validation summary with balance info */}
-            {selectedContrato && (
+            {selectedContrato && (() => {
+              const uInfo = resolveContratoUnidadeInfo(selectedContrato);
+              return (
               <div className="rounded-md bg-green-50 border border-green-200 p-3 text-xs space-y-1">
                 <div className="flex items-center gap-1 text-green-700 font-medium">
                   <ShieldCheck className="h-3 w-3" /> Validação
@@ -208,11 +210,13 @@ export function StepVinculo({ romaneio, onRefresh, ctx }: StepVinculoProps) {
                 <p className="text-green-700">✓ Tipo compatível ({selectedContrato.tipoContrato})</p>
                 <p className={selectedContrato.quantidadeSaldo > 0 ? "text-green-700" : "text-destructive"}>
                   {selectedContrato.quantidadeSaldo > 0
-                    ? `✓ Saldo disponível: ${selectedContrato.quantidadeSaldo.toFixed(0)} kg`
+                    ? `✓ Saldo disponível: ${fmtDualUnit(uInfo.saldoOriginal, uInfo)}`
                     : `✗ Sem saldo disponível`}
                 </p>
               </div>
-            )}
+              );
+            })()}
+
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setVincularTipo(null)}>Cancelar</Button>

@@ -11,7 +11,7 @@ import { toast } from "@/hooks/use-toast";
 import { romaneioService, pontoEstoqueService, contratoService } from "@/lib/services";
 import { produtos as mockProdutos } from "@/lib/mock-data";
 import type { Romaneio, PontoEstoque, Contrato } from "@/lib/mock-data";
-import { STATUS_LABELS, ORIGEM_LABELS, TIPO_LABELS, SAFRAS_REF, CULTIVOS_REF, STATUS_BADGE_CLASSES, type StatusRomaneioNew } from "../romaneio-types";
+import { STATUS_LABELS, ORIGEM_LABELS, TIPO_LABELS, SAFRAS_REF, CULTIVOS_REF, STATUS_BADGE_CLASSES, type StatusRomaneioNew, resolveContratoUnidadeInfo, fmtDualUnit } from "../romaneio-types";
 import { empresas, filiais } from "@/lib/mock-data";
 
 interface StepFechamentoProps {
@@ -55,9 +55,11 @@ export function StepFechamento({ romaneio, onRefresh, ctx }: StepFechamentoProps
     return ponto ? `${ponto.descricao} (${ponto.tipo})` : romaneio.pontoEstoqueId.substring(0, 8);
   }, [romaneio.pontoEstoqueId, pontosEstoque]);
 
-  // CORREÇÃO 4: Check contract balance vs peso classificado
+  // CORREÇÃO 4: Check contract balance vs peso classificado (compare in kg)
   const pesoComercial = romaneio.pesoClassificado > 0 ? romaneio.pesoClassificado : romaneio.pesoLiquidoSecoLimpo;
-  const excedeContrato = contratoVinculado && pesoComercial > 0 && pesoComercial > contratoVinculado.quantidadeSaldo;
+  const contratoUInfo = contratoVinculado ? resolveContratoUnidadeInfo(contratoVinculado) : null;
+  const saldoContratoKg = contratoUInfo ? contratoUInfo.saldoKg : 0;
+  const excedeContrato = contratoVinculado && pesoComercial > 0 && pesoComercial > saldoContratoKg;
 
   // Validations for finalization
   const bloqueios = useMemo(() => {
@@ -68,7 +70,7 @@ export function StepFechamento({ romaneio, onRefresh, ctx }: StepFechamentoProps
     if (romaneio.pesoLiquidoFisico <= 0) erros.push("Peso líquido físico inválido");
     if (romaneio.pesoClassificado <= 0 && romaneio.status !== "CLASSIFICADO") erros.push("Classificação não concluída");
     if (!romaneio.pontoEstoqueId) erros.push("Ponto de estoque não definido");
-    if (excedeContrato) erros.push(`Peso classificado (${pesoComercial.toFixed(0)} kg) excede saldo disponível do contrato (${contratoVinculado!.quantidadeSaldo.toFixed(0)} kg)`);
+    if (excedeContrato) erros.push(`Peso classificado (${pesoComercial.toFixed(0)} kg) excede saldo disponível do contrato (${saldoContratoKg.toFixed(0)} kg)`);
     return erros;
   }, [romaneio, excedeContrato, pesoComercial, contratoVinculado]);
 
@@ -173,23 +175,25 @@ export function StepFechamento({ romaneio, onRefresh, ctx }: StepFechamentoProps
       </div>
 
       {/* CORREÇÃO 4: Contract balance info when linked */}
-      {contratoVinculado && (
+      {contratoVinculado && (() => {
+        const uInfo = resolveContratoUnidadeInfo(contratoVinculado);
+        return (
         <Card className={excedeContrato ? "border-destructive" : ""}>
           <CardHeader className="pb-2"><CardTitle className="text-sm">Saldo Contratual</CardTitle></CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               <div>
                 <span className="text-muted-foreground text-xs">Total Contratado</span>
-                <p className="font-bold font-mono">{contratoVinculado.quantidadeTotal.toFixed(0)} kg</p>
+                <p className="font-bold font-mono">{fmtDualUnit(uInfo.totalOriginal, uInfo)}</p>
               </div>
               <div>
                 <span className="text-muted-foreground text-xs">Já Entregue</span>
-                <p className="font-bold font-mono">{contratoVinculado.quantidadeEntregue.toFixed(0)} kg</p>
+                <p className="font-bold font-mono">{fmtDualUnit(uInfo.entregueOriginal, uInfo)}</p>
               </div>
               <div>
                 <span className="text-muted-foreground text-xs">Saldo Disponível</span>
                 <p className={`font-bold font-mono ${contratoVinculado.quantidadeSaldo <= 0 ? "text-destructive" : "text-green-700"}`}>
-                  {contratoVinculado.quantidadeSaldo.toFixed(0)} kg
+                  {fmtDualUnit(uInfo.saldoOriginal, uInfo)}
                 </p>
               </div>
               <div>
@@ -201,12 +205,13 @@ export function StepFechamento({ romaneio, onRefresh, ctx }: StepFechamentoProps
             </div>
             {excedeContrato && (
               <div className="mt-3 rounded-md bg-destructive/10 border border-destructive/30 p-2 text-xs text-destructive">
-                ⚠ O peso classificado excede o saldo disponível do contrato em {(pesoComercial - contratoVinculado.quantidadeSaldo).toFixed(0)} kg. Finalização bloqueada.
+                ⚠ O peso classificado excede o saldo disponível do contrato em {(pesoComercial - uInfo.saldoKg).toFixed(0)} kg. Finalização bloqueada.
               </div>
             )}
           </CardContent>
         </Card>
-      )}
+        );
+      })()}
 
       {/* Ponto de Estoque — same field as Step 1 */}
       <Card>

@@ -125,3 +125,68 @@ export function isStepAccessible(stepNumber: number, status: StatusRomaneioNew):
 export function isRomaneioEditable(status: StatusRomaneioNew): boolean {
   return status !== "FINALIZADO" && status !== "CANCELADO";
 }
+
+// ---- Dual-unit contract display helpers ----
+import { unidadesMedida } from "@/lib/mock-data";
+import { produtos as mockProdutos } from "@/lib/mock-data";
+import type { Contrato, Produto, UnidadeMedida } from "@/lib/mock-data";
+
+export interface ContratoUnidadeInfo {
+  unidadeCodigo: string; // e.g. "SC", "KG"
+  fatorParaKg: number;   // e.g. 60 for SC
+  isKg: boolean;         // true if negotiation unit is already KG
+  totalOriginal: number;
+  totalKg: number;
+  entregueOriginal: number;
+  entregueKg: number;
+  saldoOriginal: number;
+  saldoKg: number;
+}
+
+/**
+ * Resolves the contract's negotiation unit info for dual-unit display.
+ * Uses the product's unit config (entrada/saida) + the contract's unidadeNegociacaoId.
+ */
+export function resolveContratoUnidadeInfo(contrato: Contrato, tipoRomaneio?: TipoRomaneio): ContratoUnidadeInfo {
+  const unidade = unidadesMedida.find((u) => u.id === contrato.unidadeNegociacaoId && u.deletadoEm === null);
+  const codigo = unidade?.codigo || "KG";
+  const fator = unidade?.fatorBase || 1;
+  const isKg = fator === 1; // KG has fatorBase = 1
+
+  return {
+    unidadeCodigo: codigo,
+    fatorParaKg: fator,
+    isKg,
+    totalOriginal: contrato.quantidadeTotal,
+    totalKg: contrato.quantidadeTotal * fator,
+    entregueOriginal: contrato.quantidadeEntregue,
+    entregueKg: contrato.quantidadeEntregue * fator,
+    saldoOriginal: contrato.quantidadeSaldo,
+    saldoKg: contrato.quantidadeSaldo * fator,
+  };
+}
+
+/**
+ * Formats a quantity with dual-unit display.
+ * If the unit is KG, shows only "X kg".
+ * Otherwise shows "X SC / Y kg".
+ */
+export function fmtDualUnit(valor: number, info: ContratoUnidadeInfo, decimals = 0): string {
+  if (info.isKg) {
+    return `${valor.toFixed(decimals)} kg`;
+  }
+  const valorKg = valor * info.fatorParaKg;
+  return `${valor.toFixed(decimals)} ${info.unidadeCodigo.toLowerCase()} / ${valorKg.toFixed(decimals)} kg`;
+}
+
+/**
+ * Formats contract saldo for dropdown display.
+ */
+export function fmtContratoSaldo(contrato: Contrato): string {
+  const info = resolveContratoUnidadeInfo(contrato);
+  if (contrato.quantidadeSaldo <= 0) return "(sem saldo)";
+  if (info.isKg) {
+    return `(saldo: ${contrato.quantidadeSaldo.toFixed(0)} kg)`;
+  }
+  return `(saldo: ${contrato.quantidadeSaldo.toFixed(0)} ${info.unidadeCodigo.toLowerCase()} / ${info.saldoKg.toFixed(0)} kg)`;
+}
