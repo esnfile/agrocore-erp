@@ -70,7 +70,7 @@ export function StepFechamento({ romaneio, onRefresh, ctx }: StepFechamentoProps
     if (romaneio.pesoLiquidoFisico <= 0) erros.push("Peso líquido físico inválido");
     if (romaneio.pesoClassificado <= 0 && romaneio.status !== "CLASSIFICADO") erros.push("Classificação não concluída");
     if (!romaneio.pontoEstoqueId) erros.push("Ponto de estoque não definido");
-    if (excedeContrato) erros.push(`Peso classificado (${pesoComercial.toFixed(0)} kg) excede saldo disponível do contrato (${contratoVinculado!.quantidadeSaldo.toFixed(0)} kg)`);
+    if (excedeContrato) erros.push(`Peso classificado (${pesoComercial.toFixed(0)} kg) excede saldo disponível do contrato (${saldoContratoKg.toFixed(0)} kg)`);
     return erros;
   }, [romaneio, excedeContrato, pesoComercial, contratoVinculado]);
 
