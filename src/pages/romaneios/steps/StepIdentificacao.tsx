@@ -14,7 +14,7 @@ import { romaneioService, motoristaService, veiculoService, contratoService, pon
 import { produtos as mockProdutos, empresas, filiais } from "@/lib/mock-data";
 import type { Romaneio, Contrato, Motorista, Veiculo, PontoEstoque } from "@/lib/mock-data";
 import type { OrigemRomaneio, TipoRomaneio } from "../romaneio-types";
-import { SAFRAS_REF, CULTIVOS_REF, ORIGEM_LABELS, TIPO_LABELS } from "../romaneio-types";
+import { SAFRAS_REF, CULTIVOS_REF, ORIGEM_LABELS, TIPO_LABELS, resolveContratoUnidadeInfo, fmtDualUnit, fmtContratoSaldo } from "../romaneio-types";
 import { FormRow } from "@/components/FormRow";
 
 interface StepIdentificacaoProps {
