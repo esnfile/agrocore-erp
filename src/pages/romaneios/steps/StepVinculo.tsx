@@ -10,7 +10,7 @@ import { toast } from "@/hooks/use-toast";
 import { romaneioService, contratoService } from "@/lib/services";
 import { produtos as mockProdutos } from "@/lib/mock-data";
 import type { Romaneio, Contrato } from "@/lib/mock-data";
-import { ORIGEM_LABELS, TIPO_LABELS, SAFRAS_REF, CULTIVOS_REF } from "../romaneio-types";
+import { ORIGEM_LABELS, TIPO_LABELS, SAFRAS_REF, CULTIVOS_REF, resolveContratoUnidadeInfo, fmtDualUnit, fmtContratoSaldo } from "../romaneio-types";
 
 interface StepVinculoProps {
   romaneio: Romaneio;
