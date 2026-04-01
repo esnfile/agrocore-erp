@@ -1079,7 +1079,7 @@ export const unidadesMedida: UnidadeMedida[] = [
     codigo: "SC",
     descricao: "Saca",
     tipo: "PESO",
-    fatorBase: 60,
+    fatorBase: 1,
     ativo: true,
     criadoEm: "2025-06-23T08:00:00Z",
     criadoPor: "u1",
@@ -1171,7 +1171,7 @@ export const produtoEmpresas: ProdutoEmpresa[] = [
     empresaId: "e1",
     coeficienteEmpresaId: "ce1",
     custoBase: 100.0,
-    custoCalculado: 120.70,
+    custoCalculado: 120.7,
     ativo: true,
     criadoEm: "2024-07-01T08:00:00Z",
     criadoPor: "u1",
@@ -3385,9 +3385,18 @@ export const veiculos: Veiculo[] = [];
 // ============================================================
 // Romaneios
 // ============================================================
-export type StatusRomaneio = "RASCUNHO" | "AGUARDANDO_PESAGEM" | "PESAGEM_PARCIAL" | "AGUARDANDO_VINCULO" | "AGUARDANDO_CLASSIFICACAO" | "CLASSIFICADO" | "FINALIZADO" | "CANCELADO"
+export type StatusRomaneio =
+  | "RASCUNHO"
+  | "AGUARDANDO_PESAGEM"
+  | "PESAGEM_PARCIAL"
+  | "AGUARDANDO_VINCULO"
+  | "AGUARDANDO_CLASSIFICACAO"
+  | "CLASSIFICADO"
+  | "FINALIZADO"
+  | "CANCELADO"
   // Legacy compat
-  | "ABERTO" | "AGUARDANDO_CONTRATO";
+  | "ABERTO"
+  | "AGUARDANDO_CONTRATO";
 
 export type OrigemRomaneio = "CONTRATO" | "COLHEITA" | "AVULSO";
 export type TipoRomaneio = "ENTRADA" | "SAIDA";
@@ -3536,14 +3545,94 @@ export interface DescontoEmpresaConfig {
 }
 
 export const descontoTipos: DescontoTipo[] = [
-  { id: "dt1", nome: "FETHAB", descricao: "Fundo Estadual de Transporte e Habitação", categoria: "tributario", tipo: "valor_fixo_unitario", ordemAplicacao: 1, obrigatorio: true, aplicacao: "romaneio", ativo: true },
-  { id: "dt2", nome: "FUNRURAL", descricao: "Contribuição ao Fundo de Assistência ao Trabalhador Rural", categoria: "tributario", tipo: "percentual", ordemAplicacao: 2, obrigatorio: true, aplicacao: "ambos", ativo: true },
-  { id: "dt3", nome: "TAXA_ARMAZEM", descricao: "Taxa de armazenagem por tonelada/mês", categoria: "operacional", tipo: "valor_fixo_unitario", ordemAplicacao: 3, obrigatorio: false, aplicacao: "romaneio", ativo: true },
-  { id: "dt4", nome: "CLASSIFICACAO", descricao: "Desconto por resultado de classificação de grãos", categoria: "qualidade", tipo: "percentual", ordemAplicacao: 4, obrigatorio: false, aplicacao: "romaneio", ativo: true },
-  { id: "dt5", nome: "IMPUREZA", descricao: "Desconto por impureza acima do padrão tolerado", categoria: "qualidade", tipo: "percentual", ordemAplicacao: 5, obrigatorio: false, aplicacao: "romaneio", ativo: true },
-  { id: "dt6", nome: "UMIDADE", descricao: "Desconto por umidade acima do padrão de recebimento", categoria: "qualidade", tipo: "percentual", ordemAplicacao: 6, obrigatorio: false, aplicacao: "romaneio", ativo: true },
-  { id: "dt7", nome: "ARDIDOS", descricao: "Desconto por grãos ardidos acima da tolerância", categoria: "qualidade", tipo: "percentual", ordemAplicacao: 7, obrigatorio: false, aplicacao: "romaneio", ativo: true },
-  { id: "dt8", nome: "AVARIADOS", descricao: "Desconto por grãos avariados acima da tolerância", categoria: "qualidade", tipo: "percentual", ordemAplicacao: 8, obrigatorio: false, aplicacao: "contrato", ativo: false },
+  {
+    id: "dt1",
+    nome: "FETHAB",
+    descricao: "Fundo Estadual de Transporte e Habitação",
+    categoria: "tributario",
+    tipo: "valor_fixo_unitario",
+    ordemAplicacao: 1,
+    obrigatorio: true,
+    aplicacao: "romaneio",
+    ativo: true,
+  },
+  {
+    id: "dt2",
+    nome: "FUNRURAL",
+    descricao: "Contribuição ao Fundo de Assistência ao Trabalhador Rural",
+    categoria: "tributario",
+    tipo: "percentual",
+    ordemAplicacao: 2,
+    obrigatorio: true,
+    aplicacao: "ambos",
+    ativo: true,
+  },
+  {
+    id: "dt3",
+    nome: "TAXA_ARMAZEM",
+    descricao: "Taxa de armazenagem por tonelada/mês",
+    categoria: "operacional",
+    tipo: "valor_fixo_unitario",
+    ordemAplicacao: 3,
+    obrigatorio: false,
+    aplicacao: "romaneio",
+    ativo: true,
+  },
+  {
+    id: "dt4",
+    nome: "CLASSIFICACAO",
+    descricao: "Desconto por resultado de classificação de grãos",
+    categoria: "qualidade",
+    tipo: "percentual",
+    ordemAplicacao: 4,
+    obrigatorio: false,
+    aplicacao: "romaneio",
+    ativo: true,
+  },
+  {
+    id: "dt5",
+    nome: "IMPUREZA",
+    descricao: "Desconto por impureza acima do padrão tolerado",
+    categoria: "qualidade",
+    tipo: "percentual",
+    ordemAplicacao: 5,
+    obrigatorio: false,
+    aplicacao: "romaneio",
+    ativo: true,
+  },
+  {
+    id: "dt6",
+    nome: "UMIDADE",
+    descricao: "Desconto por umidade acima do padrão de recebimento",
+    categoria: "qualidade",
+    tipo: "percentual",
+    ordemAplicacao: 6,
+    obrigatorio: false,
+    aplicacao: "romaneio",
+    ativo: true,
+  },
+  {
+    id: "dt7",
+    nome: "ARDIDOS",
+    descricao: "Desconto por grãos ardidos acima da tolerância",
+    categoria: "qualidade",
+    tipo: "percentual",
+    ordemAplicacao: 7,
+    obrigatorio: false,
+    aplicacao: "romaneio",
+    ativo: true,
+  },
+  {
+    id: "dt8",
+    nome: "AVARIADOS",
+    descricao: "Desconto por grãos avariados acima da tolerância",
+    categoria: "qualidade",
+    tipo: "percentual",
+    ordemAplicacao: 8,
+    obrigatorio: false,
+    aplicacao: "contrato",
+    ativo: false,
+  },
 ];
 
 export const descontoEmpresaConfigs: DescontoEmpresaConfig[] = [
