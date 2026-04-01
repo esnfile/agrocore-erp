@@ -28,17 +28,15 @@ export function StepVinculo({ romaneio, onRefresh, ctx }: StepVinculoProps) {
 
   const vinculoResolvido = romaneio.origem !== "AVULSO" || romaneio.status !== "AGUARDANDO_VINCULO";
   const isAvulsoSemVinculo = romaneio.origem === "AVULSO" && romaneio.status === "AGUARDANDO_VINCULO";
+  const isEditable = romaneio.status !== "FINALIZADO" && romaneio.status !== "CANCELADO";
 
   const produtoNome = mockProdutos.find((p) => p.id === romaneio.produtoId)?.descricao || romaneio.produtoId;
 
-  // Filter contracts: same empresa, same produto, compatible tipo
+  // CORREÇÃO 4 & 6: Filter contracts by empresa, produto, tipo AND check saldo > 0
   const contratosCompativeis = useMemo(() => {
     return contratos.filter((c) => {
-      // Same empresa
       if (c.empresaId !== romaneio.empresaId) return false;
-      // Same produto
       if (c.produtoId !== romaneio.produtoId) return false;
-      // Compatible tipo: ENTRADA → COMPRA, SAIDA → VENDA
       if (romaneio.tipoRomaneio === "ENTRADA" && c.tipoContrato !== "COMPRA") return false;
       if (romaneio.tipoRomaneio === "SAIDA" && c.tipoContrato !== "VENDA") return false;
       return true;
@@ -47,7 +45,6 @@ export function StepVinculo({ romaneio, onRefresh, ctx }: StepVinculoProps) {
 
   const loadContratos = async () => {
     if (contratosLoaded || !ctx) return;
-    // Load all contracts for the empresa (not filtered by filial — filial doesn't block)
     const c = await contratoService.listar(romaneio.empresaId, romaneio.filialId);
     setContratos(c.filter((ct) => ct.status === "ABERTO" || ct.status === "PARCIAL"));
     setContratosLoaded(true);
@@ -56,7 +53,6 @@ export function StepVinculo({ romaneio, onRefresh, ctx }: StepVinculoProps) {
   const vincularContrato = async () => {
     if (!vincularContratoId) return;
 
-    // Validate compatibility before sending
     const contrato = contratos.find((c) => c.id === vincularContratoId);
     if (!contrato) {
       toast({ title: "Contrato não encontrado.", variant: "destructive" });
@@ -75,6 +71,11 @@ export function StepVinculo({ romaneio, onRefresh, ctx }: StepVinculoProps) {
       toast({ title: `Tipo incompatível. Romaneio de ${TIPO_LABELS[romaneio.tipoRomaneio]} requer contrato de ${tipoEsperado}.`, variant: "destructive" });
       return;
     }
+    // CORREÇÃO 4: Block if contract has no balance
+    if (contrato.quantidadeSaldo <= 0) {
+      toast({ title: "Este contrato não possui saldo disponível. Vínculo bloqueado.", variant: "destructive" });
+      return;
+    }
 
     const result = await romaneioService.vincularContrato(romaneio.id, vincularContratoId);
     if (result.sucesso) {
@@ -88,7 +89,6 @@ export function StepVinculo({ romaneio, onRefresh, ctx }: StepVinculoProps) {
 
   const vincularColheita = async () => {
     if (!vincularSafraId || !vincularCultivoId) return;
-    // Colheita is always ENTRADA — check compatibility
     if (romaneio.tipoRomaneio !== "ENTRADA") {
       toast({ title: "Romaneio de Saída não pode ser vinculado a Colheita.", variant: "destructive" });
       return;
@@ -105,7 +105,6 @@ export function StepVinculo({ romaneio, onRefresh, ctx }: StepVinculoProps) {
 
   const cultivosFiltrados = CULTIVOS_REF.filter((c) => c.safraId === vincularSafraId);
 
-  // Selected contract summary for validation display
   const selectedContrato = contratos.find((c) => c.id === vincularContratoId);
 
   return (
@@ -150,16 +149,19 @@ export function StepVinculo({ romaneio, onRefresh, ctx }: StepVinculoProps) {
               <p className="mt-2 text-sm text-amber-700">
                 Este romaneio já possui pesagens registradas, mas não pode seguir para classificação, estoque ou finalização sem vínculo definitivo.
               </p>
-              <div className="flex gap-2 mt-4">
-                <Button variant="outline" className="gap-2" onClick={() => { setVincularTipo("contrato"); setVincularContratoId(""); loadContratos(); }}>
-                  <Link2 className="h-4 w-4" /> Vincular a Contrato
-                </Button>
-                {romaneio.tipoRomaneio === "ENTRADA" && (
-                  <Button variant="outline" className="gap-2" onClick={() => setVincularTipo("colheita")}>
-                    <Link2 className="h-4 w-4" /> Vincular a Colheita
+              {/* CORREÇÃO 3: Only show vincular buttons if editable */}
+              {isEditable && (
+                <div className="flex gap-2 mt-4">
+                  <Button variant="outline" className="gap-2" onClick={() => { setVincularTipo("contrato"); setVincularContratoId(""); loadContratos(); }}>
+                    <Link2 className="h-4 w-4" /> Vincular a Contrato
                   </Button>
-                )}
-              </div>
+                  {romaneio.tipoRomaneio === "ENTRADA" && (
+                    <Button variant="outline" className="gap-2" onClick={() => setVincularTipo("colheita")}>
+                      <Link2 className="h-4 w-4" /> Vincular a Colheita
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </CardContent>
@@ -183,13 +185,19 @@ export function StepVinculo({ romaneio, onRefresh, ctx }: StepVinculoProps) {
                 <SelectContent>
                   {contratosCompativeis.length === 0 ? (
                     <SelectItem value="__none" disabled>Nenhum contrato compatível encontrado</SelectItem>
-                  ) : contratosCompativeis.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.numeroContrato} — {c.tipoContrato}</SelectItem>
-                  ))}
+                  ) : contratosCompativeis.map((c) => {
+                    const semSaldo = c.quantidadeSaldo <= 0;
+                    return (
+                      <SelectItem key={c.id} value={c.id} disabled={semSaldo}>
+                        {c.numeroContrato} — {c.tipoContrato}
+                        {semSaldo ? " (sem saldo)" : ` (saldo: ${c.quantidadeSaldo.toFixed(0)} kg)`}
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>
-            {/* Validation summary */}
+            {/* Validation summary with balance info */}
             {selectedContrato && (
               <div className="rounded-md bg-green-50 border border-green-200 p-3 text-xs space-y-1">
                 <div className="flex items-center gap-1 text-green-700 font-medium">
@@ -198,12 +206,17 @@ export function StepVinculo({ romaneio, onRefresh, ctx }: StepVinculoProps) {
                 <p className="text-green-700">✓ Empresa compatível</p>
                 <p className="text-green-700">✓ Produto compatível ({produtoNome})</p>
                 <p className="text-green-700">✓ Tipo compatível ({selectedContrato.tipoContrato})</p>
+                <p className={selectedContrato.quantidadeSaldo > 0 ? "text-green-700" : "text-destructive"}>
+                  {selectedContrato.quantidadeSaldo > 0
+                    ? `✓ Saldo disponível: ${selectedContrato.quantidadeSaldo.toFixed(0)} kg`
+                    : `✗ Sem saldo disponível`}
+                </p>
               </div>
             )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setVincularTipo(null)}>Cancelar</Button>
-            <Button onClick={vincularContrato} disabled={!vincularContratoId || vincularContratoId === "__none"}>Vincular</Button>
+            <Button onClick={vincularContrato} disabled={!vincularContratoId || vincularContratoId === "__none" || (selectedContrato && selectedContrato.quantidadeSaldo <= 0)}>Vincular</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

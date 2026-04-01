@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,9 +8,9 @@ import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { CheckCircle, XCircle, AlertTriangle, Scale, Pencil } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { romaneioService, pontoEstoqueService } from "@/lib/services";
+import { romaneioService, pontoEstoqueService, contratoService } from "@/lib/services";
 import { produtos as mockProdutos } from "@/lib/mock-data";
-import type { Romaneio, PontoEstoque } from "@/lib/mock-data";
+import type { Romaneio, PontoEstoque, Contrato } from "@/lib/mock-data";
 import { STATUS_LABELS, ORIGEM_LABELS, TIPO_LABELS, SAFRAS_REF, CULTIVOS_REF, STATUS_BADGE_CLASSES, type StatusRomaneioNew } from "../romaneio-types";
 import { empresas, filiais } from "@/lib/mock-data";
 
@@ -26,6 +26,7 @@ export function StepFechamento({ romaneio, onRefresh, ctx }: StepFechamentoProps
   const [editingPonto, setEditingPonto] = useState(false);
   const [confirmFinalizar, setConfirmFinalizar] = useState(false);
   const [confirmCancelar, setConfirmCancelar] = useState(false);
+  const [contratoVinculado, setContratoVinculado] = useState<Contrato | null>(null);
 
   const produtoNome = mockProdutos.find((p) => p.id === romaneio.produtoId)?.descricao || romaneio.produtoId;
   const empresaNome = empresas.find((e) => e.id === romaneio.empresaId)?.nome || romaneio.empresaId.substring(0, 8);
@@ -38,11 +39,25 @@ export function StepFechamento({ romaneio, onRefresh, ctx }: StepFechamentoProps
     setPontosLoaded(true);
   };
 
+  // Load linked contract for balance validation
+  useEffect(() => {
+    if (romaneio.contratoId) {
+      contratoService.listar(romaneio.empresaId, romaneio.filialId).then((contratos) => {
+        const ct = contratos.find((c) => c.id === romaneio.contratoId);
+        if (ct) setContratoVinculado(ct);
+      });
+    }
+  }, [romaneio.contratoId, romaneio.empresaId, romaneio.filialId]);
+
   const pontoNome = useMemo(() => {
     if (!romaneio.pontoEstoqueId) return "Não definido";
     const ponto = pontosEstoque.find((p) => p.id === romaneio.pontoEstoqueId);
     return ponto ? `${ponto.descricao} (${ponto.tipo})` : romaneio.pontoEstoqueId.substring(0, 8);
   }, [romaneio.pontoEstoqueId, pontosEstoque]);
+
+  // CORREÇÃO 4: Check contract balance vs peso classificado
+  const pesoComercial = romaneio.pesoClassificado > 0 ? romaneio.pesoClassificado : romaneio.pesoLiquidoSecoLimpo;
+  const excedeContrato = contratoVinculado && pesoComercial > 0 && pesoComercial > contratoVinculado.quantidadeSaldo;
 
   // Validations for finalization
   const bloqueios = useMemo(() => {
@@ -53,10 +68,13 @@ export function StepFechamento({ romaneio, onRefresh, ctx }: StepFechamentoProps
     if (romaneio.pesoLiquidoFisico <= 0) erros.push("Peso líquido físico inválido");
     if (romaneio.pesoClassificado <= 0 && romaneio.status !== "CLASSIFICADO") erros.push("Classificação não concluída");
     if (!romaneio.pontoEstoqueId) erros.push("Ponto de estoque não definido");
+    if (excedeContrato) erros.push(`Peso classificado (${pesoComercial.toFixed(0)} kg) excede saldo disponível do contrato (${contratoVinculado!.quantidadeSaldo.toFixed(0)} kg)`);
     return erros;
-  }, [romaneio]);
+  }, [romaneio, excedeContrato, pesoComercial, contratoVinculado]);
 
   const podeFinalizar = bloqueios.length === 0 && romaneio.status !== "FINALIZADO" && romaneio.status !== "CANCELADO";
+
+  const isEditable = romaneio.status !== "FINALIZADO" && romaneio.status !== "CANCELADO";
 
   const handlePontoChange = async (pontoId: string) => {
     if (!ctx) return;
@@ -67,9 +85,13 @@ export function StepFechamento({ romaneio, onRefresh, ctx }: StepFechamentoProps
   };
 
   const handleFinalizar = async () => {
-    // Final validation
     if (!romaneio.pontoEstoqueId) {
       toast({ title: "Ponto de estoque é obrigatório para finalizar.", variant: "destructive" });
+      setConfirmFinalizar(false);
+      return;
+    }
+    if (excedeContrato) {
+      toast({ title: "Peso classificado excede o saldo disponível do contrato.", variant: "destructive" });
       setConfirmFinalizar(false);
       return;
     }
@@ -89,8 +111,6 @@ export function StepFechamento({ romaneio, onRefresh, ctx }: StepFechamentoProps
     setConfirmCancelar(false);
     onRefresh();
   };
-
-  const isEditable = romaneio.status !== "FINALIZADO" && romaneio.status !== "CANCELADO";
 
   const fmtPeso = (v: number) => v > 0 ? `${v.toFixed(0)} kg` : "—";
 
@@ -144,7 +164,7 @@ export function StepFechamento({ romaneio, onRefresh, ctx }: StepFechamentoProps
           <CardContent className="p-6 text-center">
             <Scale className="mx-auto h-6 w-6 text-green-600 mb-2" />
             <p className="text-xs text-green-600 font-medium">PESO CLASSIFICADO / COMERCIAL</p>
-            <p className="text-2xl font-bold text-green-800">{romaneio.pesoClassificado > 0 ? fmtPeso(romaneio.pesoClassificado) : (romaneio.pesoLiquidoSecoLimpo > 0 ? fmtPeso(romaneio.pesoLiquidoSecoLimpo) : "—")}</p>
+            <p className="text-2xl font-bold text-green-800">{pesoComercial > 0 ? fmtPeso(pesoComercial) : "—"}</p>
             {romaneio.totalPercentualDescontos > 0 && (
               <p className="text-xs text-orange-600 mt-1">Descontos: -{romaneio.totalPesoDescontado.toFixed(0)} kg ({romaneio.totalPercentualDescontos.toFixed(2)}%)</p>
             )}
@@ -152,7 +172,43 @@ export function StepFechamento({ romaneio, onRefresh, ctx }: StepFechamentoProps
         </Card>
       </div>
 
-      {/* Ponto de Estoque — same field as Step 1, shown as confirmation */}
+      {/* CORREÇÃO 4: Contract balance info when linked */}
+      {contratoVinculado && (
+        <Card className={excedeContrato ? "border-destructive" : ""}>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">Saldo Contratual</CardTitle></CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div>
+                <span className="text-muted-foreground text-xs">Total Contratado</span>
+                <p className="font-bold font-mono">{contratoVinculado.quantidadeTotal.toFixed(0)} kg</p>
+              </div>
+              <div>
+                <span className="text-muted-foreground text-xs">Já Entregue</span>
+                <p className="font-bold font-mono">{contratoVinculado.quantidadeEntregue.toFixed(0)} kg</p>
+              </div>
+              <div>
+                <span className="text-muted-foreground text-xs">Saldo Disponível</span>
+                <p className={`font-bold font-mono ${contratoVinculado.quantidadeSaldo <= 0 ? "text-destructive" : "text-green-700"}`}>
+                  {contratoVinculado.quantidadeSaldo.toFixed(0)} kg
+                </p>
+              </div>
+              <div>
+                <span className="text-muted-foreground text-xs">Peso Classificado (este romaneio)</span>
+                <p className={`font-bold font-mono ${excedeContrato ? "text-destructive" : ""}`}>
+                  {pesoComercial > 0 ? `${pesoComercial.toFixed(0)} kg` : "—"}
+                </p>
+              </div>
+            </div>
+            {excedeContrato && (
+              <div className="mt-3 rounded-md bg-destructive/10 border border-destructive/30 p-2 text-xs text-destructive">
+                ⚠ O peso classificado excede o saldo disponível do contrato em {(pesoComercial - contratoVinculado.quantidadeSaldo).toFixed(0)} kg. Finalização bloqueada.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Ponto de Estoque — same field as Step 1 */}
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-sm">Ponto de Estoque</CardTitle></CardHeader>
         <CardContent>
@@ -197,7 +253,7 @@ export function StepFechamento({ romaneio, onRefresh, ctx }: StepFechamentoProps
         </div>
       )}
 
-      {/* Ações */}
+      {/* Ações — CORREÇÃO 3: Only show when editable */}
       {isEditable && (
         <div className="flex gap-3 justify-end pt-4">
           <Button variant="destructive" onClick={() => setConfirmCancelar(true)} className="gap-2">

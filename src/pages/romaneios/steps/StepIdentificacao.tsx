@@ -19,7 +19,7 @@ import { FormRow } from "@/components/FormRow";
 
 interface StepIdentificacaoProps {
   romaneio: Romaneio | null;
-  pesagensCount: number; // Number of pesagens already registered
+  pesagensCount: number;
   onSaved: (rom: Romaneio) => void;
   ctx: { grupoId: string; empresaId: string; filialId: string } | null;
 }
@@ -65,7 +65,7 @@ export function StepIdentificacao({ romaneio, pesagensCount, onSaved, ctx }: Ste
   const filiaisFiltradas = filiais.filter((f) => f.empresaId === empresaId && f.deletadoEm === null);
   const cultivosFiltrados = CULTIVOS_REF.filter((c) => c.safraId === safraId);
 
-  // Whether structural fields are locked (after first pesagem)
+  // CORREÇÃO 1: Lock structural fields ONLY after first pesagem is persisted
   const structuralLocked = pesagensCount > 0;
   const isEditable = !romaneio || (romaneio.status !== "FINALIZADO" && romaneio.status !== "CANCELADO");
   const canEditStructural = isEditable && !structuralLocked;
@@ -77,14 +77,12 @@ export function StepIdentificacao({ romaneio, pesagensCount, onSaved, ctx }: Ste
     setContratosLoaded(true);
   };
 
-  // Load pontos de estoque filtered by filial
   const loadPontosEstoque = async () => {
     if (!empresaId || !filialId) { setPontosEstoque([]); return; }
     const p = await pontoEstoqueService.listar(empresaId, filialId);
     setPontosEstoque(p.filter((pe) => pe.ativo));
   };
 
-  // When filial changes, reload pontos and clear if invalid
   useEffect(() => {
     if (empresaId && filialId) {
       loadPontosEstoque();
@@ -102,13 +100,39 @@ export function StepIdentificacao({ romaneio, pesagensCount, onSaved, ctx }: Ste
     }
   }, [pontosEstoque, pontoEstoqueId]);
 
+  // CORREÇÃO 2: Cascade clear on empresa change
+  const handleEmpresaChange = (newEmpresaId: string) => {
+    setEmpresaId(newEmpresaId);
+    // Clear all dependent fields
+    setFilialId("");
+    setPontoEstoqueId("");
+    setContratoId("");
+    setSafraId("");
+    setCultivoId("");
+    setContratosLoaded(false);
+    // Clear derived fields from vínculo
+    if (origem === "CONTRATO") {
+      setProdutoId("");
+      setTipoRomaneio("ENTRADA");
+    }
+    if (origem === "COLHEITA") {
+      setProdutoId("");
+    }
+  };
+
+  // Cascade clear on filial change
+  const handleFilialChange = (newFilialId: string) => {
+    setFilialId(newFilialId);
+    setContratosLoaded(false);
+    // Ponto de estoque will be auto-cleared by the useEffect above
+  };
+
   // Auto-derive tipo from contract
   const handleContratoChange = (cId: string) => {
     setContratoId(cId);
     const contrato = contratos.find((c) => c.id === cId);
     if (contrato) {
       setProdutoId(contrato.produtoId);
-      // Auto-derive tipo from contract type
       if (contrato.tipoContrato === "COMPRA") {
         setTipoRomaneio("ENTRADA");
       } else {
@@ -149,8 +173,9 @@ export function StepIdentificacao({ romaneio, pesagensCount, onSaved, ctx }: Ste
     setShowVeicSugg(results.length > 0);
   };
 
+  // CORREÇÃO 3: Block quick register when not editable (finalizado/cancelado)
   const quickRegisterMotorista = async () => {
-    if (!ctx || !quickMotNome) return;
+    if (!ctx || !quickMotNome || !isEditable) return;
     const m = await motoristaService.salvar({ nome: quickMotNome, documento: quickMotDoc }, ctx);
     setMotoristaNome(m.nome);
     setMotoristaDocumento(m.documento);
@@ -159,7 +184,7 @@ export function StepIdentificacao({ romaneio, pesagensCount, onSaved, ctx }: Ste
   };
 
   const quickRegisterVeiculo = async () => {
-    if (!ctx || !quickVeicPlaca) return;
+    if (!ctx || !quickVeicPlaca || !isEditable) return;
     const v = await veiculoService.salvar({ placa: quickVeicPlaca.toUpperCase(), tipoVeiculo: quickVeicTipo }, ctx);
     setPlacaVeiculo(v.placa);
     setQuickVeicOpen(false); setQuickVeicPlaca(""); setQuickVeicTipo("");
@@ -230,7 +255,7 @@ export function StepIdentificacao({ romaneio, pesagensCount, onSaved, ctx }: Ste
           <FormRow columns={2}>
             <div>
               <Label>Empresa *</Label>
-              <Select value={empresaId} onValueChange={(v) => { setEmpresaId(v); setFilialId(""); setContratosLoaded(false); }} disabled={!canEditStructural}>
+              <Select value={empresaId} onValueChange={handleEmpresaChange} disabled={!canEditStructural}>
                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
                   {empresas.filter((e) => e.deletadoEm === null).map((e) => <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>)}
@@ -239,7 +264,7 @@ export function StepIdentificacao({ romaneio, pesagensCount, onSaved, ctx }: Ste
             </div>
             <div>
               <Label>Filial *</Label>
-              <Select value={filialId} onValueChange={(v) => { setFilialId(v); setContratosLoaded(false); }} disabled={!canEditStructural}>
+              <Select value={filialId} onValueChange={handleFilialChange} disabled={!canEditStructural}>
                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
                   {filiaisFiltradas.map((f) => <SelectItem key={f.id} value={f.id}>{f.nomeRazao}</SelectItem>)}
@@ -257,7 +282,7 @@ export function StepIdentificacao({ romaneio, pesagensCount, onSaved, ctx }: Ste
           <FormRow columns={origem === "AVULSO" ? 2 : 1}>
             <div>
               <Label>Origem *</Label>
-              <Select value={origem} onValueChange={(v) => setOrigem(v as OrigemRomaneio)} disabled={!canEditStructural || !!romaneio}>
+              <Select value={origem} onValueChange={(v) => setOrigem(v as OrigemRomaneio)} disabled={!canEditStructural}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="CONTRATO">{ORIGEM_LABELS.CONTRATO}</SelectItem>
@@ -284,7 +309,6 @@ export function StepIdentificacao({ romaneio, pesagensCount, onSaved, ctx }: Ste
             <Badge variant="outline" className="text-xs">
               {origem === "CONTRATO" ? "🔗 Fluxo Comercial" : origem === "COLHEITA" ? "🌱 Fluxo Agrícola" : "📝 Preenchimento Manual"}
             </Badge>
-            {/* Show derived tipo for non-AVULSO */}
             {origem !== "AVULSO" && (
               <Badge variant="outline" className="text-xs">
                 Tipo: {TIPO_LABELS[tipoRomaneio]}
@@ -308,12 +332,33 @@ export function StepIdentificacao({ romaneio, pesagensCount, onSaved, ctx }: Ste
             <>
               <div>
                 <Label>Contrato *</Label>
-                <Select value={contratoId} onValueChange={handleContratoChange} disabled={!isEditable}>
+                <Select value={contratoId} onValueChange={handleContratoChange} disabled={!isEditable || structuralLocked}>
                   <SelectTrigger><SelectValue placeholder="Selecione o contrato" /></SelectTrigger>
                   <SelectContent>
-                    {contratos.map((c) => <SelectItem key={c.id} value={c.id}>{c.numeroContrato} — {c.tipoContrato}</SelectItem>)}
+                    {contratos.map((c) => {
+                      const saldoDisponivel = c.quantidadeSaldo;
+                      const semSaldo = saldoDisponivel <= 0;
+                      return (
+                        <SelectItem key={c.id} value={c.id} disabled={semSaldo}>
+                          {c.numeroContrato} — {c.tipoContrato}
+                          {semSaldo ? " (sem saldo)" : ` (saldo: ${saldoDisponivel.toFixed(0)} kg)`}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
+                {/* CORREÇÃO 4: Show contract balance info */}
+                {contratoId && (() => {
+                  const ct = contratos.find((c) => c.id === contratoId);
+                  if (!ct) return null;
+                  return (
+                    <div className="mt-2 rounded-md bg-muted/50 border p-2 text-xs space-y-0.5">
+                      <p><span className="text-muted-foreground">Total contratado:</span> <strong>{ct.quantidadeTotal.toFixed(0)} kg</strong></p>
+                      <p><span className="text-muted-foreground">Já entregue:</span> <strong>{ct.quantidadeEntregue.toFixed(0)} kg</strong></p>
+                      <p><span className="text-muted-foreground">Saldo disponível:</span> <strong className={ct.quantidadeSaldo <= 0 ? "text-destructive" : "text-green-700"}>{ct.quantidadeSaldo.toFixed(0)} kg</strong></p>
+                    </div>
+                  );
+                })()}
               </div>
               <div>
                 <Label>Produto</Label>
@@ -332,7 +377,7 @@ export function StepIdentificacao({ romaneio, pesagensCount, onSaved, ctx }: Ste
               <FormRow columns={2}>
                 <div>
                   <Label>Safra *</Label>
-                  <Select value={safraId} onValueChange={(v) => { setSafraId(v); setCultivoId(""); }} disabled={!isEditable}>
+                  <Select value={safraId} onValueChange={(v) => { setSafraId(v); setCultivoId(""); }} disabled={!isEditable || structuralLocked}>
                     <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                     <SelectContent>
                       {SAFRAS_REF.map((s) => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}
@@ -341,7 +386,7 @@ export function StepIdentificacao({ romaneio, pesagensCount, onSaved, ctx }: Ste
                 </div>
                 <div>
                   <Label>Cultivo *</Label>
-                  <Select value={cultivoId} onValueChange={handleCultivoChange} disabled={!isEditable || !safraId}>
+                  <Select value={cultivoId} onValueChange={handleCultivoChange} disabled={!isEditable || !safraId || structuralLocked}>
                     <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                     <SelectContent>
                       {cultivosFiltrados.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
@@ -410,7 +455,10 @@ export function StepIdentificacao({ romaneio, pesagensCount, onSaved, ctx }: Ste
                     </div>
                   )}
                 </div>
-                <Button type="button" variant="outline" size="icon" className="mt-5" onClick={() => { setQuickMotNome(motoristaNome); setQuickMotOpen(true); }}><Plus className="h-4 w-4" /></Button>
+                {/* CORREÇÃO 3: Hide quick register buttons when not editable */}
+                {isEditable && (
+                  <Button type="button" variant="outline" size="icon" className="mt-5" onClick={() => { setQuickMotNome(motoristaNome); setQuickMotOpen(true); }}><Plus className="h-4 w-4" /></Button>
+                )}
               </div>
             </div>
             <div>
@@ -433,7 +481,10 @@ export function StepIdentificacao({ romaneio, pesagensCount, onSaved, ctx }: Ste
                   </div>
                 )}
               </div>
-              <Button type="button" variant="outline" size="icon" className="mt-5" onClick={() => { setQuickVeicPlaca(placaVeiculo); setQuickVeicOpen(true); }}><Plus className="h-4 w-4" /></Button>
+              {/* CORREÇÃO 3: Hide quick register buttons when not editable */}
+              {isEditable && (
+                <Button type="button" variant="outline" size="icon" className="mt-5" onClick={() => { setQuickVeicPlaca(placaVeiculo); setQuickVeicOpen(true); }}><Plus className="h-4 w-4" /></Button>
+              )}
             </div>
           </div>
         </CardContent>
