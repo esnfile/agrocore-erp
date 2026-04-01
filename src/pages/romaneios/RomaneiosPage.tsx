@@ -20,7 +20,7 @@ import { romaneioService } from "@/lib/services";
 import { produtos as mockProdutos, empresas, filiais } from "@/lib/mock-data";
 import type { Romaneio } from "@/lib/mock-data";
 import {
-  STATUS_LABELS, STATUS_COLORS, ORIGEM_LABELS,
+  STATUS_LABELS, STATUS_BADGE_CLASSES, ORIGEM_LABELS,
   type StatusRomaneioNew, type OrigemRomaneio,
 } from "./romaneio-types";
 import {
@@ -59,10 +59,8 @@ export default function RomaneiosPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    // Load all romaneios (we filter client-side for multi-empresa support)
     let data: Romaneio[] = [];
     if (filterEmpresa === "TODAS") {
-      // Load across all empresas — for now concat from known empresas
       for (const emp of empresas.filter((e) => e.deletadoEm === null && e.grupoId === grupoAtual?.id)) {
         for (const fil of filiais.filter((f) => f.empresaId === emp.id && f.deletadoEm === null)) {
           const r = await romaneioService.listar(emp.id, fil.id);
@@ -155,6 +153,8 @@ export default function RomaneiosPage() {
   const filiaisFiltradas = filterEmpresa !== "TODAS"
     ? filiais.filter((f) => f.empresaId === filterEmpresa && f.deletadoEm === null)
     : [];
+
+  const isReadOnly = (status: string) => status === "FINALIZADO" || status === "CANCELADO";
 
   if (loading) {
     return (
@@ -255,10 +255,10 @@ export default function RomaneiosPage() {
               <TableHead>Motorista</TableHead>
               <TableHead>Placa</TableHead>
               <TableHead className="text-right">
-                <button className="flex items-center gap-1 hover:text-foreground text-xs ml-auto" onClick={() => toggleSort("pesoLiquidoFisico")}>P. Físico <ArrowUpDown className="h-3 w-3" /></button>
+                <button className="flex items-center gap-1 hover:text-foreground text-xs ml-auto" onClick={() => toggleSort("pesoLiquidoFisico")}>P. Físico (kg) <ArrowUpDown className="h-3 w-3" /></button>
               </TableHead>
               <TableHead className="text-right">
-                <button className="flex items-center gap-1 hover:text-foreground text-xs ml-auto" onClick={() => toggleSort("pesoClassificado")}>P. Classif. <ArrowUpDown className="h-3 w-3" /></button>
+                <button className="flex items-center gap-1 hover:text-foreground text-xs ml-auto" onClick={() => toggleSort("pesoClassificado")}>P. Classif. (kg) <ArrowUpDown className="h-3 w-3" /></button>
               </TableHead>
               <TableHead>
                 <button className="flex items-center gap-1 hover:text-foreground text-xs" onClick={() => toggleSort("status")}>Status <ArrowUpDown className="h-3 w-3" /></button>
@@ -276,6 +276,7 @@ export default function RomaneiosPage() {
               </TableRow>
             ) : paged.map((rom) => {
               const statusKey = rom.status as StatusRomaneioNew;
+              const readOnly = isReadOnly(rom.status);
               return (
                 <TableRow key={rom.id} className="cursor-pointer" onClick={() => navigate(`/romaneios/${rom.id}`)}>
                   {(filterEmpresa === "TODAS" || filterFilial === "TODAS") && (
@@ -294,26 +295,32 @@ export default function RomaneiosPage() {
                   <TableCell className="text-sm">{rom.motoristaNome || "—"}</TableCell>
                   <TableCell className="text-sm font-mono">{rom.placaVeiculo || "—"}</TableCell>
                   <TableCell className="text-right font-mono text-sm">
-                    {rom.pesoLiquidoFisico > 0 ? `${rom.pesoLiquidoFisico.toFixed(3)}` : "—"}
+                    {rom.pesoLiquidoFisico > 0 ? `${rom.pesoLiquidoFisico.toFixed(0)}` : "—"}
                   </TableCell>
                   <TableCell className="text-right font-mono text-sm">
-                    {rom.pesoClassificado > 0 ? `${rom.pesoClassificado.toFixed(3)}` : (rom.pesoLiquidoSecoLimpo > 0 ? `${rom.pesoLiquidoSecoLimpo.toFixed(3)}` : "—")}
+                    {rom.pesoClassificado > 0 ? `${rom.pesoClassificado.toFixed(0)}` : (rom.pesoLiquidoSecoLimpo > 0 ? `${rom.pesoLiquidoSecoLimpo.toFixed(0)}` : "—")}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={STATUS_COLORS[statusKey] || "default"} className="text-[10px]">
+                    <Badge variant="outline" className={`text-[10px] ${STATUS_BADGE_CLASSES[statusKey] || ""}`}>
                       {STATUS_LABELS[statusKey] || rom.status}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-xs">{format(new Date(rom.criadoEm), "dd/MM/yyyy HH:mm")}</TableCell>
                   <TableCell>
                     <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                      <Button variant="ghost" size="icon" onClick={() => navigate(`/romaneios/${rom.id}`)} title="Editar">
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      {rom.status !== "FINALIZADO" && rom.status !== "CANCELADO" && (
-                        <Button variant="ghost" size="icon" onClick={() => setDeleteId(rom.id)} title="Excluir">
-                          <Trash2 className="h-4 w-4 text-destructive" />
+                      {readOnly ? (
+                        <Button variant="ghost" size="icon" onClick={() => navigate(`/romaneios/${rom.id}`)} title="Visualizar">
+                          <Eye className="h-4 w-4" />
                         </Button>
+                      ) : (
+                        <>
+                          <Button variant="ghost" size="icon" onClick={() => navigate(`/romaneios/${rom.id}`)} title="Editar">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => setDeleteId(rom.id)} title="Excluir">
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </>
                       )}
                     </div>
                   </TableCell>
