@@ -1166,7 +1166,7 @@ export const produtos: Produto[] = [
     grupoProdutoId: "grp2",
     subgrupoProdutoId: "sgp2",
     marcaProdutoId: null,
-    unidadeBaseId: "um1",
+    tipoUnidade: "PESO",
     unidadeEntradaId: "um7",
     unidadeSaidaId: "um7",
     ativo: true,
