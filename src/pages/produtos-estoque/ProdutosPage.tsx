@@ -939,16 +939,16 @@ export default function ProdutosPage() {
               <div className="space-y-2">
                 <h4 className="text-sm font-medium text-muted-foreground">📦 Unidades</h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* Coluna 1: Unidade Base */}
+                  {/* Coluna 1: Tipo de Unidade */}
                   <div className="space-y-4">
                     <div className="space-y-1.5">
                       <Label>
-                        Unidade Base <span className="text-destructive">*</span>
+                        Tipo de Unidade <span className="text-destructive">*</span>
                       </Label>
                       <Select
-                        value={watch("unidadeBaseId")}
+                        value={watch("tipoUnidade") || ""}
                         onValueChange={(v) => {
-                          setValue("unidadeBaseId", v);
+                          setValue("tipoUnidade", v as any);
                           setValue("unidadeEntradaId", "");
                           setValue("unidadeSaidaId", "");
                           setValue("quantidadeEmbalagemEntrada", 1);
@@ -959,16 +959,19 @@ export default function ProdutosPage() {
                           <SelectValue placeholder="Selecione..." />
                         </SelectTrigger>
                         <SelectContent>
-                          {unidades.filter((u) => u.ativo).map((u) => (
-                            <SelectItem key={u.id} value={u.id}>
-                              {u.codigo} - {u.descricao}
-                            </SelectItem>
-                          ))}
+                          <SelectItem value="PESO">Peso</SelectItem>
+                          <SelectItem value="VOLUME">Volume</SelectItem>
+                          <SelectItem value="UNIDADE">Unidade</SelectItem>
                         </SelectContent>
                       </Select>
-                      {errors.unidadeBaseId && (
+                      {errors.tipoUnidade && (
                         <p className="text-xs text-destructive">
-                          {errors.unidadeBaseId.message}
+                          {errors.tipoUnidade.message}
+                        </p>
+                      )}
+                      {tipoUnidadeSel && (
+                        <p className="text-xs text-muted-foreground">
+                          Unidade base: <strong>{getCodigoUnidadeBase(tipoUnidadeSel as any)}</strong>
                         </p>
                       )}
                     </div>
@@ -986,13 +989,11 @@ export default function ProdutosPage() {
                           setValue("unidadeEntradaId", v);
                           if (v === unidadeBaseIdSel) {
                             setValue("quantidadeEmbalagemEntrada", 1);
-                          }
-                          const um = unidades.find((u) => u.id === v);
-                          if (um) {
-                            console.log(`[Mock Conversão Entrada] unidade=${um.codigo}, fator=${um.fatorBase}`);
+                          } else {
+                            setValue("quantidadeEmbalagemEntrada", 1);
                           }
                         }}
-                        disabled={!unidadeBaseIdSel}
+                        disabled={!tipoUnidadeSel}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione..." />
@@ -1022,18 +1023,15 @@ export default function ProdutosPage() {
                         readOnly={unidadeEntradaIdSel === unidadeBaseIdSel && !!unidadeEntradaIdSel}
                         className={unidadeEntradaIdSel === unidadeBaseIdSel && !!unidadeEntradaIdSel ? "bg-muted" : ""}
                         {...register("quantidadeEmbalagemEntrada")}
-                        onChange={(e) => {
-                          register("quantidadeEmbalagemEntrada").onChange(e);
-                          const val = parseFloat(e.target.value) || 0;
-                          const um = unidades.find((u) => u.id === unidadeEntradaIdSel);
-                          if (um) {
-                            console.log(`[Mock Conversão] quantidade_base = ${val} × ${um.fatorBase} = ${val * um.fatorBase}`);
-                          }
-                        }}
                       />
                       {errors.quantidadeEmbalagemEntrada && (
                         <p className="text-xs text-destructive">
                           {errors.quantidadeEmbalagemEntrada.message}
+                        </p>
+                      )}
+                      {unidadeEntradaIdSel && unidadeEntradaIdSel !== unidadeBaseIdSel && tipoUnidadeSel && (
+                        <p className="text-xs text-muted-foreground">
+                          1 {unidades.find((u) => u.id === unidadeEntradaIdSel)?.codigo ?? ""} = {watch("quantidadeEmbalagemEntrada") || 1} {getCodigoUnidadeBase(tipoUnidadeSel as any)}
                         </p>
                       )}
                     </div>
@@ -1051,13 +1049,11 @@ export default function ProdutosPage() {
                           setValue("unidadeSaidaId", v);
                           if (v === unidadeBaseIdSel) {
                             setValue("quantidadeEmbalagemSaida", 1);
-                          }
-                          const um = unidades.find((u) => u.id === v);
-                          if (um) {
-                            console.log(`[Mock Conversão Saída] unidade=${um.codigo}, fator=${um.fatorBase}`);
+                          } else {
+                            setValue("quantidadeEmbalagemSaida", 1);
                           }
                         }}
-                        disabled={!unidadeBaseIdSel}
+                        disabled={!tipoUnidadeSel}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione..." />
@@ -1091,6 +1087,11 @@ export default function ProdutosPage() {
                       {errors.quantidadeEmbalagemSaida && (
                         <p className="text-xs text-destructive">
                           {errors.quantidadeEmbalagemSaida.message}
+                        </p>
+                      )}
+                      {unidadeSaidaIdSel && unidadeSaidaIdSel !== unidadeBaseIdSel && tipoUnidadeSel && (
+                        <p className="text-xs text-muted-foreground">
+                          1 {unidades.find((u) => u.id === unidadeSaidaIdSel)?.codigo ?? ""} = {watch("quantidadeEmbalagemSaida") || 1} {getCodigoUnidadeBase(tipoUnidadeSel as any)}
                         </p>
                       )}
                     </div>
