@@ -1013,7 +1013,7 @@ export const unidadesMedida: UnidadeMedida[] = [
     codigo: "KG",
     descricao: "Quilograma",
     tipo: "PESO",
-    fatorBase: 1,
+    
     ativo: true,
     criadoEm: "2024-06-01T08:00:00Z",
     criadoPor: "u1",
