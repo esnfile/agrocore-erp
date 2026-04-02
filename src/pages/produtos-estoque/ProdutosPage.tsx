@@ -507,15 +507,14 @@ export default function ProdutosPage() {
     }
 
     // Validate unit types match
-    const unBase = unidades.find((u) => u.id === formData.unidadeBaseId);
     const unEntrada = unidades.find((u) => u.id === formData.unidadeEntradaId);
     const unSaida = unidades.find((u) => u.id === formData.unidadeSaidaId);
-    if (unBase && unEntrada && unEntrada.tipo !== unBase.tipo) {
-      setError("unidadeEntradaId", { message: "Deve ser do mesmo tipo da unidade base" });
+    if (formData.tipoUnidade && unEntrada && unEntrada.tipo !== formData.tipoUnidade) {
+      setError("unidadeEntradaId", { message: "Deve ser do mesmo tipo de unidade" });
       return;
     }
-    if (unBase && unSaida && unSaida.tipo !== unBase.tipo) {
-      setError("unidadeSaidaId", { message: "Deve ser do mesmo tipo da unidade base" });
+    if (formData.tipoUnidade && unSaida && unSaida.tipo !== formData.tipoUnidade) {
+      setError("unidadeSaidaId", { message: "Deve ser do mesmo tipo de unidade" });
       return;
     }
 
