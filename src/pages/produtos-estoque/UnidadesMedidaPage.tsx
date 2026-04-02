@@ -125,7 +125,6 @@ export default function UnidadesMedidaPage() {
       codigo: row.codigo,
       descricao: row.descricao,
       tipo: row.tipo,
-      fatorBase: row.fatorBase,
       ativo: row.ativo,
     });
     setModalOpen(true);
