@@ -43,7 +43,6 @@ const schema = z.object({
     .max(100, "Máximo 100 caracteres")
     .transform((v) => v.trim()),
   tipo: z.enum(["PESO", "VOLUME", "UNIDADE"]),
-  fatorBase: z.coerce.number().min(0.000001, "Fator deve ser maior que 0"),
   ativo: z.boolean(),
 });
 
