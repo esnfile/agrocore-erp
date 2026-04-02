@@ -115,7 +115,7 @@ export default function UnidadesMedidaPage() {
 
   const openNew = () => {
     setEditingId(null);
-    reset({ codigo: "", descricao: "", tipo: "PESO", fatorBase: 1, ativo: true });
+    reset({ codigo: "", descricao: "", tipo: "PESO", ativo: true });
     setModalOpen(true);
   };
 
