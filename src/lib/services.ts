@@ -1096,7 +1096,7 @@ export const unidadeMedidaService = {
   async estaEmUso(id: string): Promise<boolean> {
     await delay(100);
     return mockProdutos.some(
-      (p) => p.deletadoEm === null && (p.unidadeBaseId === id || p.unidadeEntradaId === id || p.unidadeSaidaId === id)
+      (p) => p.deletadoEm === null && (p.unidadeEntradaId === id || p.unidadeSaidaId === id)
     );
   },
   async salvar(
