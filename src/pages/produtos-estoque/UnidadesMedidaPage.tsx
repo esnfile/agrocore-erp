@@ -86,11 +86,6 @@ export default function UnidadesMedidaPage() {
       render: (row) => tipoLabels[row.tipo] ?? row.tipo,
     },
     {
-      key: "fatorBase",
-      header: "Fator Base",
-      render: (row) => row.fatorBase.toString(),
-    },
-    {
       key: "ativo",
       header: "Status",
       render: (row) => (

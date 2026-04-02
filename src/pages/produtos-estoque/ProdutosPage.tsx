@@ -426,7 +426,7 @@ export default function ProdutosPage() {
       grupoProdutoId: row.grupoProdutoId,
       subgrupoProdutoId: row.subgrupoProdutoId,
       marcaProdutoId: row.marcaProdutoId ?? "",
-      tipoUnidade: row.tipoUnidade ?? "",
+      tipoUnidade: (row.tipoUnidade || undefined) as any,
       unidadeEntradaId: row.unidadeEntradaId ?? "",
       unidadeSaidaId: row.unidadeSaidaId ?? "",
       ativo: row.ativo,
