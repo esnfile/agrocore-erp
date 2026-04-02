@@ -100,7 +100,7 @@ const schema = z.object({
   grupoProdutoId: z.string().min(1, "Grupo é obrigatório"),
   subgrupoProdutoId: z.string().min(1, "Subgrupo é obrigatório"),
   marcaProdutoId: z.string().optional().default(""),
-  unidadeBaseId: z.string().min(1, "Unidade base é obrigatória"),
+  tipoUnidade: z.enum(["PESO", "VOLUME", "UNIDADE"], { required_error: "Tipo de unidade é obrigatório" }),
   unidadeEntradaId: z.string().min(1, "Unidade de entrada é obrigatória"),
   unidadeSaidaId: z.string().min(1, "Unidade de saída é obrigatória"),
   ativo: z.boolean(),
