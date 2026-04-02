@@ -206,18 +206,18 @@ export default function ProdutosPage() {
     [subgrupos, grupoSel]
   );
 
-  // Filtered unidades by type of base unit
-  const unidadeBaseSel = useMemo(
-    () => unidades.find((u) => u.id === unidadeBaseIdSel),
-    [unidades, unidadeBaseIdSel]
+  // Derived base unit ID from tipoUnidade
+  const unidadeBaseIdSel = useMemo(
+    () => tipoUnidadeSel ? getUnidadeBaseParaTipo(tipoUnidadeSel as any) : "",
+    [tipoUnidadeSel]
   );
   const unidadesEntradaFiltradas = useMemo(
-    () => unidadeBaseSel ? unidades.filter((u) => u.tipo === unidadeBaseSel.tipo && u.ativo) : unidades.filter((u) => u.ativo),
-    [unidades, unidadeBaseSel]
+    () => tipoUnidadeSel ? unidades.filter((u) => u.tipo === tipoUnidadeSel && u.ativo) : [],
+    [unidades, tipoUnidadeSel]
   );
   const unidadesSaidaFiltradas = useMemo(
-    () => unidadeBaseSel ? unidades.filter((u) => u.tipo === unidadeBaseSel.tipo && u.ativo) : unidades.filter((u) => u.ativo),
-    [unidades, unidadeBaseSel]
+    () => tipoUnidadeSel ? unidades.filter((u) => u.tipo === tipoUnidadeSel && u.ativo) : [],
+    [unidades, tipoUnidadeSel]
   );
 
   // Lookup maps for table display
