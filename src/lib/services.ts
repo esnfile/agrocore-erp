@@ -2892,7 +2892,7 @@ export const romaneioService = {
       }
     }
     const produto = mockProdutos.find((p) => p.id === data.produtoId);
-    const unidadeRomaneioId = data.unidadeRomaneioId || produto?.unidadeBaseId || "um1";
+    const unidadeRomaneioId = data.unidadeRomaneioId || (produto ? getUnidadeBaseParaTipo(produto.tipoUnidade) : "um1");
     const origem = data.origem || "AVULSO";
     const tipoRomaneio = data.tipoRomaneio || "ENTRADA";
 
