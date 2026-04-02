@@ -254,21 +254,6 @@ export default function UnidadesMedidaPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="fatorBase">
-                Fator Base <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="fatorBase"
-                type="number"
-                step="0.000001"
-                min="0"
-                {...register("fatorBase")}
-              />
-              {errors.fatorBase && (
-                <p className="text-xs text-destructive">{errors.fatorBase.message}</p>
-              )}
-            </div>
           </div>
 
           <div className="flex items-center gap-3">
