@@ -14,6 +14,7 @@ import { estoqueService, pontoEstoqueService } from "@/lib/services";
 import {
   produtos as mockProdutos,
   unidadesMedida as mockUnidades,
+  getCodigoUnidadeBase,
 } from "@/lib/mock-data";
 import type { Estoque, PontoEstoque } from "@/lib/mock-data";
 
@@ -60,7 +61,7 @@ export default function ConsultaEstoquePage() {
   const getUnidadeBaseProduto = (produtoId: string) => {
     const produto = mockProdutos.find((p) => p.id === produtoId);
     if (!produto) return "";
-    return mockUnidades.find((u) => u.id === produto.unidadeBaseId)?.codigo ?? "";
+    return getCodigoUnidadeBase(produto.tipoUnidade);
   };
 
   if (!selectedEmpresa || !selectedFilial) {

@@ -913,7 +913,6 @@ export interface UnidadeMedida {
   codigo: string;
   descricao: string;
   tipo: TipoUnidadeMedida;
-  fatorBase: number;
   ativo: boolean;
   criadoEm: string;
   criadoPor: string;
@@ -921,6 +920,26 @@ export interface UnidadeMedida {
   atualizadoPor: string;
   deletadoEm: string | null;
   deletadoPor: string | null;
+}
+
+/**
+ * Resolves the base unit ID for a given TipoUnidadeMedida.
+ * PESO → KG (um1), VOLUME → LT (um4), UNIDADE → UND (um6)
+ */
+export function getUnidadeBaseParaTipo(tipo: TipoUnidadeMedida): string {
+  switch (tipo) {
+    case "PESO": return "um1";
+    case "VOLUME": return "um4";
+    case "UNIDADE": return "um6";
+  }
+}
+
+export function getCodigoUnidadeBase(tipo: TipoUnidadeMedida): string {
+  switch (tipo) {
+    case "PESO": return "KG";
+    case "VOLUME": return "LT";
+    case "UNIDADE": return "UND";
+  }
 }
 
 // ---- Produto ----
@@ -943,7 +962,7 @@ export interface Produto {
   grupoProdutoId: string;
   subgrupoProdutoId: string;
   marcaProdutoId: string | null;
-  unidadeBaseId: string;
+  tipoUnidade: TipoUnidadeMedida;
   unidadeEntradaId: string;
   unidadeSaidaId: string;
   ativo: boolean;
@@ -994,7 +1013,7 @@ export const unidadesMedida: UnidadeMedida[] = [
     codigo: "KG",
     descricao: "Quilograma",
     tipo: "PESO",
-    fatorBase: 1,
+    
     ativo: true,
     criadoEm: "2024-06-01T08:00:00Z",
     criadoPor: "u1",
@@ -1011,7 +1030,6 @@ export const unidadesMedida: UnidadeMedida[] = [
     codigo: "TON",
     descricao: "Tonelada",
     tipo: "PESO",
-    fatorBase: 1000,
     ativo: true,
     criadoEm: "2024-06-01T08:00:00Z",
     criadoPor: "u1",
@@ -1028,7 +1046,6 @@ export const unidadesMedida: UnidadeMedida[] = [
     codigo: "G",
     descricao: "Grama",
     tipo: "PESO",
-    fatorBase: 0.001,
     ativo: true,
     criadoEm: "2024-06-01T08:00:00Z",
     criadoPor: "u1",
@@ -1042,10 +1059,9 @@ export const unidadesMedida: UnidadeMedida[] = [
     grupoId: "g1",
     empresaId: null,
     filialId: null,
-    codigo: "L",
+    codigo: "LT",
     descricao: "Litro",
     tipo: "VOLUME",
-    fatorBase: 1,
     ativo: true,
     criadoEm: "2024-06-01T08:00:00Z",
     criadoPor: "u1",
@@ -1062,7 +1078,22 @@ export const unidadesMedida: UnidadeMedida[] = [
     codigo: "ML",
     descricao: "Mililitro",
     tipo: "VOLUME",
-    fatorBase: 0.001,
+    ativo: true,
+    criadoEm: "2024-06-01T08:00:00Z",
+    criadoPor: "u1",
+    atualizadoEm: "2024-06-01T08:00:00Z",
+    atualizadoPor: "u1",
+    deletadoEm: null,
+    deletadoPor: null,
+  },
+  {
+    id: "um6",
+    grupoId: "g1",
+    empresaId: null,
+    filialId: null,
+    codigo: "UND",
+    descricao: "Unidade",
+    tipo: "UNIDADE",
     ativo: true,
     criadoEm: "2024-06-01T08:00:00Z",
     criadoPor: "u1",
@@ -1079,7 +1110,6 @@ export const unidadesMedida: UnidadeMedida[] = [
     codigo: "SC",
     descricao: "Saca",
     tipo: "PESO",
-    fatorBase: 1,
     ativo: true,
     criadoEm: "2025-06-23T08:00:00Z",
     criadoPor: "u1",
@@ -1108,7 +1138,7 @@ export const produtos: Produto[] = [
     grupoProdutoId: "grp1",
     subgrupoProdutoId: "sgp1",
     marcaProdutoId: "mp1",
-    unidadeBaseId: "um1",
+    tipoUnidade: "PESO",
     unidadeEntradaId: "um1",
     unidadeSaidaId: "um1",
     ativo: true,
@@ -1136,7 +1166,7 @@ export const produtos: Produto[] = [
     grupoProdutoId: "grp2",
     subgrupoProdutoId: "sgp2",
     marcaProdutoId: null,
-    unidadeBaseId: "um1",
+    tipoUnidade: "PESO",
     unidadeEntradaId: "um7",
     unidadeSaidaId: "um7",
     ativo: true,

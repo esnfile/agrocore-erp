@@ -22,6 +22,7 @@ import { pontoEstoqueService, movimentacaoEstoqueService, empresaService, filial
 import {
   produtos as mockProdutos,
   unidadesMedida as mockUnidades,
+  getUnidadeBaseParaTipo,
 } from "@/lib/mock-data";
 import type { PontoEstoque, MovimentacaoEstoque, Produto, UnidadeMedida, Empresa, Filial } from "@/lib/mock-data";
 
@@ -109,26 +110,23 @@ export default function MovimentacaoEstoquePage() {
   // Unidades compatíveis com a unidade base do produto
   const unidadesCompativeis = useMemo(() => {
     if (!produtoSelecionado) return [];
-    const unidadeBase = mockUnidades.find((u) => u.id === produtoSelecionado.unidadeBaseId && u.deletadoEm === null);
-    if (!unidadeBase) return [];
-    return mockUnidades.filter((u) => u.deletadoEm === null && u.ativo && u.tipo === unidadeBase.tipo);
+    return mockUnidades.filter((u) => u.deletadoEm === null && u.ativo && u.tipo === produtoSelecionado.tipoUnidade);
   }, [produtoSelecionado]);
 
   // Unidade base do produto
   const unidadeBase = useMemo(() => {
     if (!produtoSelecionado) return null;
-    return mockUnidades.find((u) => u.id === produtoSelecionado.unidadeBaseId && u.deletadoEm === null) ?? null;
+    const baseId = getUnidadeBaseParaTipo(produtoSelecionado.tipoUnidade);
+    return mockUnidades.find((u) => u.id === baseId && u.deletadoEm === null) ?? null;
   }, [produtoSelecionado]);
 
   // Conversão em tempo real
   const quantidadeConvertida = useMemo(() => {
     if (!produtoSelecionado || !unidadeMovimentacaoId || !quantidadeInformada || quantidadeInformada <= 0) return null;
-    if (unidadeMovimentacaoId === produtoSelecionado.unidadeBaseId) return quantidadeInformada;
+    const baseId = getUnidadeBaseParaTipo(produtoSelecionado.tipoUnidade);
+    if (unidadeMovimentacaoId === baseId) return quantidadeInformada;
     if (unidadeMovimentacaoId === produtoSelecionado.unidadeEntradaId) return quantidadeInformada * produtoSelecionado.quantidadeEmbalagemEntrada;
     if (unidadeMovimentacaoId === produtoSelecionado.unidadeSaidaId) return quantidadeInformada * produtoSelecionado.quantidadeEmbalagemSaida;
-    const unidadeMov = mockUnidades.find((u) => u.id === unidadeMovimentacaoId);
-    const unBase = mockUnidades.find((u) => u.id === produtoSelecionado.unidadeBaseId);
-    if (unidadeMov && unBase && unBase.fatorBase > 0) return (quantidadeInformada * unidadeMov.fatorBase) / unBase.fatorBase;
     return null;
   }, [quantidadeInformada, unidadeMovimentacaoId, produtoSelecionado]);
 
@@ -145,7 +143,7 @@ export default function MovimentacaoEstoquePage() {
   // Limpar unidade ao trocar produto
   useEffect(() => {
     if (produtoSelecionado) {
-      setValue("unidadeMovimentacaoId", produtoSelecionado.unidadeBaseId);
+      setValue("unidadeMovimentacaoId", getUnidadeBaseParaTipo(produtoSelecionado.tipoUnidade));
     } else {
       setValue("unidadeMovimentacaoId", "");
     }

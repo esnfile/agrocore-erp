@@ -43,7 +43,6 @@ const schema = z.object({
     .max(100, "Máximo 100 caracteres")
     .transform((v) => v.trim()),
   tipo: z.enum(["PESO", "VOLUME", "UNIDADE"]),
-  fatorBase: z.coerce.number().min(0.000001, "Fator deve ser maior que 0"),
   ativo: z.boolean(),
 });
 
@@ -87,11 +86,6 @@ export default function UnidadesMedidaPage() {
       render: (row) => tipoLabels[row.tipo] ?? row.tipo,
     },
     {
-      key: "fatorBase",
-      header: "Fator Base",
-      render: (row) => row.fatorBase.toString(),
-    },
-    {
       key: "ativo",
       header: "Status",
       render: (row) => (
@@ -121,7 +115,7 @@ export default function UnidadesMedidaPage() {
 
   const openNew = () => {
     setEditingId(null);
-    reset({ codigo: "", descricao: "", tipo: "PESO", fatorBase: 1, ativo: true });
+    reset({ codigo: "", descricao: "", tipo: "PESO", ativo: true });
     setModalOpen(true);
   };
 
@@ -131,7 +125,6 @@ export default function UnidadesMedidaPage() {
       codigo: row.codigo,
       descricao: row.descricao,
       tipo: row.tipo,
-      fatorBase: row.fatorBase,
       ativo: row.ativo,
     });
     setModalOpen(true);
@@ -260,21 +253,6 @@ export default function UnidadesMedidaPage() {
                   <SelectItem value="UNIDADE">Unidade</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="fatorBase">
-                Fator Base <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="fatorBase"
-                type="number"
-                step="0.000001"
-                min="0"
-                {...register("fatorBase")}
-              />
-              {errors.fatorBase && (
-                <p className="text-xs text-destructive">{errors.fatorBase.message}</p>
-              )}
             </div>
           </div>
 

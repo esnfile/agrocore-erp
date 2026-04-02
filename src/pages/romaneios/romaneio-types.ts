@@ -127,14 +127,14 @@ export function isRomaneioEditable(status: StatusRomaneioNew): boolean {
 }
 
 // ---- Dual-unit contract display helpers ----
-import { unidadesMedida } from "@/lib/mock-data";
+import { unidadesMedida, getUnidadeBaseParaTipo, getCodigoUnidadeBase } from "@/lib/mock-data";
 import { produtos as mockProdutos } from "@/lib/mock-data";
 import type { Contrato, Produto, UnidadeMedida } from "@/lib/mock-data";
 
 export interface ContratoUnidadeInfo {
   unidadeCodigo: string; // e.g. "SC", "KG"
-  fatorParaKg: number;   // e.g. 60 for SC
-  isKg: boolean;         // true if negotiation unit is already KG
+  fatorParaKg: number;   // e.g. 60 for SC (product-specific)
+  isKg: boolean;         // true if negotiation unit is the base unit (KG for PESO)
   totalOriginal: number;
   totalKg: number;
   entregueOriginal: number;
@@ -145,13 +145,32 @@ export interface ContratoUnidadeInfo {
 
 /**
  * Resolves the contract's negotiation unit info for dual-unit display.
- * Uses the product's unit config (entrada/saida) + the contract's unidadeNegociacaoId.
+ * Uses the product's quantidadeEmbalagemEntrada/Saida to determine conversion factor.
+ * NO fallback to fatorBase — all conversion comes from the product.
  */
 export function resolveContratoUnidadeInfo(contrato: Contrato, tipoRomaneio?: TipoRomaneio): ContratoUnidadeInfo {
   const unidade = unidadesMedida.find((u) => u.id === contrato.unidadeNegociacaoId && u.deletadoEm === null);
   const codigo = unidade?.codigo || "KG";
-  const fator = unidade?.fatorBase || 1;
-  const isKg = fator === 1; // KG has fatorBase = 1
+  
+  // Find the product to get the correct conversion factor
+  const produto = mockProdutos.find((p) => p.id === contrato.produtoId && p.deletadoEm === null);
+  
+  let fator = 1;
+  let isKg = true;
+  
+  if (produto) {
+    const unidadeBaseId = getUnidadeBaseParaTipo(produto.tipoUnidade);
+    isKg = contrato.unidadeNegociacaoId === unidadeBaseId;
+    
+    if (!isKg) {
+      // Determine factor from product config
+      if (contrato.unidadeNegociacaoId === produto.unidadeEntradaId) {
+        fator = produto.quantidadeEmbalagemEntrada;
+      } else if (contrato.unidadeNegociacaoId === produto.unidadeSaidaId) {
+        fator = produto.quantidadeEmbalagemSaida;
+      }
+    }
+  }
 
   return {
     unidadeCodigo: codigo,
@@ -168,7 +187,7 @@ export function resolveContratoUnidadeInfo(contrato: Contrato, tipoRomaneio?: Ti
 
 /**
  * Formats a quantity with dual-unit display.
- * If the unit is KG, shows only "X kg".
+ * If the unit is the base (KG), shows only "X kg".
  * Otherwise shows "X SC / Y kg".
  */
 export function fmtDualUnit(valor: number, info: ContratoUnidadeInfo, decimals = 0): string {

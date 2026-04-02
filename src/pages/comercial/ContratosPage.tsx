@@ -53,6 +53,7 @@ import {
   unidadesMedida as mockUnidades,
   moedas as mockMoedas,
   empresas as mockEmpresas,
+  getUnidadeBaseParaTipo,
 } from "@/lib/mock-data";
 import type {
   Contrato,
@@ -459,7 +460,7 @@ export default function ContratosPage() {
   const produtoOptions: SearchableOption[] = useMemo(
     () =>
       produtosAtivos.map((p) => {
-        const unBase = mockUnidades.find((u) => u.id === p.unidadeBaseId);
+        const unBase = mockUnidades.find((u) => u.id === getUnidadeBaseParaTipo(p.tipoUnidade));
         return {
           id: p.id,
           label: p.descricao,
