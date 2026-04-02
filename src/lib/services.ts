@@ -2994,12 +2994,13 @@ export const romaneioService = {
     }
 
     // FURO 2: Conversão de unidades — converter pesoFinal da unidade do romaneio para unidade base do produto
-    const unidadeRomaneioId = r.unidadeRomaneioId || produto.unidadeBaseId;
+    const unidadeRomaneioId = r.unidadeRomaneioId || getUnidadeBaseParaTipo(produto.tipoUnidade);
+    const unidadeBaseId = getUnidadeBaseParaTipo(produto.tipoUnidade);
     let quantidadeEstoque: number;
     let quantidadeContrato: number;
 
     try {
-      quantidadeEstoque = unidadeMedidaService.converterQuantidade(pesoFinal, unidadeRomaneioId, produto.unidadeBaseId, produto.id);
+      quantidadeEstoque = unidadeMedidaService.converterQuantidade(pesoFinal, unidadeRomaneioId, unidadeBaseId, produto.id);
       quantidadeContrato = unidadeMedidaService.converterQuantidade(pesoFinal, unidadeRomaneioId, contrato.unidadeNegociacaoId, produto.id);
     } catch (e: any) {
       return { sucesso: false, mensagem: `Erro na conversão de unidades: ${e.message}` };
