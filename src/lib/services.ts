@@ -1280,7 +1280,8 @@ export const movimentacaoEstoqueService = {
     if (!produto) return { sucesso: false, mensagem: "Produto não encontrado." };
 
     // 2. Buscar unidade base do produto e unidade da movimentação
-    const unidadeBase = mockUnidadesMedida.find((u) => u.id === produto.unidadeBaseId && u.deletadoEm === null);
+    const unidadeBaseId = getUnidadeBaseParaTipo(produto.tipoUnidade);
+    const unidadeBase = mockUnidadesMedida.find((u) => u.id === unidadeBaseId && u.deletadoEm === null);
     const unidadeMov = mockUnidadesMedida.find((u) => u.id === data.unidadeMovimentacaoId && u.deletadoEm === null);
     if (!unidadeBase || !unidadeMov) return { sucesso: false, mensagem: "Unidade de medida inválida." };
 
@@ -1293,7 +1294,7 @@ export const movimentacaoEstoqueService = {
     let quantidadeConvertidaBase: number;
     try {
       quantidadeConvertidaBase = unidadeMedidaService.converterQuantidade(
-        data.quantidadeInformada, data.unidadeMovimentacaoId, produto.unidadeBaseId, produto.id
+        data.quantidadeInformada, data.unidadeMovimentacaoId, unidadeBaseId, produto.id
       );
     } catch (e: any) {
       return { sucesso: false, mensagem: `Erro na conversão: ${e.message}` };
