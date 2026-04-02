@@ -59,6 +59,8 @@ import {
   coeficientes as mockCoeficientesData,
   coeficienteEmpresas as mockCoeficienteEmpresasData,
   tabelaPrecoEmpresas as mockTabelaPrecoEmpresasData,
+  getUnidadeBaseParaTipo,
+  getCodigoUnidadeBase,
 } from "@/lib/mock-data";
 import type {
   Produto,
