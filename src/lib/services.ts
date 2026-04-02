@@ -1124,7 +1124,7 @@ export const unidadeMedidaService = {
       codigo: (data.codigo ?? "").trim().toUpperCase(),
       descricao: (data.descricao ?? "").trim(),
       tipo: data.tipo ?? "UNIDADE",
-      fatorBase: data.fatorBase ?? 1,
+      
       ativo: data.ativo ?? true,
       criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
       deletadoEm: null, deletadoPor: null,
