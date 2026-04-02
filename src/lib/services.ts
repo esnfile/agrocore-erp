@@ -3047,9 +3047,9 @@ export const romaneioService = {
 
     // Build result message with conversion info
     const unRomaneio = unidadeMedidaService.obterPorId(unidadeRomaneioId);
-    const unBase = unidadeMedidaService.obterPorId(produto.unidadeBaseId);
+    const unBase = unidadeMedidaService.obterPorId(unidadeBaseId);
     const unContrato = unidadeMedidaService.obterPorId(contrato.unidadeNegociacaoId);
-    const msgConversao = unidadeRomaneioId !== produto.unidadeBaseId
+    const msgConversao = unidadeRomaneioId !== unidadeBaseId
       ? ` | Estoque: ${quantidadeEstoque.toFixed(3)} ${unBase?.codigo ?? ""} | Contrato: ${quantidadeContrato.toFixed(3)} ${unContrato?.codigo ?? ""}`
       : "";
 
