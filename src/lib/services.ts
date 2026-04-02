@@ -52,6 +52,7 @@ import {
   financeiroMovimentacoes as mockFinanceiroMovimentacoes,
   financeiroAdiantamentos as mockFinanceiroAdiantamentos,
 } from "./mock-data";
+import { getUnidadeBaseParaTipo } from "./mock-data";
 import type {
   Empresa, Filial, Grupo, GrupoPessoa, Pessoa,
   TipoProduto, MarcaProduto, DivisaoProduto, SecaoProduto, GrupoProduto, SubgrupoProduto,
