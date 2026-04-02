@@ -1581,10 +1581,14 @@ export const contratoService = {
         : produto.unidadeSaidaId;
     }
     const unidadeNeg = mockUnidadesMedida.find((u) => u.id === unidadeNegociacaoId);
-    const unidadeBase = produto ? mockUnidadesMedida.find((u) => u.id === produto.unidadeBaseId) : undefined;
     let quantidadeBaseTotal = data.quantidadeTotal ?? 0;
-    if (unidadeNeg && unidadeBase && unidadeBase.fatorBase > 0) {
-      quantidadeBaseTotal = ((data.quantidadeTotal ?? 0) * unidadeNeg.fatorBase) / unidadeBase.fatorBase;
+    if (produto && unidadeNegociacaoId) {
+      try {
+        const unidadeBaseId = getUnidadeBaseParaTipo(produto.tipoUnidade);
+        quantidadeBaseTotal = unidadeMedidaService.converterQuantidade(
+          data.quantidadeTotal ?? 0, unidadeNegociacaoId, unidadeBaseId, produto.id
+        );
+      } catch { /* keep original value */ }
     }
 
     const novo: Contrato = {
