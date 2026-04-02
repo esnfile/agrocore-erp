@@ -962,7 +962,7 @@ export interface Produto {
   grupoProdutoId: string;
   subgrupoProdutoId: string;
   marcaProdutoId: string | null;
-  unidadeBaseId: string;
+  tipoUnidade: TipoUnidadeMedida;
   unidadeEntradaId: string;
   unidadeSaidaId: string;
   ativo: boolean;
