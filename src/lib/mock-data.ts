@@ -913,7 +913,6 @@ export interface UnidadeMedida {
   codigo: string;
   descricao: string;
   tipo: TipoUnidadeMedida;
-  fatorBase: number;
   ativo: boolean;
   criadoEm: string;
   criadoPor: string;
@@ -921,6 +920,26 @@ export interface UnidadeMedida {
   atualizadoPor: string;
   deletadoEm: string | null;
   deletadoPor: string | null;
+}
+
+/**
+ * Resolves the base unit ID for a given TipoUnidadeMedida.
+ * PESO → KG (um1), VOLUME → LT (um4), UNIDADE → UND (um6)
+ */
+export function getUnidadeBaseParaTipo(tipo: TipoUnidadeMedida): string {
+  switch (tipo) {
+    case "PESO": return "um1";
+    case "VOLUME": return "um4";
+    case "UNIDADE": return "um6";
+  }
+}
+
+export function getCodigoUnidadeBase(tipo: TipoUnidadeMedida): string {
+  switch (tipo) {
+    case "PESO": return "KG";
+    case "VOLUME": return "LT";
+    case "UNIDADE": return "UND";
+  }
 }
 
 // ---- Produto ----
