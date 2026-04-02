@@ -384,7 +384,7 @@ export default function ProdutosPage() {
       grupoProdutoId: "",
       subgrupoProdutoId: "",
       marcaProdutoId: "",
-      tipoUnidade: "",
+      tipoUnidade: undefined as any,
       unidadeEntradaId: "",
       unidadeSaidaId: "",
       ativo: true,
