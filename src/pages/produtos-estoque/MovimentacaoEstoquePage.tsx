@@ -22,6 +22,7 @@ import { pontoEstoqueService, movimentacaoEstoqueService, empresaService, filial
 import {
   produtos as mockProdutos,
   unidadesMedida as mockUnidades,
+  getUnidadeBaseParaTipo,
 } from "@/lib/mock-data";
 import type { PontoEstoque, MovimentacaoEstoque, Produto, UnidadeMedida, Empresa, Filial } from "@/lib/mock-data";
 

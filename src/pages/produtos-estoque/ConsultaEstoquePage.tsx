@@ -14,6 +14,7 @@ import { estoqueService, pontoEstoqueService } from "@/lib/services";
 import {
   produtos as mockProdutos,
   unidadesMedida as mockUnidades,
+  getCodigoUnidadeBase,
 } from "@/lib/mock-data";
 import type { Estoque, PontoEstoque } from "@/lib/mock-data";
 
