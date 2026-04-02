@@ -861,7 +861,7 @@ export const produtoService = {
       grupoProdutoId: data.grupoProdutoId ?? "",
       subgrupoProdutoId: data.subgrupoProdutoId ?? "",
       marcaProdutoId: data.marcaProdutoId ?? null,
-      unidadeBaseId: data.unidadeBaseId ?? "",
+      tipoUnidade: data.tipoUnidade ?? "PESO",
       unidadeEntradaId: data.unidadeEntradaId ?? "",
       unidadeSaidaId: data.unidadeSaidaId ?? "",
       ativo: data.ativo ?? true,
