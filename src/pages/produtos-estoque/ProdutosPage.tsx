@@ -192,7 +192,7 @@ export default function ProdutosPage() {
   const ativoValue = watch("ativo");
   const secaoSel = watch("secaoProdutoId");
   const grupoSel = watch("grupoProdutoId");
-  const unidadeBaseIdSel = watch("unidadeBaseId");
+  const tipoUnidadeSel = watch("tipoUnidade");
   const unidadeEntradaIdSel = watch("unidadeEntradaId");
   const unidadeSaidaIdSel = watch("unidadeSaidaId");
 
