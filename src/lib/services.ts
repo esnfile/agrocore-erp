@@ -1664,10 +1664,14 @@ export const contratoEntregaService = {
     // Convert to base
     const produto = mockProdutos.find((p) => p.id === contrato.produtoId);
     const unidadeInf = mockUnidadesMedida.find((u) => u.id === data.unidadeInformadaId);
-    const unidadeBase = produto ? mockUnidadesMedida.find((u) => u.id === produto.unidadeBaseId) : undefined;
     let quantidadeConvertidaBase = data.quantidadeInformada ?? 0;
-    if (unidadeInf && unidadeBase && unidadeBase.fatorBase > 0) {
-      quantidadeConvertidaBase = ((data.quantidadeInformada ?? 0) * unidadeInf.fatorBase) / unidadeBase.fatorBase;
+    if (produto && data.unidadeInformadaId) {
+      try {
+        const unidadeBaseId = getUnidadeBaseParaTipo(produto.tipoUnidade);
+        quantidadeConvertidaBase = unidadeMedidaService.converterQuantidade(
+          data.quantidadeInformada ?? 0, data.unidadeInformadaId, unidadeBaseId, produto.id
+        );
+      } catch { /* keep original value */ }
     }
 
     const existing = data.id ? mockContratoEntregas.find((e) => e.id === data.id && e.deletadoEm === null) : undefined;
