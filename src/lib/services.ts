@@ -1110,7 +1110,7 @@ export const unidadeMedidaService = {
       existing.codigo = (data.codigo ?? existing.codigo).trim().toUpperCase();
       existing.descricao = (data.descricao ?? existing.descricao).trim();
       existing.tipo = data.tipo ?? existing.tipo;
-      existing.fatorBase = data.fatorBase ?? existing.fatorBase;
+      
       existing.ativo = data.ativo ?? existing.ativo;
       existing.atualizadoEm = now;
       existing.atualizadoPor = "u1";
