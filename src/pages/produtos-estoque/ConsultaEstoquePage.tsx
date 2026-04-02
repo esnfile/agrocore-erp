@@ -60,7 +60,7 @@ export default function ConsultaEstoquePage() {
   const getUnidadeBaseProduto = (produtoId: string) => {
     const produto = mockProdutos.find((p) => p.id === produtoId);
     if (!produto) return "";
-    return mockUnidades.find((u) => u.id === produto.unidadeBaseId)?.codigo ?? "";
+    return getCodigoUnidadeBase(produto.tipoUnidade);
   };
 
   if (!selectedEmpresa || !selectedFilial) {

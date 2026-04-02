@@ -142,7 +142,7 @@ export default function MovimentacaoEstoquePage() {
   // Limpar unidade ao trocar produto
   useEffect(() => {
     if (produtoSelecionado) {
-      setValue("unidadeMovimentacaoId", produtoSelecionado.unidadeBaseId);
+      setValue("unidadeMovimentacaoId", getUnidadeBaseParaTipo(produtoSelecionado.tipoUnidade));
     } else {
       setValue("unidadeMovimentacaoId", "");
     }
