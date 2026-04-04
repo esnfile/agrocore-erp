@@ -3097,8 +3097,20 @@ export const romaneioService = {
     rom.pesoTaraLegacy = rom.pesoTara;
     rom.pesoLiquido = rom.pesoLiquidoFisico;
 
-    // Update status based on pesagens
-    if (rom.status !== "FINALIZADO" && rom.status !== "CANCELADO" && rom.status !== "CLASSIFICADO" && rom.status !== "AGUARDANDO_CLASSIFICACAO") {
+    // Invalidar classificação se pesagens foram alteradas após classificação
+    if (rom.status === "CLASSIFICADO") {
+      rom.pesoClassificado = 0;
+      rom.totalPercentualDescontos = 0;
+      rom.totalPesoDescontado = 0;
+      rom.pesoLiquidoSecoLimpo = 0;
+      rom.dataClassificacao = null;
+      if (rom.origem === "AVULSO" && !rom.contratoId && !rom.safraId) {
+        rom.status = "AGUARDANDO_VINCULO";
+      } else {
+        rom.status = "AGUARDANDO_CLASSIFICACAO";
+      }
+    } else if (rom.status !== "FINALIZADO" && rom.status !== "CANCELADO" && rom.status !== "AGUARDANDO_CLASSIFICACAO") {
+      // Update status based on pesagens
       if (entrada && saida && rom.pesoLiquidoFisico > 0) {
         if (rom.origem === "AVULSO" && !rom.contratoId && !rom.safraId) {
           rom.status = "AGUARDANDO_VINCULO";
