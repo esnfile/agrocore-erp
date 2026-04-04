@@ -66,11 +66,13 @@ export function StepFechamento({ romaneio, onRefresh, ctx }: StepFechamentoProps
     const erros: string[] = [];
     if (romaneio.status === "CANCELADO") erros.push("Romaneio cancelado");
     if (romaneio.status === "FINALIZADO") return [];
+    if (romaneio.status === "AGUARDANDO_CLASSIFICACAO") erros.push("Classificação pendente. Classifique o romaneio antes de finalizar.");
     if (!romaneio.contratoId && !romaneio.safraId) erros.push("Sem vínculo definitivo (contrato ou colheita)");
     if (romaneio.pesoLiquidoFisico <= 0) erros.push("Peso líquido físico inválido");
     if (romaneio.pesoClassificado <= 0 && romaneio.status !== "CLASSIFICADO") erros.push("Classificação não concluída");
     if (!romaneio.pontoEstoqueId) erros.push("Ponto de estoque não definido");
     if (excedeContrato) erros.push(`Peso classificado (${pesoComercial.toFixed(0)} kg) excede saldo disponível do contrato (${saldoContratoKg.toFixed(0)} kg)`);
+    if (pesoComercial > romaneio.pesoLiquidoFisico && romaneio.pesoLiquidoFisico > 0) erros.push("Peso comercial inconsistente com peso físico");
     return erros;
   }, [romaneio, excedeContrato, pesoComercial, contratoVinculado]);
 

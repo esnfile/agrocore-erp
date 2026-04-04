@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Check } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Check, AlertTriangle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { romaneioService } from "@/lib/services";
 import { produtoClassificacoes, classificacaoDescontos, classificacaoTipos } from "@/lib/mock-data";
@@ -135,6 +136,15 @@ export function StepClassificacao({ romaneio, onRefresh, ctx }: StepClassificaca
 
   return (
     <div className="space-y-6">
+      {/* Alerta de classificação invalidada */}
+      {romaneio.status === "AGUARDANDO_CLASSIFICACAO" && romaneio.pesoClassificado === 0 && romaneio.pesoLiquidoFisico > 0 && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            Pesagens alteradas. Classificação invalidada. Reclassifique o romaneio.
+          </AlertDescription>
+        </Alert>
+      )}
       {/* Resumo */}
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-sm">Resumo do Romaneio</CardTitle></CardHeader>
