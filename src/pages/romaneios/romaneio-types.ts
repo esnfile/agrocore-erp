@@ -127,14 +127,14 @@ export function isRomaneioEditable(status: StatusRomaneioNew): boolean {
 }
 
 // ---- Dual-unit contract display helpers ----
-import { unidadesMedida, getUnidadeBaseParaTipo, getCodigoUnidadeBase } from "@/lib/mock-data";
+import { unidadesMedida, getUnidadeBaseParaTipo, getCodigoUnidadeBase, romaneios as mockRomaneios } from "@/lib/mock-data";
 import { produtos as mockProdutos } from "@/lib/mock-data";
 import type { Contrato, Produto, UnidadeMedida } from "@/lib/mock-data";
 
 export interface ContratoUnidadeInfo {
-  unidadeCodigo: string; // e.g. "SC", "KG"
-  fatorParaKg: number;   // e.g. 60 for SC (product-specific)
-  isKg: boolean;         // true if negotiation unit is the base unit (KG for PESO)
+  unidadeCodigo: string;
+  fatorParaKg: number;
+  isKg: boolean;
   totalOriginal: number;
   totalKg: number;
   entregueOriginal: number;
@@ -145,14 +145,13 @@ export interface ContratoUnidadeInfo {
 
 /**
  * Resolves the contract's negotiation unit info for dual-unit display.
- * Uses the product's quantidadeEmbalagemEntrada/Saida to determine conversion factor.
- * NO fallback to fatorBase — all conversion comes from the product.
+ * saldoKg is calculated by direct subtraction: quantidadeBaseTotal - sum of finalized romaneios pesoClassificado.
+ * This avoids cumulative rounding errors from intermediate conversions.
  */
 export function resolveContratoUnidadeInfo(contrato: Contrato, tipoRomaneio?: TipoRomaneio): ContratoUnidadeInfo {
   const unidade = unidadesMedida.find((u) => u.id === contrato.unidadeNegociacaoId && u.deletadoEm === null);
   const codigo = unidade?.codigo || "KG";
   
-  // Find the product to get the correct conversion factor
   const produto = mockProdutos.find((p) => p.id === contrato.produtoId && p.deletadoEm === null);
   
   let fator = 1;
@@ -163,7 +162,6 @@ export function resolveContratoUnidadeInfo(contrato: Contrato, tipoRomaneio?: Ti
     isKg = contrato.unidadeNegociacaoId === unidadeBaseId;
     
     if (!isKg) {
-      // Determine factor from product config
       if (contrato.unidadeNegociacaoId === produto.unidadeEntradaId) {
         fator = produto.quantidadeEmbalagemEntrada;
       } else if (contrato.unidadeNegociacaoId === produto.unidadeSaidaId) {
@@ -172,30 +170,43 @@ export function resolveContratoUnidadeInfo(contrato: Contrato, tipoRomaneio?: Ti
     }
   }
 
+  // Calculate entregueKg by summing pesoClassificado from finalized romaneios (exact KG, no conversion)
+  const entregueKg = mockRomaneios
+    .filter((r) => r.contratoId === contrato.id && r.status === "FINALIZADO" && r.deletadoEm === null)
+    .reduce((sum, r) => sum + (r.pesoClassificado || 0), 0);
+
+  // saldoKg via direct subtraction — no intermediate rounding
+  const totalKg = contrato.quantidadeBaseTotal;
+  const saldoKg = totalKg - entregueKg;
+
+  // Display-only values in negotiation unit (SC, etc.) — Math.round for single consistent rounding
+  const entregueOriginal = isKg ? entregueKg : Math.round(entregueKg / fator);
+  const saldoOriginal = isKg ? saldoKg : Math.round(saldoKg / fator);
+
   return {
     unidadeCodigo: codigo,
     fatorParaKg: fator,
     isKg,
     totalOriginal: contrato.quantidadeTotal,
-    totalKg: contrato.quantidadeTotal * fator,
-    entregueOriginal: contrato.quantidadeEntregue,
-    entregueKg: contrato.quantidadeEntregue * fator,
-    saldoOriginal: contrato.quantidadeSaldo,
-    saldoKg: contrato.quantidadeSaldo * fator,
+    totalKg,
+    entregueOriginal,
+    entregueKg,
+    saldoOriginal,
+    saldoKg,
   };
 }
 
 /**
  * Formats a quantity with dual-unit display.
  * If the unit is the base (KG), shows only "X kg".
- * Otherwise shows "X SC / Y kg".
+ * Otherwise shows "X SC / Y kg" with SC rounded via Math.round.
  */
 export function fmtDualUnit(valor: number, info: ContratoUnidadeInfo, decimals = 0): string {
   if (info.isKg) {
     return `${valor.toFixed(decimals)} kg`;
   }
   const valorKg = valor * info.fatorParaKg;
-  return `${valor.toFixed(decimals)} ${info.unidadeCodigo.toLowerCase()} / ${valorKg.toFixed(decimals)} kg`;
+  return `${Math.round(valor)} ${info.unidadeCodigo.toLowerCase()} / ${valorKg.toFixed(decimals)} kg`;
 }
 
 /**
