@@ -224,7 +224,7 @@ export function StepPesagens({ romaneio, pesagens, onRefresh, ctx }: StepPesagen
       </Card>
 
       {/* Aviso condicional sobre invalidação de classificação */}
-      {romaneio.status !== "FINALIZADO" && romaneio.status !== "CANCELADO" && romaneio.status !== "RASCUNHO" && romaneio.status !== "AGUARDANDO_PESAGEM" && romaneio.status !== "PESAGEM_PARCIAL" && (
+      {(romaneio.status === "CLASSIFICADO" || romaneio.status === "AGUARDANDO_CLASSIFICACAO") && (
         <div className="flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-700">
           <Info className="h-4 w-4 shrink-0" />
           <span>Alterações nas pesagens invalidarão a classificação já realizada, que deverá ser refeita.</span>

@@ -180,7 +180,7 @@ export function StepFechamento({ romaneio, onRefresh, ctx }: StepFechamentoProps
       {contratoVinculado && (() => {
         const uInfo = resolveContratoUnidadeInfo(contratoVinculado);
         return (
-        <Card className={excedeContrato ? "border-destructive" : ""}>
+        <Card className={excedeContrato && romaneio.status !== "FINALIZADO" && romaneio.status !== "CANCELADO" ? "border-destructive" : ""}>
           <CardHeader className="pb-2"><CardTitle className="text-sm">Saldo Contratual</CardTitle></CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
