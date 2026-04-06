@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Scale, ArrowDown, ArrowUp, Check, AlertTriangle } from "lucide-react";
+import { Scale, ArrowDown, ArrowUp, Check, AlertTriangle, Info } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { romaneioPesagemService, romaneioService } from "@/lib/services";
 import type { Romaneio, RomaneioPesagem, TipoPesagem } from "@/lib/mock-data";
@@ -222,6 +222,14 @@ export function StepPesagens({ romaneio, pesagens, onRefresh, ctx }: StepPesagen
           </Table>
         </CardContent>
       </Card>
+
+      {/* Aviso condicional sobre invalidação de classificação */}
+      {romaneio.status !== "FINALIZADO" && romaneio.status !== "CANCELADO" && romaneio.status !== "RASCUNHO" && romaneio.status !== "AGUARDANDO_PESAGEM" && romaneio.status !== "PESAGEM_PARCIAL" && (
+        <div className="flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-700">
+          <Info className="h-4 w-4 shrink-0" />
+          <span>Alterações nas pesagens invalidarão a classificação já realizada, que deverá ser refeita.</span>
+        </div>
+      )}
 
       {/* Dialog de Pesagem */}
       <Dialog open={pesagemOpen} onOpenChange={setPesagemOpen}>

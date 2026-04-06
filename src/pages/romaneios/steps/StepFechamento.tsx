@@ -205,7 +205,7 @@ export function StepFechamento({ romaneio, onRefresh, ctx }: StepFechamentoProps
                 </p>
               </div>
             </div>
-            {excedeContrato && (
+            {excedeContrato && romaneio.status !== "FINALIZADO" && romaneio.status !== "CANCELADO" && (
               <div className="mt-3 rounded-md bg-destructive/10 border border-destructive/30 p-2 text-xs text-destructive">
                 ⚠ O peso classificado excede o saldo disponível do contrato em {(pesoComercial - uInfo.saldoKg).toFixed(0)} kg. Finalização bloqueada.
               </div>
