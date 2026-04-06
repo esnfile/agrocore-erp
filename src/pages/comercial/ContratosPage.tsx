@@ -1063,7 +1063,7 @@ export default function ContratosPage() {
                     <TableCell className="text-right">
                       {c.quantidadeTotal.toLocaleString("pt-BR")} {getCodigoUnidade(c.unidadeNegociacaoId)}
                     </TableCell>
-                    <TableCell className="text-right">{c.quantidadeSaldo.toLocaleString("pt-BR")}</TableCell>
+                    <TableCell className="text-right">{Math.round(c.quantidadeSaldo).toLocaleString("pt-BR")}</TableCell>
                     <TableCell className="text-right">
                       {formatCurrency(c.precoUnitario, mockMoedas.find((m) => m.id === c.moedaId)?.codigo ?? "BRL")}
                     </TableCell>
@@ -1665,17 +1665,17 @@ export default function ContratosPage() {
                   <div className="rounded-md bg-muted p-3 text-sm space-y-1">
                     <div>
                       Quantidade Entregue:{" "}
-                      <strong>
-                        {editingContrato.quantidadeEntregue.toLocaleString("pt-BR")}{" "}
-                        {getCodigoUnidade(editingContrato.unidadeNegociacaoId)}
-                      </strong>
+                       <strong>
+                         {Math.round(editingContrato.quantidadeEntregue).toLocaleString("pt-BR")}{" "}
+                         {getCodigoUnidade(editingContrato.unidadeNegociacaoId)}
+                       </strong>
                     </div>
                     <div>
                       Saldo:{" "}
-                      <strong>
-                        {editingContrato.quantidadeSaldo.toLocaleString("pt-BR")}{" "}
-                        {getCodigoUnidade(editingContrato.unidadeNegociacaoId)}
-                      </strong>
+                       <strong>
+                         {Math.round(editingContrato.quantidadeSaldo).toLocaleString("pt-BR")}{" "}
+                         {getCodigoUnidade(editingContrato.unidadeNegociacaoId)}
+                       </strong>
                     </div>
                     {editingContrato.filialOperacaoId && (
                       <div>
@@ -1714,10 +1714,10 @@ export default function ContratosPage() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                       <div>
                         <p className="text-muted-foreground">Total Entregue</p>
-                        <p className="text-lg font-bold">
-                          {editingContrato.quantidadeEntregue.toLocaleString("pt-BR")}{" "}
-                          {getCodigoUnidade(editingContrato.unidadeNegociacaoId)}
-                        </p>
+                         <p className="text-lg font-bold">
+                           {Math.round(editingContrato.quantidadeEntregue).toLocaleString("pt-BR")}{" "}
+                           {getCodigoUnidade(editingContrato.unidadeNegociacaoId)}
+                         </p>
                       </div>
                       <div>
                         <p className="text-muted-foreground">Total Fixado</p>
