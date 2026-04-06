@@ -1,53 +1,90 @@
+# 3 Correções Cirúrgicas — Classificação, Saldo e Arredondamento
+
+## CORREÇÃO 1 — Mensagem Informativa no Step 4 + Step 2
+
+### StepClassificacao.tsx (linhas 139-147)
+
+- **Remover** o alerta destrutivo condicional (`variant="destructive"` + `AlertTriangle`)
+- **Substituir** por mensagem informativa **permanente** (visível sempre que status não é FINALIZADO/CANCELADO):
+  - Cor: azul claro / info (`bg-blue-50 border-blue-200 text-blue-700`)
+  - Ícone: `Info` (lucide-react)
+  - Texto: "Qualquer alteração nas pesagens invalidará a classificação, que deverá ser refeita."
+  - Posição: acima do card "Apontamento de Classificação" (onde está hoje)
+
+### StepPesagens.tsx (após linha 223, abaixo do card "Histórico de Pesagens")
+
+- Adicionar mensagem informativa **condicional**: exibir somente quando status é posterior a `PESAGEM_PARCIAL` (ou seja, `AGUARDANDO_VINCULO`, `AGUARDANDO_CLASSIFICACAO`, `CLASSIFICADO`)
+  - Mesma estilização azul/info
+  - Texto: "Alterações nas pesagens invalidarão a classificação já realizada, que deverá ser refeita."  
+  Caso o Status seja Finalizado ou Cancelado, não exibir a mensagem, pois não há mais o que fazer no romaneio.
+  - Condição: `romaneio.status !== "RASCUNHO" && romaneio.status !== "AGUARDANDO_PESAGEM" && romaneio.status !== "PESAGEM_PARCIAL"`  
 
 
-# Correção: Invalidação de Classificação ao Alterar Pesagens
+---
 
-## Problema
+## CORREÇÃO 2 — Bloqueio de Saldo Apenas em Romaneios Abertos
 
-Na linha 3101 de `services.ts`, `recalcularPesos()` exclui `CLASSIFICADO` e `AGUARDANDO_CLASSIFICACAO` da atualização de status. Quando o usuário altera pesagens após classificar, os dados de classificação (pesoClassificado, descontos) ficam obsoletos enquanto o status permanece `CLASSIFICADO`.
+### StepFechamento.tsx
 
-## Correção — 3 arquivos, 3 mudanças cirúrgicas
+**Saldo Contratual** (linhas 208-212): O alerta "peso classificado excede saldo" já está dentro do bloco `contratoVinculado && (...)`. Adicionar condição de status:
 
-### 1. `src/lib/services.ts` — `recalcularPesos()` (linha 3093-3111)
+- Linha 208: mudar `{excedeContrato && (` para `{excedeContrato && romaneio.status !== "FINALIZADO" && romaneio.status !== "CANCELADO" && (`
 
-Após calcular `pesoLiquidoFisico` (linha 3093) e antes da condição de status (linha 3101):
+**Bloqueios** (linha 74): A validação de saldo na lista de `bloqueios` já está protegida pelo `if (romaneio.status === "FINALIZADO") return []` na linha 68. Está correto — romaneios finalizados retornam array vazio.
 
-- Detectar se `rom.status === "CLASSIFICADO"` — se sim:
-  - Zerar: `pesoClassificado = 0`, `totalPercentualDescontos = 0`, `totalPesoDescontado = 0`, `pesoLiquidoSecoLimpo = 0`, `dataClassificacao = null`
-  - Regredir status: se avulso sem vínculo → `AGUARDANDO_VINCULO`, senão → `AGUARDANDO_CLASSIFICACAO`
-  - Return early (não entrar no bloco de status abaixo)
+O card "Saldo Contratual" inteiro (linhas 180-216) continua visível para consulta, mas a mensagem de alerta de excesso some quando finalizado/cancelado.
 
-- Na condição da linha 3101: remover `CLASSIFICADO` e `AGUARDANDO_CLASSIFICACAO` da exclusão (já tratados acima), ou simplesmente deixar o bloco tratar apenas os status anteriores à classificação (como já faz)
+---
 
-### 2. `src/pages/romaneios/steps/StepClassificacao.tsx`
+## CORREÇÃO 3 — Cálculo de Saldo via Subtração em KG
 
-Adicionar alerta informativo no topo do step quando `romaneio.status === "AGUARDANDO_CLASSIFICACAO"` e `romaneio.pesoClassificado === 0`:
+### Problema raiz
 
-> "Pesagens alteradas. Classificação invalidada. Reclassifique o romaneio."
+O contrato armazena `quantidadeTotal`, `quantidadeEntregue` e `quantidadeSaldo` na **unidade de negociação** (ex: SC). Quando o romaneio finaliza, converte `pesoClassificado` (KG) para SC via divisão, gerando frações. Essas frações acumulam divergência.
 
-Os inputs já ficam habilitados pois `isEditable = romaneio.status === "AGUARDANDO_CLASSIFICACAO"` (linha 52). Os valores medidos já inicializam em 0 (linha 48).
+### Solução: calcular saldoKg por subtração direta
 
-### 3. `src/pages/romaneios/steps/StepFechamento.tsx`
+O contrato já tem `quantidadeBaseTotal` (em KG, exato). Em vez de calcular `saldoKg = quantidadeSaldo × fator`, calcular:
 
-Na lista de `bloqueios` (linha 65-75), adicionar:
-- Se `romaneio.status === "AGUARDANDO_CLASSIFICACAO"`: push `"Classificação pendente. Classifique o romaneio antes de finalizar."`
-- Se `pesoComercial > romaneio.pesoLiquidoFisico`: push `"Peso comercial inconsistente com peso físico"`
+`saldoKg = quantidadeBaseTotal - (soma dos pesoClassificado de romaneios finalizados deste contrato)`
 
-## Por que funciona sem mudanças adicionais
+### romaneio-types.ts — `resolveContratoUnidadeInfo()`
 
-- O stepper já usa `getMaxStepForStatus()`: `AGUARDANDO_CLASSIFICACAO` → maxStep=4, bloqueando Step 5 automaticamente
-- `StepClassificacao` já habilita inputs quando status é `AGUARDANDO_CLASSIFICACAO`
-- `valoresMedidos` inicializa em 0 no `useState` — reclassificação parte do zero
-- Vínculo (contratoId/safraId) **não é apagado** — apenas a classificação é invalidada
+Reescrever o cálculo de `saldoKg` e `entregueKg`:
 
-## Fluxo após correção
+- Importar `romaneios` (mock) para somar `pesoClassificado` dos romaneios finalizados do contrato
+- `entregueKg = soma dos romaneios finalizados .pesoClassificado` (valor exato em KG, sem conversão)
+- `saldoKg = contrato.quantidadeBaseTotal - entregueKg` (subtração exata, sem arredondamento intermediário)
+- `saldoOriginal = saldoKg / fator` (apenas para exibição)
+- `entregueOriginal = entregueKg / fator` (apenas para exibição)
+- Usar `Math.round()` como política única de arredondamento para exibição em SC
 
-1. Pesagem: Entrada 60k, Saída 20k → Líquido 40k
-2. Classificação: 2% → Comercial 39.2k → status `CLASSIFICADO`
-3. Voltar Step 2: Alterar Saída para 10k
-4. `recalcularPesos()` detecta `CLASSIFICADO` → zera classificação → status `AGUARDANDO_CLASSIFICACAO`
-5. Step 4: campos habilitados, valores zerados, alerta visível
-6. Step 5: bloqueado (maxStep=4)
-7. Reclassificar com base 50k → salvar → `CLASSIFICADO`
-8. Step 5: liberado → finalizar
+### `fmtDualUnit()` — arredondamento consistente
 
+- Quando `!isKg`: usar `Math.round(valor)` para a parte em SC, e manter o KG exato
+- Formato: `"269 sc / 16120 kg"` (SC arredondado, KG exato)
+
+### Contrato: `quantidadeEntregue` e `quantidadeSaldo` (services.ts linha 3038-3039)
+
+- Manter a atualização incremental em unidade de negociação como está (para retrocompatibilidade com outras telas)
+- A mudança é apenas no **cálculo de saldoKg no romaneio-types.ts**, que passa a usar `quantidadeBaseTotal` menos soma real em KG
+
+---
+
+## Arquivos afetados
+
+
+| Arquivo                 | Mudança                                                                              |
+| ----------------------- | ------------------------------------------------------------------------------------ |
+| `StepClassificacao.tsx` | Trocar alerta destrutivo por info permanente                                         |
+| `StepPesagens.tsx`      | Adicionar info condicional abaixo do histórico                                       |
+| `StepFechamento.tsx`    | Condicionar mensagem de excesso ao status aberto                                     |
+| `romaneio-types.ts`     | `resolveContratoUnidadeInfo()`: saldoKg por subtração direta via quantidadeBaseTotal |
+
+
+## O que NÃO muda
+
+- Lógica de invalidação de classificação ao alterar pesagens
+- Travas de status e navegação do stepper
+- Cálculo de conversão em services.ts no finalizar
+- Aparência geral da interface
