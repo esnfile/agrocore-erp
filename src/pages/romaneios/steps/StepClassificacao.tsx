@@ -136,7 +136,7 @@ export function StepClassificacao({ romaneio, onRefresh, ctx }: StepClassificaca
   return (
     <div className="space-y-6">
       {/* Mensagem informativa — só exibir se já classificou */}
-      {(romaneio.status === "CLASSIFICADO" || romaneio.status === "AGUARDANDO_CLASSIFICACAO") && (
+      {romaneio.status === "CLASSIFICADO" && (
         <div className="flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-700">
           <Info className="h-4 w-4 shrink-0" />
           <span>Qualquer alteração nas pesagens invalidará a classificação, que deverá ser refeita.</span>
