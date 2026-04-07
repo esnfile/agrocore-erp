@@ -255,7 +255,7 @@ export default function MovimentacoesPage() {
                 <Select value={contaIdSelecionada} onValueChange={setContaIdSelecionada}>
                   <SelectTrigger><SelectValue placeholder="Selecione a conta..." /></SelectTrigger>
                   <SelectContent>
-                    {contas.filter((c) => c.status !== "PAGO" && c.status !== "CANCELADO").map((c) => (
+                    {contas.filter((c) => c.status !== "LIQUIDADO" && c.status !== "CANCELADO").map((c) => (
                       <SelectItem key={c.id} value={c.id}>{c.descricao} — {fmt(c.valorTotal)}</SelectItem>
                     ))}
                   </SelectContent>

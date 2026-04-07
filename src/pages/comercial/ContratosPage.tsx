@@ -133,6 +133,7 @@ function StatusBadge({ status }: { status: string }) {
     ABERTO: { label: "Aberto", variant: "default" },
     PARCIAL: { label: "Parcial", variant: "secondary" },
     FINALIZADO: { label: "Finalizado", variant: "outline" },
+    FATURADO: { label: "Faturado", variant: "default" },
     CANCELADO: { label: "Cancelado", variant: "destructive" },
     LIQUIDADO: { label: "Liquidado", variant: "outline" },
   };
@@ -281,6 +282,16 @@ export default function ContratosPage() {
   const [finContas, setFinContas] = useState<FinanceiroConta[]>([]);
   const [finParcelas, setFinParcelas] = useState<FinanceiroParcela[]>([]);
   const [finBaixas, setFinBaixas] = useState<FinanceiroBaixa[]>([]);
+
+  // Gerar contas modal
+  const [gerarContasOpen, setGerarContasOpen] = useState(false);
+  const [gcNumParcelas, setGcNumParcelas] = useState("1");
+  const [gcFrequencia, setGcFrequencia] = useState<"MENSAL" | "TRIMESTRAL" | "SEMESTRAL" | "ANUAL" | "PERSONALIZADO">("MENSAL");
+  const [gcDiasPersonalizado, setGcDiasPersonalizado] = useState("30");
+  const [gcDataPrimeiraParcela, setGcDataPrimeiraParcela] = useState(new Date().toISOString().slice(0, 10));
+  const [gcParcelasEditaveis, setGcParcelasEditaveis] = useState<{ numeroParcela: number; dataVencimento: string; valorParcela: number }[]>([]);
+  const [gcParcelasGeradas, setGcParcelasGeradas] = useState(false);
+  const [gcSaving, setGcSaving] = useState(false);
 
   // Forms
   const contratoForm = useForm<ContratoForm>({
@@ -1973,127 +1984,174 @@ export default function ContratosPage() {
           {/* ABA 4 — Financeiro REAL */}
           <TabsContent value="financeiro">
             <div className="space-y-6">
-              <div className="rounded-md bg-muted p-4 space-y-3">
-                <h3 className="font-semibold text-foreground">Resumo Financeiro</h3>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-                  <div className="rounded-md bg-card p-3 border">
-                    <p className="text-muted-foreground">Total Contas</p>
-                    <p className="text-lg font-bold text-foreground">{finContas.length}</p>
-                  </div>
-                  <div className="rounded-md bg-card p-3 border">
-                    <p className="text-muted-foreground">Valor Total</p>
-                    <p className="text-lg font-bold text-foreground">
-                      {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")}{" "}
-                      {finContas
-                        .reduce((s, c) => s + c.valorTotal, 0)
-                        .toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </p>
-                  </div>
-                  <div className="rounded-md bg-card p-3 border">
-                    <p className="text-muted-foreground">Total Pago</p>
-                    <p className="text-lg font-bold text-primary">
-                      {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")}{" "}
-                      {totalBaixas.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </p>
-                  </div>
-                  <div className="rounded-md bg-card p-3 border">
-                    <p className="text-muted-foreground">Saldo Pendente</p>
-                    <p className="text-lg font-bold text-destructive">
-                      {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")}{" "}
-                      {totalParcelasPendentes.toLocaleString("pt-BR", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
-                    </p>
-                  </div>
+              {/* Cenário 1: ABERTO ou PARCIAL */}
+              {editingContrato && (editingContrato.status === "ABERTO" || editingContrato.status === "PARCIAL") && (
+                <div className="rounded-md bg-muted p-6 text-center space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    Nenhuma conta a pagar/receber foi gerada para este contrato.
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    👉 Para gerar as parcelas, este contrato deve estar em status <strong>FINALIZADO</strong> (todos os romaneios finalizados, saldo = 0).
+                  </p>
+                  <p className="text-sm mt-2">
+                    Status Atual: <StatusBadge status={editingContrato.status} /> — Aguardando finalização de romaneios
+                  </p>
                 </div>
-              </div>
+              )}
 
-              {finParcelas.length > 0 && (
-                <div className="space-y-3">
-                  <h4 className="font-semibold text-foreground text-sm">Parcelas</h4>
-                  <div className="overflow-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Conta</TableHead>
-                          <TableHead>Nº</TableHead>
-                          <TableHead>Vencimento</TableHead>
-                          <TableHead className="text-right">Valor</TableHead>
-                          <TableHead className="text-right">Pago</TableHead>
-                          <TableHead className="text-right">Saldo</TableHead>
-                          <TableHead>Status</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {finParcelas.map((p) => {
-                          const conta = finContas.find((c) => c.id === p.contaId);
-                          return (
-                            <TableRow key={p.id}>
-                              <TableCell className="text-xs">{conta?.descricao ?? p.contaId}</TableCell>
-                              <TableCell>{p.numeroParcela}</TableCell>
-                              <TableCell>{format(new Date(p.dataVencimento), "dd/MM/yyyy")}</TableCell>
-                              <TableCell className="text-right">
-                                {p.valorParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                {p.valorPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                {p.saldoParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                              </TableCell>
-                              <TableCell>
-                                <Badge
-                                  variant={
-                                    p.status === "PAGO" ? "default" : p.status === "PARCIAL" ? "secondary" : "outline"
-                                  }
-                                >
-                                  {p.status}
-                                </Badge>
-                              </TableCell>
+              {/* Cenário 2: FINALIZADO — botão habilitado */}
+              {editingContrato && editingContrato.status === "FINALIZADO" && (
+                <div className="rounded-md border p-6 text-center space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    O contrato está finalizado. Gere as contas a pagar/receber para iniciar o controle financeiro.
+                  </p>
+                  <Button onClick={() => {
+                    setGcNumParcelas("1");
+                    setGcFrequencia("MENSAL");
+                    setGcDiasPersonalizado("30");
+                    setGcDataPrimeiraParcela(new Date().toISOString().slice(0, 10));
+                    setGcParcelasEditaveis([]);
+                    setGcParcelasGeradas(false);
+                    setGerarContasOpen(true);
+                  }}>
+                    Gerar Contas a {editingContrato.tipoContrato === "COMPRA" ? "Pagar" : "Receber"}
+                  </Button>
+                </div>
+              )}
+
+              {/* Cenário 3: FATURADO, LIQUIDADO ou CANCELADO — exibe parcelas */}
+              {editingContrato && (editingContrato.status === "FATURADO" || editingContrato.status === "LIQUIDADO" || editingContrato.status === "CANCELADO") && (
+                <>
+                  {/* Resumo */}
+                  <div className="rounded-md bg-muted p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold text-foreground">Resumo Financeiro</h3>
+                      {editingContrato.status === "FATURADO" && (
+                        <Badge variant="outline" className="text-muted-foreground">Contas já geradas</Badge>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+                      <div className="rounded-md bg-card p-3 border">
+                        <p className="text-muted-foreground">Total Contas</p>
+                        <p className="text-lg font-bold text-foreground">{finContas.length}</p>
+                      </div>
+                      <div className="rounded-md bg-card p-3 border">
+                        <p className="text-muted-foreground">Valor Total</p>
+                        <p className="text-lg font-bold text-foreground">
+                          {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")}{" "}
+                          {finContas
+                            .reduce((s, c) => s + c.valorTotal, 0)
+                            .toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      <div className="rounded-md bg-card p-3 border">
+                        <p className="text-muted-foreground">Total Pago</p>
+                        <p className="text-lg font-bold text-primary">
+                          {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")}{" "}
+                          {totalBaixas.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      <div className="rounded-md bg-card p-3 border">
+                        <p className="text-muted-foreground">Saldo Pendente</p>
+                        <p className="text-lg font-bold text-destructive">
+                          {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")}{" "}
+                          {totalParcelasPendentes.toLocaleString("pt-BR", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Parcelas */}
+                  {finParcelas.length > 0 && (
+                    <div className="space-y-3">
+                      <h4 className="font-semibold text-foreground text-sm">Parcelas Vinculadas</h4>
+                      <div className="overflow-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>#</TableHead>
+                              <TableHead>Vencimento</TableHead>
+                              <TableHead className="text-right">Valor Original</TableHead>
+                              <TableHead className="text-right">Valor Real</TableHead>
+                              <TableHead className="text-right">Pago</TableHead>
+                              <TableHead className="text-right">Saldo</TableHead>
+                              <TableHead>Status</TableHead>
                             </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </div>
-              )}
+                          </TableHeader>
+                          <TableBody>
+                            {finParcelas.map((p) => (
+                              <TableRow key={p.id}>
+                                <TableCell>{p.numeroParcela}/{p.totalParcelas}</TableCell>
+                                <TableCell>{format(new Date(p.dataVencimento), "dd/MM/yyyy")}</TableCell>
+                                <TableCell className="text-right">
+                                  {p.valorParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {p.valorReal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {p.valorPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {p.saldoParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge
+                                    variant={
+                                      p.status === "PAGO" ? "default" : p.status === "PARCIAL" ? "secondary" : p.status === "VENCIDA" ? "destructive" : "outline"
+                                    }
+                                  >
+                                    {p.status}
+                                  </Badge>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  )}
 
-              {finBaixas.length > 0 && (
-                <div className="space-y-3">
-                  <h4 className="font-semibold text-foreground text-sm">Histórico de Baixas</h4>
-                  <div className="overflow-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Data Pagamento</TableHead>
-                          <TableHead className="text-right">Valor</TableHead>
-                          <TableHead>Forma</TableHead>
-                          <TableHead>Observações</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {finBaixas.map((b) => (
-                          <TableRow key={b.id}>
-                            <TableCell>{format(new Date(b.dataPagamento), "dd/MM/yyyy HH:mm")}</TableCell>
-                            <TableCell className="text-right">
-                              {b.valorPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                            </TableCell>
-                            <TableCell>{b.formaPagamento}</TableCell>
-                            <TableCell className="text-xs text-muted-foreground">{b.observacoes || "—"}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </div>
-              )}
+                  {/* Baixas */}
+                  {finBaixas.length > 0 && (
+                    <div className="space-y-3">
+                      <h4 className="font-semibold text-foreground text-sm">Histórico de Baixas</h4>
+                      <div className="overflow-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Data Pagamento</TableHead>
+                              <TableHead className="text-right">Valor</TableHead>
+                              <TableHead>Forma</TableHead>
+                              <TableHead>Observações</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {finBaixas.map((b) => (
+                              <TableRow key={b.id}>
+                                <TableCell>{format(new Date(b.dataPagamento), "dd/MM/yyyy HH:mm")}</TableCell>
+                                <TableCell className="text-right">
+                                  {b.valorPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                </TableCell>
+                                <TableCell>{b.formaPagamento}</TableCell>
+                                <TableCell className="text-xs text-muted-foreground">{b.observacoes || "—"}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  )}
 
-              {finContas.length === 0 && (
-                <p className="text-center text-sm text-muted-foreground py-6">
-                  Nenhuma conta financeira vinculada a este contrato.
-                </p>
+                  {finContas.length === 0 && (
+                    <p className="text-center text-sm text-muted-foreground py-6">
+                      Nenhuma conta financeira vinculada a este contrato.
+                    </p>
+                  )}
+                </>
               )}
             </div>
           </TabsContent>
@@ -2851,6 +2909,148 @@ export default function ContratosPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* Modal Gerar Contas de Contrato */}
+      {editingContrato && (
+        <CrudModal
+          open={gerarContasOpen}
+          onClose={() => setGerarContasOpen(false)}
+          title={`Gerar Contas a ${editingContrato.tipoContrato === "COMPRA" ? "Pagar" : "Receber"}`}
+          saving={gcSaving}
+          onSave={gcParcelasGeradas ? async () => {
+            const soma = gcParcelasEditaveis.reduce((s, p) => s + p.valorParcela, 0);
+            const valorContrato = editingContrato.quantidadeTotal * editingContrato.precoUnitario;
+            if (Math.abs(soma - valorContrato) > 0.01) {
+              toast({ title: "Soma das parcelas difere do valor do contrato", variant: "destructive" });
+              return;
+            }
+            setGcSaving(true);
+            try {
+              const result = await financeiroContaService.gerarContasDeContrato(
+                editingContrato.id,
+                gcParcelasEditaveis,
+                { grupoId: grupoAtual?.id ?? "", empresaId: editingContrato.empresaId, filialId: editingContrato.filialId }
+              );
+              setFinContas([result.conta]);
+              setFinParcelas(result.parcelas);
+              // Update local contract status
+              editingContrato.status = "FATURADO";
+              toast({ title: `Contas geradas com ${result.parcelas.length} parcela(s)` });
+              setGerarContasOpen(false);
+              loadContratos();
+            } catch (err: any) {
+              toast({ title: err.message || "Erro ao gerar contas", variant: "destructive" });
+            } finally { setGcSaving(false); }
+          } : undefined}
+          maxWidth="sm:max-w-2xl"
+        >
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Pessoa</Label>
+                <Input value={getNomePessoa(editingContrato.pessoaId)} disabled />
+              </div>
+              <div>
+                <Label>Valor Total do Contrato</Label>
+                <Input value={(editingContrato.quantidadeTotal * editingContrato.precoUnitario).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} disabled />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Quantidade de Parcelas</Label>
+                <Input type="number" min="1" value={gcNumParcelas} onChange={(e) => { setGcNumParcelas(e.target.value); setGcParcelasGeradas(false); }} />
+              </div>
+              <div>
+                <Label>Data da Primeira Parcela</Label>
+                <Input type="date" value={gcDataPrimeiraParcela} onChange={(e) => { setGcDataPrimeiraParcela(e.target.value); setGcParcelasGeradas(false); }} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Frequência</Label>
+                <Select value={gcFrequencia} onValueChange={(v) => { setGcFrequencia(v as any); setGcParcelasGeradas(false); }}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="MENSAL">Mensal (30 dias)</SelectItem>
+                    <SelectItem value="TRIMESTRAL">Trimestral (90 dias)</SelectItem>
+                    <SelectItem value="SEMESTRAL">Semestral (180 dias)</SelectItem>
+                    <SelectItem value="ANUAL">Anual (365 dias)</SelectItem>
+                    <SelectItem value="PERSONALIZADO">Personalizado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {gcFrequencia === "PERSONALIZADO" && (
+                <div>
+                  <Label>Intervalo (dias)</Label>
+                  <Input type="number" min="1" value={gcDiasPersonalizado} onChange={(e) => { setGcDiasPersonalizado(e.target.value); setGcParcelasGeradas(false); }} />
+                </div>
+              )}
+            </div>
+
+            <Button variant="outline" className="w-full" onClick={() => {
+              const n = parseInt(gcNumParcelas);
+              const vt = editingContrato.quantidadeTotal * editingContrato.precoUnitario;
+              if (!n || n < 1) return;
+              const dias = gcFrequencia === "PERSONALIZADO" ? parseInt(gcDiasPersonalizado) || 30 : ({ MENSAL: 30, TRIMESTRAL: 90, SEMESTRAL: 180, ANUAL: 365 } as any)[gcFrequencia];
+              const valorBase = Math.round((vt / n) * 100) / 100;
+              const novas = [];
+              for (let i = 0; i < n; i++) {
+                const d = new Date(gcDataPrimeiraParcela);
+                d.setDate(d.getDate() + dias * i);
+                const val = i === n - 1 ? vt - valorBase * (n - 1) : valorBase;
+                novas.push({ numeroParcela: i + 1, dataVencimento: d.toISOString().slice(0, 10), valorParcela: Math.round(val * 100) / 100 });
+              }
+              setGcParcelasEditaveis(novas);
+              setGcParcelasGeradas(true);
+            }}>
+              Gerar Pré-visualização
+            </Button>
+
+            {gcParcelasGeradas && gcParcelasEditaveis.length > 0 && (
+              <>
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-20">Parcela</TableHead>
+                        <TableHead>Data Vencimento</TableHead>
+                        <TableHead className="text-right">Valor</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {gcParcelasEditaveis.map((p, idx) => (
+                        <TableRow key={idx}>
+                          <TableCell className="font-mono">{p.numeroParcela}</TableCell>
+                          <TableCell>
+                            <Input type="date" value={p.dataVencimento} onChange={(e) => {
+                              setGcParcelasEditaveis((prev) => prev.map((pp, i) => i === idx ? { ...pp, dataVencimento: e.target.value } : pp));
+                            }} className="w-40" />
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Input type="number" step="0.01" value={p.valorParcela} onChange={(e) => {
+                              setGcParcelasEditaveis((prev) => prev.map((pp, i) => i === idx ? { ...pp, valorParcela: parseFloat(e.target.value) || 0 } : pp));
+                            }} className="w-32 text-right ml-auto" />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                {(() => {
+                  const soma = gcParcelasEditaveis.reduce((s, p) => s + p.valorParcela, 0);
+                  const vt = editingContrato.quantidadeTotal * editingContrato.precoUnitario;
+                  const ok = Math.abs(soma - vt) < 0.01;
+                  return (
+                    <div className={`flex items-center justify-between p-3 rounded-md border ${ok ? "border-success/50 bg-success/10" : "border-destructive/50 bg-destructive/10"}`}>
+                      <span className="text-sm font-medium">Soma: {soma.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+                      <span className="text-sm text-muted-foreground">Valor total: {vt.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+                    </div>
+                  );
+                })()}
+              </>
+            )}
+          </div>
+        </CrudModal>
+      )}
     </>
   );
 }
