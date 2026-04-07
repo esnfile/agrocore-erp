@@ -2310,9 +2310,13 @@ export const financeiroContaService = {
       descricao: data.descricao ?? "",
       dataEmissao: data.dataEmissao ?? new Date().toISOString().slice(0, 10),
       valorTotal: data.valorTotal ?? 0,
+      valorTotalReal: data.valorTotalReal ?? data.valorTotal ?? 0,
       status: "ABERTO",
       origem: data.origem ?? "MANUAL",
       documentoReferencia: data.documentoReferencia ?? "",
+      contratoId: data.contratoId ?? null,
+      dataFaturamento: data.dataFaturamento ?? null,
+      dataLiquidacao: data.dataLiquidacao ?? null,
       observacoes: data.observacoes ?? "",
       criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
       deletadoEm: null, deletadoPor: null,
@@ -2334,11 +2338,73 @@ export const financeiroContaService = {
     if (parcelas.length === 0) { conta.status = "ABERTO"; return; }
     const todasPagas = parcelas.every((p) => p.status === "PAGO");
     const algumaPaga = parcelas.some((p) => p.status === "PAGO" || p.status === "PARCIAL");
-    if (todasPagas) conta.status = "PAGO";
+    if (todasPagas) {
+      conta.status = "LIQUIDADO";
+      conta.dataLiquidacao = new Date().toISOString().slice(0, 10);
+    }
     else if (algumaPaga) conta.status = "PARCIAL";
     else conta.status = "ABERTO";
     conta.atualizadoEm = new Date().toISOString();
     conta.atualizadoPor = "u1";
+  },
+  async gerarContasDeContrato(
+    contratoId: string,
+    parcelasConfig: { numeroParcela: number; dataVencimento: string; valorParcela: number }[],
+    ctx: { grupoId: string; empresaId: string; filialId: string }
+  ): Promise<{ conta: FinanceiroConta; parcelas: FinanceiroParcela[] }> {
+    await delay(400);
+    const now = new Date().toISOString();
+    const contrato = mockContratos.find((c) => c.id === contratoId && c.deletadoEm === null);
+    if (!contrato) throw new Error("Contrato não encontrado");
+    
+    const tipo = contrato.tipoContrato === "COMPRA" ? "PAGAR" : "RECEBER";
+    const valorTotal = parcelasConfig.reduce((s, p) => s + p.valorParcela, 0);
+    
+    const conta: FinanceiroConta = {
+      id: `fc${Date.now()}`,
+      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      tipo: tipo as TipoConta,
+      pessoaId: contrato.pessoaId,
+      descricao: `${tipo === "PAGAR" ? "Compra" : "Venda"} — Contrato ${contrato.numeroContrato}`,
+      dataEmissao: now.slice(0, 10),
+      valorTotal,
+      valorTotalReal: valorTotal,
+      status: "ABERTO",
+      origem: "CONTRATO",
+      documentoReferencia: contrato.numeroContrato,
+      contratoId: contrato.id,
+      dataFaturamento: now.slice(0, 10),
+      dataLiquidacao: null,
+      observacoes: "",
+      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      deletadoEm: null, deletadoPor: null,
+    };
+    mockFinanceiroContas.push(conta);
+    
+    const totalP = parcelasConfig.length;
+    const novasParcelas: FinanceiroParcela[] = parcelasConfig.map((input, i) => ({
+      id: `fp${Date.now()}${i}`,
+      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      contaId: conta.id,
+      numeroParcela: input.numeroParcela,
+      totalParcelas: totalP,
+      dataVencimento: input.dataVencimento,
+      valorParcela: input.valorParcela,
+      valorReal: input.valorParcela,
+      valorPago: 0,
+      saldoParcela: input.valorParcela,
+      status: "PENDENTE" as StatusParcela,
+      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      deletadoEm: null, deletadoPor: null,
+    }));
+    mockFinanceiroParcelas.push(...novasParcelas);
+    
+    // Transition contract to FATURADO
+    contrato.status = "FATURADO";
+    contrato.atualizadoEm = now;
+    contrato.atualizadoPor = "u1";
+    
+    return { conta, parcelas: novasParcelas };
   },
 };
 
