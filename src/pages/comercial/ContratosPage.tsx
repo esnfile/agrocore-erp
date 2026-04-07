@@ -133,6 +133,7 @@ function StatusBadge({ status }: { status: string }) {
     ABERTO: { label: "Aberto", variant: "default" },
     PARCIAL: { label: "Parcial", variant: "secondary" },
     FINALIZADO: { label: "Finalizado", variant: "outline" },
+    FATURADO: { label: "Faturado", variant: "default" },
     CANCELADO: { label: "Cancelado", variant: "destructive" },
     LIQUIDADO: { label: "Liquidado", variant: "outline" },
   };
