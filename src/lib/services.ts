@@ -2485,6 +2485,19 @@ export const financeiroParcelaService = {
       .filter((p) => p.contaId === contaId && p.deletadoEm === null)
       .forEach((p) => { p.deletadoEm = now; p.deletadoPor = "u1"; });
   },
+  async listarTodas(empresaId: string, filialId: string): Promise<(FinanceiroParcela & { conta?: FinanceiroConta })[]> {
+    await delay();
+    const hoje = new Date().toISOString().slice(0, 10);
+    return mockFinanceiroParcelas
+      .filter((p) => p.deletadoEm === null && p.empresaId === empresaId && p.filialId === filialId)
+      .map((p) => {
+        const conta = mockFinanceiroContas.find((c) => c.id === p.contaId && c.deletadoEm === null);
+        // Auto-mark VENCIDA
+        const status: StatusParcela = (p.status === "PENDENTE" && p.dataVencimento < hoje) ? "VENCIDA" : p.status;
+        return { ...p, status, conta };
+      })
+      .sort((a, b) => a.dataVencimento.localeCompare(b.dataVencimento));
+  },
 };
 
 // ============================================================
