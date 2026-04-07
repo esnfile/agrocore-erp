@@ -283,6 +283,16 @@ export default function ContratosPage() {
   const [finParcelas, setFinParcelas] = useState<FinanceiroParcela[]>([]);
   const [finBaixas, setFinBaixas] = useState<FinanceiroBaixa[]>([]);
 
+  // Gerar contas modal
+  const [gerarContasOpen, setGerarContasOpen] = useState(false);
+  const [gcNumParcelas, setGcNumParcelas] = useState("1");
+  const [gcFrequencia, setGcFrequencia] = useState<"MENSAL" | "TRIMESTRAL" | "SEMESTRAL" | "ANUAL" | "PERSONALIZADO">("MENSAL");
+  const [gcDiasPersonalizado, setGcDiasPersonalizado] = useState("30");
+  const [gcDataPrimeiraParcela, setGcDataPrimeiraParcela] = useState(new Date().toISOString().slice(0, 10));
+  const [gcParcelasEditaveis, setGcParcelasEditaveis] = useState<{ numeroParcela: number; dataVencimento: string; valorParcela: number }[]>([]);
+  const [gcParcelasGeradas, setGcParcelasGeradas] = useState(false);
+  const [gcSaving, setGcSaving] = useState(false);
+
   // Forms
   const contratoForm = useForm<ContratoForm>({
     resolver: zodResolver(contratoSchema),
