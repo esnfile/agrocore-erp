@@ -2947,7 +2947,7 @@ export default function ContratosPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Pessoa</Label>
-                <Input value={pessoas.find((p) => p.id === editingContrato.pessoaId)?.nomeRazao ?? "—"} disabled />
+                <Input value={getNomePessoa(editingContrato.pessoaId)} disabled />
               </div>
               <div>
                 <Label>Valor Total do Contrato</Label>
