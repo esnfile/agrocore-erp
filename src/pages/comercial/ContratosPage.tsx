@@ -2936,7 +2936,7 @@ export default function ContratosPage() {
               editingContrato.status = "FATURADO";
               toast({ title: `Contas geradas com ${result.parcelas.length} parcela(s)` });
               setGerarContasOpen(false);
-              carregar();
+              loadContratos();
             } catch (err: any) {
               toast({ title: err.message || "Erro ao gerar contas", variant: "destructive" });
             } finally { setGcSaving(false); }
