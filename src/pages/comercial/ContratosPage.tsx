@@ -2909,6 +2909,148 @@ export default function ContratosPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* Modal Gerar Contas de Contrato */}
+      {editingContrato && (
+        <CrudModal
+          open={gerarContasOpen}
+          onClose={() => setGerarContasOpen(false)}
+          title={`Gerar Contas a ${editingContrato.tipoContrato === "COMPRA" ? "Pagar" : "Receber"}`}
+          saving={gcSaving}
+          onSave={gcParcelasGeradas ? async () => {
+            const soma = gcParcelasEditaveis.reduce((s, p) => s + p.valorParcela, 0);
+            const valorContrato = editingContrato.quantidadeTotal * editingContrato.precoUnitario;
+            if (Math.abs(soma - valorContrato) > 0.01) {
+              toast({ title: "Soma das parcelas difere do valor do contrato", variant: "destructive" });
+              return;
+            }
+            setGcSaving(true);
+            try {
+              const result = await financeiroContaService.gerarContasDeContrato(
+                editingContrato.id,
+                gcParcelasEditaveis,
+                { grupoId: grupoAtual?.id ?? "", empresaId: editingContrato.empresaId, filialId: editingContrato.filialId }
+              );
+              setFinContas([result.conta]);
+              setFinParcelas(result.parcelas);
+              // Update local contract status
+              editingContrato.status = "FATURADO";
+              toast({ title: `Contas geradas com ${result.parcelas.length} parcela(s)` });
+              setGerarContasOpen(false);
+              carregar();
+            } catch (err: any) {
+              toast({ title: err.message || "Erro ao gerar contas", variant: "destructive" });
+            } finally { setGcSaving(false); }
+          } : undefined}
+          maxWidth="sm:max-w-2xl"
+        >
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Pessoa</Label>
+                <Input value={pessoas.find((p) => p.id === editingContrato.pessoaId)?.nomeRazao ?? "—"} disabled />
+              </div>
+              <div>
+                <Label>Valor Total do Contrato</Label>
+                <Input value={(editingContrato.quantidadeTotal * editingContrato.precoUnitario).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} disabled />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Quantidade de Parcelas</Label>
+                <Input type="number" min="1" value={gcNumParcelas} onChange={(e) => { setGcNumParcelas(e.target.value); setGcParcelasGeradas(false); }} />
+              </div>
+              <div>
+                <Label>Data da Primeira Parcela</Label>
+                <Input type="date" value={gcDataPrimeiraParcela} onChange={(e) => { setGcDataPrimeiraParcela(e.target.value); setGcParcelasGeradas(false); }} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Frequência</Label>
+                <Select value={gcFrequencia} onValueChange={(v) => { setGcFrequencia(v as any); setGcParcelasGeradas(false); }}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="MENSAL">Mensal (30 dias)</SelectItem>
+                    <SelectItem value="TRIMESTRAL">Trimestral (90 dias)</SelectItem>
+                    <SelectItem value="SEMESTRAL">Semestral (180 dias)</SelectItem>
+                    <SelectItem value="ANUAL">Anual (365 dias)</SelectItem>
+                    <SelectItem value="PERSONALIZADO">Personalizado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {gcFrequencia === "PERSONALIZADO" && (
+                <div>
+                  <Label>Intervalo (dias)</Label>
+                  <Input type="number" min="1" value={gcDiasPersonalizado} onChange={(e) => { setGcDiasPersonalizado(e.target.value); setGcParcelasGeradas(false); }} />
+                </div>
+              )}
+            </div>
+
+            <Button variant="outline" className="w-full" onClick={() => {
+              const n = parseInt(gcNumParcelas);
+              const vt = editingContrato.quantidadeTotal * editingContrato.precoUnitario;
+              if (!n || n < 1) return;
+              const dias = gcFrequencia === "PERSONALIZADO" ? parseInt(gcDiasPersonalizado) || 30 : ({ MENSAL: 30, TRIMESTRAL: 90, SEMESTRAL: 180, ANUAL: 365 } as any)[gcFrequencia];
+              const valorBase = Math.round((vt / n) * 100) / 100;
+              const novas = [];
+              for (let i = 0; i < n; i++) {
+                const d = new Date(gcDataPrimeiraParcela);
+                d.setDate(d.getDate() + dias * i);
+                const val = i === n - 1 ? vt - valorBase * (n - 1) : valorBase;
+                novas.push({ numeroParcela: i + 1, dataVencimento: d.toISOString().slice(0, 10), valorParcela: Math.round(val * 100) / 100 });
+              }
+              setGcParcelasEditaveis(novas);
+              setGcParcelasGeradas(true);
+            }}>
+              Gerar Pré-visualização
+            </Button>
+
+            {gcParcelasGeradas && gcParcelasEditaveis.length > 0 && (
+              <>
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-20">Parcela</TableHead>
+                        <TableHead>Data Vencimento</TableHead>
+                        <TableHead className="text-right">Valor</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {gcParcelasEditaveis.map((p, idx) => (
+                        <TableRow key={idx}>
+                          <TableCell className="font-mono">{p.numeroParcela}</TableCell>
+                          <TableCell>
+                            <Input type="date" value={p.dataVencimento} onChange={(e) => {
+                              setGcParcelasEditaveis((prev) => prev.map((pp, i) => i === idx ? { ...pp, dataVencimento: e.target.value } : pp));
+                            }} className="w-40" />
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Input type="number" step="0.01" value={p.valorParcela} onChange={(e) => {
+                              setGcParcelasEditaveis((prev) => prev.map((pp, i) => i === idx ? { ...pp, valorParcela: parseFloat(e.target.value) || 0 } : pp));
+                            }} className="w-32 text-right ml-auto" />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                {(() => {
+                  const soma = gcParcelasEditaveis.reduce((s, p) => s + p.valorParcela, 0);
+                  const vt = editingContrato.quantidadeTotal * editingContrato.precoUnitario;
+                  const ok = Math.abs(soma - vt) < 0.01;
+                  return (
+                    <div className={`flex items-center justify-between p-3 rounded-md border ${ok ? "border-success/50 bg-success/10" : "border-destructive/50 bg-destructive/10"}`}>
+                      <span className="text-sm font-medium">Soma: {soma.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+                      <span className="text-sm text-muted-foreground">Valor total: {vt.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+                    </div>
+                  );
+                })()}
+              </>
+            )}
+          </div>
+        </CrudModal>
+      )}
     </>
   );
 }
