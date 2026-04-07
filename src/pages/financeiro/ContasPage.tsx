@@ -7,26 +7,30 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Eye, Search, AlertTriangle } from "lucide-react";
-import { financeiroContaService, financeiroParcelaService, financeiroMovimentacaoService, financeiroContaFinanceiraService, financeiroFormaPagtoService, financeiroTipoLancamentoService, pessoaService } from "@/lib/services";
-import type { FinanceiroConta, FinanceiroParcela, FinanceiroMovimentacao, TipoConta, StatusConta, Pessoa } from "@/lib/mock-data";
+import { Plus, Pencil, Trash2, Eye, Search, AlertTriangle, ArrowDownCircle, ArrowUpCircle, ChevronDown, ChevronRight, Info } from "lucide-react";
+import { financeiroContaService, financeiroParcelaService, financeiroMovimentacaoService, financeiroContaFinanceiraService, financeiroFormaPagtoService, financeiroTipoLancamentoService, pessoaService, financeiroBaixaService } from "@/lib/services";
+import type { FinanceiroConta, FinanceiroParcela, FinanceiroMovimentacao, FinanceiroBaixa, TipoConta, StatusConta, StatusParcela, Pessoa } from "@/lib/mock-data";
 
-const statusColors: Record<StatusConta, string> = {
+const statusContaColors: Record<StatusConta, string> = {
   ABERTO: "bg-warning/20 text-warning border-warning/30",
-  PARCIAL: "bg-blue-100 text-blue-700 border-blue-300",
-  PAGO: "bg-success/20 text-success border-success/30",
+  PARCIAL: "bg-orange-100 text-orange-700 border-orange-300",
+  LIQUIDADO: "bg-blue-100 text-blue-700 border-blue-300",
   CANCELADO: "bg-destructive/20 text-destructive border-destructive/30",
 };
 
-const statusParcelaColors: Record<string, string> = {
+const statusParcelaColors: Record<StatusParcela, string> = {
   PENDENTE: "bg-warning/20 text-warning border-warning/30",
-  PARCIAL: "bg-blue-100 text-blue-700 border-blue-300",
+  PARCIAL: "bg-orange-100 text-orange-700 border-orange-300",
   PAGO: "bg-success/20 text-success border-success/30",
+  VENCIDA: "bg-destructive/20 text-destructive border-destructive/30",
+  CANCELADA: "bg-muted text-muted-foreground border-muted",
 };
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -42,6 +46,8 @@ interface ParcelaEditavel {
   valorParcela: number;
 }
 
+type ParcelaComConta = FinanceiroParcela & { conta?: FinanceiroConta };
+
 export default function ContasPage() {
   const { grupoAtual, empresaAtual, filialAtual } = useOrganization();
   const grupoId = grupoAtual?.id ?? "";
@@ -49,6 +55,7 @@ export default function ContasPage() {
   const filialId = filialAtual?.id ?? "";
   const { toast } = useToast();
 
+  const [todasParcelas, setTodasParcelas] = useState<ParcelaComConta[]>([]);
   const [contas, setContas] = useState<FinanceiroConta[]>([]);
   const [pessoas, setPessoas] = useState<Pessoa[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,7 +68,7 @@ export default function ContasPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"new" | "edit" | "view">("new");
   const [saving, setSaving] = useState(false);
-  const [editId, setEditId] = useState<string | null>(null);
+  const [editingConta, setEditingConta] = useState<FinanceiroConta | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   // Form fields
@@ -70,13 +77,15 @@ export default function ContasPage() {
   const [descricao, setDescricao] = useState("");
   const [dataEmissao, setDataEmissao] = useState("");
   const [valorTotal, setValorTotal] = useState("");
+  const [valorTotalReal, setValorTotalReal] = useState("");
   const [documentoReferencia, setDocumentoReferencia] = useState("");
   const [observacoes, setObservacoes] = useState("");
   const [origem, setOrigem] = useState<string>("MANUAL");
 
   // Parcelas & Movimentações (histórico)
   const [parcelas, setParcelas] = useState<FinanceiroParcela[]>([]);
-  const [movimentacoes, setMovimentacoes] = useState<FinanceiroMovimentacao[]>([]);
+  const [baixas, setBaixas] = useState<FinanceiroBaixa[]>([]);
+  const [expandedParcela, setExpandedParcela] = useState<string | null>(null);
 
   // Gerar parcelas
   const [gerarParcelasOpen, setGerarParcelasOpen] = useState(false);
@@ -87,71 +96,75 @@ export default function ContasPage() {
   const [parcelasEditaveis, setParcelasEditaveis] = useState<ParcelaEditavel[]>([]);
   const [parcelasGeradas, setParcelasGeradas] = useState(false);
 
-  // Lookups for movimentações tab
-  const [contasFinanceirasMap, setContasFinanceirasMap] = useState<Record<string, string>>({});
-  const [formasPagtoMap, setFormasPagtoMap] = useState<Record<string, string>>({});
-  const [tiposLancMap, setTiposLancMap] = useState<Record<string, string>>({});
-
   const carregar = useCallback(async () => {
     setLoading(true);
-    const [c, p, cfs, fps, tls] = await Promise.all([
+    const [allParcelas, c, p] = await Promise.all([
+      financeiroParcelaService.listarTodas(empresaId, filialId),
       financeiroContaService.listar(empresaId, filialId),
       pessoaService.listar(empresaId, filialId),
-      financeiroContaFinanceiraService.listar(empresaId, filialId),
-      financeiroFormaPagtoService.listar(empresaId, filialId),
-      financeiroTipoLancamentoService.listar(empresaId, filialId),
     ]);
+    setTodasParcelas(allParcelas);
     setContas(c);
     setPessoas(p);
-    const cfMap: Record<string, string> = {};
-    cfs.forEach((cf) => { cfMap[cf.id] = cf.descricao; });
-    setContasFinanceirasMap(cfMap);
-    const fpMap: Record<string, string> = {};
-    fps.forEach((fp) => { fpMap[fp.id] = fp.descricao; });
-    setFormasPagtoMap(fpMap);
-    const tlMap: Record<string, string> = {};
-    tls.forEach((tl) => { tlMap[tl.id] = tl.descricao; });
-    setTiposLancMap(tlMap);
     setLoading(false);
   }, [empresaId, filialId]);
 
   useEffect(() => { carregar(); }, [carregar]);
 
-  const contasFiltradas = useMemo(() => {
-    let list = contas;
-    if (filtroTipo !== "TODOS") list = list.filter((c) => c.tipo === filtroTipo);
-    if (filtroStatus !== "TODOS") list = list.filter((c) => c.status === filtroStatus);
-    if (filtroPessoa !== "TODOS") list = list.filter((c) => c.pessoaId === filtroPessoa);
+  const parcelasFiltradas = useMemo(() => {
+    let list = todasParcelas;
+    if (filtroTipo !== "TODOS") list = list.filter((p) => p.conta?.tipo === filtroTipo);
+    if (filtroStatus !== "TODOS") list = list.filter((p) => p.status === filtroStatus);
+    if (filtroPessoa !== "TODOS") list = list.filter((p) => p.conta?.pessoaId === filtroPessoa);
     if (filtroBusca) {
       const term = filtroBusca.toLowerCase();
-      list = list.filter((c) => c.descricao.toLowerCase().includes(term) || c.documentoReferencia.toLowerCase().includes(term));
+      list = list.filter((p) =>
+        p.conta?.descricao?.toLowerCase().includes(term) ||
+        p.conta?.documentoReferencia?.toLowerCase().includes(term) ||
+        p.conta?.pessoaId && getNomePessoa(p.conta.pessoaId).toLowerCase().includes(term)
+      );
     }
     return list;
-  }, [contas, filtroTipo, filtroStatus, filtroPessoa, filtroBusca]);
+  }, [todasParcelas, filtroTipo, filtroStatus, filtroPessoa, filtroBusca]);
+
+  // Summary cards
+  const resumo = useMemo(() => {
+    const vencidas = parcelasFiltradas.filter((p) => p.status === "VENCIDA" && p.conta?.tipo === "PAGAR");
+    const pendPagar = parcelasFiltradas.filter((p) => (p.status === "PENDENTE" || p.status === "PARCIAL") && p.conta?.tipo === "PAGAR");
+    const pendReceber = parcelasFiltradas.filter((p) => (p.status === "PENDENTE" || p.status === "PARCIAL" || p.status === "VENCIDA") && p.conta?.tipo === "RECEBER");
+    return {
+      totalVencidas: vencidas.reduce((s, p) => s + p.saldoParcela, 0),
+      totalPagarPend: pendPagar.reduce((s, p) => s + p.saldoParcela, 0),
+      totalReceberPend: pendReceber.reduce((s, p) => s + p.saldoParcela, 0),
+      saldoTotal: parcelasFiltradas.reduce((s, p) => s + p.saldoParcela, 0),
+    };
+  }, [parcelasFiltradas]);
 
   const getNomePessoa = (id: string) => pessoas.find((p) => p.id === id)?.nomeRazao ?? "—";
 
   const resetForm = () => {
     setTipo("PAGAR"); setPessoaId(""); setDescricao("");
     setDataEmissao(new Date().toISOString().slice(0, 10));
-    setValorTotal(""); setDocumentoReferencia(""); setObservacoes("");
-    setOrigem("MANUAL"); setParcelas([]); setMovimentacoes([]);
-    setEditId(null); setParcelasEditaveis([]); setParcelasGeradas(false);
+    setValorTotal(""); setValorTotalReal(""); setDocumentoReferencia(""); setObservacoes("");
+    setOrigem("MANUAL"); setParcelas([]); setBaixas([]);
+    setEditingConta(null); setParcelasEditaveis([]); setParcelasGeradas(false);
+    setExpandedParcela(null);
   };
 
   const openNew = () => { resetForm(); setModalMode("new"); setModalOpen(true); };
 
   const openEdit = async (conta: FinanceiroConta) => {
-    setEditId(conta.id);
+    setEditingConta(conta);
     setTipo(conta.tipo); setPessoaId(conta.pessoaId); setDescricao(conta.descricao);
     setDataEmissao(conta.dataEmissao); setValorTotal(String(conta.valorTotal));
+    setValorTotalReal(String(conta.valorTotalReal));
     setDocumentoReferencia(conta.documentoReferencia); setObservacoes(conta.observacoes);
     setOrigem(conta.origem);
-    const [p, m] = await Promise.all([
+    const [p, b] = await Promise.all([
       financeiroParcelaService.listarPorConta(conta.id),
-      financeiroMovimentacaoService.listarPorConta(conta.id),
+      financeiroBaixaService.listarPorConta(conta.id),
     ]);
-    setParcelas(p); setMovimentacoes(m);
+    setParcelas(p); setBaixas(b);
     setParcelasEditaveis([]); setParcelasGeradas(false);
     setModalMode("edit"); setModalOpen(true);
   };
@@ -161,6 +174,28 @@ export default function ContasPage() {
     setModalMode("view");
   };
 
+  // Field locking matrix
+  const isReadonly = modalMode === "view";
+  const contaStatus = editingConta?.status;
+  const isOrigemContrato = editingConta?.origem === "CONTRATO" || editingConta?.origem === "FIXACAO";
+  const isLocked = contaStatus === "LIQUIDADO" || contaStatus === "CANCELADO";
+
+  const canEditField = (field: string): boolean => {
+    if (isReadonly) return false;
+    if (modalMode === "new") return true;
+    if (field === "observacoes") return contaStatus !== "LIQUIDADO";
+    if (isLocked) return false;
+    if (field === "tipo") return !isOrigemContrato && contaStatus === "ABERTO";
+    if (field === "pessoa") return !isOrigemContrato && contaStatus === "ABERTO";
+    if (field === "descricao") return contaStatus === "ABERTO" || contaStatus === "PARCIAL";
+    if (field === "valorTotal") return contaStatus === "ABERTO" || contaStatus === "PARCIAL";
+    if (field === "valorTotalReal") return contaStatus === "ABERTO" || contaStatus === "PARCIAL";
+    if (field === "documentoReferencia") return !isOrigemContrato;
+    if (field === "dataEmissao") return contaStatus === "ABERTO";
+    if (field === "origem") return false;
+    return false;
+  };
+
   const handleSave = async () => {
     if (!pessoaId || !descricao || !valorTotal) {
       toast({ title: "Preencha os campos obrigatórios", variant: "destructive" }); return;
@@ -168,8 +203,10 @@ export default function ContasPage() {
     setSaving(true);
     try {
       await financeiroContaService.salvar({
-        id: editId ?? undefined, tipo, pessoaId, descricao, dataEmissao,
-        valorTotal: parseFloat(valorTotal), documentoReferencia, observacoes,
+        id: editingConta?.id ?? undefined, tipo, pessoaId, descricao, dataEmissao,
+        valorTotal: parseFloat(valorTotal),
+        valorTotalReal: parseFloat(valorTotalReal || valorTotal),
+        documentoReferencia, observacoes,
         origem: origem as any,
       }, { grupoId, empresaId, filialId });
       toast({ title: "Conta salva com sucesso" });
@@ -212,7 +249,7 @@ export default function ContasPage() {
   const somaValida = Math.abs(somaParcelas - (parseFloat(valorTotal) || 0)) < 0.01;
 
   const handleSalvarParcelas = async () => {
-    if (!editId) return;
+    if (!editingConta) return;
     if (!somaValida) {
       toast({ title: "Soma das parcelas difere do valor total da conta", description: `Soma: ${fmt(somaParcelas)} — Valor total: ${fmt(parseFloat(valorTotal) || 0)}`, variant: "destructive" });
       return;
@@ -220,7 +257,7 @@ export default function ContasPage() {
     setSaving(true);
     try {
       const novas = await financeiroParcelaService.gerarParcelasCustomizadas(
-        editId, parcelasEditaveis, { grupoId, empresaId, filialId }
+        editingConta.id, parcelasEditaveis, { grupoId, empresaId, filialId }
       );
       setParcelas(novas);
       toast({ title: `${novas.length} parcela(s) salva(s)` });
@@ -233,11 +270,43 @@ export default function ContasPage() {
     setParcelasEditaveis((prev) => prev.map((p, i) => i === idx ? { ...p, [field]: field === "valorParcela" ? parseFloat(value) || 0 : value } : p));
   };
 
-  const isReadonly = modalMode === "view";
+  const openContaFromParcela = async (parcela: ParcelaComConta) => {
+    if (parcela.conta) {
+      await openView(parcela.conta);
+    }
+  };
 
   return (
     <div>
-      <PageHeader title="Contas" description="Gerenciamento de contas a pagar e receber" />
+      <PageHeader title="Contas a Pagar / Receber" description="Visão por parcelas — verdade absoluta do financeiro" />
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+        <Card>
+          <CardContent className="pt-4 pb-3">
+            <p className="text-xs text-muted-foreground">A Pagar (Vencidas)</p>
+            <p className="text-lg font-bold text-destructive">{fmt(resumo.totalVencidas)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-3">
+            <p className="text-xs text-muted-foreground">A Pagar (Pendentes)</p>
+            <p className="text-lg font-bold text-warning">{fmt(resumo.totalPagarPend)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-3">
+            <p className="text-xs text-muted-foreground">A Receber (Pendentes)</p>
+            <p className="text-lg font-bold text-success">{fmt(resumo.totalReceberPend)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-3">
+            <p className="text-xs text-muted-foreground">Saldo Total</p>
+            <p className="text-lg font-bold text-foreground">{fmt(resumo.saldoTotal)}</p>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Filtros */}
       <div className="flex flex-wrap gap-3 mb-4 items-end">
@@ -258,10 +327,11 @@ export default function ContasPage() {
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="TODOS">Todos</SelectItem>
-              <SelectItem value="ABERTO">Aberto</SelectItem>
+              <SelectItem value="PENDENTE">Pendente</SelectItem>
               <SelectItem value="PARCIAL">Parcial</SelectItem>
               <SelectItem value="PAGO">Pago</SelectItem>
-              <SelectItem value="CANCELADO">Cancelado</SelectItem>
+              <SelectItem value="VENCIDA">Vencida</SelectItem>
+              <SelectItem value="CANCELADA">Cancelada</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -281,50 +351,69 @@ export default function ContasPage() {
           <Label className="text-xs">Buscar</Label>
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Descrição ou documento..." value={filtroBusca} onChange={(e) => setFiltroBusca(e.target.value)} className="pl-9" />
+            <Input placeholder="Descrição, documento ou pessoa..." value={filtroBusca} onChange={(e) => setFiltroBusca(e.target.value)} className="pl-9" />
           </div>
         </div>
-        <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" />Nova Conta</Button>
+        <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" />Nova Conta Manual</Button>
       </div>
 
-      {/* Grid */}
+      {/* Grid de Parcelas */}
       <div className="rounded-md border bg-card">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead className="w-24">Tipo</TableHead>
               <TableHead>Pessoa</TableHead>
-              <TableHead>Descrição</TableHead>
-              <TableHead className="w-28">Emissão</TableHead>
-              <TableHead className="w-32 text-right">Valor Total</TableHead>
+              <TableHead>Contrato / Parcela</TableHead>
+              <TableHead className="w-28">Vencimento</TableHead>
+              <TableHead className="w-28 text-right">Valor</TableHead>
+              <TableHead className="w-28 text-right">Pago</TableHead>
+              <TableHead className="w-28 text-right">Saldo</TableHead>
               <TableHead className="w-28">Status</TableHead>
-              <TableHead className="w-28">Origem</TableHead>
-              <TableHead className="w-36 text-center">Ações</TableHead>
+              <TableHead className="w-28 text-center">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
-            ) : contasFiltradas.length === 0 ? (
-              <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhuma conta encontrada</TableCell></TableRow>
-            ) : contasFiltradas.map((c) => (
-              <TableRow key={c.id}>
+              <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+            ) : parcelasFiltradas.length === 0 ? (
+              <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Nenhuma parcela encontrada</TableCell></TableRow>
+            ) : parcelasFiltradas.map((p) => (
+              <TableRow key={p.id} className={p.status === "VENCIDA" ? "bg-destructive/5" : ""}>
                 <TableCell>
-                  <Badge variant="outline" className={c.tipo === "PAGAR" ? "border-destructive/50 text-destructive" : "border-success/50 text-success"}>
-                    {c.tipo === "PAGAR" ? "Pagar" : "Receber"}
-                  </Badge>
+                  {p.conta?.tipo === "PAGAR" ? (
+                    <Badge variant="outline" className="border-destructive/50 text-destructive gap-1">
+                      <ArrowDownCircle className="h-3 w-3" />Pagar
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="border-success/50 text-success gap-1">
+                      <ArrowUpCircle className="h-3 w-3" />Receber
+                    </Badge>
+                  )}
                 </TableCell>
-                <TableCell className="font-medium">{getNomePessoa(c.pessoaId)}</TableCell>
-                <TableCell>{c.descricao}</TableCell>
-                <TableCell>{new Date(c.dataEmissao).toLocaleDateString("pt-BR")}</TableCell>
-                <TableCell className="text-right font-mono">{fmt(c.valorTotal)}</TableCell>
-                <TableCell><Badge variant="outline" className={statusColors[c.status]}>{c.status}</Badge></TableCell>
-                <TableCell>{c.origem}</TableCell>
+                <TableCell className="font-medium">{p.conta ? getNomePessoa(p.conta.pessoaId) : "—"}</TableCell>
+                <TableCell className="text-sm">
+                  <span className="text-muted-foreground">{p.conta?.documentoReferencia ?? "—"}</span>
+                  <span className="text-xs text-muted-foreground ml-1">/ P{p.numeroParcela}</span>
+                </TableCell>
+                <TableCell className={p.status === "VENCIDA" ? "text-destructive font-medium" : ""}>
+                  {new Date(p.dataVencimento).toLocaleDateString("pt-BR")}
+                </TableCell>
+                <TableCell className="text-right font-mono">{fmt(p.valorReal)}</TableCell>
+                <TableCell className="text-right font-mono">{fmt(p.valorPago)}</TableCell>
+                <TableCell className="text-right font-mono">{fmt(p.saldoParcela)}</TableCell>
+                <TableCell>
+                  <Badge variant="outline" className={statusParcelaColors[p.status]}>{p.status}</Badge>
+                </TableCell>
                 <TableCell>
                   <div className="flex gap-1 justify-center">
-                    <Button variant="ghost" size="icon" onClick={() => openView(c)} title="Visualizar"><Eye className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(c)} title="Editar"><Pencil className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => setDeleteId(c.id)} title="Excluir" className="hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => p.conta && openView(p.conta)} title="Visualizar"><Eye className="h-4 w-4" /></Button>
+                    {p.conta && p.conta.status !== "LIQUIDADO" && p.conta.status !== "CANCELADO" && (
+                      <Button variant="ghost" size="icon" onClick={() => p.conta && openEdit(p.conta)} title="Editar"><Pencil className="h-4 w-4" /></Button>
+                    )}
+                    {p.conta && p.conta.status === "ABERTO" && p.conta.origem === "MANUAL" && (
+                      <Button variant="ghost" size="icon" onClick={() => setDeleteId(p.conta!.id)} title="Excluir" className="hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>
@@ -337,9 +426,9 @@ export default function ContasPage() {
       <CrudModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        title={modalMode === "new" ? "Nova Conta" : modalMode === "edit" ? "Editar Conta" : "Visualizar Conta"}
+        title={modalMode === "new" ? "Nova Conta Manual" : modalMode === "edit" ? "Editar Conta" : "Visualizar Conta"}
         saving={saving}
-        onSave={isReadonly ? undefined : handleSave}
+        onSave={isReadonly || isLocked ? undefined : handleSave}
         maxWidth="sm:max-w-4xl"
       >
         <Tabs defaultValue="dados" className="w-full">
@@ -350,10 +439,20 @@ export default function ContasPage() {
           </TabsList>
 
           <TabsContent value="dados" className="space-y-4 mt-4">
-            <div className="grid grid-cols-2 gap-4">
+            {/* Summary row */}
+            {editingConta && (
+              <div className="flex items-center gap-3 p-3 rounded-md bg-muted">
+                <Badge variant="outline" className={editingConta.tipo === "PAGAR" ? "border-destructive/50 text-destructive" : "border-success/50 text-success"}>
+                  {editingConta.tipo === "PAGAR" ? "A Pagar" : "A Receber"}
+                </Badge>
+                <Badge variant="outline" className="bg-muted">{editingConta.origem}</Badge>
+                <Badge variant="outline" className={statusContaColors[editingConta.status]}>{editingConta.status}</Badge>
+              </div>
+            )}
+            <div className="grid grid-cols-3 gap-4">
               <div>
                 <Label>Tipo *</Label>
-                <Select value={tipo} onValueChange={(v) => setTipo(v as TipoConta)} disabled={isReadonly}>
+                <Select value={tipo} onValueChange={(v) => setTipo(v as TipoConta)} disabled={!canEditField("tipo")}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="PAGAR">A Pagar</SelectItem>
@@ -363,7 +462,7 @@ export default function ContasPage() {
               </div>
               <div>
                 <Label>Pessoa *</Label>
-                <Select value={pessoaId} onValueChange={setPessoaId} disabled={isReadonly}>
+                <Select value={pessoaId} onValueChange={setPessoaId} disabled={!canEditField("pessoa")}>
                   <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                   <SelectContent>
                     {pessoas.map((p) => (
@@ -372,23 +471,27 @@ export default function ContasPage() {
                   </SelectContent>
                 </Select>
               </div>
+              <div>
+                <Label>Data Emissão</Label>
+                <Input type="date" value={dataEmissao} onChange={(e) => setDataEmissao(e.target.value)} disabled={!canEditField("dataEmissao")} />
+              </div>
             </div>
             <div>
               <Label>Descrição *</Label>
-              <Input value={descricao} onChange={(e) => setDescricao(e.target.value)} disabled={isReadonly} />
+              <Input value={descricao} onChange={(e) => setDescricao(e.target.value)} disabled={!canEditField("descricao")} />
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <Label>Data Emissão</Label>
-                <Input type="date" value={dataEmissao} onChange={(e) => setDataEmissao(e.target.value)} disabled={isReadonly} />
+                <Label>Valor Provisão *</Label>
+                <Input type="number" step="0.01" value={valorTotal} onChange={(e) => setValorTotal(e.target.value)} disabled={!canEditField("valorTotal")} />
               </div>
               <div>
-                <Label>Valor Total *</Label>
-                <Input type="number" step="0.01" value={valorTotal} onChange={(e) => setValorTotal(e.target.value)} disabled={isReadonly} />
+                <Label>Valor Real</Label>
+                <Input type="number" step="0.01" value={valorTotalReal} onChange={(e) => setValorTotalReal(e.target.value)} disabled={!canEditField("valorTotalReal")} />
               </div>
               <div>
                 <Label>Origem</Label>
-                <Select value={origem} onValueChange={setOrigem} disabled={isReadonly}>
+                <Select value={origem} onValueChange={setOrigem} disabled={!canEditField("origem")}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="MANUAL">Manual</SelectItem>
@@ -401,16 +504,16 @@ export default function ContasPage() {
             </div>
             <div>
               <Label>Documento Referência</Label>
-              <Input value={documentoReferencia} onChange={(e) => setDocumentoReferencia(e.target.value)} disabled={isReadonly} />
+              <Input value={documentoReferencia} onChange={(e) => setDocumentoReferencia(e.target.value)} disabled={!canEditField("documentoReferencia")} />
             </div>
             <div>
               <Label>Observações</Label>
-              <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} disabled={isReadonly} rows={3} />
+              <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} disabled={!canEditField("observacoes")} rows={3} />
             </div>
           </TabsContent>
 
           <TabsContent value="parcelas" className="mt-4">
-            {!isReadonly && editId && (
+            {!isReadonly && !isLocked && editingConta && (
               <div className="flex justify-end mb-3">
                 <Button size="sm" variant="outline" onClick={() => {
                   setNumParcelas("1");
@@ -429,9 +532,11 @@ export default function ContasPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-20">Parcela</TableHead>
+                    <TableHead className="w-10"></TableHead>
+                    <TableHead className="w-20">#</TableHead>
                     <TableHead>Vencimento</TableHead>
-                    <TableHead className="text-right">Valor</TableHead>
+                    <TableHead className="text-right">Valor Original</TableHead>
+                    <TableHead className="text-right">Valor Real</TableHead>
                     <TableHead className="text-right">Pago</TableHead>
                     <TableHead className="text-right">Saldo</TableHead>
                     <TableHead className="w-24">Status</TableHead>
@@ -439,60 +544,103 @@ export default function ContasPage() {
                 </TableHeader>
                 <TableBody>
                   {parcelas.length === 0 ? (
-                    <TableRow><TableCell colSpan={6} className="text-center py-6 text-muted-foreground">Nenhuma parcela gerada</TableCell></TableRow>
-                  ) : parcelas.map((p) => (
-                    <TableRow key={p.id}>
-                      <TableCell className="font-mono">{p.numeroParcela}</TableCell>
-                      <TableCell>{new Date(p.dataVencimento).toLocaleDateString("pt-BR")}</TableCell>
-                      <TableCell className="text-right font-mono">{fmt(p.valorParcela)}</TableCell>
-                      <TableCell className="text-right font-mono">{fmt(p.valorPago)}</TableCell>
-                      <TableCell className="text-right font-mono">{fmt(p.saldoParcela)}</TableCell>
-                      <TableCell><Badge variant="outline" className={statusParcelaColors[p.status]}>{p.status}</Badge></TableCell>
-                    </TableRow>
-                  ))}
+                    <TableRow><TableCell colSpan={8} className="text-center py-6 text-muted-foreground">Nenhuma parcela gerada</TableCell></TableRow>
+                  ) : parcelas.map((p) => {
+                    const parcelaBaixas = baixas.filter((b) => b.parcelaId === p.id);
+                    const isExpanded = expandedParcela === p.id;
+                    return (
+                      <Collapsible key={p.id} open={isExpanded} onOpenChange={() => setExpandedParcela(isExpanded ? null : p.id)} asChild>
+                        <>
+                          <CollapsibleTrigger asChild>
+                            <TableRow className="cursor-pointer hover:bg-muted/50">
+                              <TableCell>
+                                {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                              </TableCell>
+                              <TableCell className="font-mono">{p.numeroParcela}/{p.totalParcelas}</TableCell>
+                              <TableCell>{new Date(p.dataVencimento).toLocaleDateString("pt-BR")}</TableCell>
+                              <TableCell className="text-right font-mono">{fmt(p.valorParcela)}</TableCell>
+                              <TableCell className="text-right font-mono">{fmt(p.valorReal)}</TableCell>
+                              <TableCell className="text-right font-mono">{fmt(p.valorPago)}</TableCell>
+                              <TableCell className="text-right font-mono">{fmt(p.saldoParcela)}</TableCell>
+                              <TableCell><Badge variant="outline" className={statusParcelaColors[p.status]}>{p.status}</Badge></TableCell>
+                            </TableRow>
+                          </CollapsibleTrigger>
+                          <CollapsibleContent asChild>
+                            <TableRow>
+                              <TableCell colSpan={8} className="bg-muted/30 p-4">
+                                <p className="text-xs font-semibold text-muted-foreground mb-2">Movimentações desta parcela</p>
+                                {parcelaBaixas.length === 0 ? (
+                                  <p className="text-xs text-muted-foreground">Nenhuma movimentação registrada.</p>
+                                ) : (
+                                  <Table>
+                                    <TableHeader>
+                                      <TableRow>
+                                        <TableHead className="text-xs">Data</TableHead>
+                                        <TableHead className="text-xs">Forma</TableHead>
+                                        <TableHead className="text-xs text-right">Valor</TableHead>
+                                        <TableHead className="text-xs">Observações</TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                      {parcelaBaixas.map((b) => (
+                                        <TableRow key={b.id}>
+                                          <TableCell className="text-xs">{new Date(b.dataPagamento).toLocaleDateString("pt-BR")}</TableCell>
+                                          <TableCell className="text-xs">{b.formaPagamento}</TableCell>
+                                          <TableCell className="text-xs text-right font-mono">{fmt(b.valorPago)}</TableCell>
+                                          <TableCell className="text-xs text-muted-foreground">{b.observacoes || "—"}</TableCell>
+                                        </TableRow>
+                                      ))}
+                                    </TableBody>
+                                  </Table>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          </CollapsibleContent>
+                        </>
+                      </Collapsible>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
           </TabsContent>
 
-          {/* Aba Pagamentos — somente leitura, histórico de movimentações */}
+          {/* Aba Pagamentos — 100% read-only */}
           <TabsContent value="pagamentos" className="mt-4">
-            <p className="text-sm text-muted-foreground mb-3">
-              Histórico de movimentações financeiras vinculadas a esta conta. Para registrar pagamentos, utilize <strong>Caixa e Bancos</strong>.
-            </p>
+            <div className="flex items-start gap-2 p-3 rounded-md bg-blue-50 border border-blue-200 text-blue-700 mb-4">
+              <Info className="h-4 w-4 mt-0.5 shrink-0" />
+              <p className="text-sm">
+                Histórico de movimentações financeiras vinculadas a esta conta. Para registrar adiantamentos ou pagamentos, acesse <strong>Caixa/Bancos</strong>.
+              </p>
+            </div>
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Data</TableHead>
-                    <TableHead>Conta Financeira</TableHead>
-                    <TableHead>Forma de Pagamento</TableHead>
+                    <TableHead>Parcela</TableHead>
                     <TableHead className="text-right">Valor</TableHead>
-                    <TableHead>Nº Documento</TableHead>
-                    <TableHead>Tipo Movimento</TableHead>
+                    <TableHead>Forma</TableHead>
+                    <TableHead>Observações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {movimentacoes.length === 0 ? (
-                    <TableRow><TableCell colSpan={6} className="text-center py-6 text-muted-foreground">Nenhum pagamento registrado</TableCell></TableRow>
-                  ) : movimentacoes.map((m) => (
-                    <TableRow key={m.id}>
-                      <TableCell>{new Date(m.dataMovimento).toLocaleDateString("pt-BR")}</TableCell>
-                      <TableCell>{contasFinanceirasMap[m.contaFinanceiraId] ?? "—"}</TableCell>
-                      <TableCell>{formasPagtoMap[m.formaPagamentoId] ?? "—"}</TableCell>
-                      <TableCell className="text-right font-mono">{fmt(m.valor)}</TableCell>
-                      <TableCell>{m.numeroDocumento || "—"}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={
-                          m.tipoMovimento === "ENTRADA" ? "border-success/50 text-success" :
-                          m.tipoMovimento === "SAIDA" ? "border-destructive/50 text-destructive" :
-                          "border-blue-400/50 text-blue-600"
-                        }>
-                          {m.tipoMovimento}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {baixas.length === 0 ? (
+                    <TableRow><TableCell colSpan={5} className="text-center py-6 text-muted-foreground">Nenhum pagamento registrado. Ao fazer movimentos no Caixa/Bancos, aparecerão aqui automaticamente.</TableCell></TableRow>
+                  ) : baixas.map((b) => {
+                    const parc = parcelas.find((p) => p.id === b.parcelaId);
+                    return (
+                      <TableRow key={b.id}>
+                        <TableCell>{new Date(b.dataPagamento).toLocaleDateString("pt-BR")}</TableCell>
+                        <TableCell className="text-sm">
+                          Parc. {parc?.numeroParcela ?? "?"}
+                        </TableCell>
+                        <TableCell className="text-right font-mono">{fmt(b.valorPago)}</TableCell>
+                        <TableCell>{b.formaPagamento}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{b.observacoes || "—"}</TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
