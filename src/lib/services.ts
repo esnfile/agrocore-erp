@@ -2284,10 +2284,8 @@ export const financeiroContaService = {
   },
   async listarPorContrato(contratoId: string): Promise<FinanceiroConta[]> {
     await delay();
-    const contrato = mockContratos.find((c) => c.id === contratoId && c.deletadoEm === null);
-    if (!contrato) return [];
     return mockFinanceiroContas.filter(
-      (c) => c.deletadoEm === null && c.documentoReferencia === contrato.numeroContrato
+      (c) => c.deletadoEm === null && c.contratoId === contratoId
     );
   },
   async obterPorId(id: string): Promise<FinanceiroConta | undefined> {
