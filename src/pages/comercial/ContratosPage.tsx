@@ -1984,127 +1984,174 @@ export default function ContratosPage() {
           {/* ABA 4 — Financeiro REAL */}
           <TabsContent value="financeiro">
             <div className="space-y-6">
-              <div className="rounded-md bg-muted p-4 space-y-3">
-                <h3 className="font-semibold text-foreground">Resumo Financeiro</h3>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-                  <div className="rounded-md bg-card p-3 border">
-                    <p className="text-muted-foreground">Total Contas</p>
-                    <p className="text-lg font-bold text-foreground">{finContas.length}</p>
-                  </div>
-                  <div className="rounded-md bg-card p-3 border">
-                    <p className="text-muted-foreground">Valor Total</p>
-                    <p className="text-lg font-bold text-foreground">
-                      {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")}{" "}
-                      {finContas
-                        .reduce((s, c) => s + c.valorTotal, 0)
-                        .toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </p>
-                  </div>
-                  <div className="rounded-md bg-card p-3 border">
-                    <p className="text-muted-foreground">Total Pago</p>
-                    <p className="text-lg font-bold text-primary">
-                      {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")}{" "}
-                      {totalBaixas.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </p>
-                  </div>
-                  <div className="rounded-md bg-card p-3 border">
-                    <p className="text-muted-foreground">Saldo Pendente</p>
-                    <p className="text-lg font-bold text-destructive">
-                      {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")}{" "}
-                      {totalParcelasPendentes.toLocaleString("pt-BR", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
-                    </p>
-                  </div>
+              {/* Cenário 1: ABERTO ou PARCIAL */}
+              {editingContrato && (editingContrato.status === "ABERTO" || editingContrato.status === "PARCIAL") && (
+                <div className="rounded-md bg-muted p-6 text-center space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    Nenhuma conta a pagar/receber foi gerada para este contrato.
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    👉 Para gerar as parcelas, este contrato deve estar em status <strong>FINALIZADO</strong> (todos os romaneios finalizados, saldo = 0).
+                  </p>
+                  <p className="text-sm mt-2">
+                    Status Atual: <StatusBadge status={editingContrato.status} /> — Aguardando finalização de romaneios
+                  </p>
                 </div>
-              </div>
+              )}
 
-              {finParcelas.length > 0 && (
-                <div className="space-y-3">
-                  <h4 className="font-semibold text-foreground text-sm">Parcelas</h4>
-                  <div className="overflow-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Conta</TableHead>
-                          <TableHead>Nº</TableHead>
-                          <TableHead>Vencimento</TableHead>
-                          <TableHead className="text-right">Valor</TableHead>
-                          <TableHead className="text-right">Pago</TableHead>
-                          <TableHead className="text-right">Saldo</TableHead>
-                          <TableHead>Status</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {finParcelas.map((p) => {
-                          const conta = finContas.find((c) => c.id === p.contaId);
-                          return (
-                            <TableRow key={p.id}>
-                              <TableCell className="text-xs">{conta?.descricao ?? p.contaId}</TableCell>
-                              <TableCell>{p.numeroParcela}</TableCell>
-                              <TableCell>{format(new Date(p.dataVencimento), "dd/MM/yyyy")}</TableCell>
-                              <TableCell className="text-right">
-                                {p.valorParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                {p.valorPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                {p.saldoParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                              </TableCell>
-                              <TableCell>
-                                <Badge
-                                  variant={
-                                    p.status === "PAGO" ? "default" : p.status === "PARCIAL" ? "secondary" : "outline"
-                                  }
-                                >
-                                  {p.status}
-                                </Badge>
-                              </TableCell>
+              {/* Cenário 2: FINALIZADO — botão habilitado */}
+              {editingContrato && editingContrato.status === "FINALIZADO" && (
+                <div className="rounded-md border p-6 text-center space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    O contrato está finalizado. Gere as contas a pagar/receber para iniciar o controle financeiro.
+                  </p>
+                  <Button onClick={() => {
+                    setGcNumParcelas("1");
+                    setGcFrequencia("MENSAL");
+                    setGcDiasPersonalizado("30");
+                    setGcDataPrimeiraParcela(new Date().toISOString().slice(0, 10));
+                    setGcParcelasEditaveis([]);
+                    setGcParcelasGeradas(false);
+                    setGerarContasOpen(true);
+                  }}>
+                    Gerar Contas a {editingContrato.tipoContrato === "COMPRA" ? "Pagar" : "Receber"}
+                  </Button>
+                </div>
+              )}
+
+              {/* Cenário 3: FATURADO, LIQUIDADO ou CANCELADO — exibe parcelas */}
+              {editingContrato && (editingContrato.status === "FATURADO" || editingContrato.status === "LIQUIDADO" || editingContrato.status === "CANCELADO") && (
+                <>
+                  {/* Resumo */}
+                  <div className="rounded-md bg-muted p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold text-foreground">Resumo Financeiro</h3>
+                      {editingContrato.status === "FATURADO" && (
+                        <Badge variant="outline" className="text-muted-foreground">Contas já geradas</Badge>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+                      <div className="rounded-md bg-card p-3 border">
+                        <p className="text-muted-foreground">Total Contas</p>
+                        <p className="text-lg font-bold text-foreground">{finContas.length}</p>
+                      </div>
+                      <div className="rounded-md bg-card p-3 border">
+                        <p className="text-muted-foreground">Valor Total</p>
+                        <p className="text-lg font-bold text-foreground">
+                          {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")}{" "}
+                          {finContas
+                            .reduce((s, c) => s + c.valorTotal, 0)
+                            .toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      <div className="rounded-md bg-card p-3 border">
+                        <p className="text-muted-foreground">Total Pago</p>
+                        <p className="text-lg font-bold text-primary">
+                          {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")}{" "}
+                          {totalBaixas.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      <div className="rounded-md bg-card p-3 border">
+                        <p className="text-muted-foreground">Saldo Pendente</p>
+                        <p className="text-lg font-bold text-destructive">
+                          {getSimboloMoeda(editingContrato?.moedaId ?? "moeda1")}{" "}
+                          {totalParcelasPendentes.toLocaleString("pt-BR", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Parcelas */}
+                  {finParcelas.length > 0 && (
+                    <div className="space-y-3">
+                      <h4 className="font-semibold text-foreground text-sm">Parcelas Vinculadas</h4>
+                      <div className="overflow-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>#</TableHead>
+                              <TableHead>Vencimento</TableHead>
+                              <TableHead className="text-right">Valor Original</TableHead>
+                              <TableHead className="text-right">Valor Real</TableHead>
+                              <TableHead className="text-right">Pago</TableHead>
+                              <TableHead className="text-right">Saldo</TableHead>
+                              <TableHead>Status</TableHead>
                             </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </div>
-              )}
+                          </TableHeader>
+                          <TableBody>
+                            {finParcelas.map((p) => (
+                              <TableRow key={p.id}>
+                                <TableCell>{p.numeroParcela}/{p.totalParcelas}</TableCell>
+                                <TableCell>{format(new Date(p.dataVencimento), "dd/MM/yyyy")}</TableCell>
+                                <TableCell className="text-right">
+                                  {p.valorParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {p.valorReal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {p.valorPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {p.saldoParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge
+                                    variant={
+                                      p.status === "PAGO" ? "default" : p.status === "PARCIAL" ? "secondary" : p.status === "VENCIDA" ? "destructive" : "outline"
+                                    }
+                                  >
+                                    {p.status}
+                                  </Badge>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  )}
 
-              {finBaixas.length > 0 && (
-                <div className="space-y-3">
-                  <h4 className="font-semibold text-foreground text-sm">Histórico de Baixas</h4>
-                  <div className="overflow-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Data Pagamento</TableHead>
-                          <TableHead className="text-right">Valor</TableHead>
-                          <TableHead>Forma</TableHead>
-                          <TableHead>Observações</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {finBaixas.map((b) => (
-                          <TableRow key={b.id}>
-                            <TableCell>{format(new Date(b.dataPagamento), "dd/MM/yyyy HH:mm")}</TableCell>
-                            <TableCell className="text-right">
-                              {b.valorPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                            </TableCell>
-                            <TableCell>{b.formaPagamento}</TableCell>
-                            <TableCell className="text-xs text-muted-foreground">{b.observacoes || "—"}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </div>
-              )}
+                  {/* Baixas */}
+                  {finBaixas.length > 0 && (
+                    <div className="space-y-3">
+                      <h4 className="font-semibold text-foreground text-sm">Histórico de Baixas</h4>
+                      <div className="overflow-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Data Pagamento</TableHead>
+                              <TableHead className="text-right">Valor</TableHead>
+                              <TableHead>Forma</TableHead>
+                              <TableHead>Observações</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {finBaixas.map((b) => (
+                              <TableRow key={b.id}>
+                                <TableCell>{format(new Date(b.dataPagamento), "dd/MM/yyyy HH:mm")}</TableCell>
+                                <TableCell className="text-right">
+                                  {b.valorPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                </TableCell>
+                                <TableCell>{b.formaPagamento}</TableCell>
+                                <TableCell className="text-xs text-muted-foreground">{b.observacoes || "—"}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  )}
 
-              {finContas.length === 0 && (
-                <p className="text-center text-sm text-muted-foreground py-6">
-                  Nenhuma conta financeira vinculada a este contrato.
-                </p>
+                  {finContas.length === 0 && (
+                    <p className="text-center text-sm text-muted-foreground py-6">
+                      Nenhuma conta financeira vinculada a este contrato.
+                    </p>
+                  )}
+                </>
               )}
             </div>
           </TabsContent>
