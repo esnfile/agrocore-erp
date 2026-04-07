@@ -2442,9 +2442,9 @@ export const financeiroParcelaService = {
       const parcela: FinanceiroParcela = {
         id: `fp${Date.now()}${i}`,
         grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
-        contaId, numeroParcela: i + 1,
+        contaId, numeroParcela: i + 1, totalParcelas: numParcelas,
         dataVencimento: vencimento.toISOString().slice(0, 10),
-        valorParcela: val, valorPago: 0, saldoParcela: val, status: "PENDENTE",
+        valorParcela: val, valorReal: val, valorPago: 0, saldoParcela: val, status: "PENDENTE",
         criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
         deletadoEm: null, deletadoPor: null,
       };
@@ -2469,9 +2469,9 @@ export const financeiroParcelaService = {
       const parcela: FinanceiroParcela = {
         id: `fp${Date.now()}${input.numeroParcela}`,
         grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
-        contaId, numeroParcela: input.numeroParcela,
+        contaId, numeroParcela: input.numeroParcela, totalParcelas: parcelasInput.length,
         dataVencimento: input.dataVencimento,
-        valorParcela: input.valorParcela, valorPago: 0, saldoParcela: input.valorParcela, status: "PENDENTE",
+        valorParcela: input.valorParcela, valorReal: input.valorParcela, valorPago: 0, saldoParcela: input.valorParcela, status: "PENDENTE",
         criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
         deletadoEm: null, deletadoPor: null,
       };
