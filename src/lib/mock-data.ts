@@ -1535,7 +1535,7 @@ export const pontoEstoqueTiposProduto: PontoEstoqueTipoProduto[] = [];
 // ---- Contratos ----
 export type TipoContrato = "COMPRA" | "VENDA";
 export type TipoPreco = "FIXO" | "A_FIXAR";
-export type StatusContrato = "ABERTO" | "PARCIAL" | "FINALIZADO" | "CANCELADO" | "LIQUIDADO";
+export type StatusContrato = "ABERTO" | "PARCIAL" | "FINALIZADO" | "FATURADO" | "CANCELADO" | "LIQUIDADO";
 
 export interface Contrato {
   id: string;
@@ -2398,9 +2398,9 @@ export const romaneioClassificacoes: RomaneioClassificacao[] = [];
 // ============================================================
 
 export type TipoConta = "PAGAR" | "RECEBER";
-export type StatusConta = "ABERTO" | "PARCIAL" | "PAGO" | "CANCELADO";
+export type StatusConta = "ABERTO" | "PARCIAL" | "LIQUIDADO" | "CANCELADO";
 export type OrigemConta = "MANUAL" | "CONTRATO" | "ROMANEIO" | "FIXACAO";
-export type StatusParcela = "PENDENTE" | "PARCIAL" | "PAGO";
+export type StatusParcela = "PENDENTE" | "PARCIAL" | "PAGO" | "VENCIDA" | "CANCELADA";
 export type FormaPagamento = "DINHEIRO" | "PIX" | "TRANSFERENCIA" | "BOLETO" | "OUTROS";
 
 export interface FinanceiroConta {
@@ -2413,9 +2413,13 @@ export interface FinanceiroConta {
   descricao: string;
   dataEmissao: string;
   valorTotal: number;
+  valorTotalReal: number;
   status: StatusConta;
   origem: OrigemConta;
   documentoReferencia: string;
+  contratoId?: string | null;
+  dataFaturamento?: string | null;
+  dataLiquidacao?: string | null;
   observacoes: string;
   criadoEm: string;
   criadoPor: string;
@@ -2432,8 +2436,10 @@ export interface FinanceiroParcela {
   filialId: string;
   contaId: string;
   numeroParcela: number;
+  totalParcelas: number;
   dataVencimento: string;
   valorParcela: number;
+  valorReal: number;
   valorPago: number;
   saldoParcela: number;
   status: StatusParcela;
