@@ -691,9 +691,10 @@ export default function ContratosPage() {
       (localFilialId !== TODAS_FILIAIS && data.filialId && data.filialId !== localFilialId)
     );
 
+    const isNewContract = !editingContrato;
     setSaving(true);
     try {
-      await contratoService.salvar(
+      const saved = await contratoService.salvar(
         {
           ...data,
           id: editingContrato?.id,
@@ -719,6 +720,19 @@ export default function ContratosPage() {
       }
       setModalOpen(false);
       loadContratos();
+
+      // Auto-open duplicatas modal for new FIXO contracts
+      if (isNewContract && data.tipoPreco === "FIXO" && saved) {
+        setAutoGerarDuplicatasContrato(saved);
+        setEditingContrato(saved);
+        setGcNumParcelas("1");
+        setGcFrequencia("MENSAL");
+        setGcDiasPersonalizado("30");
+        setGcDataPrimeiraParcela(new Date().toISOString().slice(0, 10));
+        setGcParcelasEditaveis([]);
+        setGcParcelasGeradas(false);
+        setGerarContasOpen(true);
+      }
     } catch {
       toast({ title: "Erro", description: "Falha ao salvar contrato.", variant: "destructive" });
     } finally {
