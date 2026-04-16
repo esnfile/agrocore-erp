@@ -2409,6 +2409,68 @@ export const financeiroContaService = {
     
     return { conta, parcelas: novasParcelas };
   },
+  async efetivarDuplicatas(
+    contratoId: string,
+    modo: "previsto" | "real"
+  ): Promise<void> {
+    await delay(400);
+    const now = new Date().toISOString();
+    const contrato = mockContratos.find((c) => c.id === contratoId && c.deletadoEm === null);
+    if (!contrato) throw new Error("Contrato não encontrado");
+
+    // Find the conta for this contract
+    const conta = mockFinanceiroContas.find((c) => c.contratoId === contratoId && c.deletadoEm === null);
+    if (!conta) throw new Error("Conta financeira não encontrada");
+
+    // Get previsto parcelas
+    const parcelas = mockFinanceiroParcelas.filter(
+      (p) => p.contaId === conta.id && p.deletadoEm === null && p.status === "PREVISTO"
+    );
+    if (parcelas.length === 0) throw new Error("Nenhuma parcela com status PREVISTO encontrada");
+
+    if (modo === "real") {
+      // Adjust proportionally based on real delivered value
+      const valorReal = contrato.quantidadeEntregue * contrato.precoUnitario;
+      const valorPrevisto = parcelas.reduce((s, p) => s + p.valorParcela, 0);
+      if (valorPrevisto > 0) {
+        const fator = valorReal / valorPrevisto;
+        let soma = 0;
+        for (let i = 0; i < parcelas.length; i++) {
+          if (i === parcelas.length - 1) {
+            parcelas[i].valorParcela = Math.round((valorReal - soma) * 100) / 100;
+          } else {
+            parcelas[i].valorParcela = Math.round(parcelas[i].valorParcela * fator * 100) / 100;
+            soma += parcelas[i].valorParcela;
+          }
+          parcelas[i].valorReal = parcelas[i].valorParcela;
+          parcelas[i].saldoParcela = parcelas[i].valorParcela - parcelas[i].valorPago;
+        }
+        conta.valorTotal = valorReal;
+        conta.valorTotalReal = valorReal;
+      }
+    }
+
+    // Promote PREVISTO → PENDENTE
+    for (const p of parcelas) {
+      p.status = "PENDENTE";
+      p.atualizadoEm = now;
+      p.atualizadoPor = "u1";
+    }
+
+    // Transition contract to FATURADO
+    contrato.status = "FATURADO";
+    contrato.atualizadoEm = now;
+    contrato.atualizadoPor = "u1";
+
+    conta.atualizadoEm = now;
+    conta.atualizadoPor = "u1";
+  },
+  async listarPorContrato(contratoId: string): Promise<FinanceiroConta[]> {
+    await delay();
+    return mockFinanceiroContas.filter(
+      (c) => c.deletadoEm === null && c.contratoId === contratoId
+    );
+  },
 };
 
 // ============================================================
