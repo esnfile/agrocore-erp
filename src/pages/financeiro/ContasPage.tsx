@@ -267,7 +267,20 @@ export default function ContasPage() {
   };
 
   const updateParcelaEditavel = (idx: number, field: "dataVencimento" | "valorParcela", value: string) => {
-    setParcelasEditaveis((prev) => prev.map((p, i) => i === idx ? { ...p, [field]: field === "valorParcela" ? parseFloat(value) || 0 : value } : p));
+    if (field === "dataVencimento") {
+      setParcelasEditaveis((prev) => prev.map((p, i) => i === idx ? { ...p, dataVencimento: value } : p));
+    } else {
+      const novoValor = parseFloat(value) || 0;
+      const vt = parseFloat(valorTotal) || 0;
+      setParcelasEditaveis((prev) => {
+        const updated = prev.map((p, i) => i === idx ? { ...p, valorParcela: novoValor } : p);
+        if (updated.length > 1 && idx !== updated.length - 1) {
+          const somaOutras = updated.reduce((s, p, i) => i !== updated.length - 1 ? s + p.valorParcela : s, 0);
+          updated[updated.length - 1] = { ...updated[updated.length - 1], valorParcela: Math.round((vt - somaOutras) * 100) / 100 };
+        }
+        return updated;
+      });
+    }
   };
 
   const openContaFromParcela = async (parcela: ParcelaComConta) => {
