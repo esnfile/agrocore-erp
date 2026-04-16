@@ -1064,13 +1064,14 @@ export default function ContratosPage() {
                 <TableHead className="text-right">Vol. Pendente</TableHead>
                 <TableHead className="text-right">Preço</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead className="text-center">Duplic.</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {contratos.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
                     Nenhum contrato cadastrado.
                   </TableCell>
                 </TableRow>
