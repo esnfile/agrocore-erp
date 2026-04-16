@@ -1613,6 +1613,7 @@ export const contratoService = {
       filialOrigemId: data.filialOrigemId ?? null,
       filialDestinoId: data.filialDestinoId ?? null,
       status: "ABERTO",
+      duplicatasGeradas: false,
       observacoes: data.observacoes ?? "",
       criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
       deletadoEm: null, deletadoPor: null,
@@ -2397,8 +2398,9 @@ export const financeiroContaService = {
     }));
     mockFinanceiroParcelas.push(...novasParcelas);
     
-    // Transition contract to FATURADO
+    // Transition contract to FATURADO and mark duplicatas as generated
     contrato.status = "FATURADO";
+    contrato.duplicatasGeradas = true;
     contrato.atualizadoEm = now;
     contrato.atualizadoPor = "u1";
     
