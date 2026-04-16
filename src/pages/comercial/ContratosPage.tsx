@@ -294,6 +294,7 @@ export default function ContratosPage() {
   const [gcParcelasGeradas, setGcParcelasGeradas] = useState(false);
   const [gcSaving, setGcSaving] = useState(false);
   const [autoGerarDuplicatasContrato, setAutoGerarDuplicatasContrato] = useState<Contrato | null>(null);
+  const [fixacaoParaDuplicata, setFixacaoParaDuplicata] = useState<ContratoFixacao | null>(null);
   const [expandedParcelaId, setExpandedParcelaId] = useState<string | null>(null);
 
   // Forms
@@ -792,6 +793,18 @@ export default function ContratosPage() {
         toast({ title: "Sucesso", description: result.mensagem });
         setFixacaoModalOpen(false);
         await loadSubEntities(editingContrato.id);
+        // Após nova fixação (não edição), abrir modal de duplicatas com valor pré-calculado
+        if (!editingFixacao && result.fixacao) {
+          setFixacaoParaDuplicata(result.fixacao);
+          setAutoGerarDuplicatasContrato(editingContrato);
+          setGcNumParcelas("1");
+          setGcFrequencia("MENSAL");
+          setGcDiasPersonalizado("30");
+          setGcDataPrimeiraParcela(new Date().toISOString().slice(0, 10));
+          setGcParcelasEditaveis([]);
+          setGcParcelasGeradas(false);
+          setGerarContasOpen(true);
+        }
       } else {
         toast({ title: "Erro", description: result.mensagem, variant: "destructive" });
       }
