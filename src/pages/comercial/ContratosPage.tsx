@@ -3317,31 +3317,36 @@ export default function ContratosPage() {
                     <Input type="number" min="1" value={gcNumParcelas} onChange={(e) => { setGcNumParcelas(e.target.value); setGcParcelasGeradas(false); }} />
                   </div>
                   <div>
-                    <Label>Data da Primeira Parcela</Label>
+                    <Label>{parseInt(gcNumParcelas) === 1 ? "Data de Vencimento" : "Data da Primeira Parcela"}</Label>
                     <Input type="date" value={gcDataPrimeiraParcela} onChange={(e) => { setGcDataPrimeiraParcela(e.target.value); setGcParcelasGeradas(false); }} />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Frequência</Label>
-                    <Select value={gcFrequencia} onValueChange={(v) => { setGcFrequencia(v as any); setGcParcelasGeradas(false); }}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="MENSAL">Mensal (30 dias)</SelectItem>
-                        <SelectItem value="TRIMESTRAL">Trimestral (90 dias)</SelectItem>
-                        <SelectItem value="SEMESTRAL">Semestral (180 dias)</SelectItem>
-                        <SelectItem value="ANUAL">Anual (365 dias)</SelectItem>
-                        <SelectItem value="PERSONALIZADO">Personalizado</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {gcFrequencia === "PERSONALIZADO" && (
+                {parseInt(gcNumParcelas) >= 2 && (
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label>Intervalo (dias)</Label>
-                      <Input type="number" min="1" value={gcDiasPersonalizado} onChange={(e) => { setGcDiasPersonalizado(e.target.value); setGcParcelasGeradas(false); }} />
+                      <Label>Frequência</Label>
+                      <Select value={gcFrequencia} onValueChange={(v) => { setGcFrequencia(v as any); setGcParcelasGeradas(false); }}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="MENSAL">Mensal (30 dias)</SelectItem>
+                          <SelectItem value="TRIMESTRAL">Trimestral (90 dias)</SelectItem>
+                          <SelectItem value="SEMESTRAL">Semestral (180 dias)</SelectItem>
+                          <SelectItem value="ANUAL">Anual (365 dias)</SelectItem>
+                          <SelectItem value="PERSONALIZADO">Personalizado</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-                  )}
-                </div>
+                    {gcFrequencia === "PERSONALIZADO" && (
+                      <div>
+                        <Label>Intervalo (dias)</Label>
+                        <Input type="number" min="1" value={gcDiasPersonalizado} onChange={(e) => { setGcDiasPersonalizado(e.target.value); setGcParcelasGeradas(false); }} />
+                      </div>
+                    )}
+                  </div>
+                )}
+                {parseInt(gcNumParcelas) === 1 && (
+                  <p className="text-xs text-muted-foreground">Parcela única com vencimento em {new Date(gcDataPrimeiraParcela).toLocaleDateString("pt-BR")}.</p>
+                )}
 
                 <Button variant="outline" className="w-full" onClick={() => {
                   const n = parseInt(gcNumParcelas);
