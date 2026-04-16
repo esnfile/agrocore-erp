@@ -1098,6 +1098,22 @@ export default function ContratosPage() {
                     <TableCell>
                       <StatusBadge status={c.status} />
                     </TableCell>
+                    <TableCell className="text-center">
+                      <TooltipProvider delayDuration={200}>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            {c.duplicatasGeradas || c.status === "FATURADO" || c.status === "LIQUIDADO" ? (
+                              <CheckCircle className="h-4 w-4 text-primary mx-auto" />
+                            ) : (
+                              <XCircle className="h-4 w-4 text-muted-foreground mx-auto" />
+                            )}
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {c.duplicatasGeradas || c.status === "FATURADO" || c.status === "LIQUIDADO" ? "Duplicatas geradas" : "Sem duplicatas"}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         <Button variant="ghost" size="icon" onClick={() => openView(c)} title="Visualizar">
