@@ -3177,7 +3177,16 @@ export default function ContratosPage() {
                               </TableCell>
                               <TableCell className="text-right">
                                 <Input type="number" step="0.01" value={p.valorParcela} onChange={(e) => {
-                                  setGcParcelasEditaveis((prev) => prev.map((pp, i) => i === idx ? { ...pp, valorParcela: parseFloat(e.target.value) || 0 } : pp));
+                                  const novoValor = parseFloat(e.target.value) || 0;
+                                  const vt = ctr.quantidadeTotal * ctr.precoUnitario;
+                                  setGcParcelasEditaveis((prev) => {
+                                    const updated = prev.map((pp, i) => i === idx ? { ...pp, valorParcela: novoValor } : pp);
+                                    if (updated.length > 1 && idx !== updated.length - 1) {
+                                      const somaOutras = updated.reduce((s, pp, i) => i !== updated.length - 1 ? s + pp.valorParcela : s, 0);
+                                      updated[updated.length - 1] = { ...updated[updated.length - 1], valorParcela: Math.round((vt - somaOutras) * 100) / 100 };
+                                    }
+                                    return updated;
+                                  });
                                 }} className="w-32 text-right ml-auto" />
                               </TableCell>
                             </TableRow>
@@ -3199,15 +3208,6 @@ export default function ContratosPage() {
                   </>
                 )}
 
-                {autoGerarDuplicatasContrato && (
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => { setGerarContasOpen(false); setAutoGerarDuplicatasContrato(null); }}
-                  >
-                    Pular por Agora
-                  </Button>
-                )}
               </div>
             );
           })()}
