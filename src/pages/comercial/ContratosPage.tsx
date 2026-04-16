@@ -75,6 +75,7 @@ import type {
 } from "@/lib/mock-data";
 import { Plus, Pencil, Trash2, Eye, Lock, FileCheck, AlertTriangle, ExternalLink, Info, Clock, Building2, GitBranch, RefreshCw, DollarSign, ChevronDown, ChevronUp } from "lucide-react";
 import { SearchableSelect, type SearchableOption } from "@/components/SearchableSelect";
+import { formatMoeda } from "@/lib/format";
 
 const TODAS_EMPRESAS = "__TODAS__";
 const TODAS_FILIAIS = "__TODAS__";
