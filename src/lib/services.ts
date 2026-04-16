@@ -1613,6 +1613,7 @@ export const contratoService = {
       filialOrigemId: data.filialOrigemId ?? null,
       filialDestinoId: data.filialDestinoId ?? null,
       status: "ABERTO",
+      duplicatasGeradas: false,
       observacoes: data.observacoes ?? "",
       criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
       deletadoEm: null, deletadoPor: null,
@@ -2397,8 +2398,9 @@ export const financeiroContaService = {
     }));
     mockFinanceiroParcelas.push(...novasParcelas);
     
-    // Transition contract to FATURADO
+    // Transition contract to FATURADO and mark duplicatas as generated
     contrato.status = "FATURADO";
+    contrato.duplicatasGeradas = true;
     contrato.atualizadoEm = now;
     contrato.atualizadoPor = "u1";
     
@@ -2498,10 +2500,29 @@ export const financeiroParcelaService = {
       })
       .sort((a, b) => a.dataVencimento.localeCompare(b.dataVencimento));
   },
+  async listarPrevisoesFluxo(grupoId: string): Promise<{ mes: string; previsoes: number; aPagar: number; pago: number }[]> {
+    await delay();
+    const hoje = new Date().toISOString().slice(0, 10);
+    const parcelas = mockFinanceiroParcelas.filter((p) => p.deletadoEm === null && p.grupoId === grupoId);
+    const meses: Record<string, { previsoes: number; aPagar: number; pago: number }> = {};
+    for (const p of parcelas) {
+      const mes = p.dataVencimento.slice(0, 7); // YYYY-MM
+      if (!meses[mes]) meses[mes] = { previsoes: 0, aPagar: 0, pago: 0 };
+      if (p.status === "PAGO") {
+        meses[mes].pago += p.valorReal;
+      } else if (p.status === "PENDENTE" && p.dataVencimento >= hoje) {
+        meses[mes].previsoes += p.saldoParcela;
+      } else {
+        // VENCIDA, PARCIAL or overdue PENDENTE
+        meses[mes].aPagar += p.saldoParcela;
+      }
+    }
+    return Object.entries(meses)
+      .map(([mes, v]) => ({ mes, ...v }))
+      .sort((a, b) => a.mes.localeCompare(b.mes));
+  },
 };
 
-// ============================================================
-// Financeiro — Baixas
 // ============================================================
 export const financeiroBaixaService = {
   async listarPorConta(contaId: string): Promise<FinanceiroBaixa[]> {

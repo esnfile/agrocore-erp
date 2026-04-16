@@ -73,7 +73,7 @@ import type {
   DescontoTipo,
   DescontoEmpresaConfig,
 } from "@/lib/mock-data";
-import { Plus, Pencil, Trash2, Eye, Lock, FileCheck, AlertTriangle, ExternalLink, Info, Clock, Building2, GitBranch, RefreshCw } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, Lock, FileCheck, AlertTriangle, ExternalLink, Info, Clock, Building2, GitBranch, RefreshCw, CheckCircle, XCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { SearchableSelect, type SearchableOption } from "@/components/SearchableSelect";
 
 const TODAS_EMPRESAS = "__TODAS__";
@@ -292,6 +292,8 @@ export default function ContratosPage() {
   const [gcParcelasEditaveis, setGcParcelasEditaveis] = useState<{ numeroParcela: number; dataVencimento: string; valorParcela: number }[]>([]);
   const [gcParcelasGeradas, setGcParcelasGeradas] = useState(false);
   const [gcSaving, setGcSaving] = useState(false);
+  const [autoGerarDuplicatasContrato, setAutoGerarDuplicatasContrato] = useState<Contrato | null>(null);
+  const [expandedParcelaId, setExpandedParcelaId] = useState<string | null>(null);
 
   // Forms
   const contratoForm = useForm<ContratoForm>({
@@ -689,9 +691,10 @@ export default function ContratosPage() {
       (localFilialId !== TODAS_FILIAIS && data.filialId && data.filialId !== localFilialId)
     );
 
+    const isNewContract = !editingContrato;
     setSaving(true);
     try {
-      await contratoService.salvar(
+      const saved = await contratoService.salvar(
         {
           ...data,
           id: editingContrato?.id,
@@ -717,6 +720,19 @@ export default function ContratosPage() {
       }
       setModalOpen(false);
       loadContratos();
+
+      // Auto-open duplicatas modal for new FIXO contracts
+      if (isNewContract && data.tipoPreco === "FIXO" && saved) {
+        setAutoGerarDuplicatasContrato(saved);
+        setEditingContrato(saved);
+        setGcNumParcelas("1");
+        setGcFrequencia("MENSAL");
+        setGcDiasPersonalizado("30");
+        setGcDataPrimeiraParcela(new Date().toISOString().slice(0, 10));
+        setGcParcelasEditaveis([]);
+        setGcParcelasGeradas(false);
+        setGerarContasOpen(true);
+      }
     } catch {
       toast({ title: "Erro", description: "Falha ao salvar contrato.", variant: "destructive" });
     } finally {
@@ -1048,13 +1064,14 @@ export default function ContratosPage() {
                 <TableHead className="text-right">Vol. Pendente</TableHead>
                 <TableHead className="text-right">Preço</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead className="text-center">Duplic.</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {contratos.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
                     Nenhum contrato cadastrado.
                   </TableCell>
                 </TableRow>
@@ -1080,6 +1097,22 @@ export default function ContratosPage() {
                     </TableCell>
                     <TableCell>
                       <StatusBadge status={c.status} />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <TooltipProvider delayDuration={200}>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            {c.duplicatasGeradas || c.status === "FATURADO" || c.status === "LIQUIDADO" ? (
+                              <CheckCircle className="h-4 w-4 text-primary mx-auto" />
+                            ) : (
+                              <XCircle className="h-4 w-4 text-muted-foreground mx-auto" />
+                            )}
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {c.duplicatasGeradas || c.status === "FATURADO" || c.status === "LIQUIDADO" ? "Duplicatas geradas" : "Sem duplicatas"}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
@@ -1986,17 +2019,98 @@ export default function ContratosPage() {
             <div className="space-y-6">
               {/* Cenário 1: ABERTO ou PARCIAL */}
               {editingContrato && (editingContrato.status === "ABERTO" || editingContrato.status === "PARCIAL") && (
-                <div className="rounded-md bg-muted p-6 text-center space-y-2">
-                  <p className="text-sm text-muted-foreground">
-                    Nenhuma conta a pagar/receber foi gerada para este contrato.
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    👉 Para gerar as parcelas, este contrato deve estar em status <strong>FINALIZADO</strong> (todos os romaneios finalizados, saldo = 0).
-                  </p>
-                  <p className="text-sm mt-2">
-                    Status Atual: <StatusBadge status={editingContrato.status} /> — Aguardando finalização de romaneios
-                  </p>
-                </div>
+                <>
+                  <div className="rounded-md bg-muted p-6 text-center space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      ℹ️ Duplicatas Provisórias: <strong>{editingContrato.duplicatasGeradas ? "✅ Geradas" : "❌ Não geradas"}</strong>
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      👉 Para gerar as parcelas, este contrato deve estar em status <strong>FINALIZADO</strong> (todos os romaneios finalizados, saldo = 0).
+                    </p>
+                    <p className="text-sm mt-2">
+                      Status Atual: <StatusBadge status={editingContrato.status} /> — Aguardando finalização de romaneios
+                    </p>
+                  </div>
+
+                  {/* Painel Saldo a Fixar para A_FIXAR */}
+                  {editingContrato.tipoPreco === "A_FIXAR" && (
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm">🎯 Saldo a Fixar</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                          <div>
+                            <p className="text-muted-foreground text-xs">Total Contratado</p>
+                            <p className="text-lg font-bold">
+                              {editingContrato.quantidadeTotal.toLocaleString("pt-BR")} {getCodigoUnidade(editingContrato.unidadeNegociacaoId)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground text-xs">Total Entregue</p>
+                            <p className="text-lg font-bold">
+                              {Math.round(editingContrato.quantidadeEntregue).toLocaleString("pt-BR")} {getCodigoUnidade(editingContrato.unidadeNegociacaoId)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground text-xs">Total Fixado</p>
+                            <p className="text-lg font-bold">
+                              {totalFixado.toLocaleString("pt-BR")} {getCodigoUnidade(editingContrato.unidadeNegociacaoId)}
+                              {precoMedioFixado > 0 && (
+                                <span className="text-xs text-muted-foreground ml-1">
+                                  (PM: {formatCurrency(precoMedioFixado, getCodigoMoeda(editingContrato.moedaId))})
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground text-xs">Saldo a Fixar</p>
+                            <p className="text-lg font-bold text-destructive">
+                              {saldoAFixar.toLocaleString("pt-BR")} {getCodigoUnidade(editingContrato.unidadeNegociacaoId)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 mt-4">
+                          {saldoAFixar > 0 && !viewOnly && (
+                            <Button variant="outline" size="sm" onClick={() => { setActiveTab("fixacoes"); openNewFixacao(); }}>
+                              Fixar Preço
+                            </Button>
+                          )}
+                          {saldoAFixar === 0 && totalFixado > 0 && !editingContrato.duplicatasGeradas && !viewOnly && (
+                            <Button size="sm" onClick={() => {
+                              setGcNumParcelas("1");
+                              setGcFrequencia("MENSAL");
+                              setGcDiasPersonalizado("30");
+                              setGcDataPrimeiraParcela(new Date().toISOString().slice(0, 10));
+                              setGcParcelasEditaveis([]);
+                              setGcParcelasGeradas(false);
+                              setGerarContasOpen(true);
+                            }}>
+                              Gerar Duplicatas de Previsão
+                            </Button>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Botão para FIXO - Gerar Duplicatas de Previsão */}
+                  {editingContrato.tipoPreco === "FIXO" && !editingContrato.duplicatasGeradas && !viewOnly && (
+                    <div className="text-center">
+                      <Button onClick={() => {
+                        setGcNumParcelas("1");
+                        setGcFrequencia("MENSAL");
+                        setGcDiasPersonalizado("30");
+                        setGcDataPrimeiraParcela(new Date().toISOString().slice(0, 10));
+                        setGcParcelasEditaveis([]);
+                        setGcParcelasGeradas(false);
+                        setGerarContasOpen(true);
+                      }}>
+                        Gerar Duplicatas de Previsão
+                      </Button>
+                    </div>
+                  )}
+                </>
               )}
 
               {/* Cenário 2: FINALIZADO — botão habilitado */}
@@ -2064,7 +2178,7 @@ export default function ContratosPage() {
                     </div>
                   </div>
 
-                  {/* Parcelas */}
+                  {/* Parcelas com expansão */}
                   {finParcelas.length > 0 && (
                     <div className="space-y-3">
                       <h4 className="font-semibold text-foreground text-sm">Parcelas Vinculadas</h4>
@@ -2072,6 +2186,7 @@ export default function ContratosPage() {
                         <Table>
                           <TableHeader>
                             <TableRow>
+                              <TableHead className="w-8"></TableHead>
                               <TableHead>#</TableHead>
                               <TableHead>Vencimento</TableHead>
                               <TableHead className="text-right">Valor Original</TableHead>
@@ -2082,69 +2197,94 @@ export default function ContratosPage() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {finParcelas.map((p) => (
-                              <TableRow key={p.id}>
-                                <TableCell>{p.numeroParcela}/{p.totalParcelas}</TableCell>
-                                <TableCell>{format(new Date(p.dataVencimento), "dd/MM/yyyy")}</TableCell>
-                                <TableCell className="text-right">
-                                  {p.valorParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  {p.valorReal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  {p.valorPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  {p.saldoParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                                </TableCell>
-                                <TableCell>
-                                  <Badge
-                                    variant={
-                                      p.status === "PAGO" ? "default" : p.status === "PARCIAL" ? "secondary" : p.status === "VENCIDA" ? "destructive" : "outline"
-                                    }
-                                  >
-                                    {p.status}
-                                  </Badge>
-                                </TableCell>
-                              </TableRow>
-                            ))}
+                            {finParcelas.map((p) => {
+                              const parcelaBaixas = finBaixas.filter((b) => b.parcelaId === p.id);
+                              const isExpanded = expandedParcelaId === p.id;
+                              return (
+                                <>
+                                  <TableRow key={p.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setExpandedParcelaId(isExpanded ? null : p.id)}>
+                                    <TableCell className="p-2">
+                                      {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                    </TableCell>
+                                    <TableCell>{p.numeroParcela}/{p.totalParcelas}</TableCell>
+                                    <TableCell>{format(new Date(p.dataVencimento), "dd/MM/yyyy")}</TableCell>
+                                    <TableCell className="text-right">
+                                      {p.valorParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      {p.valorReal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      {p.valorPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      {p.saldoParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                    </TableCell>
+                                    <TableCell>
+                                      <Badge
+                                        variant={
+                                          p.status === "PAGO" ? "default" : p.status === "PARCIAL" ? "secondary" : p.status === "VENCIDA" ? "destructive" : "outline"
+                                        }
+                                      >
+                                        {p.status}
+                                      </Badge>
+                                    </TableCell>
+                                  </TableRow>
+                                  {isExpanded && (
+                                    <TableRow key={`${p.id}-detail`}>
+                                      <TableCell colSpan={8} className="bg-muted/30 p-4">
+                                        <div className="space-y-2">
+                                          <h5 className="text-xs font-semibold text-muted-foreground">Movimentações da Parcela {p.numeroParcela}</h5>
+                                          {parcelaBaixas.length > 0 ? (
+                                            <Table>
+                                              <TableHeader>
+                                                <TableRow>
+                                                  <TableHead className="text-xs">Data</TableHead>
+                                                  <TableHead className="text-xs">Tipo</TableHead>
+                                                  <TableHead className="text-xs text-right">Valor</TableHead>
+                                                  <TableHead className="text-xs">Forma</TableHead>
+                                                  <TableHead className="text-xs">Observações</TableHead>
+                                                </TableRow>
+                                              </TableHeader>
+                                              <TableBody>
+                                                {parcelaBaixas.map((b) => (
+                                                  <TableRow key={b.id}>
+                                                    <TableCell className="text-xs">{format(new Date(b.dataPagamento), "dd/MM/yyyy")}</TableCell>
+                                                    <TableCell className="text-xs">
+                                                      <Badge variant="outline" className="text-xs">PAGT</Badge>
+                                                    </TableCell>
+                                                    <TableCell className="text-xs text-right">
+                                                      {b.valorPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                                    </TableCell>
+                                                    <TableCell className="text-xs">{b.formaPagamento}</TableCell>
+                                                    <TableCell className="text-xs text-muted-foreground">{b.observacoes || "—"}</TableCell>
+                                                  </TableRow>
+                                                ))}
+                                              </TableBody>
+                                            </Table>
+                                          ) : (
+                                            <p className="text-xs text-muted-foreground">Nenhuma movimentação registrada</p>
+                                          )}
+                                        </div>
+                                      </TableCell>
+                                    </TableRow>
+                                  )}
+                                </>
+                              );
+                            })}
                           </TableBody>
                         </Table>
                       </div>
                     </div>
                   )}
 
-                  {/* Baixas */}
-                  {finBaixas.length > 0 && (
-                    <div className="space-y-3">
-                      <h4 className="font-semibold text-foreground text-sm">Histórico de Baixas</h4>
-                      <div className="overflow-auto">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Data Pagamento</TableHead>
-                              <TableHead className="text-right">Valor</TableHead>
-                              <TableHead>Forma</TableHead>
-                              <TableHead>Observações</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {finBaixas.map((b) => (
-                              <TableRow key={b.id}>
-                                <TableCell>{format(new Date(b.dataPagamento), "dd/MM/yyyy HH:mm")}</TableCell>
-                                <TableCell className="text-right">
-                                  {b.valorPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                                </TableCell>
-                                <TableCell>{b.formaPagamento}</TableCell>
-                                <TableCell className="text-xs text-muted-foreground">{b.observacoes || "—"}</TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    </div>
-                  )}
+                  {/* Link to Financeiro */}
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => window.location.href = "/financeiro/contas"}>
+                      <ExternalLink className="h-4 w-4 mr-1" />
+                      Ir para Contas a Pagar/Receber
+                    </Button>
+                  </div>
 
                   {finContas.length === 0 && (
                     <p className="text-center text-sm text-muted-foreground py-6">
@@ -2910,15 +3050,16 @@ export default function ContratosPage() {
         </AlertDialogContent>
       </AlertDialog>
       {/* Modal Gerar Contas de Contrato */}
-      {editingContrato && (
+      {(editingContrato || autoGerarDuplicatasContrato) && (
         <CrudModal
           open={gerarContasOpen}
-          onClose={() => setGerarContasOpen(false)}
-          title={`Gerar Contas a ${editingContrato.tipoContrato === "COMPRA" ? "Pagar" : "Receber"}`}
+          onClose={() => { setGerarContasOpen(false); setAutoGerarDuplicatasContrato(null); }}
+          title={`Gerar Duplicatas ${autoGerarDuplicatasContrato ? "Provisórias" : ""} — ${(editingContrato || autoGerarDuplicatasContrato)!.tipoContrato === "COMPRA" ? "A Pagar" : "A Receber"}`}
           saving={gcSaving}
           onSave={gcParcelasGeradas ? async () => {
+            const ctr = (editingContrato || autoGerarDuplicatasContrato)!;
             const soma = gcParcelasEditaveis.reduce((s, p) => s + p.valorParcela, 0);
-            const valorContrato = editingContrato.quantidadeTotal * editingContrato.precoUnitario;
+            const valorContrato = ctr.quantidadeTotal * ctr.precoUnitario;
             if (Math.abs(soma - valorContrato) > 0.01) {
               toast({ title: "Soma das parcelas difere do valor do contrato", variant: "destructive" });
               return;
@@ -2926,16 +3067,17 @@ export default function ContratosPage() {
             setGcSaving(true);
             try {
               const result = await financeiroContaService.gerarContasDeContrato(
-                editingContrato.id,
+                ctr.id,
                 gcParcelasEditaveis,
-                { grupoId: grupoAtual?.id ?? "", empresaId: editingContrato.empresaId, filialId: editingContrato.filialId }
+                { grupoId: grupoAtual?.id ?? "", empresaId: ctr.empresaId, filialId: ctr.filialId }
               );
               setFinContas([result.conta]);
               setFinParcelas(result.parcelas);
-              // Update local contract status
-              editingContrato.status = "FATURADO";
-              toast({ title: `Contas geradas com ${result.parcelas.length} parcela(s)` });
+              ctr.status = "FATURADO";
+              ctr.duplicatasGeradas = true;
+              toast({ title: `Duplicatas geradas com sucesso! ${result.parcelas.length} parcela(s) criadas.` });
               setGerarContasOpen(false);
+              setAutoGerarDuplicatasContrato(null);
               loadContratos();
             } catch (err: any) {
               toast({ title: err.message || "Erro ao gerar contas", variant: "destructive" });
@@ -2943,112 +3085,132 @@ export default function ContratosPage() {
           } : undefined}
           maxWidth="sm:max-w-2xl"
         >
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Pessoa</Label>
-                <Input value={getNomePessoa(editingContrato.pessoaId)} disabled />
-              </div>
-              <div>
-                <Label>Valor Total do Contrato</Label>
-                <Input value={(editingContrato.quantidadeTotal * editingContrato.precoUnitario).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} disabled />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Quantidade de Parcelas</Label>
-                <Input type="number" min="1" value={gcNumParcelas} onChange={(e) => { setGcNumParcelas(e.target.value); setGcParcelasGeradas(false); }} />
-              </div>
-              <div>
-                <Label>Data da Primeira Parcela</Label>
-                <Input type="date" value={gcDataPrimeiraParcela} onChange={(e) => { setGcDataPrimeiraParcela(e.target.value); setGcParcelasGeradas(false); }} />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Frequência</Label>
-                <Select value={gcFrequencia} onValueChange={(v) => { setGcFrequencia(v as any); setGcParcelasGeradas(false); }}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="MENSAL">Mensal (30 dias)</SelectItem>
-                    <SelectItem value="TRIMESTRAL">Trimestral (90 dias)</SelectItem>
-                    <SelectItem value="SEMESTRAL">Semestral (180 dias)</SelectItem>
-                    <SelectItem value="ANUAL">Anual (365 dias)</SelectItem>
-                    <SelectItem value="PERSONALIZADO">Personalizado</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {gcFrequencia === "PERSONALIZADO" && (
-                <div>
-                  <Label>Intervalo (dias)</Label>
-                  <Input type="number" min="1" value={gcDiasPersonalizado} onChange={(e) => { setGcDiasPersonalizado(e.target.value); setGcParcelasGeradas(false); }} />
+          {(() => {
+            const ctr = (editingContrato || autoGerarDuplicatasContrato)!;
+            return (
+              <div className="space-y-4">
+                {autoGerarDuplicatasContrato && (
+                  <div className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
+                    ℹ️ Contrato <strong>{ctr.numeroContrato}</strong> criado com sucesso. Deseja gerar as duplicatas provisórias agora?
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Pessoa</Label>
+                    <Input value={getNomePessoa(ctr.pessoaId)} disabled />
+                  </div>
+                  <div>
+                    <Label>Valor Total do Contrato</Label>
+                    <Input value={(ctr.quantidadeTotal * ctr.precoUnitario).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} disabled />
+                  </div>
                 </div>
-              )}
-            </div>
-
-            <Button variant="outline" className="w-full" onClick={() => {
-              const n = parseInt(gcNumParcelas);
-              const vt = editingContrato.quantidadeTotal * editingContrato.precoUnitario;
-              if (!n || n < 1) return;
-              const dias = gcFrequencia === "PERSONALIZADO" ? parseInt(gcDiasPersonalizado) || 30 : ({ MENSAL: 30, TRIMESTRAL: 90, SEMESTRAL: 180, ANUAL: 365 } as any)[gcFrequencia];
-              const valorBase = Math.round((vt / n) * 100) / 100;
-              const novas = [];
-              for (let i = 0; i < n; i++) {
-                const d = new Date(gcDataPrimeiraParcela);
-                d.setDate(d.getDate() + dias * i);
-                const val = i === n - 1 ? vt - valorBase * (n - 1) : valorBase;
-                novas.push({ numeroParcela: i + 1, dataVencimento: d.toISOString().slice(0, 10), valorParcela: Math.round(val * 100) / 100 });
-              }
-              setGcParcelasEditaveis(novas);
-              setGcParcelasGeradas(true);
-            }}>
-              Gerar Pré-visualização
-            </Button>
-
-            {gcParcelasGeradas && gcParcelasEditaveis.length > 0 && (
-              <>
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-20">Parcela</TableHead>
-                        <TableHead>Data Vencimento</TableHead>
-                        <TableHead className="text-right">Valor</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {gcParcelasEditaveis.map((p, idx) => (
-                        <TableRow key={idx}>
-                          <TableCell className="font-mono">{p.numeroParcela}</TableCell>
-                          <TableCell>
-                            <Input type="date" value={p.dataVencimento} onChange={(e) => {
-                              setGcParcelasEditaveis((prev) => prev.map((pp, i) => i === idx ? { ...pp, dataVencimento: e.target.value } : pp));
-                            }} className="w-40" />
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Input type="number" step="0.01" value={p.valorParcela} onChange={(e) => {
-                              setGcParcelasEditaveis((prev) => prev.map((pp, i) => i === idx ? { ...pp, valorParcela: parseFloat(e.target.value) || 0 } : pp));
-                            }} className="w-32 text-right ml-auto" />
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Quantidade de Parcelas</Label>
+                    <Input type="number" min="1" value={gcNumParcelas} onChange={(e) => { setGcNumParcelas(e.target.value); setGcParcelasGeradas(false); }} />
+                  </div>
+                  <div>
+                    <Label>Data da Primeira Parcela</Label>
+                    <Input type="date" value={gcDataPrimeiraParcela} onChange={(e) => { setGcDataPrimeiraParcela(e.target.value); setGcParcelasGeradas(false); }} />
+                  </div>
                 </div>
-                {(() => {
-                  const soma = gcParcelasEditaveis.reduce((s, p) => s + p.valorParcela, 0);
-                  const vt = editingContrato.quantidadeTotal * editingContrato.precoUnitario;
-                  const ok = Math.abs(soma - vt) < 0.01;
-                  return (
-                    <div className={`flex items-center justify-between p-3 rounded-md border ${ok ? "border-success/50 bg-success/10" : "border-destructive/50 bg-destructive/10"}`}>
-                      <span className="text-sm font-medium">Soma: {soma.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
-                      <span className="text-sm text-muted-foreground">Valor total: {vt.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Frequência</Label>
+                    <Select value={gcFrequencia} onValueChange={(v) => { setGcFrequencia(v as any); setGcParcelasGeradas(false); }}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="MENSAL">Mensal (30 dias)</SelectItem>
+                        <SelectItem value="TRIMESTRAL">Trimestral (90 dias)</SelectItem>
+                        <SelectItem value="SEMESTRAL">Semestral (180 dias)</SelectItem>
+                        <SelectItem value="ANUAL">Anual (365 dias)</SelectItem>
+                        <SelectItem value="PERSONALIZADO">Personalizado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {gcFrequencia === "PERSONALIZADO" && (
+                    <div>
+                      <Label>Intervalo (dias)</Label>
+                      <Input type="number" min="1" value={gcDiasPersonalizado} onChange={(e) => { setGcDiasPersonalizado(e.target.value); setGcParcelasGeradas(false); }} />
                     </div>
-                  );
-                })()}
-              </>
-            )}
-          </div>
+                  )}
+                </div>
+
+                <Button variant="outline" className="w-full" onClick={() => {
+                  const n = parseInt(gcNumParcelas);
+                  const vt = ctr.quantidadeTotal * ctr.precoUnitario;
+                  if (!n || n < 1) return;
+                  const dias = gcFrequencia === "PERSONALIZADO" ? parseInt(gcDiasPersonalizado) || 30 : ({ MENSAL: 30, TRIMESTRAL: 90, SEMESTRAL: 180, ANUAL: 365 } as any)[gcFrequencia];
+                  const valorBase = Math.round((vt / n) * 100) / 100;
+                  const novas = [];
+                  for (let i = 0; i < n; i++) {
+                    const d = new Date(gcDataPrimeiraParcela);
+                    d.setDate(d.getDate() + dias * i);
+                    const val = i === n - 1 ? vt - valorBase * (n - 1) : valorBase;
+                    novas.push({ numeroParcela: i + 1, dataVencimento: d.toISOString().slice(0, 10), valorParcela: Math.round(val * 100) / 100 });
+                  }
+                  setGcParcelasEditaveis(novas);
+                  setGcParcelasGeradas(true);
+                }}>
+                  Gerar Pré-visualização
+                </Button>
+
+                {gcParcelasGeradas && gcParcelasEditaveis.length > 0 && (
+                  <>
+                    <div className="rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-20">Parcela</TableHead>
+                            <TableHead>Data Vencimento</TableHead>
+                            <TableHead className="text-right">Valor</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {gcParcelasEditaveis.map((p, idx) => (
+                            <TableRow key={idx}>
+                              <TableCell className="font-mono">{p.numeroParcela}</TableCell>
+                              <TableCell>
+                                <Input type="date" value={p.dataVencimento} onChange={(e) => {
+                                  setGcParcelasEditaveis((prev) => prev.map((pp, i) => i === idx ? { ...pp, dataVencimento: e.target.value } : pp));
+                                }} className="w-40" />
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Input type="number" step="0.01" value={p.valorParcela} onChange={(e) => {
+                                  setGcParcelasEditaveis((prev) => prev.map((pp, i) => i === idx ? { ...pp, valorParcela: parseFloat(e.target.value) || 0 } : pp));
+                                }} className="w-32 text-right ml-auto" />
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    {(() => {
+                      const soma = gcParcelasEditaveis.reduce((s, p) => s + p.valorParcela, 0);
+                      const vt = ctr.quantidadeTotal * ctr.precoUnitario;
+                      const ok = Math.abs(soma - vt) < 0.01;
+                      return (
+                        <div className={`flex items-center justify-between p-3 rounded-md border ${ok ? "border-success/50 bg-success/10" : "border-destructive/50 bg-destructive/10"}`}>
+                          <span className="text-sm font-medium">Soma: {soma.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+                          <span className="text-sm text-muted-foreground">Valor total: {vt.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+                        </div>
+                      );
+                    })()}
+                  </>
+                )}
+
+                {autoGerarDuplicatasContrato && (
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => { setGerarContasOpen(false); setAutoGerarDuplicatasContrato(null); }}
+                  >
+                    Pular por Agora
+                  </Button>
+                )}
+              </div>
+            );
+          })()}
         </CrudModal>
       )}
     </>

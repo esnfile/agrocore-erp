@@ -1561,6 +1561,7 @@ export interface Contrato {
   filialOrigemId: string | null;
   filialDestinoId: string | null;
   status: StatusContrato;
+  duplicatasGeradas: boolean;
   observacoes: string;
   criadoEm: string;
   criadoPor: string;
@@ -1643,6 +1644,7 @@ export const contratos: Contrato[] = [
     filialOrigemId: null,
     filialDestinoId: "f1",
     status: "PARCIAL",
+    duplicatasGeradas: false,
     observacoes: "Contrato de compra de fertilizante NPK",
     criadoEm: "2025-03-01T08:00:00Z",
     criadoPor: "u1",
@@ -1675,6 +1677,7 @@ export const contratos: Contrato[] = [
     filialOrigemId: "f1",
     filialDestinoId: null,
     status: "ABERTO",
+    duplicatasGeradas: false,
     observacoes: "Contrato de venda com preço a fixar",
     criadoEm: "2025-03-05T10:00:00Z",
     criadoPor: "u1",
