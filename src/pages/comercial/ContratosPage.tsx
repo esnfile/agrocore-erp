@@ -73,7 +73,7 @@ import type {
   DescontoTipo,
   DescontoEmpresaConfig,
 } from "@/lib/mock-data";
-import { Plus, Pencil, Trash2, Eye, Lock, FileCheck, AlertTriangle, ExternalLink, Info, Clock, Building2, GitBranch, RefreshCw } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, Lock, FileCheck, AlertTriangle, ExternalLink, Info, Clock, Building2, GitBranch, RefreshCw, CheckCircle, XCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { SearchableSelect, type SearchableOption } from "@/components/SearchableSelect";
 
 const TODAS_EMPRESAS = "__TODAS__";
