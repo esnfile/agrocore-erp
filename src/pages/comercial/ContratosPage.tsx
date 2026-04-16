@@ -292,6 +292,8 @@ export default function ContratosPage() {
   const [gcParcelasEditaveis, setGcParcelasEditaveis] = useState<{ numeroParcela: number; dataVencimento: string; valorParcela: number }[]>([]);
   const [gcParcelasGeradas, setGcParcelasGeradas] = useState(false);
   const [gcSaving, setGcSaving] = useState(false);
+  const [autoGerarDuplicatasContrato, setAutoGerarDuplicatasContrato] = useState<Contrato | null>(null);
+  const [expandedParcelaId, setExpandedParcelaId] = useState<string | null>(null);
 
   // Forms
   const contratoForm = useForm<ContratoForm>({
