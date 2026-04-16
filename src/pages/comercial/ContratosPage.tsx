@@ -3008,17 +3008,28 @@ export default function ContratosPage() {
         maxWidth="sm:max-w-2xl"
       >
         <div className="space-y-4">
-          {/* Saldo info */}
-          {editingContrato && (
-            <div className="rounded-md border border-amber-500/30 bg-amber-50/30 dark:bg-amber-950/10 p-3 text-sm">
-              <div className="flex justify-between">
-                <span>Saldo disponível para fixação:</span>
-                <strong className={saldoAFixar > 0 ? "text-amber-600" : "text-primary"}>
-                  {saldoAFixar.toLocaleString("pt-BR")} {getCodigoUnidade(editingContrato.unidadeNegociacaoId)}
-                </strong>
+          {/* Painel Saldo a Fixar — Múltiplas Fixações */}
+          {editingContrato && (() => {
+            const unidadeCod = getCodigoUnidade(editingContrato.unidadeNegociacaoId);
+            const totalRomaneios = editingContrato.quantidadeEntregue ?? 0;
+            const jaFixadoAnterior = editingFixacao
+              ? totalFixado - editingFixacao.quantidadeFixada
+              : totalFixado;
+            const saldoAgora = Math.max(0, totalRomaneios - jaFixadoAnterior);
+            const volAtual = Number(fixacaoForm.watch("quantidadeFixada")) || 0;
+            const precoAtual = Number(fixacaoForm.watch("precoFixado")) || 0;
+            const fixMoedaSimbolo = mockMoedas.find((m) => m.id === fixacaoForm.watch("moedaId"))?.simbolo ?? "R$";
+            const valorFixacao = volAtual * precoAtual;
+            return (
+              <div className="rounded-md border border-amber-500/30 bg-amber-50/30 dark:bg-amber-950/10 p-3 text-sm space-y-1">
+                <div className="flex justify-between"><span>Total Contratado:</span><strong>{editingContrato.quantidadeTotal.toLocaleString("pt-BR")} {unidadeCod}</strong></div>
+                <div className="flex justify-between"><span>Romaneios Finalizados:</span><strong>{totalRomaneios.toLocaleString("pt-BR")} {unidadeCod}</strong></div>
+                <div className="flex justify-between"><span>Total já Fixado (anterior):</span><strong>{jaFixadoAnterior.toLocaleString("pt-BR")} {unidadeCod}</strong></div>
+                <div className="flex justify-between border-t pt-1"><span>Saldo a Fixar AGORA:</span><strong className={saldoAgora > 0 ? "text-amber-600" : "text-primary"}>{saldoAgora.toLocaleString("pt-BR")} {unidadeCod}</strong></div>
+                <div className="flex justify-between border-t pt-1"><span>Valor desta Fixação:</span><strong className="text-primary">{formatMoeda(valorFixacao, fixMoedaSimbolo)}</strong></div>
               </div>
-            </div>
-          )}
+            );
+          })()}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label>
