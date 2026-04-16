@@ -3057,8 +3057,9 @@ export default function ContratosPage() {
           title={`Gerar Duplicatas ${autoGerarDuplicatasContrato ? "Provisórias" : ""} — ${(editingContrato || autoGerarDuplicatasContrato)!.tipoContrato === "COMPRA" ? "A Pagar" : "A Receber"}`}
           saving={gcSaving}
           onSave={gcParcelasGeradas ? async () => {
+            const ctr = (editingContrato || autoGerarDuplicatasContrato)!;
             const soma = gcParcelasEditaveis.reduce((s, p) => s + p.valorParcela, 0);
-            const valorContrato = editingContrato.quantidadeTotal * editingContrato.precoUnitario;
+            const valorContrato = ctr.quantidadeTotal * ctr.precoUnitario;
             if (Math.abs(soma - valorContrato) > 0.01) {
               toast({ title: "Soma das parcelas difere do valor do contrato", variant: "destructive" });
               return;
@@ -3066,16 +3067,17 @@ export default function ContratosPage() {
             setGcSaving(true);
             try {
               const result = await financeiroContaService.gerarContasDeContrato(
-                editingContrato.id,
+                ctr.id,
                 gcParcelasEditaveis,
-                { grupoId: grupoAtual?.id ?? "", empresaId: editingContrato.empresaId, filialId: editingContrato.filialId }
+                { grupoId: grupoAtual?.id ?? "", empresaId: ctr.empresaId, filialId: ctr.filialId }
               );
               setFinContas([result.conta]);
               setFinParcelas(result.parcelas);
-              // Update local contract status
-              editingContrato.status = "FATURADO";
-              toast({ title: `Contas geradas com ${result.parcelas.length} parcela(s)` });
+              ctr.status = "FATURADO";
+              ctr.duplicatasGeradas = true;
+              toast({ title: `Duplicatas geradas com sucesso! ${result.parcelas.length} parcela(s) criadas.` });
               setGerarContasOpen(false);
+              setAutoGerarDuplicatasContrato(null);
               loadContratos();
             } catch (err: any) {
               toast({ title: err.message || "Erro ao gerar contas", variant: "destructive" });
