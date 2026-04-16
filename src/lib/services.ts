@@ -2350,7 +2350,8 @@ export const financeiroContaService = {
     contratoId: string,
     parcelasConfig: { numeroParcela: number; dataVencimento: string; valorParcela: number }[],
     ctx: { grupoId: string; empresaId: string; filialId: string },
-    provisorio: boolean = false
+    provisorio: boolean = false,
+    options?: { fixacaoId?: string | null; valorOverride?: number; converterParaBRL?: boolean }
   ): Promise<{ conta: FinanceiroConta; parcelas: FinanceiroParcela[] }> {
     await delay(400);
     const now = new Date().toISOString();
@@ -2358,21 +2359,43 @@ export const financeiroContaService = {
     if (!contrato) throw new Error("Contrato não encontrado");
     
     const tipo = contrato.tipoContrato === "COMPRA" ? "PAGAR" : "RECEBER";
-    const valorTotal = parcelasConfig.reduce((s, p) => s + p.valorParcela, 0);
+
+    // Conversão para BRL caso moeda do contrato seja diferente da moeda do sistema (BRL = moeda1)
+    const moedaContratoId = contrato.moedaId ?? "moeda1";
+    const isBRL = moedaContratoId === "moeda1";
+    let cotacao = 1;
+    if (!isBRL && options?.converterParaBRL !== false) {
+      const ult = mockCotacoesMoeda
+        .filter((c) => c.deletadoEm === null && c.moedaOrigemId === moedaContratoId && c.moedaDestinoId === "moeda1")
+        .sort((a, b) => new Date(b.dataHoraCotacao).getTime() - new Date(a.dataHoraCotacao).getTime())[0];
+      cotacao = ult?.valorCompra ?? 1;
+    }
+
+    // Aplica conversão nas parcelas (parcelasConfig vem na moeda original)
+    const parcelasBRL = parcelasConfig.map((p) => ({
+      ...p,
+      valorParcela: Math.round(p.valorParcela * cotacao * 100) / 100,
+    }));
+    const valorTotal = parcelasBRL.reduce((s, p) => s + p.valorParcela, 0);
+    const valorOriginal = parcelasConfig.reduce((s, p) => s + p.valorParcela, 0);
     
     const conta: FinanceiroConta = {
       id: `fc${Date.now()}`,
       grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
       tipo: tipo as TipoConta,
       pessoaId: contrato.pessoaId,
-      descricao: `${tipo === "PAGAR" ? "Compra" : "Venda"} — Contrato ${contrato.numeroContrato}`,
+      descricao: `${tipo === "PAGAR" ? "Compra" : "Venda"} — Contrato ${contrato.numeroContrato}${options?.fixacaoId ? ` (Fixação)` : ""}`,
       dataEmissao: now.slice(0, 10),
       valorTotal,
       valorTotalReal: valorTotal,
       status: "ABERTO",
-      origem: "CONTRATO",
+      origem: options?.fixacaoId ? "FIXACAO" : "CONTRATO",
       documentoReferencia: contrato.numeroContrato,
       contratoId: contrato.id,
+      fixacaoId: options?.fixacaoId ?? null,
+      moedaOrigemId: moedaContratoId,
+      cotacaoUsada: cotacao,
+      valorOriginalMoeda: valorOriginal,
       dataFaturamento: now.slice(0, 10),
       dataLiquidacao: null,
       observacoes: "",
@@ -2381,8 +2404,8 @@ export const financeiroContaService = {
     };
     mockFinanceiroContas.push(conta);
     
-    const totalP = parcelasConfig.length;
-    const novasParcelas: FinanceiroParcela[] = parcelasConfig.map((input, i) => ({
+    const totalP = parcelasBRL.length;
+    const novasParcelas: FinanceiroParcela[] = parcelasBRL.map((input, i) => ({
       id: `fp${Date.now()}${i}`,
       grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
       contaId: conta.id,
