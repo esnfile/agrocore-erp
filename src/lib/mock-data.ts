@@ -1561,6 +1561,7 @@ export interface Contrato {
   filialOrigemId: string | null;
   filialDestinoId: string | null;
   status: StatusContrato;
+  duplicatasGeradas: boolean;
   observacoes: string;
   criadoEm: string;
   criadoPor: string;
