@@ -1399,6 +1399,7 @@ export default function ContratosPage() {
                     <Select
                       value={contratoForm.watch("moedaId")}
                       onValueChange={(v) => contratoForm.setValue("moedaId", v)}
+                      disabled={!!editingContrato}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -1413,6 +1414,11 @@ export default function ContratosPage() {
                           ))}
                       </SelectContent>
                     </Select>
+                    {editingContrato && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Moeda não pode ser alterada após criação do contrato.
+                      </p>
+                    )}
                   </div>
                   <div className="w-full">
                     <Label>
