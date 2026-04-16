@@ -73,7 +73,7 @@ import type {
   DescontoTipo,
   DescontoEmpresaConfig,
 } from "@/lib/mock-data";
-import { Plus, Pencil, Trash2, Eye, Lock, FileCheck, AlertTriangle, ExternalLink, Info, Clock, Building2, GitBranch, RefreshCw, CheckCircle, XCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, Lock, FileCheck, AlertTriangle, ExternalLink, Info, Clock, Building2, GitBranch, RefreshCw, DollarSign, ChevronDown, ChevronUp } from "lucide-react";
 import { SearchableSelect, type SearchableOption } from "@/components/SearchableSelect";
 
 const TODAS_EMPRESAS = "__TODAS__";
@@ -1103,9 +1103,9 @@ export default function ContratosPage() {
                         <Tooltip>
                           <TooltipTrigger>
                             {c.duplicatasGeradas || c.status === "FATURADO" || c.status === "LIQUIDADO" ? (
-                              <CheckCircle className="h-4 w-4 text-primary mx-auto" />
+                              <DollarSign className="h-4 w-4 text-primary mx-auto" />
                             ) : (
-                              <XCircle className="h-4 w-4 text-muted-foreground mx-auto" />
+                              <DollarSign className="h-4 w-4 text-muted-foreground/40 mx-auto" />
                             )}
                           </TooltipTrigger>
                           <TooltipContent>
@@ -3066,14 +3066,18 @@ export default function ContratosPage() {
             }
             setGcSaving(true);
             try {
+              const isProvisorio = !!autoGerarDuplicatasContrato;
               const result = await financeiroContaService.gerarContasDeContrato(
                 ctr.id,
                 gcParcelasEditaveis,
-                { grupoId: grupoAtual?.id ?? "", empresaId: ctr.empresaId, filialId: ctr.filialId }
+                { grupoId: grupoAtual?.id ?? "", empresaId: ctr.empresaId, filialId: ctr.filialId },
+                isProvisorio
               );
               setFinContas([result.conta]);
               setFinParcelas(result.parcelas);
-              ctr.status = "FATURADO";
+              if (!isProvisorio) {
+                ctr.status = "FATURADO";
+              }
               ctr.duplicatasGeradas = true;
               toast({ title: `Duplicatas geradas com sucesso! ${result.parcelas.length} parcela(s) criadas.` });
               setGerarContasOpen(false);
