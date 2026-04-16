@@ -2887,6 +2887,15 @@ export const financeiroMovimentacaoService = {
     if (data.parcelaId) {
       const parcela = mockFinanceiroParcelas.find((p) => p.id === data.parcelaId && p.deletadoEm === null);
       if (parcela) {
+        if (parcela.status === "PREVISTO") {
+          return {
+            sucesso: false,
+            mensagem: "Duplicata em status de previsão não pode ser baixada. Aguarde a efetivação do contrato.",
+          };
+        }
+        if (parcela.status === "CANCELADA") {
+          return { sucesso: false, mensagem: "Parcela cancelada não pode receber baixa." };
+        }
         parcela.valorPago += data.valor;
         parcela.saldoParcela = parcela.valorParcela - parcela.valorPago;
         if (parcela.saldoParcela <= 0) { parcela.saldoParcela = 0; parcela.status = "PAGO"; }
