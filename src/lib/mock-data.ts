@@ -2421,6 +2421,10 @@ export interface FinanceiroConta {
   origem: OrigemConta;
   documentoReferencia: string;
   contratoId?: string | null;
+  fixacaoId?: string | null;
+  moedaOrigemId?: string | null;
+  cotacaoUsada?: number | null;
+  valorOriginalMoeda?: number | null;
   dataFaturamento?: string | null;
   dataLiquidacao?: string | null;
   observacoes: string;

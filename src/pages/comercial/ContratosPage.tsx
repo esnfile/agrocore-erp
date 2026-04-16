@@ -75,6 +75,7 @@ import type {
 } from "@/lib/mock-data";
 import { Plus, Pencil, Trash2, Eye, Lock, FileCheck, AlertTriangle, ExternalLink, Info, Clock, Building2, GitBranch, RefreshCw, DollarSign, ChevronDown, ChevronUp } from "lucide-react";
 import { SearchableSelect, type SearchableOption } from "@/components/SearchableSelect";
+import { formatMoeda } from "@/lib/format";
 
 const TODAS_EMPRESAS = "__TODAS__";
 const TODAS_FILIAIS = "__TODAS__";
@@ -293,6 +294,7 @@ export default function ContratosPage() {
   const [gcParcelasGeradas, setGcParcelasGeradas] = useState(false);
   const [gcSaving, setGcSaving] = useState(false);
   const [autoGerarDuplicatasContrato, setAutoGerarDuplicatasContrato] = useState<Contrato | null>(null);
+  const [fixacaoParaDuplicata, setFixacaoParaDuplicata] = useState<ContratoFixacao | null>(null);
   const [expandedParcelaId, setExpandedParcelaId] = useState<string | null>(null);
 
   // Forms
@@ -791,6 +793,18 @@ export default function ContratosPage() {
         toast({ title: "Sucesso", description: result.mensagem });
         setFixacaoModalOpen(false);
         await loadSubEntities(editingContrato.id);
+        // Após nova fixação (não edição), abrir modal de duplicatas com valor pré-calculado
+        if (!editingFixacao && result.fixacao) {
+          setFixacaoParaDuplicata(result.fixacao);
+          setAutoGerarDuplicatasContrato(editingContrato);
+          setGcNumParcelas("1");
+          setGcFrequencia("MENSAL");
+          setGcDiasPersonalizado("30");
+          setGcDataPrimeiraParcela(new Date().toISOString().slice(0, 10));
+          setGcParcelasEditaveis([]);
+          setGcParcelasGeradas(false);
+          setGerarContasOpen(true);
+        }
       } else {
         toast({ title: "Erro", description: result.mensagem, variant: "destructive" });
       }
@@ -3008,17 +3022,28 @@ export default function ContratosPage() {
         maxWidth="sm:max-w-2xl"
       >
         <div className="space-y-4">
-          {/* Saldo info */}
-          {editingContrato && (
-            <div className="rounded-md border border-amber-500/30 bg-amber-50/30 dark:bg-amber-950/10 p-3 text-sm">
-              <div className="flex justify-between">
-                <span>Saldo disponível para fixação:</span>
-                <strong className={saldoAFixar > 0 ? "text-amber-600" : "text-primary"}>
-                  {saldoAFixar.toLocaleString("pt-BR")} {getCodigoUnidade(editingContrato.unidadeNegociacaoId)}
-                </strong>
+          {/* Painel Saldo a Fixar — Múltiplas Fixações */}
+          {editingContrato && (() => {
+            const unidadeCod = getCodigoUnidade(editingContrato.unidadeNegociacaoId);
+            const totalRomaneios = editingContrato.quantidadeEntregue ?? 0;
+            const jaFixadoAnterior = editingFixacao
+              ? totalFixado - editingFixacao.quantidadeFixada
+              : totalFixado;
+            const saldoAgora = Math.max(0, totalRomaneios - jaFixadoAnterior);
+            const volAtual = Number(fixacaoForm.watch("quantidadeFixada")) || 0;
+            const precoAtual = Number(fixacaoForm.watch("precoFixado")) || 0;
+            const fixMoedaSimbolo = mockMoedas.find((m) => m.id === fixacaoForm.watch("moedaId"))?.simbolo ?? "R$";
+            const valorFixacao = volAtual * precoAtual;
+            return (
+              <div className="rounded-md border border-amber-500/30 bg-amber-50/30 dark:bg-amber-950/10 p-3 text-sm space-y-1">
+                <div className="flex justify-between"><span>Total Contratado:</span><strong>{editingContrato.quantidadeTotal.toLocaleString("pt-BR")} {unidadeCod}</strong></div>
+                <div className="flex justify-between"><span>Romaneios Finalizados:</span><strong>{totalRomaneios.toLocaleString("pt-BR")} {unidadeCod}</strong></div>
+                <div className="flex justify-between"><span>Total já Fixado (anterior):</span><strong>{jaFixadoAnterior.toLocaleString("pt-BR")} {unidadeCod}</strong></div>
+                <div className="flex justify-between border-t pt-1"><span>Saldo a Fixar AGORA:</span><strong className={saldoAgora > 0 ? "text-amber-600" : "text-primary"}>{saldoAgora.toLocaleString("pt-BR")} {unidadeCod}</strong></div>
+                <div className="flex justify-between border-t pt-1"><span>Valor desta Fixação:</span><strong className="text-primary">{formatMoeda(valorFixacao, fixMoedaSimbolo)}</strong></div>
               </div>
-            </div>
-          )}
+            );
+          })()}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label>
@@ -3256,15 +3281,17 @@ export default function ContratosPage() {
       {(editingContrato || autoGerarDuplicatasContrato) && (
         <CrudModal
           open={gerarContasOpen}
-          onClose={() => { setGerarContasOpen(false); setAutoGerarDuplicatasContrato(null); }}
-          title={`Gerar Duplicatas ${autoGerarDuplicatasContrato ? "Provisórias" : ""} — ${(editingContrato || autoGerarDuplicatasContrato)!.tipoContrato === "COMPRA" ? "A Pagar" : "A Receber"}`}
+          onClose={() => { setGerarContasOpen(false); setAutoGerarDuplicatasContrato(null); setFixacaoParaDuplicata(null); }}
+          title={`Gerar Duplicatas ${autoGerarDuplicatasContrato ? "Provisórias" : ""}${fixacaoParaDuplicata ? " (Fixação)" : ""} — ${(editingContrato || autoGerarDuplicatasContrato)!.tipoContrato === "COMPRA" ? "A Pagar" : "A Receber"}`}
           saving={gcSaving}
           onSave={gcParcelasGeradas ? async () => {
             const ctr = (editingContrato || autoGerarDuplicatasContrato)!;
+            const valorEsperado = fixacaoParaDuplicata
+              ? fixacaoParaDuplicata.quantidadeFixada * fixacaoParaDuplicata.precoFixado
+              : ctr.quantidadeTotal * ctr.precoUnitario;
             const soma = gcParcelasEditaveis.reduce((s, p) => s + p.valorParcela, 0);
-            const valorContrato = ctr.quantidadeTotal * ctr.precoUnitario;
-            if (Math.abs(soma - valorContrato) > 0.01) {
-              toast({ title: "Soma das parcelas difere do valor do contrato", variant: "destructive" });
+            if (Math.abs(soma - valorEsperado) > 0.01) {
+              toast({ title: "Soma das parcelas difere do valor esperado", variant: "destructive" });
               return;
             }
             setGcSaving(true);
@@ -3274,7 +3301,8 @@ export default function ContratosPage() {
                 ctr.id,
                 gcParcelasEditaveis,
                 { grupoId: grupoAtual?.id ?? "", empresaId: ctr.empresaId, filialId: ctr.filialId },
-                isProvisorio
+                isProvisorio,
+                { fixacaoId: fixacaoParaDuplicata?.id ?? null }
               );
               setFinContas([result.conta]);
               setFinParcelas(result.parcelas);
@@ -3285,6 +3313,7 @@ export default function ContratosPage() {
               toast({ title: `Duplicatas geradas com sucesso! ${result.parcelas.length} parcela(s) criadas.` });
               setGerarContasOpen(false);
               setAutoGerarDuplicatasContrato(null);
+              setFixacaoParaDuplicata(null);
               loadContratos();
             } catch (err: any) {
               toast({ title: err.message || "Erro ao gerar contas", variant: "destructive" });
@@ -3294,11 +3323,20 @@ export default function ContratosPage() {
         >
           {(() => {
             const ctr = (editingContrato || autoGerarDuplicatasContrato)!;
+            const ctrMoedaSimbolo = mockMoedas.find((m) => m.id === ctr.moedaId)?.simbolo ?? "R$";
+            const valorEsperado = fixacaoParaDuplicata
+              ? fixacaoParaDuplicata.quantidadeFixada * fixacaoParaDuplicata.precoFixado
+              : ctr.quantidadeTotal * ctr.precoUnitario;
             return (
               <div className="space-y-4">
-                {autoGerarDuplicatasContrato && (
+                {autoGerarDuplicatasContrato && !fixacaoParaDuplicata && (
                   <div className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
                     ℹ️ Contrato <strong>{ctr.numeroContrato}</strong> criado com sucesso. Deseja gerar as duplicatas provisórias agora?
+                  </div>
+                )}
+                {fixacaoParaDuplicata && (
+                  <div className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
+                    ℹ️ Fixação registrada: <strong>{fixacaoParaDuplicata.quantidadeFixada.toLocaleString("pt-BR")}</strong> × {formatMoeda(fixacaoParaDuplicata.precoFixado, ctrMoedaSimbolo)} = <strong>{formatMoeda(valorEsperado, ctrMoedaSimbolo)}</strong>. Gere as duplicatas provisórias desta fixação.
                   </div>
                 )}
                 <div className="grid grid-cols-2 gap-4">
@@ -3307,8 +3345,8 @@ export default function ContratosPage() {
                     <Input value={getNomePessoa(ctr.pessoaId)} disabled />
                   </div>
                   <div>
-                    <Label>Valor Total do Contrato</Label>
-                    <Input value={(ctr.quantidadeTotal * ctr.precoUnitario).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} disabled />
+                    <Label>{fixacaoParaDuplicata ? "Valor desta Fixação" : "Valor Total do Contrato"}</Label>
+                    <Input value={formatMoeda(valorEsperado, ctrMoedaSimbolo)} disabled />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -3317,35 +3355,40 @@ export default function ContratosPage() {
                     <Input type="number" min="1" value={gcNumParcelas} onChange={(e) => { setGcNumParcelas(e.target.value); setGcParcelasGeradas(false); }} />
                   </div>
                   <div>
-                    <Label>Data da Primeira Parcela</Label>
+                    <Label>{parseInt(gcNumParcelas) === 1 ? "Data de Vencimento" : "Data da Primeira Parcela"}</Label>
                     <Input type="date" value={gcDataPrimeiraParcela} onChange={(e) => { setGcDataPrimeiraParcela(e.target.value); setGcParcelasGeradas(false); }} />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Frequência</Label>
-                    <Select value={gcFrequencia} onValueChange={(v) => { setGcFrequencia(v as any); setGcParcelasGeradas(false); }}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="MENSAL">Mensal (30 dias)</SelectItem>
-                        <SelectItem value="TRIMESTRAL">Trimestral (90 dias)</SelectItem>
-                        <SelectItem value="SEMESTRAL">Semestral (180 dias)</SelectItem>
-                        <SelectItem value="ANUAL">Anual (365 dias)</SelectItem>
-                        <SelectItem value="PERSONALIZADO">Personalizado</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {gcFrequencia === "PERSONALIZADO" && (
+                {parseInt(gcNumParcelas) >= 2 && (
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label>Intervalo (dias)</Label>
-                      <Input type="number" min="1" value={gcDiasPersonalizado} onChange={(e) => { setGcDiasPersonalizado(e.target.value); setGcParcelasGeradas(false); }} />
+                      <Label>Frequência</Label>
+                      <Select value={gcFrequencia} onValueChange={(v) => { setGcFrequencia(v as any); setGcParcelasGeradas(false); }}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="MENSAL">Mensal (30 dias)</SelectItem>
+                          <SelectItem value="TRIMESTRAL">Trimestral (90 dias)</SelectItem>
+                          <SelectItem value="SEMESTRAL">Semestral (180 dias)</SelectItem>
+                          <SelectItem value="ANUAL">Anual (365 dias)</SelectItem>
+                          <SelectItem value="PERSONALIZADO">Personalizado</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-                  )}
-                </div>
+                    {gcFrequencia === "PERSONALIZADO" && (
+                      <div>
+                        <Label>Intervalo (dias)</Label>
+                        <Input type="number" min="1" value={gcDiasPersonalizado} onChange={(e) => { setGcDiasPersonalizado(e.target.value); setGcParcelasGeradas(false); }} />
+                      </div>
+                    )}
+                  </div>
+                )}
+                {parseInt(gcNumParcelas) === 1 && (
+                  <p className="text-xs text-muted-foreground">Parcela única com vencimento em {new Date(gcDataPrimeiraParcela).toLocaleDateString("pt-BR")}.</p>
+                )}
 
                 <Button variant="outline" className="w-full" onClick={() => {
                   const n = parseInt(gcNumParcelas);
-                  const vt = ctr.quantidadeTotal * ctr.precoUnitario;
+                  const vt = valorEsperado;
                   if (!n || n < 1) return;
                   const dias = gcFrequencia === "PERSONALIZADO" ? parseInt(gcDiasPersonalizado) || 30 : ({ MENSAL: 30, TRIMESTRAL: 90, SEMESTRAL: 180, ANUAL: 365 } as any)[gcFrequencia];
                   const valorBase = Math.round((vt / n) * 100) / 100;
@@ -3385,7 +3428,7 @@ export default function ContratosPage() {
                               <TableCell className="text-right">
                                 <Input type="number" step="0.01" value={p.valorParcela} onChange={(e) => {
                                   const novoValor = parseFloat(e.target.value) || 0;
-                                  const vt = ctr.quantidadeTotal * ctr.precoUnitario;
+                                  const vt = valorEsperado;
                                   setGcParcelasEditaveis((prev) => {
                                     const updated = prev.map((pp, i) => i === idx ? { ...pp, valorParcela: novoValor } : pp);
                                     if (updated.length > 1 && idx !== updated.length - 1) {
@@ -3403,12 +3446,12 @@ export default function ContratosPage() {
                     </div>
                     {(() => {
                       const soma = gcParcelasEditaveis.reduce((s, p) => s + p.valorParcela, 0);
-                      const vt = ctr.quantidadeTotal * ctr.precoUnitario;
+                      const vt = valorEsperado;
                       const ok = Math.abs(soma - vt) < 0.01;
                       return (
                         <div className={`flex items-center justify-between p-3 rounded-md border ${ok ? "border-success/50 bg-success/10" : "border-destructive/50 bg-destructive/10"}`}>
-                          <span className="text-sm font-medium">Soma: {soma.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
-                          <span className="text-sm text-muted-foreground">Valor total: {vt.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+                          <span className="text-sm font-medium">Soma: {formatMoeda(soma, ctrMoedaSimbolo)}</span>
+                          <span className="text-sm text-muted-foreground">Valor total: {formatMoeda(vt, ctrMoedaSimbolo)}</span>
                         </div>
                       );
                     })()}

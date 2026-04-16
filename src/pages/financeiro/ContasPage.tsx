@@ -678,31 +678,36 @@ export default function ContasPage() {
               <Input type="number" min="1" value={numParcelas} onChange={(e) => { setNumParcelas(e.target.value); setParcelasGeradas(false); }} />
             </div>
             <div>
-              <Label>Data da Primeira Parcela</Label>
+              <Label>{parseInt(numParcelas) === 1 ? "Data de Vencimento" : "Data da Primeira Parcela"}</Label>
               <Input type="date" value={dataPrimeiraParcela} onChange={(e) => { setDataPrimeiraParcela(e.target.value); setParcelasGeradas(false); }} />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Frequência</Label>
-              <Select value={frequencia} onValueChange={(v) => { setFrequencia(v as Frequencia); setParcelasGeradas(false); }}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="MENSAL">Mensal (30 dias)</SelectItem>
-                  <SelectItem value="TRIMESTRAL">Trimestral (90 dias)</SelectItem>
-                  <SelectItem value="SEMESTRAL">Semestral (180 dias)</SelectItem>
-                  <SelectItem value="ANUAL">Anual (365 dias)</SelectItem>
-                  <SelectItem value="PERSONALIZADO">Personalizado</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {frequencia === "PERSONALIZADO" && (
+          {parseInt(numParcelas) >= 2 && (
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Intervalo (dias)</Label>
-                <Input type="number" min="1" value={diasPersonalizado} onChange={(e) => { setDiasPersonalizado(e.target.value); setParcelasGeradas(false); }} />
+                <Label>Frequência</Label>
+                <Select value={frequencia} onValueChange={(v) => { setFrequencia(v as Frequencia); setParcelasGeradas(false); }}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="MENSAL">Mensal (30 dias)</SelectItem>
+                    <SelectItem value="TRIMESTRAL">Trimestral (90 dias)</SelectItem>
+                    <SelectItem value="SEMESTRAL">Semestral (180 dias)</SelectItem>
+                    <SelectItem value="ANUAL">Anual (365 dias)</SelectItem>
+                    <SelectItem value="PERSONALIZADO">Personalizado</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            )}
-          </div>
+              {frequencia === "PERSONALIZADO" && (
+                <div>
+                  <Label>Intervalo (dias)</Label>
+                  <Input type="number" min="1" value={diasPersonalizado} onChange={(e) => { setDiasPersonalizado(e.target.value); setParcelasGeradas(false); }} />
+                </div>
+              )}
+            </div>
+          )}
+          {parseInt(numParcelas) === 1 && (
+            <p className="text-xs text-muted-foreground">Parcela única com vencimento em {new Date(dataPrimeiraParcela).toLocaleDateString("pt-BR")}.</p>
+          )}
           <div>
             <Label>Valor Total</Label>
             <Input value={fmt(parseFloat(valorTotal) || 0)} disabled />

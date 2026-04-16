@@ -40,6 +40,7 @@ export default function MovimentacoesPage() {
   const [centrosCusto, setCentrosCusto] = useState<FinanceiroCentroCusto[]>([]);
   const [contas, setContas] = useState<FinanceiroConta[]>([]);
   const [parcelas, setParcelas] = useState<FinanceiroParcela[]>([]);
+  const [todasParcelasContas, setTodasParcelasContas] = useState<FinanceiroParcela[]>([]);
   const [pessoas, setPessoas] = useState<Pessoa[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -77,6 +78,8 @@ export default function MovimentacoesPage() {
     setMovimentacoes(m); setTiposLancamento(tl); setContasFinanceiras(cf);
     setFormasPagto(fp); setPlanoContas(pc); setCentrosCusto(cc);
     setContas(cts); setPessoas(pess);
+    const todas = await financeiroParcelaService.listarPorContas(cts.map((c) => c.id));
+    setTodasParcelasContas(todas);
     setLoading(false);
   }, [empresaId, filialId]);
 
@@ -86,7 +89,14 @@ export default function MovimentacoesPage() {
   useEffect(() => {
     if (contaIdSelecionada) {
       financeiroParcelaService.listarPorConta(contaIdSelecionada).then((p) => {
-        setParcelas(p.filter((par) => par.status !== "PAGO"));
+        setParcelas(
+          p.filter(
+            (par) =>
+              par.status !== "PAGO" &&
+              par.status !== "PREVISTO" &&
+              par.status !== "CANCELADA",
+          ),
+        );
       });
     } else {
       setParcelas([]);
@@ -255,9 +265,20 @@ export default function MovimentacoesPage() {
                 <Select value={contaIdSelecionada} onValueChange={setContaIdSelecionada}>
                   <SelectTrigger><SelectValue placeholder="Selecione a conta..." /></SelectTrigger>
                   <SelectContent>
-                    {contas.filter((c) => c.status !== "LIQUIDADO" && c.status !== "CANCELADO").map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.descricao} — {fmt(c.valorTotal)}</SelectItem>
-                    ))}
+                    {contas
+                      .filter((c) => c.status !== "LIQUIDADO" && c.status !== "CANCELADO")
+                      .filter((c) =>
+                        todasParcelasContas.some(
+                          (p) =>
+                            p.contaId === c.id &&
+                            p.status !== "PAGO" &&
+                            p.status !== "PREVISTO" &&
+                            p.status !== "CANCELADA",
+                        ),
+                      )
+                      .map((c) => (
+                        <SelectItem key={c.id} value={c.id}>{c.descricao} — {fmt(c.valorTotal)}</SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
