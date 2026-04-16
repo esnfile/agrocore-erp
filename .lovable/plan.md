@@ -1,125 +1,95 @@
-# Refatoração: Módulo Contas a Pagar/Receber — Parcelas como Verdade Absoluta
+
+
+# Módulo de Duplicatas Provisórias — Plano de Implementação
 
 ## Resumo
 
-Reestruturar o módulo financeiro de Contas para operar com parcelas como entidade central. A listagem principal passa a exibir **parcelas** (não contas), a conta vira um container agrupador, e novos status são adicionados (FATURADO, LIQUIDADO no contrato; VENCIDA na parcela). A geração de contas passa a ser disparada a partir da aba Financeiro do Contrato.
+Adicionar ao fluxo de contratos a geração automática de "duplicatas provisórias" ao criar contratos FIXO (modal automático pós-criação), painel "Saldo a Fixar" para contratos A_FIXAR com fixação de preço, coluna visual "Duplicatas?" na listagem de contratos, e seção de previsão de fluxo de caixa no Dashboard.
 
-## Estado Atual
+## O que já existe e será aproveitado
 
-O que já existe e será aproveitado:
-
+- `gerarContasDeContrato()` em services.ts — cria conta + parcelas + transiciona para FATURADO
+- Modal "Gerar Contas" na aba Financeiro do ContratosPage — formulário completo com frequência, pré-visualização editável
+- Aba Financeiro do Contrato — 3 cenários (ABERTO/PARCIAL, FINALIZADO, FATURADO/LIQUIDADO) com tabela de parcelas
 - `FinanceiroConta`, `FinanceiroParcela`, `FinanceiroBaixa` — interfaces e mock data
-- `financeiroContaService`, `financeiroParcelaService` — CRUD + geração de parcelas customizadas com pré-visualização editável
-- `ContasPage.tsx` — tela funcional com abas (Dados, Parcelas, Pagamentos), gerador de parcelas avançado, filtros
-- Aba Financeiro no `ContratosPage.tsx` — resumo financeiro, parcelas, histórico de baixas
-- `atualizarStatus` na conta — transição automática baseada em parcelas
-- Liquidação de contrato já gera/ajusta contas financeiras
-
-O que precisa mudar:
-
-- **StatusConta**: adicionar `LIQUIDADO`
-- **StatusParcela**: adicionar `VENCIDA` e `CANCELADA`
-- **StatusContrato**: adicionar `FATURADO`
-- **FinanceiroConta**: adicionar campos `contratoId`, `valorTotalReal`, `dataFaturamento`, `dataLiquidacao`
-- **FinanceiroParcela**: adicionar `totalParcelas`, `valorReal`
-- **Listagem principal**: trocar de contas para parcelas como view principal
-- **Aba Financeiro do Contrato**: adicionar botão "Gerar Contas" com transição FINALIZADO → FATURADO
-- **ContasPage modal**: implementar matriz de bloqueios por status/origem
-
----
+- `ContratoFixacao` e painel de fixação existente — para contratos A_FIXAR
+- ContasPage com listagem de parcelas, badges, status VENCIDA
+- Recharts já instalado (chart.tsx existe)
 
 ## Plano de Implementação
 
-### Etapa 1 — Interfaces e Types (mock-data.ts)
+### Etapa 1 — Interface e Mock Data (mock-data.ts)
 
-**StatusConta**: `"ABERTO" | "PARCIAL" | "PAGO" | "CANCELADO"` → `"ABERTO" | "PARCIAL" | "LIQUIDADO" | "CANCELADO"`
+- Adicionar `duplicatasGeradas: boolean` à interface `Contrato`
+- Atualizar mock data de contratos existentes com `duplicatasGeradas: false`
+- Sem novas interfaces — reutilizar `FinanceiroConta` e `FinanceiroParcela` existentes
 
-**StatusParcela**: `"PENDENTE" | "PARCIAL" | "PAGO"` → `"PENDENTE" | "PARCIAL" | "PAGO" | "VENCIDA" | "CANCELADA"`
+### Etapa 2 — Service (services.ts)
 
-**StatusContrato**: adicionar `"FATURADO"` entre FINALIZADO e LIQUIDADO
+- Em `gerarContasDeContrato`: setar `contrato.duplicatasGeradas = true` além de `status = "FATURADO"`
+- Novo: `contratoService.salvar` — após salvar contrato FIXO **novo** (sem `id` prévio), retornar flag `{ novoContratoFixo: true }` para o frontend abrir modal
+- Novo método `financeiroParcelaService.listarPrevisoesFluxo(grupoId)` — retorna parcelas PENDENTE/VENCIDA agrupadas por mês para o dashboard
 
-**FinanceiroConta** — novos campos:
+### Etapa 3 — ContratosPage.tsx — Modal automático pós-criação FIXO
 
-- `contratoId?: string | null`
-- `valorTotalReal: number` (valor pós-liquidação do contrato não da conta, se houve algum desconto após a pesagem e lançamento dos romaneios, então no valor total teremos o valor bruto do contrato e no valor real teremos o valor apurado com os descontos ou acrescimos se houver)
-- `dataFaturamento?: string | null`
-- `dataLiquidacao?: string | null`
+- Em `onSaveContrato`, após salvar contrato **novo** com `tipoPreco === "FIXO"`:
+  - Salvar referência do contrato recém-criado
+  - Abrir automaticamente o modal "Gerar Duplicatas Provisórias" (reutilizar o modal existente de Gerar Contas)
+  - Adicionar botão "Pular por Agora" ao modal para fechar sem gerar
+- O modal **não** abre ao editar, apenas ao criar
+- O modal **não** abre para contratos A_FIXAR
 
-**FinanceiroParcela** — novos campos:
+### Etapa 4 — ContratosPage.tsx — Aba Financeiro: Painel Saldo a Fixar (A_FIXAR)
 
-- `totalParcelas: number`
-- `valorReal: number` (valor ajustado)
+- Nos cenários ABERTO/PARCIAL da aba Financeiro, quando `tipoPreco === "A_FIXAR"`:
+  - Exibir painel "Saldo a Fixar" com:
+    - Total Contratado (SC)
+    - Total Entregue (soma romaneios finalizados)
+    - Total Fixado (soma fixações existentes com preço médio)
+    - Saldo a Fixar
+  - Botão `[Fixar Preço]` se saldo > 0 (redireciona para aba/modal de fixação existente)
+  - Botão `[Gerar Duplicatas]` habilitado após fixação completa (todo volume fixado)
+- Quando `tipoPreco === "FIXO"` e status ABERTO/PARCIAL: manter mensagem existente + adicionar botão "Gerar Duplicatas de Previsão" (mesmo modal)
 
-Atualizar mock data existentes para incluir novos campos com defaults.
+### Etapa 5 — ContratosPage.tsx — Coluna "Duplicatas?" na listagem
 
-### Etapa 2 — Services (services.ts)
+- Adicionar coluna na tabela de contratos após "Status":
+  - `✅` verde se `duplicatasGeradas === true` ou status FATURADO/LIQUIDADO
+  - `❌` cinza se `duplicatasGeradas === false`
+- Tooltip: "Duplicatas geradas" ou "Sem duplicatas"
 
-`**financeiroContaService**`:
+### Etapa 6 — Aba Financeiro: Movimentações expansíveis nas parcelas
 
-- `atualizarStatus`: adicionar lógica para `LIQUIDADO` (todas parcelas PAGO → LIQUIDADO)
-- `listarPorContrato`: usar `contratoId` em vez de `documentoReferencia`
-- Novo: `gerarContasDeContrato(contratoId, parcelasConfig, ctx)` — cria conta + parcelas + transiciona contrato para FATURADO
+- Na tabela de parcelas vinculadas (cenário 3 FATURADO/LIQUIDADO), adicionar expansão por linha:
+  - Ao clicar na linha, expandir mostrando movimentações (baixas) da parcela
+  - Colunas: Data, Tipo (ADT/PAGT/EST), Valor, Documento, Usuário
+  - Se vazio: "Nenhuma movimentação registrada"
 
-`**financeiroParcelaService**`:
+### Etapa 7 — DashboardPage.tsx — Previsão de Fluxo de Caixa
 
-- Novo: `listarTodas(empresaId, filialId, filtros)` — para listagem principal de parcelas
-- Lógica de VENCIDA: parcela PENDENTE com `dataVencimento < hoje`
-
-### Etapa 3 — ContasPage.tsx (Refatoração completa)
-
-**Listagem principal**: trocar de contas para **parcelas** como entidade listada
-
-- Colunas: Tipo (Pagar/Receber), Pessoa, Contrato/Parcela, Vencimento, Valor, Pago, Saldo, Status, Ações
-- Filtros: Tipo, Status (incluindo VENCIDA), Pessoa, Período, Busca
-- Cards resumo no topo: Total a Pagar Vencido, Total a Pagar Pendente, Total a Receber Pendente, Saldo Total
-- Status VENCIDA: badge vermelho (parcelas pendentes com vencimento passado)
-- Botão "+ Nova Conta Manual" mantido
-
-**Modal Editar Conta** — 3 abas:
-
-- **Aba Dados**: grid 3 colunas com campos Tipo, Origem (badge read-only), Status (badge read-only), Pessoa, Data Emissão, Valor Provisão, Valor Real, Documento Ref, Observações
-  - Matriz de bloqueios conforme status e origem (MANUAL permite editar pessoa/tipo; CONTRATO bloqueia)
-- **Aba Parcelas**: tabela read-only com expansão por linha mostrando movimentos vinculados; colunas: #, Vencimento, Valor Original, Valor Real, Pago, Saldo, Status
-- **Aba Pagamentos**: 100% read-only, aviso informativo no topo, tabela de movimentações com tipo (ADT/PAGT/EST)
-
-### Etapa 4 — Aba Financeiro do Contrato (ContratosPage.tsx)
-
-Reestruturar a aba Financeiro com 3 cenários:
-
-1. **Contrato ABERTO/PARCIAL**: mensagem informativa "Para gerar parcelas, finalize todos os romaneios"
-2. **Contrato FINALIZADO**: botão `[Gerar Contas a Pagar/Receber]` habilitado — abre modal de configuração de parcelas (reutilizar o gerador existente com campos pré-preenchidos do contrato)
-3. **Contrato FATURADO/LIQUIDADO**: botão desabilitado, exibe parcelas vinculadas em read-only, link "Ir para Contas a Pagar/Receber"
-
-Ao clicar "Gerar":
-
-- Criar `FinanceiroConta` com `contratoId`, `origem: "CONTRATO"`, tipo detectado do contrato (COMPRA → PAGAR, VENDA → RECEBER)
-- Criar N parcelas
-- Transicionar contrato: FINALIZADO → FATURADO
-- Atualizar UI
-
-### Etapa 5 — Cores e Badges
-
-**Status Conta**: ABERTO 🟡, PARCIAL 🟠, FATURADO 🟢verde escuro, LIQUIDADO 🔵, CANCELADO 🔴
-
-**Status Parcela**: PENDENTE 🟡, PARCIAL 🟠, PAGO 🟢, VENCIDA 🔴, CANCELADA cinza
+- Expandir o Dashboard com nova seção "Previsão de Fluxo de Caixa":
+  - 2 cards resumo:
+    - **Previsões** (parcelas PENDENTE, amarelo): Total previsto + próximos 3 vencimentos
+    - **A Pagar/Vencidas** (parcelas VENCIDA, vermelho): Total vencido + próximos vencimentos
+  - Gráfico de barras (Recharts BarChart): Eixo X = meses, Série Azul = Previsões, Série Vermelha = A Pagar, Série Verde = Pago
+  - Dados vindos de `financeiroParcelaService.listarTodas()`
 
 ---
 
 ## Arquivos Afetados
 
-
-| Arquivo                                 | Mudança                                                                |
-| --------------------------------------- | ---------------------------------------------------------------------- |
-| `src/lib/mock-data.ts`                  | Interfaces, types, mock data                                           |
-| `src/lib/services.ts`                   | Services de conta, parcela, geração de contrato                        |
-| `src/pages/financeiro/ContasPage.tsx`   | Refatoração completa: listagem por parcelas, modal com bloqueios, abas |
-| `src/pages/comercial/ContratosPage.tsx` | Aba Financeiro: 3 cenários, botão Gerar Contas                         |
-
+| Arquivo | Mudança |
+|---|---|
+| `src/lib/mock-data.ts` | Adicionar `duplicatasGeradas` à interface `Contrato` e mock data |
+| `src/lib/services.ts` | Flag pós-criação, `listarPrevisoesFluxo`, setar `duplicatasGeradas` |
+| `src/pages/comercial/ContratosPage.tsx` | Modal automático pós-criação FIXO, painel Saldo a Fixar para A_FIXAR, coluna Duplicatas?, parcelas expansíveis |
+| `src/pages/DashboardPage.tsx` | Seção de previsão de fluxo de caixa com cards e gráfico |
 
 ## O que NÃO muda
 
-- Módulo de Romaneios (nenhuma alteração)
-- Módulo de Caixa/Bancos/Movimentações
-- Lógica de liquidação existente (será complementada, não substituída)
-- Layout geral e navegação do sistema
-- Demais módulos financeiros (Bancos, Plano de Contas, etc.)
+- Módulo de Romaneios
+- ContasPage.tsx (tela de Contas a Pagar/Receber)
+- Módulo Caixa/Bancos/Movimentações
+- Layout geral e navegação
+- Lógica de liquidação existente
+
