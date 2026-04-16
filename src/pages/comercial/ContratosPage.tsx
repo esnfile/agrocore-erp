@@ -3281,15 +3281,17 @@ export default function ContratosPage() {
       {(editingContrato || autoGerarDuplicatasContrato) && (
         <CrudModal
           open={gerarContasOpen}
-          onClose={() => { setGerarContasOpen(false); setAutoGerarDuplicatasContrato(null); }}
-          title={`Gerar Duplicatas ${autoGerarDuplicatasContrato ? "Provisórias" : ""} — ${(editingContrato || autoGerarDuplicatasContrato)!.tipoContrato === "COMPRA" ? "A Pagar" : "A Receber"}`}
+          onClose={() => { setGerarContasOpen(false); setAutoGerarDuplicatasContrato(null); setFixacaoParaDuplicata(null); }}
+          title={`Gerar Duplicatas ${autoGerarDuplicatasContrato ? "Provisórias" : ""}${fixacaoParaDuplicata ? " (Fixação)" : ""} — ${(editingContrato || autoGerarDuplicatasContrato)!.tipoContrato === "COMPRA" ? "A Pagar" : "A Receber"}`}
           saving={gcSaving}
           onSave={gcParcelasGeradas ? async () => {
             const ctr = (editingContrato || autoGerarDuplicatasContrato)!;
+            const valorEsperado = fixacaoParaDuplicata
+              ? fixacaoParaDuplicata.quantidadeFixada * fixacaoParaDuplicata.precoFixado
+              : ctr.quantidadeTotal * ctr.precoUnitario;
             const soma = gcParcelasEditaveis.reduce((s, p) => s + p.valorParcela, 0);
-            const valorContrato = ctr.quantidadeTotal * ctr.precoUnitario;
-            if (Math.abs(soma - valorContrato) > 0.01) {
-              toast({ title: "Soma das parcelas difere do valor do contrato", variant: "destructive" });
+            if (Math.abs(soma - valorEsperado) > 0.01) {
+              toast({ title: "Soma das parcelas difere do valor esperado", variant: "destructive" });
               return;
             }
             setGcSaving(true);
@@ -3299,7 +3301,8 @@ export default function ContratosPage() {
                 ctr.id,
                 gcParcelasEditaveis,
                 { grupoId: grupoAtual?.id ?? "", empresaId: ctr.empresaId, filialId: ctr.filialId },
-                isProvisorio
+                isProvisorio,
+                { fixacaoId: fixacaoParaDuplicata?.id ?? null }
               );
               setFinContas([result.conta]);
               setFinParcelas(result.parcelas);
@@ -3310,6 +3313,7 @@ export default function ContratosPage() {
               toast({ title: `Duplicatas geradas com sucesso! ${result.parcelas.length} parcela(s) criadas.` });
               setGerarContasOpen(false);
               setAutoGerarDuplicatasContrato(null);
+              setFixacaoParaDuplicata(null);
               loadContratos();
             } catch (err: any) {
               toast({ title: err.message || "Erro ao gerar contas", variant: "destructive" });
