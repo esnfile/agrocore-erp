@@ -2513,7 +2513,7 @@ export const financeiroParcelaService = {
       if (!meses[mes]) meses[mes] = { previsoes: 0, aPagar: 0, pago: 0 };
       if (p.status === "PAGO") {
         meses[mes].pago += p.valorReal;
-      } else if (p.status === "PENDENTE" && p.dataVencimento >= hoje) {
+      } else if ((p.status === "PENDENTE" || p.status === "PREVISTO") && p.dataVencimento >= hoje) {
         meses[mes].previsoes += p.saldoParcela;
       } else {
         // VENCIDA, PARCIAL or overdue PENDENTE
