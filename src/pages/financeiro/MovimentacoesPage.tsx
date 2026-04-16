@@ -86,7 +86,14 @@ export default function MovimentacoesPage() {
   useEffect(() => {
     if (contaIdSelecionada) {
       financeiroParcelaService.listarPorConta(contaIdSelecionada).then((p) => {
-        setParcelas(p.filter((par) => par.status !== "PAGO"));
+        setParcelas(
+          p.filter(
+            (par) =>
+              par.status !== "PAGO" &&
+              par.status !== "PREVISTO" &&
+              par.status !== "CANCELADA",
+          ),
+        );
       });
     } else {
       setParcelas([]);
