@@ -81,19 +81,15 @@ const TODAS_EMPRESAS = "__TODAS__";
 const TODAS_FILIAIS = "__TODAS__";
 
 // ---- Currency formatting helpers ----
-function formatCurrency(value: number, moedaCodigo: string): string {
-  const localeMap: Record<string, { locale: string; currency: string }> = {
-    BRL: { locale: "pt-BR", currency: "BRL" },
-    USD: { locale: "en-US", currency: "USD" },
-    EUR: { locale: "de-DE", currency: "EUR" },
+// Uses the dynamic symbol-based formatter so any moeda (R$, $, €, £, …)
+// is rendered with locale-correct separators. Kept signature backward-compatible:
+// the second argument may be the moeda código (BRL/USD/EUR/GBP) — we map it to símbolo.
+function formatCurrency(value: number, moedaCodigoOuSimbolo: string): string {
+  const codigoToSimbolo: Record<string, string> = {
+    BRL: "R$", USD: "$", EUR: "€", GBP: "£",
   };
-  const cfg = localeMap[moedaCodigo] ?? localeMap.BRL;
-  return new Intl.NumberFormat(cfg.locale, {
-    style: "currency",
-    currency: cfg.currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
+  const simbolo = codigoToSimbolo[moedaCodigoOuSimbolo] ?? moedaCodigoOuSimbolo ?? "R$";
+  return formatMoeda(value || 0, simbolo);
 }
 
 // ---- Schemas ----
