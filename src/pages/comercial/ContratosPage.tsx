@@ -3050,11 +3050,11 @@ export default function ContratosPage() {
         </AlertDialogContent>
       </AlertDialog>
       {/* Modal Gerar Contas de Contrato */}
-      {editingContrato && (
+      {(editingContrato || autoGerarDuplicatasContrato) && (
         <CrudModal
           open={gerarContasOpen}
-          onClose={() => setGerarContasOpen(false)}
-          title={`Gerar Contas a ${editingContrato.tipoContrato === "COMPRA" ? "Pagar" : "Receber"}`}
+          onClose={() => { setGerarContasOpen(false); setAutoGerarDuplicatasContrato(null); }}
+          title={`Gerar Duplicatas ${autoGerarDuplicatasContrato ? "Provisórias" : ""} — ${(editingContrato || autoGerarDuplicatasContrato)!.tipoContrato === "COMPRA" ? "A Pagar" : "A Receber"}`}
           saving={gcSaving}
           onSave={gcParcelasGeradas ? async () => {
             const soma = gcParcelasEditaveis.reduce((s, p) => s + p.valorParcela, 0);
