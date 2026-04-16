@@ -31,6 +31,7 @@ const statusParcelaColors: Record<StatusParcela, string> = {
   PAGO: "bg-success/20 text-success border-success/30",
   VENCIDA: "bg-destructive/20 text-destructive border-destructive/30",
   CANCELADA: "bg-muted text-muted-foreground border-muted",
+  PREVISTO: "bg-yellow-100 text-yellow-700 border-yellow-300",
 };
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });

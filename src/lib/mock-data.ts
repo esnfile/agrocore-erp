@@ -2403,7 +2403,7 @@ export const romaneioClassificacoes: RomaneioClassificacao[] = [];
 export type TipoConta = "PAGAR" | "RECEBER";
 export type StatusConta = "ABERTO" | "PARCIAL" | "LIQUIDADO" | "CANCELADO";
 export type OrigemConta = "MANUAL" | "CONTRATO" | "ROMANEIO" | "FIXACAO";
-export type StatusParcela = "PENDENTE" | "PARCIAL" | "PAGO" | "VENCIDA" | "CANCELADA";
+export type StatusParcela = "PENDENTE" | "PARCIAL" | "PAGO" | "VENCIDA" | "CANCELADA" | "PREVISTO";
 export type FormaPagamento = "DINHEIRO" | "PIX" | "TRANSFERENCIA" | "BOLETO" | "OUTROS";
 
 export interface FinanceiroConta {
