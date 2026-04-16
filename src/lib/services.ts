@@ -2465,12 +2465,6 @@ export const financeiroContaService = {
     conta.atualizadoEm = now;
     conta.atualizadoPor = "u1";
   },
-  async listarPorContrato(contratoId: string): Promise<FinanceiroConta[]> {
-    await delay();
-    return mockFinanceiroContas.filter(
-      (c) => c.deletadoEm === null && c.contratoId === contratoId
-    );
-  },
 };
 
 // ============================================================
