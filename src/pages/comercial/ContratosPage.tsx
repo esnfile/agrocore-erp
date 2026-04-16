@@ -3323,11 +3323,20 @@ export default function ContratosPage() {
         >
           {(() => {
             const ctr = (editingContrato || autoGerarDuplicatasContrato)!;
+            const ctrMoedaSimbolo = mockMoedas.find((m) => m.id === ctr.moedaId)?.simbolo ?? "R$";
+            const valorEsperado = fixacaoParaDuplicata
+              ? fixacaoParaDuplicata.quantidadeFixada * fixacaoParaDuplicata.precoFixado
+              : ctr.quantidadeTotal * ctr.precoUnitario;
             return (
               <div className="space-y-4">
-                {autoGerarDuplicatasContrato && (
+                {autoGerarDuplicatasContrato && !fixacaoParaDuplicata && (
                   <div className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
                     ℹ️ Contrato <strong>{ctr.numeroContrato}</strong> criado com sucesso. Deseja gerar as duplicatas provisórias agora?
+                  </div>
+                )}
+                {fixacaoParaDuplicata && (
+                  <div className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
+                    ℹ️ Fixação registrada: <strong>{fixacaoParaDuplicata.quantidadeFixada.toLocaleString("pt-BR")}</strong> × {formatMoeda(fixacaoParaDuplicata.precoFixado, ctrMoedaSimbolo)} = <strong>{formatMoeda(valorEsperado, ctrMoedaSimbolo)}</strong>. Gere as duplicatas provisórias desta fixação.
                   </div>
                 )}
                 <div className="grid grid-cols-2 gap-4">
@@ -3336,8 +3345,8 @@ export default function ContratosPage() {
                     <Input value={getNomePessoa(ctr.pessoaId)} disabled />
                   </div>
                   <div>
-                    <Label>Valor Total do Contrato</Label>
-                    <Input value={(ctr.quantidadeTotal * ctr.precoUnitario).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} disabled />
+                    <Label>{fixacaoParaDuplicata ? "Valor desta Fixação" : "Valor Total do Contrato"}</Label>
+                    <Input value={formatMoeda(valorEsperado, ctrMoedaSimbolo)} disabled />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -3379,7 +3388,7 @@ export default function ContratosPage() {
 
                 <Button variant="outline" className="w-full" onClick={() => {
                   const n = parseInt(gcNumParcelas);
-                  const vt = ctr.quantidadeTotal * ctr.precoUnitario;
+                  const vt = valorEsperado;
                   if (!n || n < 1) return;
                   const dias = gcFrequencia === "PERSONALIZADO" ? parseInt(gcDiasPersonalizado) || 30 : ({ MENSAL: 30, TRIMESTRAL: 90, SEMESTRAL: 180, ANUAL: 365 } as any)[gcFrequencia];
                   const valorBase = Math.round((vt / n) * 100) / 100;
@@ -3419,7 +3428,7 @@ export default function ContratosPage() {
                               <TableCell className="text-right">
                                 <Input type="number" step="0.01" value={p.valorParcela} onChange={(e) => {
                                   const novoValor = parseFloat(e.target.value) || 0;
-                                  const vt = ctr.quantidadeTotal * ctr.precoUnitario;
+                                  const vt = valorEsperado;
                                   setGcParcelasEditaveis((prev) => {
                                     const updated = prev.map((pp, i) => i === idx ? { ...pp, valorParcela: novoValor } : pp);
                                     if (updated.length > 1 && idx !== updated.length - 1) {
@@ -3437,12 +3446,12 @@ export default function ContratosPage() {
                     </div>
                     {(() => {
                       const soma = gcParcelasEditaveis.reduce((s, p) => s + p.valorParcela, 0);
-                      const vt = ctr.quantidadeTotal * ctr.precoUnitario;
+                      const vt = valorEsperado;
                       const ok = Math.abs(soma - vt) < 0.01;
                       return (
                         <div className={`flex items-center justify-between p-3 rounded-md border ${ok ? "border-success/50 bg-success/10" : "border-destructive/50 bg-destructive/10"}`}>
-                          <span className="text-sm font-medium">Soma: {soma.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
-                          <span className="text-sm text-muted-foreground">Valor total: {vt.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+                          <span className="text-sm font-medium">Soma: {formatMoeda(soma, ctrMoedaSimbolo)}</span>
+                          <span className="text-sm text-muted-foreground">Valor total: {formatMoeda(vt, ctrMoedaSimbolo)}</span>
                         </div>
                       );
                     })()}
