@@ -1103,9 +1103,9 @@ export default function ContratosPage() {
                         <Tooltip>
                           <TooltipTrigger>
                             {c.duplicatasGeradas || c.status === "FATURADO" || c.status === "LIQUIDADO" ? (
-                              <DollarSign className="h-4 w-4 text-primary mx-auto" />
+                              <div className="inline-flex items-center justify-center h-7 w-7 rounded-full bg-primary text-primary-foreground font-bold text-xs mx-auto">$</div>
                             ) : (
-                              <DollarSign className="h-4 w-4 text-muted-foreground/40 mx-auto" />
+                              <div className="inline-flex items-center justify-center h-7 w-7 rounded-full bg-muted text-muted-foreground/50 font-bold text-xs mx-auto">$</div>
                             )}
                           </TooltipTrigger>
                           <TooltipContent>
@@ -2024,13 +2024,98 @@ export default function ContratosPage() {
                     <p className="text-sm text-muted-foreground">
                       ℹ️ Duplicatas Provisórias: <strong>{editingContrato.duplicatasGeradas ? "✅ Geradas" : "❌ Não geradas"}</strong>
                     </p>
-                    <p className="text-sm text-muted-foreground">
-                      👉 Para gerar as parcelas, este contrato deve estar em status <strong>FINALIZADO</strong> (todos os romaneios finalizados, saldo = 0).
-                    </p>
-                    <p className="text-sm mt-2">
-                      Status Atual: <StatusBadge status={editingContrato.status} /> — Aguardando finalização de romaneios
-                    </p>
+                    {!editingContrato.duplicatasGeradas && (
+                      <p className="text-sm text-muted-foreground">
+                        Status Atual: <StatusBadge status={editingContrato.status} /> — Aguardando geração de duplicatas provisórias
+                      </p>
+                    )}
                   </div>
+
+                  {/* Listar parcelas previstas quando já geradas */}
+                  {editingContrato.duplicatasGeradas && finParcelas.filter(p => p.status === "PREVISTO").length > 0 && (
+                    <div className="space-y-3">
+                      <h4 className="font-semibold text-foreground text-sm">Parcelas Previstas (Provisórias)</h4>
+                      <div className="overflow-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="w-8"></TableHead>
+                              <TableHead>#</TableHead>
+                              <TableHead>Vencimento</TableHead>
+                              <TableHead className="text-right">Valor</TableHead>
+                              <TableHead className="text-right">Saldo</TableHead>
+                              <TableHead>Status</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {finParcelas.filter(p => p.status === "PREVISTO").map((p) => {
+                              const parcelaBaixas = finBaixas.filter((b) => b.parcelaId === p.id);
+                              const isExpanded = expandedParcelaId === p.id;
+                              return (
+                                <>
+                                  <TableRow key={p.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setExpandedParcelaId(isExpanded ? null : p.id)}>
+                                    <TableCell className="p-2">
+                                      {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                    </TableCell>
+                                    <TableCell>{p.numeroParcela}/{p.totalParcelas}</TableCell>
+                                    <TableCell>{format(new Date(p.dataVencimento), "dd/MM/yyyy")}</TableCell>
+                                    <TableCell className="text-right">
+                                      {p.valorParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      {p.saldoParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                    </TableCell>
+                                    <TableCell>
+                                      <Badge variant="outline" className="bg-amber-100/50 text-amber-700 border-amber-300">PREVISTO</Badge>
+                                    </TableCell>
+                                  </TableRow>
+                                  {isExpanded && (
+                                    <TableRow key={`${p.id}-detail`}>
+                                      <TableCell colSpan={6} className="bg-muted/30 p-4">
+                                        <div className="space-y-2">
+                                          <h5 className="text-xs font-semibold text-muted-foreground">Movimentações da Parcela {p.numeroParcela}</h5>
+                                          {parcelaBaixas.length > 0 ? (
+                                            <Table>
+                                              <TableHeader>
+                                                <TableRow>
+                                                  <TableHead className="text-xs">Data</TableHead>
+                                                  <TableHead className="text-xs">Tipo</TableHead>
+                                                  <TableHead className="text-xs text-right">Valor</TableHead>
+                                                  <TableHead className="text-xs">Forma</TableHead>
+                                                  <TableHead className="text-xs">Observações</TableHead>
+                                                </TableRow>
+                                              </TableHeader>
+                                              <TableBody>
+                                                {parcelaBaixas.map((b) => (
+                                                  <TableRow key={b.id}>
+                                                    <TableCell className="text-xs">{format(new Date(b.dataPagamento), "dd/MM/yyyy")}</TableCell>
+                                                    <TableCell className="text-xs">
+                                                      <Badge variant="outline" className="text-xs">ADT</Badge>
+                                                    </TableCell>
+                                                    <TableCell className="text-xs text-right">
+                                                      {b.valorPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                                    </TableCell>
+                                                    <TableCell className="text-xs">{b.formaPagamento}</TableCell>
+                                                    <TableCell className="text-xs text-muted-foreground">{b.observacoes || "—"}</TableCell>
+                                                  </TableRow>
+                                                ))}
+                                              </TableBody>
+                                            </Table>
+                                          ) : (
+                                            <p className="text-xs text-muted-foreground">Nenhuma movimentação registrada (adiantamentos podem ser recebidos)</p>
+                                          )}
+                                        </div>
+                                      </TableCell>
+                                    </TableRow>
+                                  )}
+                                </>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Painel Saldo a Fixar para A_FIXAR */}
                   {editingContrato.tipoPreco === "A_FIXAR" && (
@@ -2113,23 +2198,141 @@ export default function ContratosPage() {
                 </>
               )}
 
-              {/* Cenário 2: FINALIZADO — botão habilitado */}
+              {/* Cenário 2: FINALIZADO */}
               {editingContrato && editingContrato.status === "FINALIZADO" && (
-                <div className="rounded-md border p-6 text-center space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    O contrato está finalizado. Gere as contas a pagar/receber para iniciar o controle financeiro.
-                  </p>
-                  <Button onClick={() => {
-                    setGcNumParcelas("1");
-                    setGcFrequencia("MENSAL");
-                    setGcDiasPersonalizado("30");
-                    setGcDataPrimeiraParcela(new Date().toISOString().slice(0, 10));
-                    setGcParcelasEditaveis([]);
-                    setGcParcelasGeradas(false);
-                    setGerarContasOpen(true);
-                  }}>
-                    Gerar Contas a {editingContrato.tipoContrato === "COMPRA" ? "Pagar" : "Receber"}
-                  </Button>
+                <div className="space-y-4">
+                  {/* Se tem duplicatas PREVISTO → oferecer efetivação */}
+                  {editingContrato.duplicatasGeradas && finParcelas.some(p => p.status === "PREVISTO") ? (
+                    <>
+                      <div className="rounded-md border border-amber-500/30 bg-amber-50/30 dark:bg-amber-950/10 p-6 space-y-4">
+                        <div className="flex items-center gap-2">
+                          <FileCheck className="h-5 w-5 text-amber-600" />
+                          <h3 className="font-semibold text-foreground">Efetivar Duplicatas</h3>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          O contrato está finalizado. As duplicatas provisórias podem agora ser efetivadas para se tornarem contas reais.
+                        </p>
+                        {(() => {
+                          const valorPrevisto = finParcelas.filter(p => p.status === "PREVISTO").reduce((s, p) => s + p.valorParcela, 0);
+                          const valorReal = editingContrato.quantidadeEntregue * editingContrato.precoUnitario;
+                          const diferenca = Math.abs(valorPrevisto - valorReal);
+                          return (
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                              <div className="rounded-md bg-card p-3 border">
+                                <p className="text-muted-foreground text-xs">Valor Previsto</p>
+                                <p className="text-lg font-bold">{valorPrevisto.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>
+                              </div>
+                              <div className="rounded-md bg-card p-3 border">
+                                <p className="text-muted-foreground text-xs">Valor Real (Qtd. Entregue × Preço)</p>
+                                <p className="text-lg font-bold">{valorReal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>
+                              </div>
+                              <div className="rounded-md bg-card p-3 border">
+                                <p className="text-muted-foreground text-xs">Diferença</p>
+                                <p className={`text-lg font-bold ${diferenca > 0.01 ? "text-amber-600" : "text-primary"}`}>
+                                  {diferenca > 0.01 ? diferenca.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "Sem diferença"}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                        <div className="flex flex-wrap gap-2 pt-2">
+                          <Button onClick={async () => {
+                            // Efetivar com valor previsto (manter parcelas como estão)
+                            try {
+                              await financeiroContaService.efetivarDuplicatas(editingContrato.id, "previsto");
+                              editingContrato.status = "FATURADO";
+                              const contasReload = await financeiroContaService.listarPorContrato(editingContrato.id);
+                              setFinContas(contasReload);
+                              const parcelasReload = await financeiroParcelaService.listarPorContas(contasReload.map(c => c.id));
+                              setFinParcelas(parcelasReload);
+                              toast({ title: "Duplicatas efetivadas com valor previsto!" });
+                              loadContratos();
+                            } catch (err: any) {
+                              toast({ title: err.message || "Erro ao efetivar", variant: "destructive" });
+                            }
+                          }}>
+                            Efetivar com Valor Previsto
+                          </Button>
+                          <Button variant="outline" onClick={async () => {
+                            // Efetivar com valor real (ajusta proporcionalmente)
+                            try {
+                              await financeiroContaService.efetivarDuplicatas(editingContrato.id, "real");
+                              editingContrato.status = "FATURADO";
+                              const contasReload = await financeiroContaService.listarPorContrato(editingContrato.id);
+                              setFinContas(contasReload);
+                              const parcelasReload = await financeiroParcelaService.listarPorContas(contasReload.map(c => c.id));
+                              setFinParcelas(parcelasReload);
+                              toast({ title: "Duplicatas efetivadas com valor real!" });
+                              loadContratos();
+                            } catch (err: any) {
+                              toast({ title: err.message || "Erro ao efetivar", variant: "destructive" });
+                            }
+                          }}>
+                            Efetivar com Valor Real
+                          </Button>
+                          <Button variant="secondary" onClick={() => {
+                            // Reconfigurar — abre modal de geração
+                            setGcNumParcelas("1");
+                            setGcFrequencia("MENSAL");
+                            setGcDiasPersonalizado("30");
+                            setGcDataPrimeiraParcela(new Date().toISOString().slice(0, 10));
+                            setGcParcelasEditaveis([]);
+                            setGcParcelasGeradas(false);
+                            setGerarContasOpen(true);
+                          }}>
+                            Reconfigurar Parcelas
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Listar parcelas previstas */}
+                      <div className="space-y-3">
+                        <h4 className="font-semibold text-foreground text-sm">Parcelas Previstas (Aguardando Efetivação)</h4>
+                        <div className="overflow-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>#</TableHead>
+                                <TableHead>Vencimento</TableHead>
+                                <TableHead className="text-right">Valor</TableHead>
+                                <TableHead className="text-right">Saldo</TableHead>
+                                <TableHead>Status</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {finParcelas.filter(p => p.status === "PREVISTO").map((p) => (
+                                <TableRow key={p.id}>
+                                  <TableCell>{p.numeroParcela}/{p.totalParcelas}</TableCell>
+                                  <TableCell>{format(new Date(p.dataVencimento), "dd/MM/yyyy")}</TableCell>
+                                  <TableCell className="text-right">{p.valorParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                                  <TableCell className="text-right">{p.saldoParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                                  <TableCell><Badge variant="outline" className="bg-amber-100/50 text-amber-700 border-amber-300">PREVISTO</Badge></TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    /* Se NÃO tem duplicatas previstas → gerar contas definitivas */
+                    <div className="rounded-md border p-6 text-center space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        O contrato está finalizado. Gere as contas a pagar/receber para iniciar o controle financeiro.
+                      </p>
+                      <Button onClick={() => {
+                        setGcNumParcelas("1");
+                        setGcFrequencia("MENSAL");
+                        setGcDiasPersonalizado("30");
+                        setGcDataPrimeiraParcela(new Date().toISOString().slice(0, 10));
+                        setGcParcelasEditaveis([]);
+                        setGcParcelasGeradas(false);
+                        setGerarContasOpen(true);
+                      }}>
+                        Gerar Contas a {editingContrato.tipoContrato === "COMPRA" ? "Pagar" : "Receber"}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
 
