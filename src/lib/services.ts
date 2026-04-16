@@ -2349,7 +2349,8 @@ export const financeiroContaService = {
   async gerarContasDeContrato(
     contratoId: string,
     parcelasConfig: { numeroParcela: number; dataVencimento: string; valorParcela: number }[],
-    ctx: { grupoId: string; empresaId: string; filialId: string }
+    ctx: { grupoId: string; empresaId: string; filialId: string },
+    provisorio: boolean = false
   ): Promise<{ conta: FinanceiroConta; parcelas: FinanceiroParcela[] }> {
     await delay(400);
     const now = new Date().toISOString();
@@ -2392,15 +2393,17 @@ export const financeiroContaService = {
       valorReal: input.valorParcela,
       valorPago: 0,
       saldoParcela: input.valorParcela,
-      status: "PENDENTE" as StatusParcela,
+      status: (provisorio ? "PREVISTO" : "PENDENTE") as StatusParcela,
       criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
       deletadoEm: null, deletadoPor: null,
     }));
     mockFinanceiroParcelas.push(...novasParcelas);
     
-    // Transition contract to FATURADO and mark duplicatas as generated
-    contrato.status = "FATURADO";
+    // Mark duplicatas as generated; only transition to FATURADO for definitive (non-provisional)
     contrato.duplicatasGeradas = true;
+    if (!provisorio) {
+      contrato.status = "FATURADO";
+    }
     contrato.atualizadoEm = now;
     contrato.atualizadoPor = "u1";
     
