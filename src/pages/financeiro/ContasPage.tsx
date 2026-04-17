@@ -181,8 +181,20 @@ export default function ContasPage() {
   // Field locking matrix
   const isReadonly = modalMode === "view";
   const contaStatus = editingConta?.status;
-  const isOrigemContrato = editingConta?.origem === "CONTRATO" || editingConta?.origem === "FIXACAO";
+  const isOrigemContrato = editingConta?.origem === "CONTRATO" || editingConta?.origem === "FIXACAO" || editingConta?.origem === "ROMANEIO";
   const isLocked = contaStatus === "LIQUIDADO" || contaStatus === "CANCELADO";
+
+  // Regras de recriação de parcelas
+  const temMovimento =
+    baixas.length > 0 ||
+    movimentacoes.length > 0 ||
+    parcelas.some((p) => p.valorPago > 0 || p.status === "PARCIAL" || p.status === "PAGO");
+  const podeRecriarParcelas = !isOrigemContrato && !temMovimento;
+  const motivoBloqueioParcelas = isOrigemContrato
+    ? "Parcelas geradas via Contrato/Fixação. Alterações de valor ou recriação devem ser feitas no contrato de origem."
+    : temMovimento
+      ? "Existem baixas ou adiantamentos vinculados. Não é possível recriar parcelas. Apenas a data de vencimento pode ser ajustada."
+      : "";
 
   const canEditField = (field: string): boolean => {
     if (isReadonly) return false;
@@ -254,6 +266,10 @@ export default function ContasPage() {
 
   const handleSalvarParcelas = async () => {
     if (!editingConta) return;
+    if (!podeRecriarParcelas) {
+      toast({ title: "Operação bloqueada", description: motivoBloqueioParcelas, variant: "destructive" });
+      return;
+    }
     if (!somaValida) {
       toast({ title: "Soma das parcelas difere do valor total da conta", description: `Soma: ${fmt(somaParcelas)} — Valor total: ${fmt(parseFloat(valorTotal) || 0)}`, variant: "destructive" });
       return;
@@ -530,9 +546,13 @@ export default function ContasPage() {
           </TabsContent>
 
           <TabsContent value="parcelas" className="mt-4">
-            {!isReadonly && !isLocked && editingConta && (
+            {!isReadonly && !isLocked && editingConta && podeRecriarParcelas && (
               <div className="flex justify-end mb-3">
                 <Button size="sm" variant="outline" onClick={() => {
+                  if (!podeRecriarParcelas) {
+                    toast({ title: "Operação bloqueada", description: motivoBloqueioParcelas, variant: "destructive" });
+                    return;
+                  }
                   setNumParcelas("1");
                   setFrequencia("MENSAL");
                   setDiasPersonalizado("30");
@@ -543,6 +563,12 @@ export default function ContasPage() {
                 }}>
                   <Plus className="h-4 w-4 mr-1" />Gerar Parcelas
                 </Button>
+              </div>
+            )}
+            {!isReadonly && editingConta && !podeRecriarParcelas && parcelas.length > 0 && (
+              <div className="flex items-start gap-2 p-3 rounded-md bg-warning/10 border border-warning/30 text-warning-foreground mb-3">
+                <Info className="h-4 w-4 mt-0.5 shrink-0 text-warning" />
+                <p className="text-sm">{motivoBloqueioParcelas}</p>
               </div>
             )}
             <div className="rounded-md border">
