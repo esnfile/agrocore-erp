@@ -103,6 +103,14 @@ export default function ContasPage() {
   const [parcelasGeradas, setParcelasGeradas] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("dados");
 
+  // Stepper de criação (modo new)
+  const [createStep, setCreateStep] = useState<1 | 2>(1);
+  const [parcelasDraft, setParcelasDraft] = useState<ParcelaEditavel[]>([]);
+  const [draftNumParcelas, setDraftNumParcelas] = useState("1");
+  const [draftFrequencia, setDraftFrequencia] = useState<Frequencia>("MENSAL");
+  const [draftDiasPersonalizado, setDraftDiasPersonalizado] = useState("30");
+  const [draftDataPrimeiraParcela, setDraftDataPrimeiraParcela] = useState(new Date().toISOString().slice(0, 10));
+
   const carregar = useCallback(async () => {
     setLoading(true);
     const [allParcelas, c, p] = await Promise.all([
