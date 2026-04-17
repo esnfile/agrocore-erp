@@ -563,7 +563,7 @@ export default function ContasPage() {
                   {parcelas.length === 0 ? (
                     <TableRow><TableCell colSpan={8} className="text-center py-6 text-muted-foreground">Nenhuma parcela gerada</TableCell></TableRow>
                   ) : parcelas.map((p) => {
-                    const parcelaBaixas = baixas.filter((b) => b.parcelaId === p.id);
+                    const parcelaMovs = movimentacoes.filter((m) => m.parcelaId === p.id);
                     const isExpanded = expandedParcela === p.id;
                     return (
                       <Collapsible key={p.id} open={isExpanded} onOpenChange={() => setExpandedParcela(isExpanded ? null : p.id)} asChild>
@@ -586,27 +586,34 @@ export default function ContasPage() {
                             <TableRow>
                               <TableCell colSpan={8} className="bg-muted/30 p-4">
                                 <p className="text-xs font-semibold text-muted-foreground mb-2">Movimentações desta parcela</p>
-                                {parcelaBaixas.length === 0 ? (
+                                {parcelaMovs.length === 0 ? (
                                   <p className="text-xs text-muted-foreground">Nenhuma movimentação registrada.</p>
                                 ) : (
                                   <Table>
                                     <TableHeader>
                                       <TableRow>
                                         <TableHead className="text-xs">Data</TableHead>
-                                        <TableHead className="text-xs">Forma</TableHead>
+                                        <TableHead className="text-xs">Tipo</TableHead>
                                         <TableHead className="text-xs text-right">Valor</TableHead>
-                                        <TableHead className="text-xs">Observações</TableHead>
+                                        <TableHead className="text-xs">Forma</TableHead>
+                                        <TableHead className="text-xs">Histórico</TableHead>
                                       </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                      {parcelaBaixas.map((b) => (
-                                        <TableRow key={b.id}>
-                                          <TableCell className="text-xs">{new Date(b.dataPagamento).toLocaleDateString("pt-BR")}</TableCell>
-                                          <TableCell className="text-xs">{b.formaPagamento}</TableCell>
-                                          <TableCell className="text-xs text-right font-mono">{fmt(b.valorPago)}</TableCell>
-                                          <TableCell className="text-xs text-muted-foreground">{b.observacoes || "—"}</TableCell>
-                                        </TableRow>
-                                      ))}
+                                      {parcelaMovs.map((m) => {
+                                        const formaLabel = mockFormasPagto.find((f) => f.id === m.formaPagamentoId)?.descricao ?? "—";
+                                        return (
+                                          <TableRow key={m.id}>
+                                            <TableCell className="text-xs">{new Date(m.dataMovimento).toLocaleDateString("pt-BR")}</TableCell>
+                                            <TableCell className="text-xs">
+                                              <Badge variant="outline" className="text-xs">{m.tipoMovimento === "ENTRADA" ? "ADT" : m.tipoMovimento}</Badge>
+                                            </TableCell>
+                                            <TableCell className="text-xs text-right font-mono">{fmt(m.valor)}</TableCell>
+                                            <TableCell className="text-xs">{formaLabel}</TableCell>
+                                            <TableCell className="text-xs text-muted-foreground">{m.historico || "—"}</TableCell>
+                                          </TableRow>
+                                        );
+                                      })}
                                     </TableBody>
                                   </Table>
                                 )}
