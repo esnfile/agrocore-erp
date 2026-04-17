@@ -780,6 +780,251 @@ export default function ContasPage() {
         </Tabs>
       </CrudModal>
 
+      {/* Modal Conta — Criação (Stepper de 2 passos, persistência atômica) */}
+      <Dialog open={modalOpen && modalMode === "new"} onOpenChange={(v) => { if (!v) requestClose(); }}>
+        <DialogContent className="sm:max-w-4xl flex flex-col max-h-[85vh]">
+          <DialogHeader className="flex-shrink-0">
+            <DialogTitle>Nova Conta Manual</DialogTitle>
+          </DialogHeader>
+
+          <nav className="flex-shrink-0 mb-2">
+            <ol className="flex items-center w-full">
+              {[
+                { id: 1, label: "Dados da Conta", description: "Informações principais" },
+                { id: 2, label: "Parcelas", description: "Gerar parcelas da conta" },
+              ].map((step, idx, arr) => {
+                const isActive = step.id === createStep;
+                const isCompleted = step.id < createStep;
+                const isLast = idx === arr.length - 1;
+                const accessible = step.id === 1 || (step.id === 2 && !!pessoaId && !!descricao && !!valorTotal && parseFloat(valorTotal) > 0);
+                return (
+                  <li key={step.id} className={cn("flex items-center", !isLast && "flex-1")}>
+                    <button
+                      type="button"
+                      disabled={!accessible}
+                      onClick={() => accessible && setCreateStep(step.id as 1 | 2)}
+                      className={cn(
+                        "flex items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors",
+                        isActive && "bg-primary/10 ring-1 ring-primary",
+                        accessible && !isActive && "hover:bg-muted cursor-pointer",
+                        !accessible && "opacity-40 cursor-not-allowed",
+                      )}
+                    >
+                      <div className={cn(
+                        "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-colors",
+                        (isCompleted || isActive) ? "bg-primary text-primary-foreground" : "border-2 border-muted-foreground/30 text-muted-foreground",
+                      )}>
+                        {isCompleted ? <Check className="h-4 w-4" /> : step.id}
+                      </div>
+                      <div className="hidden sm:block">
+                        <p className={cn("text-xs font-semibold", isActive ? "text-primary" : "text-foreground")}>{step.label}</p>
+                        <p className="text-[10px] text-muted-foreground">{step.description}</p>
+                      </div>
+                    </button>
+                    {!isLast && (
+                      <div className={cn("hidden sm:block flex-1 h-px mx-2", isCompleted ? "bg-primary" : "bg-muted-foreground/20")} />
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          </nav>
+
+          <div className="flex-1 min-h-0 overflow-y-auto">
+            <div className="py-4 px-2 space-y-4">
+              {createStep === 1 && (
+                <>
+                  <div className="flex items-start gap-2 p-3 rounded-md bg-primary/10 border border-primary/30 text-foreground">
+                    <Info className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
+                    <p className="text-sm">
+                      Preencha os dados da conta. <strong>Nada será salvo</strong> até concluir o passo 2 (Parcelas).
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <Label>Tipo *</Label>
+                      <Select value={tipo} onValueChange={(v) => setTipo(v as TipoConta)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="PAGAR">A Pagar</SelectItem>
+                          <SelectItem value="RECEBER">A Receber</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Pessoa *</Label>
+                      <Select value={pessoaId} onValueChange={setPessoaId}>
+                        <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                        <SelectContent>
+                          {pessoas.map((p) => (<SelectItem key={p.id} value={p.id}>{p.nomeRazao}</SelectItem>))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Data Emissão</Label>
+                      <Input type="date" value={dataEmissao} onChange={(e) => setDataEmissao(e.target.value)} />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Descrição *</Label>
+                    <Input value={descricao} onChange={(e) => setDescricao(e.target.value)} />
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <Label>Valor Provisão *</Label>
+                      <Input type="number" step="0.01" value={valorTotal} onChange={(e) => { setValorTotal(e.target.value); setParcelasDraft([]); }} />
+                    </div>
+                    <div>
+                      <Label>Valor Real</Label>
+                      <Input type="number" step="0.01" value={valorTotalReal} onChange={(e) => setValorTotalReal(e.target.value)} />
+                    </div>
+                    <div>
+                      <Label>Origem</Label>
+                      <Select value={origem} onValueChange={setOrigem}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="MANUAL">Manual</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Documento Referência</Label>
+                    <Input value={documentoReferencia} onChange={(e) => setDocumentoReferencia(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label>Observações</Label>
+                    <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} rows={3} />
+                  </div>
+                </>
+              )}
+
+              {createStep === 2 && (
+                <>
+                  <div className="flex items-start gap-2 p-3 rounded-md bg-warning/10 border border-warning/30">
+                    <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-warning" />
+                    <p className="text-sm">
+                      Gere as parcelas e clique em <strong>Salvar Conta</strong>. A conta só será criada após esta etapa — cancelar descarta tudo.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Quantidade de Parcelas</Label>
+                      <Input type="number" min="1" value={draftNumParcelas} onChange={(e) => setDraftNumParcelas(e.target.value)} />
+                    </div>
+                    <div>
+                      <Label>{parseInt(draftNumParcelas) === 1 ? "Data de Vencimento" : "Data da Primeira Parcela"}</Label>
+                      <Input type="date" value={draftDataPrimeiraParcela} onChange={(e) => setDraftDataPrimeiraParcela(e.target.value)} />
+                    </div>
+                  </div>
+                  {parseInt(draftNumParcelas) >= 2 && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Frequência</Label>
+                        <Select value={draftFrequencia} onValueChange={(v) => setDraftFrequencia(v as Frequencia)}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="MENSAL">Mensal (30 dias)</SelectItem>
+                            <SelectItem value="TRIMESTRAL">Trimestral (90 dias)</SelectItem>
+                            <SelectItem value="SEMESTRAL">Semestral (180 dias)</SelectItem>
+                            <SelectItem value="ANUAL">Anual (365 dias)</SelectItem>
+                            <SelectItem value="PERSONALIZADO">Personalizado</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {draftFrequencia === "PERSONALIZADO" && (
+                        <div>
+                          <Label>Intervalo (dias)</Label>
+                          <Input type="number" min="1" value={draftDiasPersonalizado} onChange={(e) => setDraftDiasPersonalizado(e.target.value)} />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <div>
+                    <Label>Valor Total</Label>
+                    <Input value={fmt(parseFloat(valorTotal) || 0)} disabled />
+                  </div>
+                  <Button variant="outline" className="w-full" onClick={gerarDraftParcelas}>
+                    Gerar Pré-visualização
+                  </Button>
+                  {parcelasDraft.length > 0 && (
+                    <>
+                      <div className="rounded-md border">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="w-20">Parcela</TableHead>
+                              <TableHead>Data Vencimento</TableHead>
+                              <TableHead className="text-right">Valor</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {parcelasDraft.map((p, idx) => (
+                              <TableRow key={idx}>
+                                <TableCell className="font-mono">{p.numeroParcela}</TableCell>
+                                <TableCell>
+                                  <Input type="date" value={p.dataVencimento} onChange={(e) => updateDraftParcela(idx, "dataVencimento", e.target.value)} className="w-40" />
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <Input
+                                    type="text"
+                                    inputMode="decimal"
+                                    value={(Number(p.valorParcela) || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    onChange={(e) => {
+                                      const raw = e.target.value.replace(/\./g, "").replace(",", ".").replace(/[^0-9.]/g, "");
+                                      updateDraftParcela(idx, "valorParcela", parseFloat(raw) || 0);
+                                    }}
+                                    className="w-32 text-right ml-auto"
+                                  />
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                      <div className={cn(
+                        "flex items-center justify-between p-3 rounded-md border",
+                        draftValido ? "border-success/50 bg-success/10" : "border-destructive/50 bg-destructive/10",
+                      )}>
+                        <div className="flex items-center gap-2">
+                          {!draftValido && <AlertTriangle className="h-4 w-4 text-destructive" />}
+                          <span className="text-sm font-medium">Soma das parcelas: {fmt(somaDraft)}</span>
+                        </div>
+                        <span className="text-sm text-muted-foreground">Valor total: {fmt(parseFloat(valorTotal) || 0)}</span>
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter className="flex-shrink-0 border-t pt-4 sm:justify-between">
+            <Button variant="outline" onClick={requestClose} disabled={saving} className="hover:bg-destructive/10 hover:text-destructive hover:border-destructive">
+              Cancelar
+            </Button>
+            <div className="flex gap-2">
+              {createStep === 2 && (
+                <Button variant="outline" onClick={() => setCreateStep(1)} disabled={saving}>
+                  <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
+                </Button>
+              )}
+              {createStep === 1 && (
+                <Button onClick={() => { if (validarStep1()) setCreateStep(2); }} disabled={saving}>
+                  Avançar <ArrowRight className="h-4 w-4 ml-1" />
+                </Button>
+              )}
+              {createStep === 2 && (
+                <Button onClick={handleCreateSave} disabled={saving || !draftValido}>
+                  {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Salvar Conta
+                </Button>
+              )}
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Modal Gerar Parcelas — Avançado */}
       <CrudModal
         open={gerarParcelasOpen}
