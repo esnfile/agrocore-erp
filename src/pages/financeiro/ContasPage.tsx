@@ -155,7 +155,7 @@ export default function ContasPage() {
     setExpandedParcela(null);
   };
 
-  const openNew = () => { resetForm(); setModalMode("new"); setModalOpen(true); };
+  const openNew = () => { resetForm(); setActiveTab("dados"); setModalMode("new"); setModalOpen(true); };
 
   const openEdit = async (conta: FinanceiroConta) => {
     setEditingConta(conta);
