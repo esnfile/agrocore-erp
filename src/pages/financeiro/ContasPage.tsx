@@ -98,6 +98,7 @@ export default function ContasPage() {
   const [dataPrimeiraParcela, setDataPrimeiraParcela] = useState(new Date().toISOString().slice(0, 10));
   const [parcelasEditaveis, setParcelasEditaveis] = useState<ParcelaEditavel[]>([]);
   const [parcelasGeradas, setParcelasGeradas] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>("dados");
 
   const carregar = useCallback(async () => {
     setLoading(true);
