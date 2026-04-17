@@ -3428,8 +3428,13 @@ export default function ContratosPage() {
                                 }} className="w-40" />
                               </TableCell>
                               <TableCell className="text-right">
-                                <Input type="number" step="0.01" value={p.valorParcela} onChange={(e) => {
-                                  const novoValor = parseFloat(e.target.value) || 0;
+                                <Input
+                                  type="text"
+                                  inputMode="decimal"
+                                  value={(Number(p.valorParcela) || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  onChange={(e) => {
+                                  const raw = e.target.value.replace(/\./g, "").replace(",", ".").replace(/[^0-9.]/g, "");
+                                  const novoValor = parseFloat(raw) || 0;
                                   const vt = valorEsperado;
                                   setGcParcelasEditaveis((prev) => {
                                     const updated = prev.map((pp, i) => i === idx ? { ...pp, valorParcela: novoValor } : pp);
