@@ -468,7 +468,7 @@ export default function ContasPage() {
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="dados">Dados da Conta</TabsTrigger>
             <TabsTrigger value="parcelas">Parcelas</TabsTrigger>
-            <TabsTrigger value="pagamentos">Pagamentos</TabsTrigger>
+            
           </TabsList>
 
           <TabsContent value="dados" className="space-y-4 mt-4">
