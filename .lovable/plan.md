@@ -1,63 +1,81 @@
 
-## Bloqueio de Recriação de Parcelas em Contas a Pagar/Receber
 
-### Concordo: regra crítica
-Permitir recriar parcelas de uma conta que já tem baixas/adiantamentos é uma falha grave — gera baixas e movimentações órfãs, quebra a conciliação financeira e a integridade contra o contrato de origem. Vamos travar isso.
+## Fluxo em Steps para Criação de Conta (Eliminar Conta Órfã)
 
-### Regra de negócio (definitiva)
+### Problema atual
+Ao criar conta manual, salvamos primeiro a conta e depois mandamos para aba Parcelas. Se o usuário fecha o modal, fica uma conta órfã sem parcelas — exatamente o tipo de inconsistência que estamos tentando evitar.
 
-Na aba **Parcelas** do modal Editar Conta (`ContasPage`):
+### Decisão: adotar padrão Stepper (igual Romaneio)
 
-| Situação da conta | Botão "Gerar Parcelas" | Editar valor da parcela | Editar vencimento |
-|---|---|---|---|
-| Manual + sem parcelas | ✅ Habilitado | — | — |
-| Manual + parcelas geradas + sem movimento | ✅ Habilitado (recria) | ✅ | ✅ |
-| Manual + parcelas + com baixa/adiantamento | ❌ Bloqueado | ❌ | ✅ (só vencimento) |
-| Origem CONTRATO/FIXACAO/ROMANEIO (qualquer caso) | ❌ Bloqueado sempre | ❌ | ✅ (só vencimento) |
+Sua segunda sugestão é a correta. O padrão de Stepper já existe no projeto (`RomaneioStepper`), é familiar ao usuário, e resolve o problema na raiz: **nada é persistido até o último passo**.
 
-Mensagem de bloqueio (tooltip/aviso no painel):
-- Se origem ≠ MANUAL: *"Parcelas geradas via Contrato/Fixação. Alterações de valor ou recriação devem ser feitas no contrato de origem."*
-- Se há movimento: *"Existem baixas ou adiantamentos vinculados. Não é possível recriar parcelas. Apenas a data de vencimento pode ser ajustada."*
+A primeira sugestão (botão "Ir para Parcelas") só mascara o problema — o usuário ainda pode fechar e gerar órfão.
+
+### Novo fluxo (apenas para CRIAÇÃO manual)
+
+```text
+[Step 1: Dados da Conta] → Avançar →  [Step 2: Parcelas] → Salvar
+       (em memória)                   (em memória)        (persiste tudo)
+```
+
+- **Step 1 — Dados da Conta**: todos os campos atuais. Botão "Avançar" valida campos obrigatórios e move para Step 2 sem persistir.
+- **Step 2 — Parcelas**: usuário define qtd parcelas, intervalo e gera (cálculo em memória). Botões: "← Voltar" (volta ao Step 1 mantendo dados) e "Salvar Conta" (persiste conta + parcelas atomicamente).
+- **Cancelar**: descarta tudo. Nenhum registro criado.
+
+### Modo EDIÇÃO (inalterado)
+Edição continua com Tabs (Dados / Parcelas), pois a conta já existe e as regras de bloqueio (`podeRecriarParcelas`) seguem valendo. Sem stepper na edição.
+
+### Modo CRIAÇÃO via Contrato (inalterado)
+Continua sendo gerada pelo serviço do contrato — não passa por este fluxo manual.
 
 ### Implementação
 
 **Arquivo único:** `src/pages/financeiro/ContasPage.tsx`
 
-1. **Computar flags** dentro do modal (após carregar `parcelas`, `baixas`, `movimentacoes`):
+1. **Substituir tabs por stepper quando `modalMode === "create"`**:
+   - Componente local `ContaStepper` (2 passos: "Dados" / "Parcelas") seguindo visual de `RomaneioStepper`.
+   - Estado novo: `createStep: 1 | 2`, `parcelasDraft: ParcelaDraft[]` (em memória).
+
+2. **Step 1 (Dados)**: reaproveitar formulário atual. Footer:
+   - `Cancelar` (fecha modal, descarta)
+   - `Avançar →` (valida → `setCreateStep(2)`)
+
+3. **Step 2 (Parcelas em memória)**:
+   - Reusar UI de geração (qtd, intervalo, primeira data) — mas grava em `parcelasDraft`, não chama serviço.
+   - Tabela mostra `parcelasDraft` com edição inline de vencimento/valor permitida (é tudo rascunho).
+   - Footer:
+     - `← Voltar` (mantém `parcelasDraft`)
+     - `Cancelar` (descarta tudo)
+     - `Salvar Conta` (desabilitado se `parcelasDraft.length === 0`)
+
+4. **Persistência atômica em "Salvar Conta"**:
    ```ts
-   const isOrigemContrato = !!editingConta?.contratoId 
-     || ["CONTRATO","FIXACAO","ROMANEIO"].includes(editingConta?.origem ?? "");
-   const temMovimento = baixas.length > 0 || movimentacoes.length > 0
-     || parcelas.some(p => p.valorPago > 0 || p.status === "PARCIAL" || p.status === "PAGO");
-   const podeRecriarParcelas = !isOrigemContrato && !temMovimento;
+   const saved = await contaService.criar({...formData});
+   await Promise.all(parcelasDraft.map((p, i) => 
+     financeiroParcelaService.criar({ contaId: saved.id, numero: i+1, ...p })
+   ));
    ```
+   Se a primeira chamada falhar, nada é criado. Se as parcelas falharem (improvável em mock), reverter via `contaService.excluir(saved.id)`.
 
-2. **Botão "Gerar Parcelas"** (linha 533-547): renderizar somente se `podeRecriarParcelas`. Quando bloqueado, mostrar um aviso (Alert com ícone Info) explicando o motivo correto.
+5. **Validação de fechamento**: no `onOpenChange` do Dialog, se `modalMode === "create"`, exibir `confirm()` "Descartar conta? As informações serão perdidas." antes de fechar.
 
-3. **Edição inline de parcelas existentes** (se houver — verificar se já existe): permitir apenas alterar `dataVencimento`. Campo de valor sempre readonly quando `!podeRecriarParcelas` (na verdade, valor de parcela existente nunca deve ser editado livremente após criação — só via recriar tudo).
-
-4. **Salvamento**: no `handleSalvarParcelas` (que recria), adicionar guard duplo no início:
-   ```ts
-   if (!podeRecriarParcelas) {
-     toast({ title: "Operação bloqueada", description: "...", variant: "destructive" });
-     return;
-   }
-   ```
-
-5. **Modal "Gerar Parcelas"**: já não abrirá pois o botão some, mas adicionar guard no `onClick` do botão por segurança.
-
-### Resultado
-- Contas oriundas de contrato: **somente leitura de valores/quantidade**, vencimento ajustável.
-- Contas manuais com qualquer baixa/adiantamento: **bloqueadas** para recriação.
-- Contas manuais virgens: comportamento atual preservado.
-- Sem mais lançamentos órfãos no caixa.
+6. **Remover lógica antiga**: o `handleSave` que persistia conta vazia e forçava troca para aba Parcelas é descartado para o modo create. Edição continua usando o handler atual.
 
 ### Arquivos afetados
+
 | Arquivo | Mudança |
 |---|---|
-| `src/pages/financeiro/ContasPage.tsx` | Flags `isOrigemContrato`, `temMovimento`, `podeRecriarParcelas`; ocultar botão; aviso explicativo; guard no salvamento |
+| `src/pages/financeiro/ContasPage.tsx` | Stepper de 2 passos para criação; estado `parcelasDraft`; persistência atômica; confirmação ao cancelar |
 
 ### O que NÃO muda
-- Geração de parcelas via Contrato (continua funcionando normalmente)
-- Estrutura de dados (`mock-data`, `services`)
-- Aba Pagamentos e listagem geral de contas
+- Modo edição (tabs continuam, regras de bloqueio mantidas)
+- Geração via contrato
+- Estrutura de dados, services, mock-store
+- Aba/lógica de parcelas em si (cálculo, formato, valores)
+
+### Resultado
+- Impossível criar conta manual sem parcelas
+- Impossível deixar conta órfã ao cancelar
+- Fluxo familiar (igual Romaneio)
+- Edição preservada com regras de integridade já implementadas
+
