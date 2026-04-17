@@ -78,7 +78,7 @@ import type {
 } from "@/lib/mock-data";
 import { Plus, Pencil, Trash2, Eye, Lock, FileCheck, AlertTriangle, ExternalLink, Info, Clock, Building2, GitBranch, RefreshCw, DollarSign, ChevronDown, ChevronUp } from "lucide-react";
 import { SearchableSelect, type SearchableOption } from "@/components/SearchableSelect";
-import { formatMoeda } from "@/lib/format";
+import { formatMoeda, formatDateBR } from "@/lib/format";
 
 const TODAS_EMPRESAS = "__TODAS__";
 const TODAS_FILIAIS = "__TODAS__";
@@ -2082,7 +2082,7 @@ export default function ContratosPage() {
                                       {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                                     </TableCell>
                                     <TableCell>{p.numeroParcela}/{p.totalParcelas}</TableCell>
-                                    <TableCell>{format(new Date(p.dataVencimento), "dd/MM/yyyy")}</TableCell>
+                                    <TableCell>{formatDateBR(p.dataVencimento)}</TableCell>
                                     <TableCell className="text-right">
                                       {p.valorParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                                     </TableCell>
@@ -2330,7 +2330,7 @@ export default function ContratosPage() {
                               {finParcelas.filter(p => p.status === "PREVISTO").map((p) => (
                                 <TableRow key={p.id}>
                                   <TableCell>{p.numeroParcela}/{p.totalParcelas}</TableCell>
-                                  <TableCell>{format(new Date(p.dataVencimento), "dd/MM/yyyy")}</TableCell>
+                                  <TableCell>{formatDateBR(p.dataVencimento)}</TableCell>
                                   <TableCell className="text-right">{p.valorParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
                                   <TableCell className="text-right">{p.saldoParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
                                   <TableCell><Badge variant="outline" className="bg-amber-100/50 text-amber-700 border-amber-300">PREVISTO</Badge></TableCell>
@@ -2437,7 +2437,7 @@ export default function ContratosPage() {
                                       {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                                     </TableCell>
                                     <TableCell>{p.numeroParcela}/{p.totalParcelas}</TableCell>
-                                    <TableCell>{format(new Date(p.dataVencimento), "dd/MM/yyyy")}</TableCell>
+                                    <TableCell>{formatDateBR(p.dataVencimento)}</TableCell>
                                     <TableCell className="text-right">
                                       {p.valorParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                                     </TableCell>

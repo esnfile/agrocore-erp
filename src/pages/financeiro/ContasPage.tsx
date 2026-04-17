@@ -19,6 +19,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Eye, Search, AlertTriangle, ArrowDownCircle, ArrowUpCircle, ChevronDown, ChevronRight, Info } from "lucide-react";
 import { financeiroContaService, financeiroParcelaService, financeiroMovimentacaoService, financeiroContaFinanceiraService, financeiroFormaPagtoService, financeiroTipoLancamentoService, pessoaService, financeiroBaixaService } from "@/lib/services";
+import { formatDateBR } from "@/lib/format";
 import type { FinanceiroConta, FinanceiroParcela, FinanceiroMovimentacao, FinanceiroBaixa, TipoConta, StatusConta, StatusParcela, Pessoa } from "@/lib/mock-data";
 import { financeiroFormasPagto as mockFormasPagto } from "@/lib/mock-data";
 
@@ -543,7 +544,7 @@ export default function ContasPage() {
                   <span className="text-xs text-muted-foreground ml-1">/ P{p.numeroParcela}</span>
                 </TableCell>
                 <TableCell className={p.status === "VENCIDA" ? "text-destructive font-medium" : ""}>
-                  {new Date(p.dataVencimento).toLocaleDateString("pt-BR")}
+                  {formatDateBR(p.dataVencimento)}
                 </TableCell>
                 <TableCell className="text-right font-mono">{fmt(p.valorReal)}</TableCell>
                 <TableCell className="text-right font-mono">{fmt(p.valorPago)}</TableCell>
@@ -745,7 +746,7 @@ export default function ContasPage() {
                                     }}
                                   />
                                 ) : (
-                                  new Date(p.dataVencimento).toLocaleDateString("pt-BR")
+                                  formatDateBR(p.dataVencimento)
                                 )}
                               </TableCell>
                               <TableCell className="text-right font-mono">{fmt(p.valorParcela)}</TableCell>
