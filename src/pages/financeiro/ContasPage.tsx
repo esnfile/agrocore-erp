@@ -565,6 +565,14 @@ export default function ContasPage() {
           </TabsContent>
 
           <TabsContent value="parcelas" className="mt-4">
+            {!isReadonly && editingConta && parcelas.length === 0 && podeRecriarParcelas && (
+              <div className="flex items-start gap-2 p-3 rounded-md bg-warning/10 border border-warning/30 mb-3">
+                <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-warning" />
+                <p className="text-sm">
+                  Esta conta ainda <strong>não possui parcelas</strong>. É obrigatório gerar pelo menos uma parcela para que a conta entre no fluxo financeiro.
+                </p>
+              </div>
+            )}
             {!isReadonly && !isLocked && editingConta && podeRecriarParcelas && (
               <div className="flex justify-end mb-3">
                 <Button size="sm" variant="outline" onClick={() => {
