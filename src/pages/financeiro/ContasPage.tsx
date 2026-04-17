@@ -736,7 +736,17 @@ export default function ContasPage() {
                           <Input type="date" value={p.dataVencimento} onChange={(e) => updateParcelaEditavel(idx, "dataVencimento", e.target.value)} className="w-40" />
                         </TableCell>
                         <TableCell className="text-right">
-                          <Input type="number" step="0.01" value={p.valorParcela} onChange={(e) => updateParcelaEditavel(idx, "valorParcela", e.target.value)} className="w-32 text-right ml-auto" />
+                          <Input
+                            type="text"
+                            inputMode="decimal"
+                            value={(Number(p.valorParcela) || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            onChange={(e) => {
+                              const raw = e.target.value.replace(/\./g, "").replace(",", ".").replace(/[^0-9.]/g, "");
+                              const num = parseFloat(raw) || 0;
+                              updateParcelaEditavel(idx, "valorParcela", num);
+                            }}
+                            className="w-32 text-right ml-auto"
+                          />
                         </TableCell>
                       </TableRow>
                     ))}
