@@ -41,6 +41,7 @@ import {
   financeiroContaService,
   financeiroParcelaService,
   financeiroBaixaService,
+  financeiroMovimentacaoService,
   filialService,
   romaneioService,
   produtoService,
@@ -70,6 +71,7 @@ import type {
   FinanceiroConta,
   FinanceiroParcela,
   FinanceiroBaixa,
+  FinanceiroMovimentacao,
   DescontoTipo,
   DescontoEmpresaConfig,
 } from "@/lib/mock-data";
@@ -279,6 +281,7 @@ export default function ContratosPage() {
   const [finContas, setFinContas] = useState<FinanceiroConta[]>([]);
   const [finParcelas, setFinParcelas] = useState<FinanceiroParcela[]>([]);
   const [finBaixas, setFinBaixas] = useState<FinanceiroBaixa[]>([]);
+  const [finMovs, setFinMovs] = useState<FinanceiroMovimentacao[]>([]);
 
   // Gerar contas modal
   const [gerarContasOpen, setGerarContasOpen] = useState(false);
@@ -578,6 +581,7 @@ export default function ContratosPage() {
     setFinContas([]);
     setFinParcelas([]);
     setFinBaixas([]);
+    setFinMovs([]);
     setLiquidacao(null);
     setActiveTab("dados");
     setModalOpen(true);
@@ -649,15 +653,18 @@ export default function ContratosPage() {
     setFinContas(contas);
     if (contas.length > 0) {
       const contaIds = contas.map((c) => c.id);
-      const [parcelas, baixas] = await Promise.all([
+      const [parcelas, baixas, movs] = await Promise.all([
         financeiroParcelaService.listarPorContas(contaIds),
         Promise.all(contaIds.map((id) => financeiroBaixaService.listarPorConta(id))).then((arr) => arr.flat()),
+        Promise.all(contaIds.map((id) => financeiroMovimentacaoService.listarPorConta(id))).then((arr) => arr.flat()),
       ]);
       setFinParcelas(parcelas);
       setFinBaixas(baixas);
+      setFinMovs(movs);
     } else {
       setFinParcelas([]);
       setFinBaixas([]);
+      setFinMovs([]);
     }
   };
 
