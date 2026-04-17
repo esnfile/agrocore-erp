@@ -41,6 +41,7 @@ import {
   financeiroContaService,
   financeiroParcelaService,
   financeiroBaixaService,
+  financeiroMovimentacaoService,
   filialService,
   romaneioService,
   produtoService,
@@ -53,6 +54,7 @@ import {
   unidadesMedida as mockUnidades,
   moedas as mockMoedas,
   empresas as mockEmpresas,
+  financeiroFormasPagto as mockFormasPagto,
   getUnidadeBaseParaTipo,
 } from "@/lib/mock-data";
 import type {
@@ -70,6 +72,7 @@ import type {
   FinanceiroConta,
   FinanceiroParcela,
   FinanceiroBaixa,
+  FinanceiroMovimentacao,
   DescontoTipo,
   DescontoEmpresaConfig,
 } from "@/lib/mock-data";
@@ -279,6 +282,7 @@ export default function ContratosPage() {
   const [finContas, setFinContas] = useState<FinanceiroConta[]>([]);
   const [finParcelas, setFinParcelas] = useState<FinanceiroParcela[]>([]);
   const [finBaixas, setFinBaixas] = useState<FinanceiroBaixa[]>([]);
+  const [finMovs, setFinMovs] = useState<FinanceiroMovimentacao[]>([]);
 
   // Gerar contas modal
   const [gerarContasOpen, setGerarContasOpen] = useState(false);
@@ -578,6 +582,7 @@ export default function ContratosPage() {
     setFinContas([]);
     setFinParcelas([]);
     setFinBaixas([]);
+    setFinMovs([]);
     setLiquidacao(null);
     setActiveTab("dados");
     setModalOpen(true);
@@ -649,15 +654,18 @@ export default function ContratosPage() {
     setFinContas(contas);
     if (contas.length > 0) {
       const contaIds = contas.map((c) => c.id);
-      const [parcelas, baixas] = await Promise.all([
+      const [parcelas, baixas, movs] = await Promise.all([
         financeiroParcelaService.listarPorContas(contaIds),
         Promise.all(contaIds.map((id) => financeiroBaixaService.listarPorConta(id))).then((arr) => arr.flat()),
+        Promise.all(contaIds.map((id) => financeiroMovimentacaoService.listarPorConta(id))).then((arr) => arr.flat()),
       ]);
       setFinParcelas(parcelas);
       setFinBaixas(baixas);
+      setFinMovs(movs);
     } else {
       setFinParcelas([]);
       setFinBaixas([]);
+      setFinMovs([]);
     }
   };
 
@@ -2065,7 +2073,7 @@ export default function ContratosPage() {
                           </TableHeader>
                           <TableBody>
                             {finParcelas.filter(p => p.status === "PREVISTO").map((p) => {
-                              const parcelaBaixas = finBaixas.filter((b) => b.parcelaId === p.id);
+                              const parcelaMovs = finMovs.filter((m) => m.parcelaId === p.id);
                               const isExpanded = expandedParcelaId === p.id;
                               return (
                                 <>
@@ -2090,7 +2098,7 @@ export default function ContratosPage() {
                                       <TableCell colSpan={6} className="bg-muted/30 p-4">
                                         <div className="space-y-2">
                                           <h5 className="text-xs font-semibold text-muted-foreground">Movimentações da Parcela {p.numeroParcela}</h5>
-                                          {parcelaBaixas.length > 0 ? (
+                                          {parcelaMovs.length > 0 ? (
                                             <Table>
                                               <TableHeader>
                                                 <TableRow>
@@ -2098,23 +2106,26 @@ export default function ContratosPage() {
                                                   <TableHead className="text-xs">Tipo</TableHead>
                                                   <TableHead className="text-xs text-right">Valor</TableHead>
                                                   <TableHead className="text-xs">Forma</TableHead>
-                                                  <TableHead className="text-xs">Observações</TableHead>
+                                                  <TableHead className="text-xs">Histórico</TableHead>
                                                 </TableRow>
                                               </TableHeader>
                                               <TableBody>
-                                                {parcelaBaixas.map((b) => (
-                                                  <TableRow key={b.id}>
-                                                    <TableCell className="text-xs">{format(new Date(b.dataPagamento), "dd/MM/yyyy")}</TableCell>
-                                                    <TableCell className="text-xs">
-                                                      <Badge variant="outline" className="text-xs">ADT</Badge>
-                                                    </TableCell>
-                                                    <TableCell className="text-xs text-right">
-                                                      {b.valorPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                                                    </TableCell>
-                                                    <TableCell className="text-xs">{b.formaPagamento}</TableCell>
-                                                    <TableCell className="text-xs text-muted-foreground">{b.observacoes || "—"}</TableCell>
-                                                  </TableRow>
-                                                ))}
+                                                {parcelaMovs.map((m) => {
+                                                  const formaLabel = mockFormasPagto.find((f) => f.id === m.formaPagamentoId)?.descricao ?? "—";
+                                                  return (
+                                                    <TableRow key={m.id}>
+                                                      <TableCell className="text-xs">{format(new Date(m.dataMovimento), "dd/MM/yyyy")}</TableCell>
+                                                      <TableCell className="text-xs">
+                                                        <Badge variant="outline" className="text-xs">{m.tipoMovimento === "ENTRADA" ? "ADT" : m.tipoMovimento}</Badge>
+                                                      </TableCell>
+                                                      <TableCell className="text-xs text-right">
+                                                        {m.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                                      </TableCell>
+                                                      <TableCell className="text-xs">{formaLabel}</TableCell>
+                                                      <TableCell className="text-xs text-muted-foreground">{m.historico || "—"}</TableCell>
+                                                    </TableRow>
+                                                  );
+                                                })}
                                               </TableBody>
                                             </Table>
                                           ) : (
@@ -2417,7 +2428,7 @@ export default function ContratosPage() {
                           </TableHeader>
                           <TableBody>
                             {finParcelas.map((p) => {
-                              const parcelaBaixas = finBaixas.filter((b) => b.parcelaId === p.id);
+                              const parcelaMovs = finMovs.filter((m) => m.parcelaId === p.id);
                               const isExpanded = expandedParcelaId === p.id;
                               return (
                                 <>
@@ -2454,7 +2465,7 @@ export default function ContratosPage() {
                                       <TableCell colSpan={8} className="bg-muted/30 p-4">
                                         <div className="space-y-2">
                                           <h5 className="text-xs font-semibold text-muted-foreground">Movimentações da Parcela {p.numeroParcela}</h5>
-                                          {parcelaBaixas.length > 0 ? (
+                                          {parcelaMovs.length > 0 ? (
                                             <Table>
                                               <TableHeader>
                                                 <TableRow>
@@ -2462,23 +2473,26 @@ export default function ContratosPage() {
                                                   <TableHead className="text-xs">Tipo</TableHead>
                                                   <TableHead className="text-xs text-right">Valor</TableHead>
                                                   <TableHead className="text-xs">Forma</TableHead>
-                                                  <TableHead className="text-xs">Observações</TableHead>
+                                                  <TableHead className="text-xs">Histórico</TableHead>
                                                 </TableRow>
                                               </TableHeader>
                                               <TableBody>
-                                                {parcelaBaixas.map((b) => (
-                                                  <TableRow key={b.id}>
-                                                    <TableCell className="text-xs">{format(new Date(b.dataPagamento), "dd/MM/yyyy")}</TableCell>
-                                                    <TableCell className="text-xs">
-                                                      <Badge variant="outline" className="text-xs">PAGT</Badge>
-                                                    </TableCell>
-                                                    <TableCell className="text-xs text-right">
-                                                      {b.valorPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                                                    </TableCell>
-                                                    <TableCell className="text-xs">{b.formaPagamento}</TableCell>
-                                                    <TableCell className="text-xs text-muted-foreground">{b.observacoes || "—"}</TableCell>
-                                                  </TableRow>
-                                                ))}
+                                                {parcelaMovs.map((m) => {
+                                                  const formaLabel = mockFormasPagto.find((f) => f.id === m.formaPagamentoId)?.descricao ?? "—";
+                                                  return (
+                                                    <TableRow key={m.id}>
+                                                      <TableCell className="text-xs">{format(new Date(m.dataMovimento), "dd/MM/yyyy")}</TableCell>
+                                                      <TableCell className="text-xs">
+                                                        <Badge variant="outline" className="text-xs">{m.tipoMovimento === "ENTRADA" ? "PAGT" : m.tipoMovimento}</Badge>
+                                                      </TableCell>
+                                                      <TableCell className="text-xs text-right">
+                                                        {m.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                                      </TableCell>
+                                                      <TableCell className="text-xs">{formaLabel}</TableCell>
+                                                      <TableCell className="text-xs text-muted-foreground">{m.historico || "—"}</TableCell>
+                                                    </TableRow>
+                                                  );
+                                                })}
                                               </TableBody>
                                             </Table>
                                           ) : (
