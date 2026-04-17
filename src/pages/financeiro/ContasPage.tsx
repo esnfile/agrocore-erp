@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Eye, Search, AlertTriangle, ArrowDownCircle, ArrowUpCircle, ChevronDown, ChevronRight, Info } from "lucide-react";
 import { financeiroContaService, financeiroParcelaService, financeiroMovimentacaoService, financeiroContaFinanceiraService, financeiroFormaPagtoService, financeiroTipoLancamentoService, pessoaService, financeiroBaixaService } from "@/lib/services";
 import type { FinanceiroConta, FinanceiroParcela, FinanceiroMovimentacao, FinanceiroBaixa, TipoConta, StatusConta, StatusParcela, Pessoa } from "@/lib/mock-data";
+import { financeiroFormasPagto as mockFormasPagto } from "@/lib/mock-data";
 
 const statusContaColors: Record<StatusConta, string> = {
   ABERTO: "bg-warning/20 text-warning border-warning/30",
@@ -86,6 +87,7 @@ export default function ContasPage() {
   // Parcelas & Movimentações (histórico)
   const [parcelas, setParcelas] = useState<FinanceiroParcela[]>([]);
   const [baixas, setBaixas] = useState<FinanceiroBaixa[]>([]);
+  const [movimentacoes, setMovimentacoes] = useState<FinanceiroMovimentacao[]>([]);
   const [expandedParcela, setExpandedParcela] = useState<string | null>(null);
 
   // Gerar parcelas
@@ -147,7 +149,7 @@ export default function ContasPage() {
     setTipo("PAGAR"); setPessoaId(""); setDescricao("");
     setDataEmissao(new Date().toISOString().slice(0, 10));
     setValorTotal(""); setValorTotalReal(""); setDocumentoReferencia(""); setObservacoes("");
-    setOrigem("MANUAL"); setParcelas([]); setBaixas([]);
+    setOrigem("MANUAL"); setParcelas([]); setBaixas([]); setMovimentacoes([]);
     setEditingConta(null); setParcelasEditaveis([]); setParcelasGeradas(false);
     setExpandedParcela(null);
   };
@@ -161,11 +163,12 @@ export default function ContasPage() {
     setValorTotalReal(String(conta.valorTotalReal));
     setDocumentoReferencia(conta.documentoReferencia); setObservacoes(conta.observacoes);
     setOrigem(conta.origem);
-    const [p, b] = await Promise.all([
+    const [p, b, m] = await Promise.all([
       financeiroParcelaService.listarPorConta(conta.id),
       financeiroBaixaService.listarPorConta(conta.id),
+      financeiroMovimentacaoService.listarPorConta(conta.id),
     ]);
-    setParcelas(p); setBaixas(b);
+    setParcelas(p); setBaixas(b); setMovimentacoes(m);
     setParcelasEditaveis([]); setParcelasGeradas(false);
     setModalMode("edit"); setModalOpen(true);
   };
@@ -560,7 +563,7 @@ export default function ContasPage() {
                   {parcelas.length === 0 ? (
                     <TableRow><TableCell colSpan={8} className="text-center py-6 text-muted-foreground">Nenhuma parcela gerada</TableCell></TableRow>
                   ) : parcelas.map((p) => {
-                    const parcelaBaixas = baixas.filter((b) => b.parcelaId === p.id);
+                    const parcelaMovs = movimentacoes.filter((m) => m.parcelaId === p.id);
                     const isExpanded = expandedParcela === p.id;
                     return (
                       <Collapsible key={p.id} open={isExpanded} onOpenChange={() => setExpandedParcela(isExpanded ? null : p.id)} asChild>
@@ -583,27 +586,34 @@ export default function ContasPage() {
                             <TableRow>
                               <TableCell colSpan={8} className="bg-muted/30 p-4">
                                 <p className="text-xs font-semibold text-muted-foreground mb-2">Movimentações desta parcela</p>
-                                {parcelaBaixas.length === 0 ? (
+                                {parcelaMovs.length === 0 ? (
                                   <p className="text-xs text-muted-foreground">Nenhuma movimentação registrada.</p>
                                 ) : (
                                   <Table>
                                     <TableHeader>
                                       <TableRow>
                                         <TableHead className="text-xs">Data</TableHead>
-                                        <TableHead className="text-xs">Forma</TableHead>
+                                        <TableHead className="text-xs">Tipo</TableHead>
                                         <TableHead className="text-xs text-right">Valor</TableHead>
-                                        <TableHead className="text-xs">Observações</TableHead>
+                                        <TableHead className="text-xs">Forma</TableHead>
+                                        <TableHead className="text-xs">Histórico</TableHead>
                                       </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                      {parcelaBaixas.map((b) => (
-                                        <TableRow key={b.id}>
-                                          <TableCell className="text-xs">{new Date(b.dataPagamento).toLocaleDateString("pt-BR")}</TableCell>
-                                          <TableCell className="text-xs">{b.formaPagamento}</TableCell>
-                                          <TableCell className="text-xs text-right font-mono">{fmt(b.valorPago)}</TableCell>
-                                          <TableCell className="text-xs text-muted-foreground">{b.observacoes || "—"}</TableCell>
-                                        </TableRow>
-                                      ))}
+                                      {parcelaMovs.map((m) => {
+                                        const formaLabel = mockFormasPagto.find((f) => f.id === m.formaPagamentoId)?.descricao ?? "—";
+                                        return (
+                                          <TableRow key={m.id}>
+                                            <TableCell className="text-xs">{new Date(m.dataMovimento).toLocaleDateString("pt-BR")}</TableCell>
+                                            <TableCell className="text-xs">
+                                              <Badge variant="outline" className="text-xs">{m.tipoMovimento === "ENTRADA" ? "ADT" : m.tipoMovimento}</Badge>
+                                            </TableCell>
+                                            <TableCell className="text-xs text-right font-mono">{fmt(m.valor)}</TableCell>
+                                            <TableCell className="text-xs">{formaLabel}</TableCell>
+                                            <TableCell className="text-xs text-muted-foreground">{m.historico || "—"}</TableCell>
+                                          </TableRow>
+                                        );
+                                      })}
                                     </TableBody>
                                   </Table>
                                 )}
