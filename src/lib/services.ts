@@ -3509,18 +3509,32 @@ export const contratoLiquidacaoService = {
     _ctx: { grupoId: string; empresaId: string; filialId: string },
     now: string
   ): { sucesso: boolean; mensagem: string; liquidacao: ContratoLiquidacao } {
-    // 1. Quantidade entregue = soma pesoLiquido dos romaneios FINALIZADOS do contrato
+    // 1. Quantidade entregue = soma pesoLiquido dos romaneios FINALIZADOS (em unidade base KG)
     const romaneiosFinalizados = mockRomaneios.filter(
       (r) => r.contratoId === contrato.id && r.deletadoEm === null && r.status === "FINALIZADO"
     );
-    const quantidadeEntregue = romaneiosFinalizados.reduce((sum, r) => sum + r.pesoLiquido, 0);
+    const quantidadeEntregueBase = romaneiosFinalizados.reduce((sum, r) => sum + r.pesoLiquido, 0);
 
-    // 2. Quantidade liquidada
+    // 1b. Converter para unidade de negociação do contrato (ex: KG → SC)
+    const produto = mockProdutos.find((p) => p.id === contrato.produtoId);
+    const unidadeBaseIdConv = produto ? getUnidadeBaseParaTipo(produto.tipoUnidade) : null;
+    let quantidadeEntregue = quantidadeEntregueBase;
+    if (produto && unidadeBaseIdConv && contrato.unidadeNegociacaoId) {
+      try {
+        quantidadeEntregue = unidadeMedidaService.converterQuantidade(
+          quantidadeEntregueBase, unidadeBaseIdConv, contrato.unidadeNegociacaoId, produto.id
+        );
+      } catch {
+        quantidadeEntregue = quantidadeEntregueBase;
+      }
+    }
+
+    // 2. Quantidade liquidada (em unidade de negociação)
     const quantidadeLiquidada = opcaoEncerrar
       ? quantidadeEntregue
       : Math.min(quantidadeEntregue, contrato.quantidadeTotal);
 
-    // 3. Preço unitário
+    // 3. Preço unitário (por unidade de negociação)
     let precoUnitario = contrato.precoUnitario;
     if (contrato.tipoPreco === "A_FIXAR") {
       const fixacoes = mockContratoFixacoes.filter(
@@ -3556,14 +3570,25 @@ export const contratoLiquidacaoService = {
     valorDescontos = Math.round(valorDescontos * 100) / 100;
 
     // 6. Descontos de classificação de qualidade (romaneios)
+    // pesoLiquido está em KG → converter para unidade de negociação antes de aplicar preço
     let descontoQualidade = 0;
     for (const rom of romaneiosFinalizados) {
+      let pesoNeg = rom.pesoLiquido;
+      if (produto && unidadeBaseIdConv && contrato.unidadeNegociacaoId) {
+        try {
+          pesoNeg = unidadeMedidaService.converterQuantidade(
+            rom.pesoLiquido, unidadeBaseIdConv, contrato.unidadeNegociacaoId, produto.id
+          );
+        } catch {
+          pesoNeg = rom.pesoLiquido;
+        }
+      }
       const classificacoes = mockRomaneioClassificacoes.filter(
         (rc) => rc.romaneioId === rom.id && rc.deletadoEm === null
       );
       for (const cl of classificacoes) {
         if (cl.percentualDesconto > 0) {
-          descontoQualidade += rom.pesoLiquido * cl.percentualDesconto / 100 * precoUnitario;
+          descontoQualidade += pesoNeg * cl.percentualDesconto / 100 * precoUnitario;
         }
       }
     }
