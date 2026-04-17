@@ -220,15 +220,31 @@ export default function ContasPage() {
     }
     setSaving(true);
     try {
-      await financeiroContaService.salvar({
+      const isNew = !editingConta;
+      const saved = await financeiroContaService.salvar({
         id: editingConta?.id ?? undefined, tipo, pessoaId, descricao, dataEmissao,
         valorTotal: parseFloat(valorTotal),
         valorTotalReal: parseFloat(valorTotalReal || valorTotal),
         documentoReferencia, observacoes,
         origem: origem as any,
       }, { grupoId, empresaId, filialId });
-      toast({ title: "Conta salva com sucesso" });
-      setModalOpen(false); carregar();
+      if (isNew) {
+        // Manter modal aberto, transicionar para edit e forçar geração de parcelas
+        setEditingConta(saved);
+        setModalMode("edit");
+        const [p, b, m] = await Promise.all([
+          financeiroParcelaService.listarPorConta(saved.id),
+          financeiroBaixaService.listarPorConta(saved.id),
+          financeiroMovimentacaoService.listarPorConta(saved.id),
+        ]);
+        setParcelas(p); setBaixas(b); setMovimentacoes(m);
+        setActiveTab("parcelas");
+        toast({ title: "Conta criada", description: "Agora gere as parcelas para concluir." });
+        carregar();
+      } else {
+        toast({ title: "Conta salva com sucesso" });
+        setModalOpen(false); carregar();
+      }
     } finally { setSaving(false); }
   };
 
