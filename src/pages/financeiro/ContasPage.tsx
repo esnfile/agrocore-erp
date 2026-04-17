@@ -482,11 +482,12 @@ export default function ContasPage() {
         onSave={isReadonly || isLocked ? undefined : handleSave}
         maxWidth="sm:max-w-4xl"
       >
-        <Tabs defaultValue="dados" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="dados">Dados da Conta</TabsTrigger>
-            <TabsTrigger value="parcelas">Parcelas</TabsTrigger>
-            
+            <TabsTrigger value="parcelas" disabled={!editingConta}>
+              Parcelas{editingConta && parcelas.length === 0 ? " ⚠️" : ""}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="dados" className="space-y-4 mt-4">
