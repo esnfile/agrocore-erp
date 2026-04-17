@@ -266,6 +266,10 @@ export default function ContasPage() {
 
   const handleSalvarParcelas = async () => {
     if (!editingConta) return;
+    if (!podeRecriarParcelas) {
+      toast({ title: "Operação bloqueada", description: motivoBloqueioParcelas, variant: "destructive" });
+      return;
+    }
     if (!somaValida) {
       toast({ title: "Soma das parcelas difere do valor total da conta", description: `Soma: ${fmt(somaParcelas)} — Valor total: ${fmt(parseFloat(valorTotal) || 0)}`, variant: "destructive" });
       return;
