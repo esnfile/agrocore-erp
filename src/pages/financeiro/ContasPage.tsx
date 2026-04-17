@@ -468,7 +468,7 @@ export default function ContasPage() {
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="dados">Dados da Conta</TabsTrigger>
             <TabsTrigger value="parcelas">Parcelas</TabsTrigger>
-            <TabsTrigger value="pagamentos">Pagamentos</TabsTrigger>
+            
           </TabsList>
 
           <TabsContent value="dados" className="space-y-4 mt-4">
@@ -655,46 +655,6 @@ export default function ContasPage() {
             </div>
           </TabsContent>
 
-          {/* Aba Pagamentos — 100% read-only */}
-          <TabsContent value="pagamentos" className="mt-4">
-            <div className="flex items-start gap-2 p-3 rounded-md bg-blue-50 border border-blue-200 text-blue-700 mb-4">
-              <Info className="h-4 w-4 mt-0.5 shrink-0" />
-              <p className="text-sm">
-                Histórico de movimentações financeiras vinculadas a esta conta. Para registrar adiantamentos ou pagamentos, acesse <strong>Caixa/Bancos</strong>.
-              </p>
-            </div>
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Parcela</TableHead>
-                    <TableHead className="text-right">Valor</TableHead>
-                    <TableHead>Forma</TableHead>
-                    <TableHead>Observações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {baixas.length === 0 ? (
-                    <TableRow><TableCell colSpan={5} className="text-center py-6 text-muted-foreground">Nenhum pagamento registrado. Ao fazer movimentos no Caixa/Bancos, aparecerão aqui automaticamente.</TableCell></TableRow>
-                  ) : baixas.map((b) => {
-                    const parc = parcelas.find((p) => p.id === b.parcelaId);
-                    return (
-                      <TableRow key={b.id}>
-                        <TableCell>{new Date(b.dataPagamento).toLocaleDateString("pt-BR")}</TableCell>
-                        <TableCell className="text-sm">
-                          Parc. {parc?.numeroParcela ?? "?"}
-                        </TableCell>
-                        <TableCell className="text-right font-mono">{fmt(b.valorPago)}</TableCell>
-                        <TableCell>{b.formaPagamento}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{b.observacoes || "—"}</TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          </TabsContent>
         </Tabs>
       </CrudModal>
 
