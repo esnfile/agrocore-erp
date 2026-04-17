@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Eye, Search, AlertTriangle, ArrowDownCircle, ArrowUpCircle, ChevronDown, ChevronRight, Info } from "lucide-react";
 import { financeiroContaService, financeiroParcelaService, financeiroMovimentacaoService, financeiroContaFinanceiraService, financeiroFormaPagtoService, financeiroTipoLancamentoService, pessoaService, financeiroBaixaService } from "@/lib/services";
 import type { FinanceiroConta, FinanceiroParcela, FinanceiroMovimentacao, FinanceiroBaixa, TipoConta, StatusConta, StatusParcela, Pessoa } from "@/lib/mock-data";
+import { financeiroFormasPagto as mockFormasPagto } from "@/lib/mock-data";
 
 const statusContaColors: Record<StatusConta, string> = {
   ABERTO: "bg-warning/20 text-warning border-warning/30",
