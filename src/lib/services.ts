@@ -2569,6 +2569,18 @@ export const financeiroParcelaService = {
       .filter((p) => p.contaId === contaId && p.deletadoEm === null)
       .forEach((p) => { p.deletadoEm = now; p.deletadoPor = "u1"; });
   },
+  async atualizarVencimento(parcelaId: string, novaData: string): Promise<FinanceiroParcela> {
+    await delay();
+    const p = mockFinanceiroParcelas.find((x) => x.id === parcelaId && x.deletadoEm === null);
+    if (!p) throw new Error("Parcela não encontrada");
+    if (p.status === "PAGO" || p.status === "CANCELADA") {
+      throw new Error("Parcela liquidada/cancelada não permite alteração de vencimento");
+    }
+    p.dataVencimento = novaData;
+    p.atualizadoEm = new Date().toISOString();
+    p.atualizadoPor = "u1";
+    return p;
+  },
   async listarTodas(empresaId: string, filialId: string): Promise<(FinanceiroParcela & { conta?: FinanceiroConta })[]> {
     await delay();
     const hoje = new Date().toISOString().slice(0, 10);
