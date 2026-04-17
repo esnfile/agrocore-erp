@@ -10,6 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Loader2, ArrowLeft, ArrowRight, Check } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -100,6 +103,14 @@ export default function ContasPage() {
   const [parcelasGeradas, setParcelasGeradas] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("dados");
 
+  // Stepper de criação (modo new)
+  const [createStep, setCreateStep] = useState<1 | 2>(1);
+  const [parcelasDraft, setParcelasDraft] = useState<ParcelaEditavel[]>([]);
+  const [draftNumParcelas, setDraftNumParcelas] = useState("1");
+  const [draftFrequencia, setDraftFrequencia] = useState<Frequencia>("MENSAL");
+  const [draftDiasPersonalizado, setDraftDiasPersonalizado] = useState("30");
+  const [draftDataPrimeiraParcela, setDraftDataPrimeiraParcela] = useState(new Date().toISOString().slice(0, 10));
+
   const carregar = useCallback(async () => {
     setLoading(true);
     const [allParcelas, c, p] = await Promise.all([
@@ -153,6 +164,10 @@ export default function ContasPage() {
     setOrigem("MANUAL"); setParcelas([]); setBaixas([]); setMovimentacoes([]);
     setEditingConta(null); setParcelasEditaveis([]); setParcelasGeradas(false);
     setExpandedParcela(null);
+    setCreateStep(1); setParcelasDraft([]);
+    setDraftNumParcelas("1"); setDraftFrequencia("MENSAL");
+    setDraftDiasPersonalizado("30");
+    setDraftDataPrimeiraParcela(new Date().toISOString().slice(0, 10));
   };
 
   const openNew = () => { resetForm(); setActiveTab("dados"); setModalMode("new"); setModalOpen(true); };
@@ -218,34 +233,114 @@ export default function ContasPage() {
     if (!pessoaId || !descricao || !valorTotal) {
       toast({ title: "Preencha os campos obrigatórios", variant: "destructive" }); return;
     }
+    if (!editingConta) return; // criação usa handleCreateSave (stepper)
     setSaving(true);
     try {
-      const isNew = !editingConta;
-      const saved = await financeiroContaService.salvar({
-        id: editingConta?.id ?? undefined, tipo, pessoaId, descricao, dataEmissao,
+      await financeiroContaService.salvar({
+        id: editingConta.id, tipo, pessoaId, descricao, dataEmissao,
         valorTotal: parseFloat(valorTotal),
         valorTotalReal: parseFloat(valorTotalReal || valorTotal),
         documentoReferencia, observacoes,
         origem: origem as any,
       }, { grupoId, empresaId, filialId });
-      if (isNew) {
-        // Manter modal aberto, transicionar para edit e forçar geração de parcelas
-        setEditingConta(saved);
-        setModalMode("edit");
-        const [p, b, m] = await Promise.all([
-          financeiroParcelaService.listarPorConta(saved.id),
-          financeiroBaixaService.listarPorConta(saved.id),
-          financeiroMovimentacaoService.listarPorConta(saved.id),
-        ]);
-        setParcelas(p); setBaixas(b); setMovimentacoes(m);
-        setActiveTab("parcelas");
-        toast({ title: "Conta criada", description: "Agora gere as parcelas para concluir." });
-        carregar();
-      } else {
-        toast({ title: "Conta salva com sucesso" });
-        setModalOpen(false); carregar();
-      }
+      toast({ title: "Conta salva com sucesso" });
+      setModalOpen(false); carregar();
     } finally { setSaving(false); }
+  };
+
+  // Validação dos campos do Step 1 (criação)
+  const validarStep1 = (): boolean => {
+    if (!pessoaId || !descricao || !valorTotal || parseFloat(valorTotal) <= 0) {
+      toast({ title: "Preencha os campos obrigatórios", description: "Pessoa, descrição e valor são obrigatórios.", variant: "destructive" });
+      return false;
+    }
+    return true;
+  };
+
+  // Persistência atômica no modo criação
+  const handleCreateSave = async () => {
+    if (!validarStep1()) { setCreateStep(1); return; }
+    if (parcelasDraft.length === 0) {
+      toast({ title: "Gere as parcelas antes de salvar", variant: "destructive" }); return;
+    }
+    const vt = parseFloat(valorTotal) || 0;
+    const soma = parcelasDraft.reduce((s, p) => s + p.valorParcela, 0);
+    if (Math.abs(soma - vt) > 0.01) {
+      toast({ title: "Soma das parcelas difere do valor total", description: `Soma: ${fmt(soma)} — Valor: ${fmt(vt)}`, variant: "destructive" });
+      return;
+    }
+    setSaving(true);
+    let savedId: string | null = null;
+    try {
+      const saved = await financeiroContaService.salvar({
+        tipo, pessoaId, descricao, dataEmissao,
+        valorTotal: vt,
+        valorTotalReal: parseFloat(valorTotalReal || valorTotal),
+        documentoReferencia, observacoes,
+        origem: origem as any,
+      }, { grupoId, empresaId, filialId });
+      savedId = saved.id;
+      await financeiroParcelaService.gerarParcelasCustomizadas(
+        saved.id, parcelasDraft, { grupoId, empresaId, filialId }
+      );
+      toast({ title: "Conta criada", description: `${parcelasDraft.length} parcela(s) gerada(s).` });
+      setModalOpen(false); carregar();
+    } catch (err) {
+      if (savedId) {
+        try { await financeiroContaService.excluir(savedId); } catch { /* noop */ }
+      }
+      toast({ title: "Erro ao criar conta", description: String(err), variant: "destructive" });
+    } finally { setSaving(false); }
+  };
+
+  // Geração de parcelas no draft (em memória)
+  const gerarDraftParcelas = () => {
+    const n = parseInt(draftNumParcelas);
+    const vt = parseFloat(valorTotal);
+    if (!n || n < 1 || !vt || vt <= 0) {
+      toast({ title: "Informe quantidade e valor total válidos", variant: "destructive" }); return;
+    }
+    const intervalo = draftFrequencia === "PERSONALIZADO"
+      ? parseInt(draftDiasPersonalizado) || 30
+      : frequenciaDias[draftFrequencia];
+    const valorBase = Math.round((vt / n) * 100) / 100;
+    const novas: ParcelaEditavel[] = [];
+    for (let i = 0; i < n; i++) {
+      const d = new Date(draftDataPrimeiraParcela);
+      d.setDate(d.getDate() + intervalo * i);
+      const val = i === n - 1 ? vt - valorBase * (n - 1) : valorBase;
+      novas.push({ numeroParcela: i + 1, dataVencimento: d.toISOString().slice(0, 10), valorParcela: Math.round(val * 100) / 100 });
+    }
+    setParcelasDraft(novas);
+  };
+
+  const updateDraftParcela = (idx: number, field: "dataVencimento" | "valorParcela", value: string | number) => {
+    if (field === "dataVencimento") {
+      setParcelasDraft((prev) => prev.map((p, i) => i === idx ? { ...p, dataVencimento: String(value) } : p));
+    } else {
+      const novoValor = typeof value === "number" ? value : parseFloat(value) || 0;
+      const vt = parseFloat(valorTotal) || 0;
+      setParcelasDraft((prev) => {
+        const updated = prev.map((p, i) => i === idx ? { ...p, valorParcela: novoValor } : p);
+        if (updated.length > 1 && idx !== updated.length - 1) {
+          const somaOutras = updated.reduce((s, p, i) => i !== updated.length - 1 ? s + p.valorParcela : s, 0);
+          updated[updated.length - 1] = { ...updated[updated.length - 1], valorParcela: Math.round((vt - somaOutras) * 100) / 100 };
+        }
+        return updated;
+      });
+    }
+  };
+
+  const somaDraft = parcelasDraft.reduce((s, p) => s + p.valorParcela, 0);
+  const draftValido = parcelasDraft.length > 0 && Math.abs(somaDraft - (parseFloat(valorTotal) || 0)) < 0.01;
+
+  const requestClose = () => {
+    if (modalMode === "new" && (pessoaId || descricao || valorTotal || parcelasDraft.length > 0)) {
+      if (!window.confirm("Descartar conta? As informações preenchidas serão perdidas e nada será salvo.")) {
+        return;
+      }
+    }
+    setModalOpen(false);
   };
 
   const handleDelete = async () => {
@@ -473,11 +568,11 @@ export default function ContasPage() {
         </Table>
       </div>
 
-      {/* Modal Conta */}
+      {/* Modal Conta — Edição/Visualização (Tabs) */}
       <CrudModal
-        open={modalOpen}
+        open={modalOpen && modalMode !== "new"}
         onClose={() => setModalOpen(false)}
-        title={modalMode === "new" ? "Nova Conta Manual" : modalMode === "edit" ? "Editar Conta" : "Visualizar Conta"}
+        title={modalMode === "edit" ? "Editar Conta" : "Visualizar Conta"}
         saving={saving}
         onSave={isReadonly || isLocked ? undefined : handleSave}
         maxWidth="sm:max-w-4xl"
@@ -491,14 +586,6 @@ export default function ContasPage() {
           </TabsList>
 
           <TabsContent value="dados" className="space-y-4 mt-4">
-            {modalMode === "new" && (
-              <div className="flex items-start gap-2 p-3 rounded-md bg-blue-50 border border-blue-200 text-blue-700">
-                <Info className="h-4 w-4 mt-0.5 shrink-0" />
-                <p className="text-sm">
-                  Após salvar os dados da conta, você será direcionado para a aba <strong>Parcelas</strong> para gerar pelo menos uma parcela. Isso é obrigatório.
-                </p>
-              </div>
-            )}
             {/* Summary row */}
             {editingConta && (
               <div className="flex items-center gap-3 p-3 rounded-md bg-muted">
@@ -692,6 +779,251 @@ export default function ContasPage() {
 
         </Tabs>
       </CrudModal>
+
+      {/* Modal Conta — Criação (Stepper de 2 passos, persistência atômica) */}
+      <Dialog open={modalOpen && modalMode === "new"} onOpenChange={(v) => { if (!v) requestClose(); }}>
+        <DialogContent className="sm:max-w-4xl flex flex-col max-h-[85vh]">
+          <DialogHeader className="flex-shrink-0">
+            <DialogTitle>Nova Conta Manual</DialogTitle>
+          </DialogHeader>
+
+          <nav className="flex-shrink-0 mb-2">
+            <ol className="flex items-center w-full">
+              {[
+                { id: 1, label: "Dados da Conta", description: "Informações principais" },
+                { id: 2, label: "Parcelas", description: "Gerar parcelas da conta" },
+              ].map((step, idx, arr) => {
+                const isActive = step.id === createStep;
+                const isCompleted = step.id < createStep;
+                const isLast = idx === arr.length - 1;
+                const accessible = step.id === 1 || (step.id === 2 && !!pessoaId && !!descricao && !!valorTotal && parseFloat(valorTotal) > 0);
+                return (
+                  <li key={step.id} className={cn("flex items-center", !isLast && "flex-1")}>
+                    <button
+                      type="button"
+                      disabled={!accessible}
+                      onClick={() => accessible && setCreateStep(step.id as 1 | 2)}
+                      className={cn(
+                        "flex items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors",
+                        isActive && "bg-primary/10 ring-1 ring-primary",
+                        accessible && !isActive && "hover:bg-muted cursor-pointer",
+                        !accessible && "opacity-40 cursor-not-allowed",
+                      )}
+                    >
+                      <div className={cn(
+                        "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-colors",
+                        (isCompleted || isActive) ? "bg-primary text-primary-foreground" : "border-2 border-muted-foreground/30 text-muted-foreground",
+                      )}>
+                        {isCompleted ? <Check className="h-4 w-4" /> : step.id}
+                      </div>
+                      <div className="hidden sm:block">
+                        <p className={cn("text-xs font-semibold", isActive ? "text-primary" : "text-foreground")}>{step.label}</p>
+                        <p className="text-[10px] text-muted-foreground">{step.description}</p>
+                      </div>
+                    </button>
+                    {!isLast && (
+                      <div className={cn("hidden sm:block flex-1 h-px mx-2", isCompleted ? "bg-primary" : "bg-muted-foreground/20")} />
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          </nav>
+
+          <div className="flex-1 min-h-0 overflow-y-auto">
+            <div className="py-4 px-2 space-y-4">
+              {createStep === 1 && (
+                <>
+                  <div className="flex items-start gap-2 p-3 rounded-md bg-primary/10 border border-primary/30 text-foreground">
+                    <Info className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
+                    <p className="text-sm">
+                      Preencha os dados da conta. <strong>Nada será salvo</strong> até concluir o passo 2 (Parcelas).
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <Label>Tipo *</Label>
+                      <Select value={tipo} onValueChange={(v) => setTipo(v as TipoConta)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="PAGAR">A Pagar</SelectItem>
+                          <SelectItem value="RECEBER">A Receber</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Pessoa *</Label>
+                      <Select value={pessoaId} onValueChange={setPessoaId}>
+                        <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                        <SelectContent>
+                          {pessoas.map((p) => (<SelectItem key={p.id} value={p.id}>{p.nomeRazao}</SelectItem>))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Data Emissão</Label>
+                      <Input type="date" value={dataEmissao} onChange={(e) => setDataEmissao(e.target.value)} />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Descrição *</Label>
+                    <Input value={descricao} onChange={(e) => setDescricao(e.target.value)} />
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <Label>Valor Provisão *</Label>
+                      <Input type="number" step="0.01" value={valorTotal} onChange={(e) => { setValorTotal(e.target.value); setParcelasDraft([]); }} />
+                    </div>
+                    <div>
+                      <Label>Valor Real</Label>
+                      <Input type="number" step="0.01" value={valorTotalReal} onChange={(e) => setValorTotalReal(e.target.value)} />
+                    </div>
+                    <div>
+                      <Label>Origem</Label>
+                      <Select value={origem} onValueChange={setOrigem}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="MANUAL">Manual</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Documento Referência</Label>
+                    <Input value={documentoReferencia} onChange={(e) => setDocumentoReferencia(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label>Observações</Label>
+                    <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} rows={3} />
+                  </div>
+                </>
+              )}
+
+              {createStep === 2 && (
+                <>
+                  <div className="flex items-start gap-2 p-3 rounded-md bg-warning/10 border border-warning/30">
+                    <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-warning" />
+                    <p className="text-sm">
+                      Gere as parcelas e clique em <strong>Salvar Conta</strong>. A conta só será criada após esta etapa — cancelar descarta tudo.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Quantidade de Parcelas</Label>
+                      <Input type="number" min="1" value={draftNumParcelas} onChange={(e) => setDraftNumParcelas(e.target.value)} />
+                    </div>
+                    <div>
+                      <Label>{parseInt(draftNumParcelas) === 1 ? "Data de Vencimento" : "Data da Primeira Parcela"}</Label>
+                      <Input type="date" value={draftDataPrimeiraParcela} onChange={(e) => setDraftDataPrimeiraParcela(e.target.value)} />
+                    </div>
+                  </div>
+                  {parseInt(draftNumParcelas) >= 2 && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Frequência</Label>
+                        <Select value={draftFrequencia} onValueChange={(v) => setDraftFrequencia(v as Frequencia)}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="MENSAL">Mensal (30 dias)</SelectItem>
+                            <SelectItem value="TRIMESTRAL">Trimestral (90 dias)</SelectItem>
+                            <SelectItem value="SEMESTRAL">Semestral (180 dias)</SelectItem>
+                            <SelectItem value="ANUAL">Anual (365 dias)</SelectItem>
+                            <SelectItem value="PERSONALIZADO">Personalizado</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {draftFrequencia === "PERSONALIZADO" && (
+                        <div>
+                          <Label>Intervalo (dias)</Label>
+                          <Input type="number" min="1" value={draftDiasPersonalizado} onChange={(e) => setDraftDiasPersonalizado(e.target.value)} />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <div>
+                    <Label>Valor Total</Label>
+                    <Input value={fmt(parseFloat(valorTotal) || 0)} disabled />
+                  </div>
+                  <Button variant="outline" className="w-full" onClick={gerarDraftParcelas}>
+                    Gerar Pré-visualização
+                  </Button>
+                  {parcelasDraft.length > 0 && (
+                    <>
+                      <div className="rounded-md border">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="w-20">Parcela</TableHead>
+                              <TableHead>Data Vencimento</TableHead>
+                              <TableHead className="text-right">Valor</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {parcelasDraft.map((p, idx) => (
+                              <TableRow key={idx}>
+                                <TableCell className="font-mono">{p.numeroParcela}</TableCell>
+                                <TableCell>
+                                  <Input type="date" value={p.dataVencimento} onChange={(e) => updateDraftParcela(idx, "dataVencimento", e.target.value)} className="w-40" />
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <Input
+                                    type="text"
+                                    inputMode="decimal"
+                                    value={(Number(p.valorParcela) || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    onChange={(e) => {
+                                      const raw = e.target.value.replace(/\./g, "").replace(",", ".").replace(/[^0-9.]/g, "");
+                                      updateDraftParcela(idx, "valorParcela", parseFloat(raw) || 0);
+                                    }}
+                                    className="w-32 text-right ml-auto"
+                                  />
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                      <div className={cn(
+                        "flex items-center justify-between p-3 rounded-md border",
+                        draftValido ? "border-success/50 bg-success/10" : "border-destructive/50 bg-destructive/10",
+                      )}>
+                        <div className="flex items-center gap-2">
+                          {!draftValido && <AlertTriangle className="h-4 w-4 text-destructive" />}
+                          <span className="text-sm font-medium">Soma das parcelas: {fmt(somaDraft)}</span>
+                        </div>
+                        <span className="text-sm text-muted-foreground">Valor total: {fmt(parseFloat(valorTotal) || 0)}</span>
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter className="flex-shrink-0 border-t pt-4 sm:justify-between">
+            <Button variant="outline" onClick={requestClose} disabled={saving} className="hover:bg-destructive/10 hover:text-destructive hover:border-destructive">
+              Cancelar
+            </Button>
+            <div className="flex gap-2">
+              {createStep === 2 && (
+                <Button variant="outline" onClick={() => setCreateStep(1)} disabled={saving}>
+                  <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
+                </Button>
+              )}
+              {createStep === 1 && (
+                <Button onClick={() => { if (validarStep1()) setCreateStep(2); }} disabled={saving}>
+                  Avançar <ArrowRight className="h-4 w-4 ml-1" />
+                </Button>
+              )}
+              {createStep === 2 && (
+                <Button onClick={handleCreateSave} disabled={saving || !draftValido}>
+                  {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Salvar Conta
+                </Button>
+              )}
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal Gerar Parcelas — Avançado */}
       <CrudModal
