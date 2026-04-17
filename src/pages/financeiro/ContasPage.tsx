@@ -544,7 +544,7 @@ export default function ContasPage() {
                   <span className="text-xs text-muted-foreground ml-1">/ P{p.numeroParcela}</span>
                 </TableCell>
                 <TableCell className={p.status === "VENCIDA" ? "text-destructive font-medium" : ""}>
-                  {new Date(p.dataVencimento).toLocaleDateString("pt-BR")}
+                  {formatDateBR(p.dataVencimento)}
                 </TableCell>
                 <TableCell className="text-right font-mono">{fmt(p.valorReal)}</TableCell>
                 <TableCell className="text-right font-mono">{fmt(p.valorPago)}</TableCell>
@@ -746,7 +746,7 @@ export default function ContasPage() {
                                     }}
                                   />
                                 ) : (
-                                  new Date(p.dataVencimento).toLocaleDateString("pt-BR")
+                                  formatDateBR(p.dataVencimento)
                                 )}
                               </TableCell>
                               <TableCell className="text-right font-mono">{fmt(p.valorParcela)}</TableCell>
