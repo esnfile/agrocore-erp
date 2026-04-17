@@ -149,7 +149,7 @@ export default function ContasPage() {
     setTipo("PAGAR"); setPessoaId(""); setDescricao("");
     setDataEmissao(new Date().toISOString().slice(0, 10));
     setValorTotal(""); setValorTotalReal(""); setDocumentoReferencia(""); setObservacoes("");
-    setOrigem("MANUAL"); setParcelas([]); setBaixas([]);
+    setOrigem("MANUAL"); setParcelas([]); setBaixas([]); setMovimentacoes([]);
     setEditingConta(null); setParcelasEditaveis([]); setParcelasGeradas(false);
     setExpandedParcela(null);
   };
