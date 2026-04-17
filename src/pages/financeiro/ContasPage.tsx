@@ -98,6 +98,7 @@ export default function ContasPage() {
   const [dataPrimeiraParcela, setDataPrimeiraParcela] = useState(new Date().toISOString().slice(0, 10));
   const [parcelasEditaveis, setParcelasEditaveis] = useState<ParcelaEditavel[]>([]);
   const [parcelasGeradas, setParcelasGeradas] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>("dados");
 
   const carregar = useCallback(async () => {
     setLoading(true);
@@ -154,7 +155,7 @@ export default function ContasPage() {
     setExpandedParcela(null);
   };
 
-  const openNew = () => { resetForm(); setModalMode("new"); setModalOpen(true); };
+  const openNew = () => { resetForm(); setActiveTab("dados"); setModalMode("new"); setModalOpen(true); };
 
   const openEdit = async (conta: FinanceiroConta) => {
     setEditingConta(conta);
@@ -170,6 +171,7 @@ export default function ContasPage() {
     ]);
     setParcelas(p); setBaixas(b); setMovimentacoes(m);
     setParcelasEditaveis([]); setParcelasGeradas(false);
+    setActiveTab("dados");
     setModalMode("edit"); setModalOpen(true);
   };
 
@@ -218,15 +220,31 @@ export default function ContasPage() {
     }
     setSaving(true);
     try {
-      await financeiroContaService.salvar({
+      const isNew = !editingConta;
+      const saved = await financeiroContaService.salvar({
         id: editingConta?.id ?? undefined, tipo, pessoaId, descricao, dataEmissao,
         valorTotal: parseFloat(valorTotal),
         valorTotalReal: parseFloat(valorTotalReal || valorTotal),
         documentoReferencia, observacoes,
         origem: origem as any,
       }, { grupoId, empresaId, filialId });
-      toast({ title: "Conta salva com sucesso" });
-      setModalOpen(false); carregar();
+      if (isNew) {
+        // Manter modal aberto, transicionar para edit e forçar geração de parcelas
+        setEditingConta(saved);
+        setModalMode("edit");
+        const [p, b, m] = await Promise.all([
+          financeiroParcelaService.listarPorConta(saved.id),
+          financeiroBaixaService.listarPorConta(saved.id),
+          financeiroMovimentacaoService.listarPorConta(saved.id),
+        ]);
+        setParcelas(p); setBaixas(b); setMovimentacoes(m);
+        setActiveTab("parcelas");
+        toast({ title: "Conta criada", description: "Agora gere as parcelas para concluir." });
+        carregar();
+      } else {
+        toast({ title: "Conta salva com sucesso" });
+        setModalOpen(false); carregar();
+      }
     } finally { setSaving(false); }
   };
 
@@ -464,14 +482,23 @@ export default function ContasPage() {
         onSave={isReadonly || isLocked ? undefined : handleSave}
         maxWidth="sm:max-w-4xl"
       >
-        <Tabs defaultValue="dados" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="dados">Dados da Conta</TabsTrigger>
-            <TabsTrigger value="parcelas">Parcelas</TabsTrigger>
-            
+            <TabsTrigger value="parcelas" disabled={!editingConta}>
+              Parcelas{editingConta && parcelas.length === 0 ? " ⚠️" : ""}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="dados" className="space-y-4 mt-4">
+            {modalMode === "new" && (
+              <div className="flex items-start gap-2 p-3 rounded-md bg-blue-50 border border-blue-200 text-blue-700">
+                <Info className="h-4 w-4 mt-0.5 shrink-0" />
+                <p className="text-sm">
+                  Após salvar os dados da conta, você será direcionado para a aba <strong>Parcelas</strong> para gerar pelo menos uma parcela. Isso é obrigatório.
+                </p>
+              </div>
+            )}
             {/* Summary row */}
             {editingConta && (
               <div className="flex items-center gap-3 p-3 rounded-md bg-muted">
@@ -546,6 +573,14 @@ export default function ContasPage() {
           </TabsContent>
 
           <TabsContent value="parcelas" className="mt-4">
+            {!isReadonly && editingConta && parcelas.length === 0 && podeRecriarParcelas && (
+              <div className="flex items-start gap-2 p-3 rounded-md bg-warning/10 border border-warning/30 mb-3">
+                <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-warning" />
+                <p className="text-sm">
+                  Esta conta ainda <strong>não possui parcelas</strong>. É obrigatório gerar pelo menos uma parcela para que a conta entre no fluxo financeiro.
+                </p>
+              </div>
+            )}
             {!isReadonly && !isLocked && editingConta && podeRecriarParcelas && (
               <div className="flex justify-end mb-3">
                 <Button size="sm" variant="outline" onClick={() => {
