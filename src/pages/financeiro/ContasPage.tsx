@@ -233,34 +233,114 @@ export default function ContasPage() {
     if (!pessoaId || !descricao || !valorTotal) {
       toast({ title: "Preencha os campos obrigatórios", variant: "destructive" }); return;
     }
+    if (!editingConta) return; // criação usa handleCreateSave (stepper)
     setSaving(true);
     try {
-      const isNew = !editingConta;
-      const saved = await financeiroContaService.salvar({
-        id: editingConta?.id ?? undefined, tipo, pessoaId, descricao, dataEmissao,
+      await financeiroContaService.salvar({
+        id: editingConta.id, tipo, pessoaId, descricao, dataEmissao,
         valorTotal: parseFloat(valorTotal),
         valorTotalReal: parseFloat(valorTotalReal || valorTotal),
         documentoReferencia, observacoes,
         origem: origem as any,
       }, { grupoId, empresaId, filialId });
-      if (isNew) {
-        // Manter modal aberto, transicionar para edit e forçar geração de parcelas
-        setEditingConta(saved);
-        setModalMode("edit");
-        const [p, b, m] = await Promise.all([
-          financeiroParcelaService.listarPorConta(saved.id),
-          financeiroBaixaService.listarPorConta(saved.id),
-          financeiroMovimentacaoService.listarPorConta(saved.id),
-        ]);
-        setParcelas(p); setBaixas(b); setMovimentacoes(m);
-        setActiveTab("parcelas");
-        toast({ title: "Conta criada", description: "Agora gere as parcelas para concluir." });
-        carregar();
-      } else {
-        toast({ title: "Conta salva com sucesso" });
-        setModalOpen(false); carregar();
-      }
+      toast({ title: "Conta salva com sucesso" });
+      setModalOpen(false); carregar();
     } finally { setSaving(false); }
+  };
+
+  // Validação dos campos do Step 1 (criação)
+  const validarStep1 = (): boolean => {
+    if (!pessoaId || !descricao || !valorTotal || parseFloat(valorTotal) <= 0) {
+      toast({ title: "Preencha os campos obrigatórios", description: "Pessoa, descrição e valor são obrigatórios.", variant: "destructive" });
+      return false;
+    }
+    return true;
+  };
+
+  // Persistência atômica no modo criação
+  const handleCreateSave = async () => {
+    if (!validarStep1()) { setCreateStep(1); return; }
+    if (parcelasDraft.length === 0) {
+      toast({ title: "Gere as parcelas antes de salvar", variant: "destructive" }); return;
+    }
+    const vt = parseFloat(valorTotal) || 0;
+    const soma = parcelasDraft.reduce((s, p) => s + p.valorParcela, 0);
+    if (Math.abs(soma - vt) > 0.01) {
+      toast({ title: "Soma das parcelas difere do valor total", description: `Soma: ${fmt(soma)} — Valor: ${fmt(vt)}`, variant: "destructive" });
+      return;
+    }
+    setSaving(true);
+    let savedId: string | null = null;
+    try {
+      const saved = await financeiroContaService.salvar({
+        tipo, pessoaId, descricao, dataEmissao,
+        valorTotal: vt,
+        valorTotalReal: parseFloat(valorTotalReal || valorTotal),
+        documentoReferencia, observacoes,
+        origem: origem as any,
+      }, { grupoId, empresaId, filialId });
+      savedId = saved.id;
+      await financeiroParcelaService.gerarParcelasCustomizadas(
+        saved.id, parcelasDraft, { grupoId, empresaId, filialId }
+      );
+      toast({ title: "Conta criada", description: `${parcelasDraft.length} parcela(s) gerada(s).` });
+      setModalOpen(false); carregar();
+    } catch (err) {
+      if (savedId) {
+        try { await financeiroContaService.excluir(savedId); } catch { /* noop */ }
+      }
+      toast({ title: "Erro ao criar conta", description: String(err), variant: "destructive" });
+    } finally { setSaving(false); }
+  };
+
+  // Geração de parcelas no draft (em memória)
+  const gerarDraftParcelas = () => {
+    const n = parseInt(draftNumParcelas);
+    const vt = parseFloat(valorTotal);
+    if (!n || n < 1 || !vt || vt <= 0) {
+      toast({ title: "Informe quantidade e valor total válidos", variant: "destructive" }); return;
+    }
+    const intervalo = draftFrequencia === "PERSONALIZADO"
+      ? parseInt(draftDiasPersonalizado) || 30
+      : frequenciaDias[draftFrequencia];
+    const valorBase = Math.round((vt / n) * 100) / 100;
+    const novas: ParcelaEditavel[] = [];
+    for (let i = 0; i < n; i++) {
+      const d = new Date(draftDataPrimeiraParcela);
+      d.setDate(d.getDate() + intervalo * i);
+      const val = i === n - 1 ? vt - valorBase * (n - 1) : valorBase;
+      novas.push({ numeroParcela: i + 1, dataVencimento: d.toISOString().slice(0, 10), valorParcela: Math.round(val * 100) / 100 });
+    }
+    setParcelasDraft(novas);
+  };
+
+  const updateDraftParcela = (idx: number, field: "dataVencimento" | "valorParcela", value: string | number) => {
+    if (field === "dataVencimento") {
+      setParcelasDraft((prev) => prev.map((p, i) => i === idx ? { ...p, dataVencimento: String(value) } : p));
+    } else {
+      const novoValor = typeof value === "number" ? value : parseFloat(value) || 0;
+      const vt = parseFloat(valorTotal) || 0;
+      setParcelasDraft((prev) => {
+        const updated = prev.map((p, i) => i === idx ? { ...p, valorParcela: novoValor } : p);
+        if (updated.length > 1 && idx !== updated.length - 1) {
+          const somaOutras = updated.reduce((s, p, i) => i !== updated.length - 1 ? s + p.valorParcela : s, 0);
+          updated[updated.length - 1] = { ...updated[updated.length - 1], valorParcela: Math.round((vt - somaOutras) * 100) / 100 };
+        }
+        return updated;
+      });
+    }
+  };
+
+  const somaDraft = parcelasDraft.reduce((s, p) => s + p.valorParcela, 0);
+  const draftValido = parcelasDraft.length > 0 && Math.abs(somaDraft - (parseFloat(valorTotal) || 0)) < 0.01;
+
+  const requestClose = () => {
+    if (modalMode === "new" && (pessoaId || descricao || valorTotal || parcelasDraft.length > 0)) {
+      if (!window.confirm("Descartar conta? As informações preenchidas serão perdidas e nada será salvo.")) {
+        return;
+      }
+    }
+    setModalOpen(false);
   };
 
   const handleDelete = async () => {
