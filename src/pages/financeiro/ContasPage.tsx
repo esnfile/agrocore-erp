@@ -163,11 +163,12 @@ export default function ContasPage() {
     setValorTotalReal(String(conta.valorTotalReal));
     setDocumentoReferencia(conta.documentoReferencia); setObservacoes(conta.observacoes);
     setOrigem(conta.origem);
-    const [p, b] = await Promise.all([
+    const [p, b, m] = await Promise.all([
       financeiroParcelaService.listarPorConta(conta.id),
       financeiroBaixaService.listarPorConta(conta.id),
+      financeiroMovimentacaoService.listarPorConta(conta.id),
     ]);
-    setParcelas(p); setBaixas(b);
+    setParcelas(p); setBaixas(b); setMovimentacoes(m);
     setParcelasEditaveis([]); setParcelasGeradas(false);
     setModalMode("edit"); setModalOpen(true);
   };
