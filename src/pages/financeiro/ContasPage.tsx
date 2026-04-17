@@ -546,9 +546,13 @@ export default function ContasPage() {
           </TabsContent>
 
           <TabsContent value="parcelas" className="mt-4">
-            {!isReadonly && !isLocked && editingConta && (
+            {!isReadonly && !isLocked && editingConta && podeRecriarParcelas && (
               <div className="flex justify-end mb-3">
                 <Button size="sm" variant="outline" onClick={() => {
+                  if (!podeRecriarParcelas) {
+                    toast({ title: "Operação bloqueada", description: motivoBloqueioParcelas, variant: "destructive" });
+                    return;
+                  }
                   setNumParcelas("1");
                   setFrequencia("MENSAL");
                   setDiasPersonalizado("30");
@@ -559,6 +563,12 @@ export default function ContasPage() {
                 }}>
                   <Plus className="h-4 w-4 mr-1" />Gerar Parcelas
                 </Button>
+              </div>
+            )}
+            {!isReadonly && editingConta && !podeRecriarParcelas && parcelas.length > 0 && (
+              <div className="flex items-start gap-2 p-3 rounded-md bg-warning/10 border border-warning/30 text-warning-foreground mb-3">
+                <Info className="h-4 w-4 mt-0.5 shrink-0 text-warning" />
+                <p className="text-sm">{motivoBloqueioParcelas}</p>
               </div>
             )}
             <div className="rounded-md border">
