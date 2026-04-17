@@ -267,11 +267,11 @@ export default function ContasPage() {
     } finally { setSaving(false); }
   };
 
-  const updateParcelaEditavel = (idx: number, field: "dataVencimento" | "valorParcela", value: string) => {
+  const updateParcelaEditavel = (idx: number, field: "dataVencimento" | "valorParcela", value: string | number) => {
     if (field === "dataVencimento") {
-      setParcelasEditaveis((prev) => prev.map((p, i) => i === idx ? { ...p, dataVencimento: value } : p));
+      setParcelasEditaveis((prev) => prev.map((p, i) => i === idx ? { ...p, dataVencimento: String(value) } : p));
     } else {
-      const novoValor = parseFloat(value) || 0;
+      const novoValor = typeof value === "number" ? value : parseFloat(value) || 0;
       const vt = parseFloat(valorTotal) || 0;
       setParcelasEditaveis((prev) => {
         const updated = prev.map((p, i) => i === idx ? { ...p, valorParcela: novoValor } : p);
