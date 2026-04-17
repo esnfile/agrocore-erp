@@ -713,6 +713,8 @@ export default function ContasPage() {
                   ) : parcelas.map((p) => {
                     const parcelaMovs = movimentacoes.filter((m) => m.parcelaId === p.id);
                     const isExpanded = expandedParcela === p.id;
+                    const podeEditarVencimento = !isReadonly && !isLocked
+                      && p.status !== "PAGO" && p.status !== "CANCELADA";
                     return (
                       <Collapsible key={p.id} open={isExpanded} onOpenChange={() => setExpandedParcela(isExpanded ? null : p.id)} asChild>
                         <>
@@ -722,7 +724,30 @@ export default function ContasPage() {
                                 {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                               </TableCell>
                               <TableCell className="font-mono">{p.numeroParcela}/{p.totalParcelas}</TableCell>
-                              <TableCell>{new Date(p.dataVencimento).toLocaleDateString("pt-BR")}</TableCell>
+                              <TableCell>
+                                {podeEditarVencimento ? (
+                                  <Input
+                                    type="date"
+                                    value={p.dataVencimento}
+                                    className="w-40 h-8"
+                                    onClick={(e) => e.stopPropagation()}
+                                    onChange={async (e) => {
+                                      const novaData = e.target.value;
+                                      if (!novaData || novaData === p.dataVencimento) return;
+                                      try {
+                                        await financeiroParcelaService.atualizarVencimento(p.id, novaData);
+                                        setParcelas((prev) => prev.map((x) => x.id === p.id ? { ...x, dataVencimento: novaData } : x));
+                                        toast({ title: "Vencimento atualizado" });
+                                        carregar();
+                                      } catch (err: any) {
+                                        toast({ title: "Erro ao atualizar", description: err?.message ?? String(err), variant: "destructive" });
+                                      }
+                                    }}
+                                  />
+                                ) : (
+                                  new Date(p.dataVencimento).toLocaleDateString("pt-BR")
+                                )}
+                              </TableCell>
                               <TableCell className="text-right font-mono">{fmt(p.valorParcela)}</TableCell>
                               <TableCell className="text-right font-mono">{fmt(p.valorReal)}</TableCell>
                               <TableCell className="text-right font-mono">{fmt(p.valorPago)}</TableCell>
