@@ -491,6 +491,14 @@ export default function ContasPage() {
           </TabsList>
 
           <TabsContent value="dados" className="space-y-4 mt-4">
+            {modalMode === "new" && (
+              <div className="flex items-start gap-2 p-3 rounded-md bg-blue-50 border border-blue-200 text-blue-700">
+                <Info className="h-4 w-4 mt-0.5 shrink-0" />
+                <p className="text-sm">
+                  Após salvar os dados da conta, você será direcionado para a aba <strong>Parcelas</strong> para gerar pelo menos uma parcela. Isso é obrigatório.
+                </p>
+              </div>
+            )}
             {/* Summary row */}
             {editingConta && (
               <div className="flex items-center gap-3 p-3 rounded-md bg-muted">
