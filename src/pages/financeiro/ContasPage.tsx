@@ -181,8 +181,20 @@ export default function ContasPage() {
   // Field locking matrix
   const isReadonly = modalMode === "view";
   const contaStatus = editingConta?.status;
-  const isOrigemContrato = editingConta?.origem === "CONTRATO" || editingConta?.origem === "FIXACAO";
+  const isOrigemContrato = editingConta?.origem === "CONTRATO" || editingConta?.origem === "FIXACAO" || editingConta?.origem === "ROMANEIO";
   const isLocked = contaStatus === "LIQUIDADO" || contaStatus === "CANCELADO";
+
+  // Regras de recriação de parcelas
+  const temMovimento =
+    baixas.length > 0 ||
+    movimentacoes.length > 0 ||
+    parcelas.some((p) => p.valorPago > 0 || p.status === "PARCIAL" || p.status === "PAGO");
+  const podeRecriarParcelas = !isOrigemContrato && !temMovimento;
+  const motivoBloqueioParcelas = isOrigemContrato
+    ? "Parcelas geradas via Contrato/Fixação. Alterações de valor ou recriação devem ser feitas no contrato de origem."
+    : temMovimento
+      ? "Existem baixas ou adiantamentos vinculados. Não é possível recriar parcelas. Apenas a data de vencimento pode ser ajustada."
+      : "";
 
   const canEditField = (field: string): boolean => {
     if (isReadonly) return false;
