@@ -171,6 +171,7 @@ export default function ContasPage() {
     ]);
     setParcelas(p); setBaixas(b); setMovimentacoes(m);
     setParcelasEditaveis([]); setParcelasGeradas(false);
+    setActiveTab("dados");
     setModalMode("edit"); setModalOpen(true);
   };
 
