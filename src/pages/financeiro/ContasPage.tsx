@@ -164,6 +164,10 @@ export default function ContasPage() {
     setOrigem("MANUAL"); setParcelas([]); setBaixas([]); setMovimentacoes([]);
     setEditingConta(null); setParcelasEditaveis([]); setParcelasGeradas(false);
     setExpandedParcela(null);
+    setCreateStep(1); setParcelasDraft([]);
+    setDraftNumParcelas("1"); setDraftFrequencia("MENSAL");
+    setDraftDiasPersonalizado("30");
+    setDraftDataPrimeiraParcela(new Date().toISOString().slice(0, 10));
   };
 
   const openNew = () => { resetForm(); setActiveTab("dados"); setModalMode("new"); setModalOpen(true); };
