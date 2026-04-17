@@ -54,6 +54,7 @@ import {
   unidadesMedida as mockUnidades,
   moedas as mockMoedas,
   empresas as mockEmpresas,
+  financeiroFormasPagto as mockFormasPagto,
   getUnidadeBaseParaTipo,
 } from "@/lib/mock-data";
 import type {
