@@ -104,7 +104,7 @@ export default function FluxoCaixaPage() {
         tipo: mov.tipoMovimento === "ENTRADA" ? "ENTRADA" : "SAIDA",
         valor: mov.valor,
         saldoAcumulado: 0,
-        realizado: true,
+        status: "REALIZADO",
         contaFinanceira: contasFinMap[mov.contaFinanceiraId] ?? "",
         formaPagamento: formasMap[mov.formaPagamentoId] ?? "",
         documento: mov.numeroDocumento,
@@ -120,13 +120,15 @@ export default function FluxoCaixaPage() {
       // Only show remaining balance for partially paid
       const valorRestante = parcela.saldoParcela;
       if (valorRestante <= 0) continue;
+      const isPrevisto = parcela.status === "PREVISTO";
+      const sufixo = isPrevisto ? "Previsto" : "Pendente";
       items.push({
         data: parcela.dataVencimento,
-        descricao: `${conta.descricao} (${parcela.numeroParcela}ª parcela) — Previsto`,
+        descricao: `${conta.descricao} (${parcela.numeroParcela}ª parcela) — ${sufixo}`,
         tipo: conta.tipo === "RECEBER" ? "ENTRADA" : "SAIDA",
         valor: valorRestante,
         saldoAcumulado: 0,
-        realizado: false,
+        status: isPrevisto ? "PREVISTO" : "PENDENTE",
         contaFinanceira: "",
         formaPagamento: "",
         documento: "",
@@ -224,14 +226,18 @@ export default function FluxoCaixaPage() {
             ) : itens.length === 0 ? (
               <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhuma movimentação no período</TableCell></TableRow>
             ) : itens.map((item, idx) => (
-              <TableRow key={idx} className={!item.realizado ? "opacity-70" : ""}>
+              <TableRow key={idx} className={item.status !== "REALIZADO" ? "opacity-80" : ""}>
                 <TableCell>{new Date(item.data).toLocaleDateString("pt-BR")}</TableCell>
                 <TableCell>{item.descricao}</TableCell>
                 <TableCell>{item.contaFinanceira || "—"}</TableCell>
                 <TableCell>
-                  <Badge variant="outline" className={item.realizado ? "border-success/50 text-success" : "border-warning/50 text-warning"}>
-                    {item.realizado ? "Realizado" : "Previsto"}
-                  </Badge>
+                  {item.status === "REALIZADO" ? (
+                    <Badge variant="outline" className="border-success/50 text-success">Realizado</Badge>
+                  ) : item.status === "PENDENTE" ? (
+                    <Badge variant="outline" className="border-blue-500/50 text-blue-600">Pendente</Badge>
+                  ) : (
+                    <Badge variant="outline" className="border-warning/50 text-warning">Previsto</Badge>
+                  )}
                 </TableCell>
                 <TableCell className="text-right font-mono text-success">
                   {item.tipo === "ENTRADA" ? fmt(item.valor) : ""}
