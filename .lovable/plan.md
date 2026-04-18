@@ -1,81 +1,75 @@
 
 
-## Fluxo em Steps para Criação de Conta (Eliminar Conta Órfã)
+## Análise do Prompt: Duplicatas em Contratos A_FIXAR
 
-### Problema atual
-Ao criar conta manual, salvamos primeiro a conta e depois mandamos para aba Parcelas. Se o usuário fecha o modal, fica uma conta órfã sem parcelas — exatamente o tipo de inconsistência que estamos tentando evitar.
+### O que já está correto no sistema
+- Existe distinção `tipoPreco: "FIXO" | "A_FIXAR"`.
+- Existe `contratoFixacaoService` com cálculo de `saldo a fixar = entregue − já fixado` (validação +5% tolerância).
+- Existe `gerarContasDeContrato` que aceita `fixacaoId` e marca `origem = "FIXACAO"`.
+- A modal de geração de duplicatas já abre automaticamente após cada nova fixação, com valor pré-calculado `qtd × preço da fixação` — logo, **cada fixação já gera uma duplicata independente**.
+- Status da conta gerada já é `"ABERTO"` (não há status `PROVISOES_CONTRATO` no projeto — o que existe é a flag `provisorio` que coloca **parcelas** em `PREVISTO`).
 
-### Decisão: adotar padrão Stepper (igual Romaneio)
+### Divergências do prompt vs. nosso modelo (importantes)
+1. **"Status PROVISOES_CONTRATO"** não existe aqui. Nosso modelo equivalente é: contratos FIXO geram conta `ABERTO` com **parcelas em status `PREVISTO`** (provisórias) que depois viram `PENDENTE` na liquidação. Vou tratar como sinônimo.
+2. O prompt diz "FIXO continua provisão". **Confirmado**: mantemos esse fluxo intacto.
+3. O prompt fala em "READ-ONLY na liquidação". Hoje as duplicatas/parcelas geradas a partir de contrato já não são editáveis na aba Liquidação — apenas o passo de liquidar é executado. Vou apenas reforçar visualmente.
 
-Sua segunda sugestão é a correta. O padrão de Stepper já existe no projeto (`RomaneioStepper`), é familiar ao usuário, e resolve o problema na raiz: **nada é persistido até o último passo**.
+### O que precisa mudar (apenas A_FIXAR)
 
-A primeira sugestão (botão "Ir para Parcelas") só mascara o problema — o usuário ainda pode fechar e gerar órfão.
+| # | Comportamento atual (A_FIXAR) | Comportamento novo |
+|---|---|---|
+| 1 | Após criar contrato A_FIXAR, modal de duplicatas **não** abre (correto) — mas NÃO há proteção explícita contra alguém clicar em "Gerar Duplicatas" no contrato sem fixação | Bloquear botão "Gerar Duplicatas" no nível do contrato; só permitir via fixação |
+| 2 | Cada fixação já chama modal de duplicatas, mas marca `provisorio = true` (parcelas vão para `PREVISTO`) | Para A_FIXAR, gerar com `provisorio = false` → parcelas nascem `PENDENTE` (ABERTAS), pois preço já é definitivo |
+| 3 | Título do modal mostra "Duplicatas Provisórias" mesmo na fixação | Ajustar título: "Duplicatas (Fixação)" sem a palavra "Provisórias" |
+| 4 | Aba Liquidação: parcelas de fixação não têm tratamento visual diferenciado | Adicionar aviso "Duplicatas geradas via Fixação — não editáveis" + tooltip nas linhas |
 
-### Novo fluxo (apenas para CRIAÇÃO manual)
+### Viabilidade
+✅ **Totalmente viável** sem quebrar regras anteriores. As mudanças são pontuais e isoladas no fluxo A_FIXAR. Contratos FIXO permanecem 100% inalterados (continuam gerando provisão `PREVISTO` na criação e efetivando na liquidação).
 
-```text
-[Step 1: Dados da Conta] → Avançar →  [Step 2: Parcelas] → Salvar
-       (em memória)                   (em memória)        (persiste tudo)
-```
+### Implementação (arquivo único)
 
-- **Step 1 — Dados da Conta**: todos os campos atuais. Botão "Avançar" valida campos obrigatórios e move para Step 2 sem persistir.
-- **Step 2 — Parcelas**: usuário define qtd parcelas, intervalo e gera (cálculo em memória). Botões: "← Voltar" (volta ao Step 1 mantendo dados) e "Salvar Conta" (persiste conta + parcelas atomicamente).
-- **Cancelar**: descarta tudo. Nenhum registro criado.
+**`src/pages/comercial/ContratosPage.tsx`**
 
-### Modo EDIÇÃO (inalterado)
-Edição continua com Tabs (Dados / Parcelas), pois a conta já existe e as regras de bloqueio (`podeRecriarParcelas`) seguem valendo. Sem stepper na edição.
+1. **No handler `onSaveFixacao`** (linha ~801):
+   - Quando abrir modal de duplicatas após fixação, marcar uma flag `isFixacaoDefinitiva = true` (já temos `fixacaoParaDuplicata`).
+   
+2. **No `onSave` do modal de gerar duplicatas** (linha ~3315):
+   - Trocar `const isProvisorio = !!autoGerarDuplicatasContrato;` por:
+     ```ts
+     // A_FIXAR via fixação: definitivo (PENDENTE). FIXO recém-criado: provisório (PREVISTO).
+     const isProvisorio = !!autoGerarDuplicatasContrato && !fixacaoParaDuplicata;
+     ```
+   - Já está correto — apenas verificar/garantir.
 
-### Modo CRIAÇÃO via Contrato (inalterado)
-Continua sendo gerada pelo serviço do contrato — não passa por este fluxo manual.
+3. **Título do modal** (linha 3301):
+   - Trocar `"Duplicatas Provisórias"` → exibir só quando `!fixacaoParaDuplicata && autoGerarDuplicatasContrato` (criação de FIXO).
+   - Para fixação: `"Duplicatas (Fixação) — A Receber/Pagar"`.
 
-### Implementação
+4. **Bloquear "Gerar Duplicatas" no nível do contrato A_FIXAR** (botões nas linhas ~2196, 2216, 2305, 2354):
+   - Para A_FIXAR sem fixações: ocultar/desabilitar com tooltip "Para contratos A Fixar, gere duplicatas pela aba Fixações".
+   - Permitir apenas via card de cada fixação.
 
-**Arquivo único:** `src/pages/financeiro/ContasPage.tsx`
+5. **Mensagem ao criar contrato A_FIXAR** (linha ~731):
+   - Já não abre modal de duplicatas (condição `tipoPreco === "FIXO"`). Adicionar toast informativo: "Contrato A Fixar criado. Registre fixações para gerar duplicatas."
 
-1. **Substituir tabs por stepper quando `modalMode === "create"`**:
-   - Componente local `ContaStepper` (2 passos: "Dados" / "Parcelas") seguindo visual de `RomaneioStepper`.
-   - Estado novo: `createStep: 1 | 2`, `parcelasDraft: ParcelaDraft[]` (em memória).
+6. **Aba Liquidação — reforço visual** (apenas A_FIXAR):
+   - Adicionar `Alert` no topo da seção de parcelas: "Duplicatas geradas via Fixação. Edição não permitida."
+   - Aplicar `opacity-70 pointer-events-none` ou tooltip nas linhas das parcelas com `origem = "FIXACAO"`.
 
-2. **Step 1 (Dados)**: reaproveitar formulário atual. Footer:
-   - `Cancelar` (fecha modal, descarta)
-   - `Avançar →` (valida → `setCreateStep(2)`)
-
-3. **Step 2 (Parcelas em memória)**:
-   - Reusar UI de geração (qtd, intervalo, primeira data) — mas grava em `parcelasDraft`, não chama serviço.
-   - Tabela mostra `parcelasDraft` com edição inline de vencimento/valor permitida (é tudo rascunho).
-   - Footer:
-     - `← Voltar` (mantém `parcelasDraft`)
-     - `Cancelar` (descarta tudo)
-     - `Salvar Conta` (desabilitado se `parcelasDraft.length === 0`)
-
-4. **Persistência atômica em "Salvar Conta"**:
-   ```ts
-   const saved = await contaService.criar({...formData});
-   await Promise.all(parcelasDraft.map((p, i) => 
-     financeiroParcelaService.criar({ contaId: saved.id, numero: i+1, ...p })
-   ));
-   ```
-   Se a primeira chamada falhar, nada é criado. Se as parcelas falharem (improvável em mock), reverter via `contaService.excluir(saved.id)`.
-
-5. **Validação de fechamento**: no `onOpenChange` do Dialog, se `modalMode === "create"`, exibir `confirm()` "Descartar conta? As informações serão perdidas." antes de fechar.
-
-6. **Remover lógica antiga**: o `handleSave` que persistia conta vazia e forçava troca para aba Parcelas é descartado para o modo create. Edição continua usando o handler atual.
-
-### Arquivos afetados
-
-| Arquivo | Mudança |
-|---|---|
-| `src/pages/financeiro/ContasPage.tsx` | Stepper de 2 passos para criação; estado `parcelasDraft`; persistência atômica; confirmação ao cancelar |
+7. **Painel "Saldo a Fixar"** já existe; manter.
 
 ### O que NÃO muda
-- Modo edição (tabs continuam, regras de bloqueio mantidas)
-- Geração via contrato
-- Estrutura de dados, services, mock-store
-- Aba/lógica de parcelas em si (cálculo, formato, valores)
+- Estrutura de dados (`mock-data`, services, status enums).
+- Fluxo FIXO (provisão na criação, efetivação na liquidação).
+- Cálculo de saldo a fixar e validação de tolerância.
+- Modal de geração de parcelas (mesma UI para 1 ou N parcelas).
 
 ### Resultado
-- Impossível criar conta manual sem parcelas
-- Impossível deixar conta órfã ao cancelar
-- Fluxo familiar (igual Romaneio)
-- Edição preservada com regras de integridade já implementadas
+- A_FIXAR: nenhuma duplicata na criação, uma duplicata `ABERTO`/`PENDENTE` por fixação (1 ou N parcelas), bloqueio de geração avulsa, parcelas read-only na liquidação.
+- FIXO: comportamento atual preservado integralmente.
+
+### Arquivos afetados
+| Arquivo | Mudança |
+|---|---|
+| `src/pages/comercial/ContratosPage.tsx` | Lógica `isProvisorio` por contexto, título do modal, bloqueio de botão para A_FIXAR sem fixação, alerta na aba Liquidação |
 
