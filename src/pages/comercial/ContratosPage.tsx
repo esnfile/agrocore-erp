@@ -2103,7 +2103,11 @@ export default function ContratosPage() {
                                       {p.saldoParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                                     </TableCell>
                                     <TableCell>
-                                      <Badge variant="outline" className="bg-amber-100/50 text-amber-700 border-amber-300">PREVISTO</Badge>
+                                      {p.status === "PENDENTE" ? (
+                                        <Badge variant="outline" className="bg-blue-100/50 text-blue-700 border-blue-300">PENDENTE</Badge>
+                                      ) : (
+                                        <Badge variant="outline" className="bg-amber-100/50 text-amber-700 border-amber-300">PREVISTO</Badge>
+                                      )}
                                     </TableCell>
                                   </TableRow>
                                   {isExpanded && (
