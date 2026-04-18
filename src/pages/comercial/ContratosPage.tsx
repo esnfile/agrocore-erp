@@ -3335,7 +3335,9 @@ export default function ContratosPage() {
               );
               setFinContas([result.conta]);
               setFinParcelas(result.parcelas);
-              if (!isProvisorio) {
+              // Para fixação (A_FIXAR), NÃO promover a FATURADO — contrato segue PARCIAL
+              // até que todas as entregas estejam finalizadas e todo o saldo esteja fixado.
+              if (!isProvisorio && !fixacaoParaDuplicata) {
                 ctr.status = "FATURADO";
               }
               ctr.duplicatasGeradas = true;
