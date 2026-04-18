@@ -20,13 +20,15 @@ import type { FinanceiroMovimentacao, FinanceiroParcela, FinanceiroConta } from 
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+type FluxoStatus = "REALIZADO" | "PENDENTE" | "PREVISTO";
+
 interface FluxoItem {
   data: string;
   descricao: string;
   tipo: "ENTRADA" | "SAIDA";
   valor: number;
   saldoAcumulado: number;
-  realizado: boolean;
+  status: FluxoStatus;
   contaFinanceira: string;
   formaPagamento: string;
   documento: string;
