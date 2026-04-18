@@ -738,6 +738,11 @@ export default function ContratosPage() {
         setGcParcelasEditaveis([]);
         setGcParcelasGeradas(false);
         setGerarContasOpen(true);
+      } else if (isNewContract && data.tipoPreco === "A_FIXAR" && saved) {
+        toast({
+          title: "Contrato A Fixar criado",
+          description: "Registre fixações de preço para gerar as duplicatas correspondentes.",
+        });
       }
     } catch {
       toast({ title: "Erro", description: "Falha ao salvar contrato.", variant: "destructive" });
@@ -2182,25 +2187,15 @@ export default function ContratosPage() {
                             </p>
                           </div>
                         </div>
-                        <div className="flex gap-2 mt-4">
+                        <div className="flex flex-col gap-2 mt-4">
                           {saldoAFixar > 0 && !viewOnly && (
-                            <Button variant="outline" size="sm" onClick={() => { setActiveTab("fixacoes"); openNewFixacao(); }}>
+                            <Button variant="outline" size="sm" className="w-fit" onClick={() => { setActiveTab("fixacoes"); openNewFixacao(); }}>
                               Fixar Preço
                             </Button>
                           )}
-                          {saldoAFixar === 0 && totalFixado > 0 && !editingContrato.duplicatasGeradas && !viewOnly && (
-                            <Button size="sm" onClick={() => {
-                              setGcNumParcelas("1");
-                              setGcFrequencia("MENSAL");
-                              setGcDiasPersonalizado("30");
-                              setGcDataPrimeiraParcela(new Date().toISOString().slice(0, 10));
-                              setGcParcelasEditaveis([]);
-                              setGcParcelasGeradas(false);
-                              setGerarContasOpen(true);
-                            }}>
-                              Gerar Duplicatas de Previsão
-                            </Button>
-                          )}
+                          <p className="text-xs text-muted-foreground italic">
+                            ℹ️ Para contratos A Fixar, as duplicatas são geradas automaticamente ao registrar cada fixação de preço (uma duplicata por fixação, status ABERTO).
+                          </p>
                         </div>
                       </CardContent>
                     </Card>
@@ -2412,6 +2407,11 @@ export default function ContratosPage() {
                   {finParcelas.length > 0 && (
                     <div className="space-y-3">
                       <h4 className="font-semibold text-foreground text-sm">Parcelas Vinculadas</h4>
+                      {editingContrato.tipoPreco === "A_FIXAR" && finParcelas.some((p) => (p as any).origem === "FIXACAO") && (
+                        <div className="rounded-md border border-primary/20 bg-primary/5 p-3 text-sm text-foreground">
+                          ℹ️ Duplicatas geradas via <strong>Fixação de Preço</strong>. As parcelas refletem o preço definitivo de cada fixação e não podem ser editadas.
+                        </div>
+                      )}
                       <div className="overflow-auto">
                         <Table>
                           <TableHeader>
@@ -3298,7 +3298,7 @@ export default function ContratosPage() {
         <CrudModal
           open={gerarContasOpen}
           onClose={() => { setGerarContasOpen(false); setAutoGerarDuplicatasContrato(null); setFixacaoParaDuplicata(null); }}
-          title={`Gerar Duplicatas ${autoGerarDuplicatasContrato ? "Provisórias" : ""}${fixacaoParaDuplicata ? " (Fixação)" : ""} — ${(editingContrato || autoGerarDuplicatasContrato)!.tipoContrato === "COMPRA" ? "A Pagar" : "A Receber"}`}
+          title={`Gerar Duplicatas ${fixacaoParaDuplicata ? "(Fixação)" : autoGerarDuplicatasContrato ? "Provisórias" : ""} — ${(editingContrato || autoGerarDuplicatasContrato)!.tipoContrato === "COMPRA" ? "A Pagar" : "A Receber"}`}
           saving={gcSaving}
           onSave={gcParcelasGeradas ? async () => {
             const ctr = (editingContrato || autoGerarDuplicatasContrato)!;
@@ -3312,7 +3312,8 @@ export default function ContratosPage() {
             }
             setGcSaving(true);
             try {
-              const isProvisorio = !!autoGerarDuplicatasContrato;
+              // A_FIXAR via fixação: definitivo (ABERTO/PENDENTE). FIXO recém-criado: provisório (PREVISTO).
+              const isProvisorio = !!autoGerarDuplicatasContrato && !fixacaoParaDuplicata;
               const result = await financeiroContaService.gerarContasDeContrato(
                 ctr.id,
                 gcParcelasEditaveis,
@@ -3351,8 +3352,8 @@ export default function ContratosPage() {
                   </div>
                 )}
                 {fixacaoParaDuplicata && (
-                  <div className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
-                    ℹ️ Fixação registrada: <strong>{fixacaoParaDuplicata.quantidadeFixada.toLocaleString("pt-BR")}</strong> × {formatMoeda(fixacaoParaDuplicata.precoFixado, ctrMoedaSimbolo)} = <strong>{formatMoeda(valorEsperado, ctrMoedaSimbolo)}</strong>. Gere as duplicatas provisórias desta fixação.
+                  <div className="rounded-md bg-primary/10 border border-primary/20 p-3 text-sm">
+                    ✅ Fixação registrada: <strong>{fixacaoParaDuplicata.quantidadeFixada.toLocaleString("pt-BR")}</strong> × {formatMoeda(fixacaoParaDuplicata.precoFixado, ctrMoedaSimbolo)} = <strong>{formatMoeda(valorEsperado, ctrMoedaSimbolo)}</strong>. As duplicatas desta fixação serão geradas com status <strong>ABERTO</strong> (preço definitivo).
                   </div>
                 )}
                 <div className="grid grid-cols-2 gap-4">
