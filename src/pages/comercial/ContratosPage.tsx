@@ -2049,21 +2049,29 @@ export default function ContratosPage() {
               {/* Cenário 1: ABERTO ou PARCIAL */}
               {editingContrato && (editingContrato.status === "ABERTO" || editingContrato.status === "PARCIAL") && (
                 <>
-                  <div className="rounded-md bg-muted p-6 text-center space-y-2">
-                    <p className="text-sm text-muted-foreground">
-                      ℹ️ Duplicatas Provisórias: <strong>{editingContrato.duplicatasGeradas ? "✅ Geradas" : "❌ Não geradas"}</strong>
-                    </p>
-                    {!editingContrato.duplicatasGeradas && (
-                      <p className="text-sm text-muted-foreground">
-                        Status Atual: <StatusBadge status={editingContrato.status} /> — Aguardando geração de duplicatas provisórias
-                      </p>
-                    )}
-                  </div>
+                  {(() => {
+                    const isAFixar = editingContrato.tipoPreco === "A_FIXAR";
+                    const labelDuplicatas = isAFixar ? "Duplicatas (Fixação)" : "Duplicatas Provisórias";
+                    return (
+                      <div className="rounded-md bg-muted p-6 text-center space-y-2">
+                        <p className="text-sm text-muted-foreground">
+                          ℹ️ {labelDuplicatas}: <strong>{editingContrato.duplicatasGeradas ? "✅ Geradas" : "❌ Não geradas"}</strong>
+                        </p>
+                        {!editingContrato.duplicatasGeradas && (
+                          <p className="text-sm text-muted-foreground">
+                            Status Atual: <StatusBadge status={editingContrato.status} /> — {isAFixar ? "Aguardando fixação de preço para gerar duplicatas" : "Aguardando geração de duplicatas provisórias"}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
 
-                  {/* Listar parcelas previstas quando já geradas */}
-                  {editingContrato.duplicatasGeradas && finParcelas.filter(p => p.status === "PREVISTO").length > 0 && (
+                  {/* Listar parcelas (PREVISTO para FIXO; PENDENTE/PREVISTO para A_FIXAR via fixação) */}
+                  {editingContrato.duplicatasGeradas && finParcelas.filter(p => p.status === "PREVISTO" || (editingContrato.tipoPreco === "A_FIXAR" && p.status === "PENDENTE")).length > 0 && (
                     <div className="space-y-3">
-                      <h4 className="font-semibold text-foreground text-sm">Parcelas Previstas (Provisórias)</h4>
+                      <h4 className="font-semibold text-foreground text-sm">
+                        {editingContrato.tipoPreco === "A_FIXAR" ? "Parcelas (Geradas via Fixação)" : "Parcelas Previstas (Provisórias)"}
+                      </h4>
                       <div className="overflow-auto">
                         <Table>
                           <TableHeader>
@@ -2077,7 +2085,7 @@ export default function ContratosPage() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {finParcelas.filter(p => p.status === "PREVISTO").map((p) => {
+                            {finParcelas.filter(p => p.status === "PREVISTO" || (editingContrato.tipoPreco === "A_FIXAR" && p.status === "PENDENTE")).map((p) => {
                               const parcelaMovs = finMovs.filter((m) => m.parcelaId === p.id);
                               const isExpanded = expandedParcelaId === p.id;
                               return (
