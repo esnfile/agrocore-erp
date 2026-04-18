@@ -2407,6 +2407,11 @@ export default function ContratosPage() {
                   {finParcelas.length > 0 && (
                     <div className="space-y-3">
                       <h4 className="font-semibold text-foreground text-sm">Parcelas Vinculadas</h4>
+                      {editingContrato.tipoPreco === "A_FIXAR" && finParcelas.some((p) => (p as any).origem === "FIXACAO") && (
+                        <div className="rounded-md border border-primary/20 bg-primary/5 p-3 text-sm text-foreground">
+                          ℹ️ Duplicatas geradas via <strong>Fixação de Preço</strong>. As parcelas refletem o preço definitivo de cada fixação e não podem ser editadas.
+                        </div>
+                      )}
                       <div className="overflow-auto">
                         <Table>
                           <TableHeader>
