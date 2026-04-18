@@ -2422,9 +2422,13 @@ export const financeiroContaService = {
     }));
     mockFinanceiroParcelas.push(...novasParcelas);
     
-    // Mark duplicatas as generated; only transition to FATURADO for definitive (non-provisional)
+    // Mark duplicatas as generated.
+    // FATURADO só ocorre quando: contrato FIXO definitivo (efetivação) OU
+    // A_FIXAR com TODAS as entregas finalizadas e TODO o saldo fixado/duplicado.
     contrato.duplicatasGeradas = true;
-    if (!provisorio) {
+    const isFixacao = !!options?.fixacaoId;
+    if (!provisorio && !isFixacao) {
+      // Caminho FIXO definitivo (não é fixação parcial)
       contrato.status = "FATURADO";
     }
     contrato.atualizadoEm = now;
