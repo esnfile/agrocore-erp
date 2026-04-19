@@ -76,7 +76,7 @@ import type {
   DescontoTipo,
   DescontoEmpresaConfig,
 } from "@/lib/mock-data";
-import { Plus, Pencil, Trash2, Eye, Lock, FileCheck, AlertTriangle, ExternalLink, Info, Clock, Building2, GitBranch, RefreshCw, DollarSign, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, Lock, FileCheck, AlertTriangle, ExternalLink, Info, Clock, Building2, GitBranch, RefreshCw, DollarSign, ChevronDown, ChevronUp, ArrowUpDown, ArrowUp, ArrowDown, Filter } from "lucide-react";
 import { SearchableSelect, type SearchableOption } from "@/components/SearchableSelect";
 import { formatMoeda, formatDateBR } from "@/lib/format";
 
