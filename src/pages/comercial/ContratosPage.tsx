@@ -1132,6 +1132,26 @@ export default function ContratosPage() {
               </SelectContent>
             </Select>
           </div>
+          <div className="space-y-1.5 min-w-[200px]">
+            <Label className="text-xs font-medium flex items-center gap-1.5">
+              <Filter className="h-3.5 w-3.5" /> Status
+            </Label>
+            <Select value={statusFiltro} onValueChange={setStatusFiltro}>
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={TODOS_STATUS}>Todos</SelectItem>
+                {STATUS_CONTRATO_OPCOES.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    <div className="flex items-center gap-2">
+                      <StatusBadge status={opt.value} size="sm" />
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="flex-1" />
           <Button onClick={openNew}>
             <Plus className="mr-2 h-4 w-4" />
