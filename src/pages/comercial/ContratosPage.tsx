@@ -214,6 +214,32 @@ export default function ContratosPage() {
   const [loading, setLoading] = useState(false);
   const [filiaisEmpresa, setFiliaisEmpresa] = useState<Filial[]>([]);
 
+  // Filtro Status (somente status reais de contrato)
+  const TODOS_STATUS = "__TODOS__";
+  const [statusFiltro, setStatusFiltro] = useState<string>(TODOS_STATUS);
+
+  // Ordenação manual da tabela (clique no cabeçalho).
+  // Quando null → usa ordenação padrão Empresa ASC → Filial ASC → dataContrato DESC.
+  type SortKey =
+    | "empresa" | "filial" | "status" | "numero" | "pessoa" | "produto"
+    | "tipo" | "volTotal" | "volPendente" | "preco";
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  };
+
+  const clearSort = () => {
+    setSortKey(null);
+    setSortDir("asc");
+  };
+
   // Filiais for the empresa selected in the contract form (may differ from session empresa)
   const [contratoFiliaisEmpresa, setContratoFiliaisEmpresa] = useState<Filial[]>([]);
 
