@@ -1144,9 +1144,7 @@ export default function ContratosPage() {
                 <SelectItem value={TODOS_STATUS}>Todos</SelectItem>
                 {STATUS_CONTRATO_OPCOES.map((opt) => (
                   <SelectItem key={opt.value} value={opt.value}>
-                    <div className="flex items-center gap-2">
-                      <StatusBadge status={opt.value} size="sm" />
-                    </div>
+                    {opt.label}
                   </SelectItem>
                 ))}
               </SelectContent>
