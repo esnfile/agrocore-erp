@@ -546,6 +546,75 @@ export default function ContratosPage() {
   };
   const getNomeEmpresa = (id: string) => orgEmpresas.find((e) => e.id === id)?.nome ?? mockEmpresas.find((e) => e.id === id)?.nome ?? id;
 
+  // ---- Lista filtrada + ordenada para a tabela ----
+  // Filtro por status + ordenação padrão (Empresa ASC → Filial ASC → dataContrato DESC)
+  // ou ordenação manual quando o usuário clica num cabeçalho.
+  const contratosOrdenados = useMemo(() => {
+    const filtered =
+      statusFiltro === TODOS_STATUS
+        ? contratos
+        : contratos.filter((c) => c.status === statusFiltro);
+
+    const arr = [...filtered];
+
+    if (!sortKey) {
+      // Ordenação padrão
+      arr.sort((a, b) => {
+        const empA = getNomeEmpresa(a.empresaId).toLowerCase();
+        const empB = getNomeEmpresa(b.empresaId).toLowerCase();
+        if (empA !== empB) return empA.localeCompare(empB);
+        const filA = getNomeFilial(a.filialId).toLowerCase();
+        const filB = getNomeFilial(b.filialId).toLowerCase();
+        if (filA !== filB) return filA.localeCompare(filB);
+        const dA = new Date(a.dataContrato).getTime();
+        const dB = new Date(b.dataContrato).getTime();
+        return dB - dA; // mais recentes primeiro
+      });
+      return arr;
+    }
+
+    // Ordenação manual
+    const dirMul = sortDir === "asc" ? 1 : -1;
+    const valueOf = (c: Contrato): string | number => {
+      switch (sortKey) {
+        case "empresa": return getNomeEmpresa(c.empresaId).toLowerCase();
+        case "filial": return getNomeFilial(c.filialId).toLowerCase();
+        case "status": return c.status;
+        case "numero": return c.numeroContrato;
+        case "pessoa": return getNomePessoa(c.pessoaId).toLowerCase();
+        case "produto": return getNomeProduto(c.produtoId).toLowerCase();
+        case "tipo": return c.tipoContrato;
+        case "volTotal": return c.quantidadeTotal;
+        case "volPendente": return c.quantidadeSaldo;
+        case "preco": return c.precoUnitario;
+      }
+    };
+    arr.sort((a, b) => {
+      const va = valueOf(a);
+      const vb = valueOf(b);
+      if (typeof va === "number" && typeof vb === "number") return (va - vb) * dirMul;
+      return String(va).localeCompare(String(vb)) * dirMul;
+    });
+    return arr;
+  }, [contratos, statusFiltro, sortKey, sortDir, orgEmpresas, localFiliais, filiaisEmpresa]);
+
+  // Status disponíveis no filtro (apenas os reais de Contrato)
+  const STATUS_CONTRATO_OPCOES: { value: string; label: string }[] = [
+    { value: "ABERTO", label: "Aberto" },
+    { value: "PARCIAL", label: "Parcial" },
+    { value: "FATURADO", label: "Faturado" },
+    { value: "LIQUIDADO", label: "Liquidado" },
+    { value: "CANCELADO", label: "Cancelado" },
+  ];
+
+  // Helper: ícone de ordenação para o cabeçalho
+  const SortIcon = ({ k }: { k: SortKey }) => {
+    if (sortKey !== k) return <ArrowUpDown className="h-3 w-3 opacity-50" />;
+    return sortDir === "asc"
+      ? <ArrowUp className="h-3 w-3" />
+      : <ArrowDown className="h-3 w-3" />;
+  };
+
   // ---- Fixação computed values ----
   const totalEntregue = useMemo(() => {
     return romaneiosContrato.filter((r) => r.status === "FINALIZADO").reduce((s, r) => s + r.pesoLiquido, 0);
