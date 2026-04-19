@@ -17,6 +17,7 @@ import {
   pessoaService,
 } from "@/lib/services";
 import type { FinanceiroMovimentacao, FinanceiroParcela, FinanceiroConta } from "@/lib/mock-data";
+import { StatusBadge } from "@/components/StatusBadge";
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -232,11 +233,11 @@ export default function FluxoCaixaPage() {
                 <TableCell>{item.contaFinanceira || "—"}</TableCell>
                 <TableCell>
                   {item.status === "REALIZADO" ? (
-                    <Badge variant="outline" className="border-success/50 text-success">Realizado</Badge>
+                    <StatusBadge status="PAGO" label="Realizado" />
                   ) : item.status === "PENDENTE" ? (
-                    <Badge variant="outline" className="border-blue-500/50 text-blue-600">Pendente</Badge>
+                    <StatusBadge status="PENDENTE" />
                   ) : (
-                    <Badge variant="outline" className="border-warning/50 text-warning">Previsto</Badge>
+                    <StatusBadge status="PREVISTO" />
                   )}
                 </TableCell>
                 <TableCell className="text-right font-mono text-success">

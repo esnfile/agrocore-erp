@@ -22,22 +22,7 @@ import { financeiroContaService, financeiroParcelaService, financeiroMovimentaca
 import { formatDateBR } from "@/lib/format";
 import type { FinanceiroConta, FinanceiroParcela, FinanceiroMovimentacao, FinanceiroBaixa, TipoConta, StatusConta, StatusParcela, Pessoa } from "@/lib/mock-data";
 import { financeiroFormasPagto as mockFormasPagto } from "@/lib/mock-data";
-
-const statusContaColors: Record<StatusConta, string> = {
-  ABERTO: "bg-warning/20 text-warning border-warning/30",
-  PARCIAL: "bg-orange-100 text-orange-700 border-orange-300",
-  LIQUIDADO: "bg-blue-100 text-blue-700 border-blue-300",
-  CANCELADO: "bg-destructive/20 text-destructive border-destructive/30",
-};
-
-const statusParcelaColors: Record<StatusParcela, string> = {
-  PENDENTE: "bg-warning/20 text-warning border-warning/30",
-  PARCIAL: "bg-orange-100 text-orange-700 border-orange-300",
-  PAGO: "bg-success/20 text-success border-success/30",
-  VENCIDA: "bg-destructive/20 text-destructive border-destructive/30",
-  CANCELADA: "bg-muted text-muted-foreground border-muted",
-  PREVISTO: "bg-yellow-100 text-yellow-700 border-yellow-300",
-};
+import { StatusBadge } from "@/components/StatusBadge";
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -550,7 +535,7 @@ export default function ContasPage() {
                 <TableCell className="text-right font-mono">{fmt(p.valorPago)}</TableCell>
                 <TableCell className="text-right font-mono">{fmt(p.saldoParcela)}</TableCell>
                 <TableCell>
-                  <Badge variant="outline" className={statusParcelaColors[p.status]}>{p.status}</Badge>
+                  <StatusBadge status={p.status} />
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-1 justify-center">
@@ -594,7 +579,7 @@ export default function ContasPage() {
                   {editingConta.tipo === "PAGAR" ? "A Pagar" : "A Receber"}
                 </Badge>
                 <Badge variant="outline" className="bg-muted">{editingConta.origem}</Badge>
-                <Badge variant="outline" className={statusContaColors[editingConta.status]}>{editingConta.status}</Badge>
+                <StatusBadge status={editingConta.status} />
               </div>
             )}
             <div className="grid grid-cols-3 gap-4">
@@ -753,7 +738,7 @@ export default function ContasPage() {
                               <TableCell className="text-right font-mono">{fmt(p.valorReal)}</TableCell>
                               <TableCell className="text-right font-mono">{fmt(p.valorPago)}</TableCell>
                               <TableCell className="text-right font-mono">{fmt(p.saldoParcela)}</TableCell>
-                              <TableCell><Badge variant="outline" className={statusParcelaColors[p.status]}>{p.status}</Badge></TableCell>
+                              <TableCell><StatusBadge status={p.status} /></TableCell>
                             </TableRow>
                           </CollapsibleTrigger>
                           <CollapsibleContent asChild>

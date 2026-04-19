@@ -127,19 +127,8 @@ const fixacaoSchema = z.object({
 });
 type FixacaoForm = z.infer<typeof fixacaoSchema>;
 
-// ---- Status Badge ----
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-    ABERTO: { label: "Aberto", variant: "default" },
-    PARCIAL: { label: "Parcial", variant: "secondary" },
-    FINALIZADO: { label: "Finalizado", variant: "outline" },
-    FATURADO: { label: "Faturado", variant: "default" },
-    CANCELADO: { label: "Cancelado", variant: "destructive" },
-    LIQUIDADO: { label: "Liquidado", variant: "outline" },
-  };
-  const s = map[status] ?? { label: status, variant: "outline" as const };
-  return <Badge variant={s.variant}>{s.label}</Badge>;
-}
+// ---- Status Badge (delegates to global StatusBadge) ----
+import { StatusBadge } from "@/components/StatusBadge";
 
 export default function ContratosPage() {
   const { grupoAtual, empresaAtual, empresas: orgEmpresas, filiais: orgFiliais } = useOrganization();
@@ -2103,11 +2092,7 @@ export default function ContratosPage() {
                                       {p.saldoParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                                     </TableCell>
                                     <TableCell>
-                                      {p.status === "PENDENTE" ? (
-                                        <Badge variant="outline" className="bg-blue-100/50 text-blue-700 border-blue-300">PENDENTE</Badge>
-                                      ) : (
-                                        <Badge variant="outline" className="bg-amber-100/50 text-amber-700 border-amber-300">PREVISTO</Badge>
-                                      )}
+                                      <StatusBadge status={p.status} />
                                     </TableCell>
                                   </TableRow>
                                   {isExpanded && (
@@ -2340,7 +2325,7 @@ export default function ContratosPage() {
                                   <TableCell>{formatDateBR(p.dataVencimento)}</TableCell>
                                   <TableCell className="text-right">{p.valorParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
                                   <TableCell className="text-right">{p.saldoParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
-                                  <TableCell><Badge variant="outline" className="bg-amber-100/50 text-amber-700 border-amber-300">PREVISTO</Badge></TableCell>
+                                  <TableCell><StatusBadge status={p.status} /></TableCell>
                                 </TableRow>
                               ))}
                             </TableBody>
@@ -2463,13 +2448,7 @@ export default function ContratosPage() {
                                       {p.saldoParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                                     </TableCell>
                                     <TableCell>
-                                      <Badge
-                                        variant={
-                                          p.status === "PAGO" ? "default" : p.status === "PARCIAL" ? "secondary" : p.status === "VENCIDA" ? "destructive" : "outline"
-                                        }
-                                      >
-                                        {p.status}
-                                      </Badge>
+                                      <StatusBadge status={p.status} />
                                     </TableCell>
                                   </TableRow>
                                   {isExpanded && (
