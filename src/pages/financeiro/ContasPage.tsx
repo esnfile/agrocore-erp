@@ -22,22 +22,7 @@ import { financeiroContaService, financeiroParcelaService, financeiroMovimentaca
 import { formatDateBR } from "@/lib/format";
 import type { FinanceiroConta, FinanceiroParcela, FinanceiroMovimentacao, FinanceiroBaixa, TipoConta, StatusConta, StatusParcela, Pessoa } from "@/lib/mock-data";
 import { financeiroFormasPagto as mockFormasPagto } from "@/lib/mock-data";
-
-const statusContaColors: Record<StatusConta, string> = {
-  ABERTO: "bg-warning/20 text-warning border-warning/30",
-  PARCIAL: "bg-orange-100 text-orange-700 border-orange-300",
-  LIQUIDADO: "bg-blue-100 text-blue-700 border-blue-300",
-  CANCELADO: "bg-destructive/20 text-destructive border-destructive/30",
-};
-
-const statusParcelaColors: Record<StatusParcela, string> = {
-  PENDENTE: "bg-warning/20 text-warning border-warning/30",
-  PARCIAL: "bg-orange-100 text-orange-700 border-orange-300",
-  PAGO: "bg-success/20 text-success border-success/30",
-  VENCIDA: "bg-destructive/20 text-destructive border-destructive/30",
-  CANCELADA: "bg-muted text-muted-foreground border-muted",
-  PREVISTO: "bg-yellow-100 text-yellow-700 border-yellow-300",
-};
+import { StatusBadge } from "@/components/StatusBadge";
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
