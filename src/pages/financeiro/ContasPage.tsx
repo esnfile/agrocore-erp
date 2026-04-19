@@ -535,7 +535,7 @@ export default function ContasPage() {
                 <TableCell className="text-right font-mono">{fmt(p.valorPago)}</TableCell>
                 <TableCell className="text-right font-mono">{fmt(p.saldoParcela)}</TableCell>
                 <TableCell>
-                  <Badge variant="outline" className={statusParcelaColors[p.status]}>{p.status}</Badge>
+                  <StatusBadge status={p.status} />
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-1 justify-center">
@@ -579,7 +579,7 @@ export default function ContasPage() {
                   {editingConta.tipo === "PAGAR" ? "A Pagar" : "A Receber"}
                 </Badge>
                 <Badge variant="outline" className="bg-muted">{editingConta.origem}</Badge>
-                <Badge variant="outline" className={statusContaColors[editingConta.status]}>{editingConta.status}</Badge>
+                <StatusBadge status={editingConta.status} />
               </div>
             )}
             <div className="grid grid-cols-3 gap-4">
@@ -738,7 +738,7 @@ export default function ContasPage() {
                               <TableCell className="text-right font-mono">{fmt(p.valorReal)}</TableCell>
                               <TableCell className="text-right font-mono">{fmt(p.valorPago)}</TableCell>
                               <TableCell className="text-right font-mono">{fmt(p.saldoParcela)}</TableCell>
-                              <TableCell><Badge variant="outline" className={statusParcelaColors[p.status]}>{p.status}</Badge></TableCell>
+                              <TableCell><StatusBadge status={p.status} /></TableCell>
                             </TableRow>
                           </CollapsibleTrigger>
                           <CollapsibleContent asChild>
