@@ -1,75 +1,87 @@
+## Análise da Proposta: Padronização Global de Status Badges
+
+### Avaliação honesta
+
+**A ideia é excelente e necessária.** Hoje temos badges espalhados em vários arquivos com cores e estilos diferentes para o mesmo status conceitual:
+
+- `romaneio-types.ts` tem `STATUS_BADGE_CLASSES` (8 status do Romaneio)
+- `ContasPage.tsx` tem badges inline (PENDENTE âmbar, PAGO verde, ATRASADO vermelho)
+- `ContratosPage.tsx` tem badges hardcoded (PARCIAL azul, FATURADO roxo, LIQUIDADO verde, PREVISTO âmbar, PENDENTE azul)
+- `FluxoCaixaPage.tsx` recém-recebeu badges próprios (Realizado/Pendente/Previsto)
+- `MovimentacoesPage.tsx`, `AdiantamentosPage.tsx` etc. têm seus próprios
+
+Isso já causou confusão real nesta conversa (PENDENTE aparecendo azul em um lugar e âmbar em outro). Centralizar resolve definitivamente.
+
+### Pontos de cuidado / ajustes que sugiro
+
+1. **Emojis como ícones (⌛ 💲 🔄 💰 ❌)**: não recomendo. O projeto inteiro usa **lucide-react** (Clock, DollarSign, RefreshCw, CheckCircle2, XCircle). Emojis renderizam diferente em cada SO/navegador, quebram alinhamento vertical e não respeitam `currentColor`. **Sugestão: usar lucide equivalentes** mantendo o mesmo significado visual.
+2. **Cores hardcoded via `style={{}}**`: o projeto segue tokens semânticos do `index.css` (HSL) e Tailwind. Misturar `style` inline com tokens quebra dark mode futuro e o tema agro (#1B5E20 já é nosso `--primary`). **Sugestão: mapear para classes Tailwind** (ex: `bg-amber-100 text-amber-800 border-amber-300`) — mantém consistência com o resto do sistema e o LIQUIDADO usa o verde primário do tema.
+3. **Status faltantes no mapa proposto** que existem hoje no código e precisam entrar:
+  - Romaneio: `RASCUNHO`, `AGUARDANDO_PESAGEM`, `PESAGEM_PARCIAL`, `AGUARDANDO_VINCULO`, `AGUARDANDO_CLASSIFICACAO`, `CLASSIFICADO`, `FINALIZADO`
+  - Financeiro: `PREVISTO`, `ATRASADO`, `BAIXADO_PARCIAL`
+  - Genéricos: `ATIVO`, `INATIVO`
+   Vou propor agrupamento dentro dos 5 grupos do Eduardo.
+4. **Arquivo `.jsx**` no prompt — o projeto é TypeScript. Será `.tsx`.
+5. **Migração ampla**: tocar todas as telas de uma vez é arriscado. Sugiro entregar componente + migrar telas críticas (Contratos, Contas, Fluxo de Caixa, Romaneios) em uma leva, e deixar as demais (Movimentações, Adiantamentos, Dashboard) prontas para migração incremental.
+
+### Plano proposto
+
+**1. Criar `src/components/StatusBadge.tsx**`
+
+- Mapa `STATUS_CONFIG` centralizado (lucide icon + classes Tailwind + label).
+- Props: `status`, `size?: "sm" | "md" | "lg"`, `className?`.
+- `React.memo`, `aria-label`, fallback com `console.error` para status desconhecido.
+- Suporta string livre (case-insensitive) para tolerar variações.
+
+**2. Mapeamento final (lucide + Tailwind)**
 
 
-## Análise do Prompt: Duplicatas em Contratos A_FIXAR
+| Status                                                                             | Ícone (lucide) | Classes                                                                                                    |
+| ---------------------------------------------------------------------------------- | -------------- | ---------------------------------------------------------------------------------------------------------- |
+| ABERTO, PENDENTE, PREVISTO, AGUARDANDO_*                                           | `Clock`        | `bg-amber-100 text-amber-800 border-amber-300`                                                             |
+| FATURADO                                                                           | `DollarSign`   | `bg-orange-100 text-orange-800 border-orange-300`                                                          |
+| PARCIAL, EM_ANDAMENTO, PROCESSANDO, PESAGEM_PARCIAL, BAIXADO_PARCIAL, CLASSIFICADO | `RefreshCw`    | `bg-purple-100 text-purple-800 border-purple-300`                                                          |
+| LIQUIDADO, PAGO, RECEBIDO, FINALIZADO, ATIVO                                       | `CheckCircle2` | `bg-green-100 text-green-800 border-green-300` (LIQUIDADO destacado: `bg-primary text-primary-foreground`) |
+| CANCELADO, INATIVO                                                                 | `XCircle`      | `bg-gray-200 text-gray-700 border-gray-400`                                                                |
+| ATRASADO                                                                           | `AlertCircle`  | `bg-red-100 text-red-800 border-red-300`                                                                   |
+| RASCUNHO                                                                           | `FileEdit`     | `bg-slate-100 text-slate-700 border-slate-300`                                                             |
 
-### O que já está correto no sistema
-- Existe distinção `tipoPreco: "FIXO" | "A_FIXAR"`.
-- Existe `contratoFixacaoService` com cálculo de `saldo a fixar = entregue − já fixado` (validação +5% tolerância).
-- Existe `gerarContasDeContrato` que aceita `fixacaoId` e marca `origem = "FIXACAO"`.
-- A modal de geração de duplicatas já abre automaticamente após cada nova fixação, com valor pré-calculado `qtd × preço da fixação` — logo, **cada fixação já gera uma duplicata independente**.
-- Status da conta gerada já é `"ABERTO"` (não há status `PROVISOES_CONTRATO` no projeto — o que existe é a flag `provisorio` que coloca **parcelas** em `PREVISTO`).
 
-### Divergências do prompt vs. nosso modelo (importantes)
-1. **"Status PROVISOES_CONTRATO"** não existe aqui. Nosso modelo equivalente é: contratos FIXO geram conta `ABERTO` com **parcelas em status `PREVISTO`** (provisórias) que depois viram `PENDENTE` na liquidação. Vou tratar como sinônimo.
-2. O prompt diz "FIXO continua provisão". **Confirmado**: mantemos esse fluxo intacto.
-3. O prompt fala em "READ-ONLY na liquidação". Hoje as duplicatas/parcelas geradas a partir de contrato já não são editáveis na aba Liquidação — apenas o passo de liquidar é executado. Vou apenas reforçar visualmente.
+**3. Migrar nesta primeira leva**
 
-### O que precisa mudar (apenas A_FIXAR)
+- `src/pages/comercial/ContratosPage.tsx` (status do contrato + badges de parcelas)
+- `src/pages/financeiro/ContasPage.tsx`
+- `src/pages/financeiro/FluxoCaixaPage.tsx`
+- `src/pages/romaneios/RomaneiosPage.tsx` + `RomaneioFormPage.tsx`
+- Manter `STATUS_BADGE_CLASSES` em `romaneio-types.ts` por compat, mas substituir usos.
 
-| # | Comportamento atual (A_FIXAR) | Comportamento novo |
-|---|---|---|
-| 1 | Após criar contrato A_FIXAR, modal de duplicatas **não** abre (correto) — mas NÃO há proteção explícita contra alguém clicar em "Gerar Duplicatas" no contrato sem fixação | Bloquear botão "Gerar Duplicatas" no nível do contrato; só permitir via fixação |
-| 2 | Cada fixação já chama modal de duplicatas, mas marca `provisorio = true` (parcelas vão para `PREVISTO`) | Para A_FIXAR, gerar com `provisorio = false` → parcelas nascem `PENDENTE` (ABERTAS), pois preço já é definitivo |
-| 3 | Título do modal mostra "Duplicatas Provisórias" mesmo na fixação | Ajustar título: "Duplicatas (Fixação)" sem a palavra "Provisórias" |
-| 4 | Aba Liquidação: parcelas de fixação não têm tratamento visual diferenciado | Adicionar aviso "Duplicatas geradas via Fixação — não editáveis" + tooltip nas linhas |
+**4. Deixar pendente para 2ª leva** (não quebra nada, fica funcional como está)
 
-### Viabilidade
-✅ **Totalmente viável** sem quebrar regras anteriores. As mudanças são pontuais e isoladas no fluxo A_FIXAR. Contratos FIXO permanecem 100% inalterados (continuam gerando provisão `PREVISTO` na criação e efetivando na liquidação).
-
-### Implementação (arquivo único)
-
-**`src/pages/comercial/ContratosPage.tsx`**
-
-1. **No handler `onSaveFixacao`** (linha ~801):
-   - Quando abrir modal de duplicatas após fixação, marcar uma flag `isFixacaoDefinitiva = true` (já temos `fixacaoParaDuplicata`).
-   
-2. **No `onSave` do modal de gerar duplicatas** (linha ~3315):
-   - Trocar `const isProvisorio = !!autoGerarDuplicatasContrato;` por:
-     ```ts
-     // A_FIXAR via fixação: definitivo (PENDENTE). FIXO recém-criado: provisório (PREVISTO).
-     const isProvisorio = !!autoGerarDuplicatasContrato && !fixacaoParaDuplicata;
-     ```
-   - Já está correto — apenas verificar/garantir.
-
-3. **Título do modal** (linha 3301):
-   - Trocar `"Duplicatas Provisórias"` → exibir só quando `!fixacaoParaDuplicata && autoGerarDuplicatasContrato` (criação de FIXO).
-   - Para fixação: `"Duplicatas (Fixação) — A Receber/Pagar"`.
-
-4. **Bloquear "Gerar Duplicatas" no nível do contrato A_FIXAR** (botões nas linhas ~2196, 2216, 2305, 2354):
-   - Para A_FIXAR sem fixações: ocultar/desabilitar com tooltip "Para contratos A Fixar, gere duplicatas pela aba Fixações".
-   - Permitir apenas via card de cada fixação.
-
-5. **Mensagem ao criar contrato A_FIXAR** (linha ~731):
-   - Já não abre modal de duplicatas (condição `tipoPreco === "FIXO"`). Adicionar toast informativo: "Contrato A Fixar criado. Registre fixações para gerar duplicatas."
-
-6. **Aba Liquidação — reforço visual** (apenas A_FIXAR):
-   - Adicionar `Alert` no topo da seção de parcelas: "Duplicatas geradas via Fixação. Edição não permitida."
-   - Aplicar `opacity-70 pointer-events-none` ou tooltip nas linhas das parcelas com `origem = "FIXACAO"`.
-
-7. **Painel "Saldo a Fixar"** já existe; manter.
+- Movimentações, Adiantamentos, Dashboard, Plano de Contas — migração incremental futura.
 
 ### O que NÃO muda
-- Estrutura de dados (`mock-data`, services, status enums).
-- Fluxo FIXO (provisão na criação, efetivação na liquidação).
-- Cálculo de saldo a fixar e validação de tolerância.
-- Modal de geração de parcelas (mesma UI para 1 ou N parcelas).
+
+- Valores dos status no banco/mock (strings continuam iguais).
+- Lógica de transição de status (PARCIAL → FATURADO → LIQUIDADO etc.).
+- Tema, tokens de cor existentes.
 
 ### Resultado
-- A_FIXAR: nenhuma duplicata na criação, uma duplicata `ABERTO`/`PENDENTE` por fixação (1 ou N parcelas), bloqueio de geração avulsa, parcelas read-only na liquidação.
-- FIXO: comportamento atual preservado integralmente.
 
-### Arquivos afetados
-| Arquivo | Mudança |
-|---|---|
-| `src/pages/comercial/ContratosPage.tsx` | Lógica `isProvisorio` por contexto, título do modal, bloqueio de botão para A_FIXAR sem fixação, alerta na aba Liquidação |
+- Um único arquivo `StatusBadge.tsx` como fonte de verdade.
+- Mesmo status = mesma cor + ícone em qualquer tela.
+- Ícones consistentes (lucide, não emoji).
+- Acessível, memoizado, responsivo via `size`.
+- Telas críticas migradas; demais migram incrementalmente sem quebra.
 
+### Pergunta antes de executar
+
+Confirma essas duas decisões?
+
+- **Lucide icons em vez de emojis** (recomendação forte minha)
+- **Classes Tailwind em vez de cores HEX inline** (mantém o tema do projeto)
+
+Se sim, executo já com a 1ª leva de migração. Se preferir emojis e HEX literais conforme o prompt, também faço — só perde consistência visual com o resto do sistema.  
+  
+Precisamos tomar cuidado para mexer nos status do romaneio, criamos com capricho, então não sei se é viavel fazer essas alterações de cores imensas... O que acha?
+
+&nbsp;
