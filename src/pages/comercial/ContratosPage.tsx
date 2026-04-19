@@ -1181,32 +1181,77 @@ export default function ContratosPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Empresa</TableHead>
-                <TableHead>Filial</TableHead>
-                <TableHead>Número</TableHead>
-                <TableHead>Pessoa</TableHead>
-                <TableHead>Produto</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead className="text-right">Vol. Total</TableHead>
-                <TableHead className="text-right">Vol. Pendente</TableHead>
-                <TableHead className="text-right">Preço</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>
+                  <button className="flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("empresa")}>
+                    Empresa <SortIcon k="empresa" />
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button className="flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("filial")}>
+                    Filial <SortIcon k="filial" />
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button className="flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("status")}>
+                    Status <SortIcon k="status" />
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button className="flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("numero")}>
+                    Número <SortIcon k="numero" />
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button className="flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("pessoa")}>
+                    Pessoa <SortIcon k="pessoa" />
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button className="flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("produto")}>
+                    Produto <SortIcon k="produto" />
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button className="flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("tipo")}>
+                    Tipo <SortIcon k="tipo" />
+                  </button>
+                </TableHead>
+                <TableHead className="text-right">
+                  <button className="flex items-center gap-1 hover:text-foreground ml-auto" onClick={() => toggleSort("volTotal")}>
+                    Vol. Total <SortIcon k="volTotal" />
+                  </button>
+                </TableHead>
+                <TableHead className="text-right">
+                  <button className="flex items-center gap-1 hover:text-foreground ml-auto" onClick={() => toggleSort("volPendente")}>
+                    Vol. Pendente <SortIcon k="volPendente" />
+                  </button>
+                </TableHead>
+                <TableHead className="text-right">
+                  <button className="flex items-center gap-1 hover:text-foreground ml-auto" onClick={() => toggleSort("preco")}>
+                    Preço <SortIcon k="preco" />
+                  </button>
+                </TableHead>
                 <TableHead className="text-center">Duplic.</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {contratos.length === 0 ? (
+              {contratosOrdenados.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
-                    Nenhum contrato cadastrado.
+                    {contratos.length === 0
+                      ? "Nenhum contrato cadastrado."
+                      : "Nenhum contrato corresponde aos filtros aplicados."}
                   </TableCell>
                 </TableRow>
               ) : (
-                contratos.map((c) => (
+                contratosOrdenados.map((c) => (
                   <TableRow key={c.id}>
                     <TableCell className="text-xs">{getNomeEmpresa(c.empresaId)}</TableCell>
                     <TableCell className="text-xs">{getNomeFilial(c.filialId)}</TableCell>
+                    <TableCell>
+                      <StatusBadge status={c.status} />
+                    </TableCell>
                     <TableCell className="font-medium">{c.numeroContrato}</TableCell>
                     <TableCell>{getNomePessoa(c.pessoaId)}</TableCell>
                     <TableCell>{getNomeProduto(c.produtoId)}</TableCell>
@@ -1221,9 +1266,6 @@ export default function ContratosPage() {
                     <TableCell className="text-right">{Math.round(c.quantidadeSaldo).toLocaleString("pt-BR")}</TableCell>
                     <TableCell className="text-right">
                       {formatCurrency(c.precoUnitario, mockMoedas.find((m) => m.id === c.moedaId)?.codigo ?? "BRL")}
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge status={c.status} />
                     </TableCell>
                     <TableCell className="text-center">
                       <TooltipProvider delayDuration={200}>
