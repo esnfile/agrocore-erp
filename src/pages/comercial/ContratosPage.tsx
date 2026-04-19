@@ -76,7 +76,7 @@ import type {
   DescontoTipo,
   DescontoEmpresaConfig,
 } from "@/lib/mock-data";
-import { Plus, Pencil, Trash2, Eye, Lock, FileCheck, AlertTriangle, ExternalLink, Info, Clock, Building2, GitBranch, RefreshCw, DollarSign, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, Lock, FileCheck, AlertTriangle, ExternalLink, Info, Clock, Building2, GitBranch, RefreshCw, DollarSign, ChevronDown, ChevronUp, ArrowUpDown, ArrowUp, ArrowDown, Filter } from "lucide-react";
 import { SearchableSelect, type SearchableOption } from "@/components/SearchableSelect";
 import { formatMoeda, formatDateBR } from "@/lib/format";
 
@@ -213,6 +213,32 @@ export default function ContratosPage() {
   const [contratos, setContratos] = useState<Contrato[]>([]);
   const [loading, setLoading] = useState(false);
   const [filiaisEmpresa, setFiliaisEmpresa] = useState<Filial[]>([]);
+
+  // Filtro Status (somente status reais de contrato)
+  const TODOS_STATUS = "__TODOS__";
+  const [statusFiltro, setStatusFiltro] = useState<string>(TODOS_STATUS);
+
+  // Ordenação manual da tabela (clique no cabeçalho).
+  // Quando null → usa ordenação padrão Empresa ASC → Filial ASC → dataContrato DESC.
+  type SortKey =
+    | "empresa" | "filial" | "status" | "numero" | "pessoa" | "produto"
+    | "tipo" | "volTotal" | "volPendente" | "preco";
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  };
+
+  const clearSort = () => {
+    setSortKey(null);
+    setSortDir("asc");
+  };
 
   // Filiais for the empresa selected in the contract form (may differ from session empresa)
   const [contratoFiliaisEmpresa, setContratoFiliaisEmpresa] = useState<Filial[]>([]);
@@ -519,6 +545,75 @@ export default function ContratosPage() {
     return id;
   };
   const getNomeEmpresa = (id: string) => orgEmpresas.find((e) => e.id === id)?.nome ?? mockEmpresas.find((e) => e.id === id)?.nome ?? id;
+
+  // ---- Lista filtrada + ordenada para a tabela ----
+  // Filtro por status + ordenação padrão (Empresa ASC → Filial ASC → dataContrato DESC)
+  // ou ordenação manual quando o usuário clica num cabeçalho.
+  const contratosOrdenados = useMemo(() => {
+    const filtered =
+      statusFiltro === TODOS_STATUS
+        ? contratos
+        : contratos.filter((c) => c.status === statusFiltro);
+
+    const arr = [...filtered];
+
+    if (!sortKey) {
+      // Ordenação padrão
+      arr.sort((a, b) => {
+        const empA = getNomeEmpresa(a.empresaId).toLowerCase();
+        const empB = getNomeEmpresa(b.empresaId).toLowerCase();
+        if (empA !== empB) return empA.localeCompare(empB);
+        const filA = getNomeFilial(a.filialId).toLowerCase();
+        const filB = getNomeFilial(b.filialId).toLowerCase();
+        if (filA !== filB) return filA.localeCompare(filB);
+        const dA = new Date(a.dataContrato).getTime();
+        const dB = new Date(b.dataContrato).getTime();
+        return dB - dA; // mais recentes primeiro
+      });
+      return arr;
+    }
+
+    // Ordenação manual
+    const dirMul = sortDir === "asc" ? 1 : -1;
+    const valueOf = (c: Contrato): string | number => {
+      switch (sortKey) {
+        case "empresa": return getNomeEmpresa(c.empresaId).toLowerCase();
+        case "filial": return getNomeFilial(c.filialId).toLowerCase();
+        case "status": return c.status;
+        case "numero": return c.numeroContrato;
+        case "pessoa": return getNomePessoa(c.pessoaId).toLowerCase();
+        case "produto": return getNomeProduto(c.produtoId).toLowerCase();
+        case "tipo": return c.tipoContrato;
+        case "volTotal": return c.quantidadeTotal;
+        case "volPendente": return c.quantidadeSaldo;
+        case "preco": return c.precoUnitario;
+      }
+    };
+    arr.sort((a, b) => {
+      const va = valueOf(a);
+      const vb = valueOf(b);
+      if (typeof va === "number" && typeof vb === "number") return (va - vb) * dirMul;
+      return String(va).localeCompare(String(vb)) * dirMul;
+    });
+    return arr;
+  }, [contratos, statusFiltro, sortKey, sortDir, orgEmpresas, localFiliais, filiaisEmpresa]);
+
+  // Status disponíveis no filtro (apenas os reais de Contrato)
+  const STATUS_CONTRATO_OPCOES: { value: string; label: string }[] = [
+    { value: "ABERTO", label: "Aberto" },
+    { value: "PARCIAL", label: "Parcial" },
+    { value: "FATURADO", label: "Faturado" },
+    { value: "LIQUIDADO", label: "Liquidado" },
+    { value: "CANCELADO", label: "Cancelado" },
+  ];
+
+  // Helper: ícone de ordenação para o cabeçalho
+  const SortIcon = ({ k }: { k: SortKey }) => {
+    if (sortKey !== k) return <ArrowUpDown className="h-3 w-3 opacity-50" />;
+    return sortDir === "asc"
+      ? <ArrowUp className="h-3 w-3" />
+      : <ArrowDown className="h-3 w-3" />;
+  };
 
   // ---- Fixação computed values ----
   const totalEntregue = useMemo(() => {
@@ -1037,6 +1132,26 @@ export default function ContratosPage() {
               </SelectContent>
             </Select>
           </div>
+          <div className="space-y-1.5 min-w-[200px]">
+            <Label className="text-xs font-medium flex items-center gap-1.5">
+              <Filter className="h-3.5 w-3.5" /> Status
+            </Label>
+            <Select value={statusFiltro} onValueChange={setStatusFiltro}>
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={TODOS_STATUS}>Todos</SelectItem>
+                {STATUS_CONTRATO_OPCOES.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    <div className="flex items-center gap-2">
+                      <StatusBadge status={opt.value} size="sm" />
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="flex-1" />
           <Button onClick={openNew}>
             <Plus className="mr-2 h-4 w-4" />
@@ -1066,32 +1181,77 @@ export default function ContratosPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Empresa</TableHead>
-                <TableHead>Filial</TableHead>
-                <TableHead>Número</TableHead>
-                <TableHead>Pessoa</TableHead>
-                <TableHead>Produto</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead className="text-right">Vol. Total</TableHead>
-                <TableHead className="text-right">Vol. Pendente</TableHead>
-                <TableHead className="text-right">Preço</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>
+                  <button className="flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("empresa")}>
+                    Empresa <SortIcon k="empresa" />
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button className="flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("filial")}>
+                    Filial <SortIcon k="filial" />
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button className="flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("status")}>
+                    Status <SortIcon k="status" />
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button className="flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("numero")}>
+                    Número <SortIcon k="numero" />
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button className="flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("pessoa")}>
+                    Pessoa <SortIcon k="pessoa" />
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button className="flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("produto")}>
+                    Produto <SortIcon k="produto" />
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button className="flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("tipo")}>
+                    Tipo <SortIcon k="tipo" />
+                  </button>
+                </TableHead>
+                <TableHead className="text-right">
+                  <button className="flex items-center gap-1 hover:text-foreground ml-auto" onClick={() => toggleSort("volTotal")}>
+                    Vol. Total <SortIcon k="volTotal" />
+                  </button>
+                </TableHead>
+                <TableHead className="text-right">
+                  <button className="flex items-center gap-1 hover:text-foreground ml-auto" onClick={() => toggleSort("volPendente")}>
+                    Vol. Pendente <SortIcon k="volPendente" />
+                  </button>
+                </TableHead>
+                <TableHead className="text-right">
+                  <button className="flex items-center gap-1 hover:text-foreground ml-auto" onClick={() => toggleSort("preco")}>
+                    Preço <SortIcon k="preco" />
+                  </button>
+                </TableHead>
                 <TableHead className="text-center">Duplic.</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {contratos.length === 0 ? (
+              {contratosOrdenados.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
-                    Nenhum contrato cadastrado.
+                    {contratos.length === 0
+                      ? "Nenhum contrato cadastrado."
+                      : "Nenhum contrato corresponde aos filtros aplicados."}
                   </TableCell>
                 </TableRow>
               ) : (
-                contratos.map((c) => (
+                contratosOrdenados.map((c) => (
                   <TableRow key={c.id}>
                     <TableCell className="text-xs">{getNomeEmpresa(c.empresaId)}</TableCell>
                     <TableCell className="text-xs">{getNomeFilial(c.filialId)}</TableCell>
+                    <TableCell>
+                      <StatusBadge status={c.status} />
+                    </TableCell>
                     <TableCell className="font-medium">{c.numeroContrato}</TableCell>
                     <TableCell>{getNomePessoa(c.pessoaId)}</TableCell>
                     <TableCell>{getNomeProduto(c.produtoId)}</TableCell>
@@ -1106,9 +1266,6 @@ export default function ContratosPage() {
                     <TableCell className="text-right">{Math.round(c.quantidadeSaldo).toLocaleString("pt-BR")}</TableCell>
                     <TableCell className="text-right">
                       {formatCurrency(c.precoUnitario, mockMoedas.find((m) => m.id === c.moedaId)?.codigo ?? "BRL")}
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge status={c.status} />
                     </TableCell>
                     <TableCell className="text-center">
                       <TooltipProvider delayDuration={200}>
