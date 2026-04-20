@@ -479,20 +479,25 @@ export function StepIdentificacao({ romaneio, pesagensCount, onSaved, ctx }: Ste
               <div className="flex items-center gap-2">
                 <div className="flex-1">
                   <Label>Motorista *</Label>
-                  <Input value={motoristaNome} onChange={(e) => searchMotorista(e.target.value)} placeholder="Nome do motorista" onBlur={() => setTimeout(() => setShowMotSugg(false), 200)} disabled={!isEditable} />
+                  <Input
+                    value={motoristaNome}
+                    onChange={(e) => { setMotoristaDocumento(""); searchMotorista(e.target.value); }}
+                    placeholder="Nome do motorista"
+                    onBlur={handleMotoristaBlur}
+                    disabled={!isEditable}
+                  />
                   {showMotSugg && (
                     <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-md max-h-40 overflow-y-auto">
                       {motoristaSugg.map((m) => (
-                        <button key={m.id} type="button" className="w-full text-left px-3 py-2 text-sm hover:bg-accent" onClick={() => { setMotoristaNome(m.nome); setMotoristaDocumento(m.documento); setShowMotSugg(false); }}>
+                        <button key={m.id} type="button" className="w-full text-left px-3 py-2 text-sm hover:bg-accent" onMouseDown={(e) => e.preventDefault()} onClick={() => { setMotoristaNome(m.nome); setMotoristaDocumento(m.documento); setShowMotSugg(false); }}>
                           {m.nome} {m.documento && `— ${m.documento}`}
                         </button>
                       ))}
                     </div>
                   )}
                 </div>
-                {/* CORREÇÃO 3: Hide quick register buttons when not editable */}
                 {isEditable && (
-                  <Button type="button" variant="outline" size="icon" className="mt-5" onClick={() => { setQuickMotNome(motoristaNome); setQuickMotOpen(true); }}><Plus className="h-4 w-4" /></Button>
+                  <Button type="button" variant="outline" size="icon" className="mt-5" onClick={() => { setQuickMotNome(motoristaNome); setQuickMotDoc(motoristaDocumento); setQuickMotOpen(true); }}><Plus className="h-4 w-4" /></Button>
                 )}
               </div>
             </div>
@@ -501,27 +506,38 @@ export function StepIdentificacao({ romaneio, pesagensCount, onSaved, ctx }: Ste
               <Input value={motoristaDocumento} onChange={(e) => setMotoristaDocumento(e.target.value)} disabled={!isEditable} />
             </div>
           </FormRow>
-          <div className="relative">
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
-                <Label>Placa do Veículo *</Label>
-                <Input value={placaVeiculo} onChange={(e) => searchVeiculo(e.target.value)} placeholder="Placa" onBlur={() => setTimeout(() => setShowVeicSugg(false), 200)} disabled={!isEditable} />
-                {showVeicSugg && (
-                  <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-md max-h-40 overflow-y-auto">
-                    {veiculoSugg.map((v) => (
-                      <button key={v.id} type="button" className="w-full text-left px-3 py-2 text-sm hover:bg-accent" onClick={() => { setPlacaVeiculo(v.placa); setShowVeicSugg(false); }}>
-                        {v.placa} {v.tipoVeiculo && `— ${v.tipoVeiculo}`}
-                      </button>
-                    ))}
-                  </div>
+          <FormRow columns={2}>
+            <div className="relative">
+              <div className="flex items-center gap-2">
+                <div className="flex-1">
+                  <Label>Placa do Veículo *</Label>
+                  <Input
+                    value={placaVeiculo}
+                    onChange={(e) => { setTipoVeiculo(""); searchVeiculo(e.target.value); }}
+                    placeholder="Placa"
+                    onBlur={handleVeiculoBlur}
+                    disabled={!isEditable}
+                  />
+                  {showVeicSugg && (
+                    <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-md max-h-40 overflow-y-auto">
+                      {veiculoSugg.map((v) => (
+                        <button key={v.id} type="button" className="w-full text-left px-3 py-2 text-sm hover:bg-accent" onMouseDown={(e) => e.preventDefault()} onClick={() => { setPlacaVeiculo(v.placa); setTipoVeiculo(v.tipoVeiculo || ""); setShowVeicSugg(false); }}>
+                          {v.placa} {v.tipoVeiculo && `— ${v.tipoVeiculo}`}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {isEditable && (
+                  <Button type="button" variant="outline" size="icon" className="mt-5" onClick={() => { setQuickVeicPlaca(placaVeiculo); setQuickVeicTipo(tipoVeiculo); setQuickVeicOpen(true); }}><Plus className="h-4 w-4" /></Button>
                 )}
               </div>
-              {/* CORREÇÃO 3: Hide quick register buttons when not editable */}
-              {isEditable && (
-                <Button type="button" variant="outline" size="icon" className="mt-5" onClick={() => { setQuickVeicPlaca(placaVeiculo); setQuickVeicOpen(true); }}><Plus className="h-4 w-4" /></Button>
-              )}
             </div>
-          </div>
+            <div>
+              <Label>Tipo do Veículo</Label>
+              <Input value={tipoVeiculo} onChange={(e) => setTipoVeiculo(e.target.value)} placeholder="Ex: Carreta, Truck" disabled={!isEditable} />
+            </div>
+          </FormRow>
         </CardContent>
       </Card>
 
