@@ -1248,6 +1248,11 @@ export default function ContratosPage() {
                   </button>
                 </TableHead>
                 <TableHead>
+                  <button className="flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("data")}>
+                    Data <SortIcon k="data" />
+                  </button>
+                </TableHead>
+                <TableHead>
                   <button className="flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("pessoa")}>
                     Pessoa <SortIcon k="pessoa" />
                   </button>
