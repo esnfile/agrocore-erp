@@ -221,10 +221,14 @@ export default function ContratosPage() {
   const TODOS_STATUS = "__TODOS__";
   const [statusFiltro, setStatusFiltro] = useState<string>(TODOS_STATUS);
 
+  // Filtro por período (Data do Contrato)
+  const [dataInicioFiltro, setDataInicioFiltro] = useState<string>("");
+  const [dataFimFiltro, setDataFimFiltro] = useState<string>("");
+
   // Ordenação manual da tabela (clique no cabeçalho).
   // Quando null → usa ordenação padrão Empresa ASC → Filial ASC → dataContrato DESC.
   type SortKey =
-    | "empresa" | "filial" | "status" | "numero" | "pessoa" | "produto"
+    | "empresa" | "filial" | "status" | "numero" | "data" | "pessoa" | "produto"
     | "tipo" | "volTotal" | "volPendente" | "preco";
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
