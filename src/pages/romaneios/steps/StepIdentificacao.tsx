@@ -40,6 +40,7 @@ export function StepIdentificacao({ romaneio, pesagensCount, onSaved, ctx }: Ste
   const [motoristaNome, setMotoristaNome] = useState(romaneio?.motoristaNome || "");
   const [motoristaDocumento, setMotoristaDocumento] = useState(romaneio?.motoristaDocumento || "");
   const [placaVeiculo, setPlacaVeiculo] = useState(romaneio?.placaVeiculo || "");
+  const [tipoVeiculo, setTipoVeiculo] = useState("");
   const [pontoEstoqueId, setPontoEstoqueId] = useState(romaneio?.pontoEstoqueId || "");
   const [observacao, setObservacao] = useState(romaneio?.observacao || "");
   const [saving, setSaving] = useState(false);
