@@ -557,10 +557,17 @@ export default function ContratosPage() {
   // Filtro por status + ordenação padrão (Empresa ASC → Filial ASC → dataContrato DESC)
   // ou ordenação manual quando o usuário clica num cabeçalho.
   const contratosOrdenados = useMemo(() => {
-    const filtered =
-      statusFiltro === TODOS_STATUS
-        ? contratos
-        : contratos.filter((c) => c.status === statusFiltro);
+    let filtered = statusFiltro === TODOS_STATUS
+      ? contratos
+      : contratos.filter((c) => c.status === statusFiltro);
+
+    // Filtro por período da data do contrato
+    if (dataInicioFiltro) {
+      filtered = filtered.filter((c) => c.dataContrato >= dataInicioFiltro);
+    }
+    if (dataFimFiltro) {
+      filtered = filtered.filter((c) => c.dataContrato <= dataFimFiltro);
+    }
 
     const arr = [...filtered];
 
@@ -588,6 +595,7 @@ export default function ContratosPage() {
         case "filial": return getNomeFilial(c.filialId).toLowerCase();
         case "status": return c.status;
         case "numero": return c.numeroContrato;
+        case "data": return new Date(c.dataContrato).getTime();
         case "pessoa": return getNomePessoa(c.pessoaId).toLowerCase();
         case "produto": return getNomeProduto(c.produtoId).toLowerCase();
         case "tipo": return c.tipoContrato;
@@ -603,7 +611,7 @@ export default function ContratosPage() {
       return String(va).localeCompare(String(vb)) * dirMul;
     });
     return arr;
-  }, [contratos, statusFiltro, sortKey, sortDir, orgEmpresas, localFiliais, filiaisEmpresa]);
+  }, [contratos, statusFiltro, dataInicioFiltro, dataFimFiltro, sortKey, sortDir, orgEmpresas, localFiliais, filiaisEmpresa]);
 
   // Status disponíveis no filtro (apenas os reais de Contrato)
   const STATUS_CONTRATO_OPCOES: { value: string; label: string }[] = [
