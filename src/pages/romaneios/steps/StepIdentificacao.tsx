@@ -214,7 +214,31 @@ export function StepIdentificacao({ romaneio, pesagensCount, onSaved, ctx }: Ste
     if (!empresaId || termo.length < 2) { setShowVeicSugg(false); return; }
     const results = await veiculoService.buscarPorPlaca(empresaId, filialId, termo);
     setVeiculoSugg(results);
+    setVeicHighlight(0);
     setShowVeicSugg(results.length > 0);
+  };
+
+  const selectVeiculo = (v: Veiculo) => {
+    setPlacaVeiculo(v.placa);
+    setTipoVeiculo(v.tipoVeiculo || "");
+    setShowVeicSugg(false);
+  };
+
+  const handleVeiculoKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showVeicSugg || veiculoSugg.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setVeicHighlight((i) => (i + 1) % veiculoSugg.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setVeicHighlight((i) => (i - 1 + veiculoSugg.length) % veiculoSugg.length);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const v = veiculoSugg[veicHighlight];
+      if (v) selectVeiculo(v);
+    } else if (e.key === "Escape") {
+      setShowVeicSugg(false);
+    }
   };
 
   // Auto-open quick register popup if placa typed doesn't match any existing record
