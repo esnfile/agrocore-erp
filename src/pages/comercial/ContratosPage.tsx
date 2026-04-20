@@ -1284,7 +1284,7 @@ export default function ContratosPage() {
             <TableBody>
               {contratosOrdenados.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={13} className="text-center py-8 text-muted-foreground">
                     {contratos.length === 0
                       ? "Nenhum contrato cadastrado."
                       : "Nenhum contrato corresponde aos filtros aplicados."}
@@ -1304,6 +1304,7 @@ export default function ContratosPage() {
                       <StatusBadge status={c.status} />
                     </TableCell>
                     <TableCell className="font-medium">{c.numeroContrato}</TableCell>
+                    <TableCell className="text-xs whitespace-nowrap">{formatDateBR(c.dataContrato)}</TableCell>
                     <TableCell>{getNomePessoa(c.pessoaId)}</TableCell>
                     <TableCell>{getNomeProduto(c.produtoId)}</TableCell>
                     <TableCell className="text-right">
