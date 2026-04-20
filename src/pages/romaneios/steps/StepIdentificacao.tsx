@@ -48,8 +48,10 @@ export function StepIdentificacao({ romaneio, pesagensCount, onSaved, ctx }: Ste
   // Suggestions
   const [motoristaSugg, setMotoristaSugg] = useState<Motorista[]>([]);
   const [showMotSugg, setShowMotSugg] = useState(false);
+  const [motHighlight, setMotHighlight] = useState(0);
   const [veiculoSugg, setVeiculoSugg] = useState<Veiculo[]>([]);
   const [showVeicSugg, setShowVeicSugg] = useState(false);
+  const [veicHighlight, setVeicHighlight] = useState(0);
   const [quickMotOpen, setQuickMotOpen] = useState(false);
   const [quickMotNome, setQuickMotNome] = useState("");
   const [quickMotDoc, setQuickMotDoc] = useState("");
@@ -163,7 +165,31 @@ export function StepIdentificacao({ romaneio, pesagensCount, onSaved, ctx }: Ste
     if (!empresaId || termo.length < 2) { setShowMotSugg(false); return; }
     const results = await motoristaService.buscarPorNome(empresaId, filialId, termo);
     setMotoristaSugg(results);
+    setMotHighlight(0);
     setShowMotSugg(results.length > 0);
+  };
+
+  const selectMotorista = (m: Motorista) => {
+    setMotoristaNome(m.nome);
+    setMotoristaDocumento(m.documento);
+    setShowMotSugg(false);
+  };
+
+  const handleMotoristaKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showMotSugg || motoristaSugg.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setMotHighlight((i) => (i + 1) % motoristaSugg.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setMotHighlight((i) => (i - 1 + motoristaSugg.length) % motoristaSugg.length);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const m = motoristaSugg[motHighlight];
+      if (m) selectMotorista(m);
+    } else if (e.key === "Escape") {
+      setShowMotSugg(false);
+    }
   };
 
   // Auto-open quick register popup if motorista typed doesn't match any existing record
@@ -188,7 +214,31 @@ export function StepIdentificacao({ romaneio, pesagensCount, onSaved, ctx }: Ste
     if (!empresaId || termo.length < 2) { setShowVeicSugg(false); return; }
     const results = await veiculoService.buscarPorPlaca(empresaId, filialId, termo);
     setVeiculoSugg(results);
+    setVeicHighlight(0);
     setShowVeicSugg(results.length > 0);
+  };
+
+  const selectVeiculo = (v: Veiculo) => {
+    setPlacaVeiculo(v.placa);
+    setTipoVeiculo(v.tipoVeiculo || "");
+    setShowVeicSugg(false);
+  };
+
+  const handleVeiculoKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showVeicSugg || veiculoSugg.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setVeicHighlight((i) => (i + 1) % veiculoSugg.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setVeicHighlight((i) => (i - 1 + veiculoSugg.length) % veiculoSugg.length);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const v = veiculoSugg[veicHighlight];
+      if (v) selectVeiculo(v);
+    } else if (e.key === "Escape") {
+      setShowVeicSugg(false);
+    }
   };
 
   // Auto-open quick register popup if placa typed doesn't match any existing record
@@ -484,12 +534,20 @@ export function StepIdentificacao({ romaneio, pesagensCount, onSaved, ctx }: Ste
                     onChange={(e) => { setMotoristaDocumento(""); searchMotorista(e.target.value); }}
                     placeholder="Nome do motorista"
                     onBlur={handleMotoristaBlur}
+                    onKeyDown={handleMotoristaKeyDown}
                     disabled={!isEditable}
                   />
                   {showMotSugg && (
                     <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-md max-h-40 overflow-y-auto">
-                      {motoristaSugg.map((m) => (
-                        <button key={m.id} type="button" className="w-full text-left px-3 py-2 text-sm hover:bg-accent" onMouseDown={(e) => e.preventDefault()} onClick={() => { setMotoristaNome(m.nome); setMotoristaDocumento(m.documento); setShowMotSugg(false); }}>
+                      {motoristaSugg.map((m, idx) => (
+                        <button
+                          key={m.id}
+                          type="button"
+                          className={`w-full text-left px-3 py-2 text-sm ${idx === motHighlight ? "bg-accent text-accent-foreground" : "hover:bg-accent"}`}
+                          onMouseEnter={() => setMotHighlight(idx)}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => selectMotorista(m)}
+                        >
                           {m.nome} {m.documento && `— ${m.documento}`}
                         </button>
                       ))}
@@ -516,12 +574,20 @@ export function StepIdentificacao({ romaneio, pesagensCount, onSaved, ctx }: Ste
                     onChange={(e) => { setTipoVeiculo(""); searchVeiculo(e.target.value); }}
                     placeholder="Placa"
                     onBlur={handleVeiculoBlur}
+                    onKeyDown={handleVeiculoKeyDown}
                     disabled={!isEditable}
                   />
                   {showVeicSugg && (
                     <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-md max-h-40 overflow-y-auto">
-                      {veiculoSugg.map((v) => (
-                        <button key={v.id} type="button" className="w-full text-left px-3 py-2 text-sm hover:bg-accent" onMouseDown={(e) => e.preventDefault()} onClick={() => { setPlacaVeiculo(v.placa); setTipoVeiculo(v.tipoVeiculo || ""); setShowVeicSugg(false); }}>
+                      {veiculoSugg.map((v, idx) => (
+                        <button
+                          key={v.id}
+                          type="button"
+                          className={`w-full text-left px-3 py-2 text-sm ${idx === veicHighlight ? "bg-accent text-accent-foreground" : "hover:bg-accent"}`}
+                          onMouseEnter={() => setVeicHighlight(idx)}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => selectVeiculo(v)}
+                        >
                           {v.placa} {v.tipoVeiculo && `— ${v.tipoVeiculo}`}
                         </button>
                       ))}

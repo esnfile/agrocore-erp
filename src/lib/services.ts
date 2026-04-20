@@ -3155,11 +3155,12 @@ export const romaneioService = {
 
     const pesoFinal = r.pesoLiquidoSecoLimpo > 0 ? r.pesoLiquidoSecoLimpo : r.pesoLiquido;
     if (pesoFinal <= 0) return { sucesso: false, mensagem: "Peso líquido final deve ser maior que zero." };
-    if (!r.contratoId) return { sucesso: false, mensagem: "Romaneio sem contrato não pode ser finalizado. Vincule a um contrato primeiro." };
+    // Permite finalizar romaneios sem contrato desde que tenham vínculo de colheita (safra)
+    if (!r.contratoId && !r.safraId) return { sucesso: false, mensagem: "Romaneio sem vínculo. Vincule a um contrato ou colheita primeiro." };
     if (!r.pontoEstoqueId) return { sucesso: false, mensagem: "Selecione um ponto de estoque antes de finalizar." };
 
-    const contrato = mockContratos.find((c) => c.id === r.contratoId && c.deletadoEm === null);
-    if (!contrato) return { sucesso: false, mensagem: "Contrato não encontrado." };
+    const contrato = r.contratoId ? mockContratos.find((c) => c.id === r.contratoId && c.deletadoEm === null) : null;
+    if (r.contratoId && !contrato) return { sucesso: false, mensagem: "Contrato não encontrado." };
 
     const produto = mockProdutos.find((p) => p.id === r.produtoId);
     if (!produto) return { sucesso: false, mensagem: "Produto não encontrado." };
@@ -3171,7 +3172,6 @@ export const romaneioService = {
       (rc) => rc.romaneioId === r.id && rc.deletadoEm === null
     );
     if (classificacoesExistentes.length === 0) {
-      // Fallback: persistir a partir dos campos inline do romaneio
       const classMap: { tipoId: string; valor: number }[] = [
         { tipoId: "ct1", valor: r.classificacaoUmidade },
         { tipoId: "ct2", valor: r.classificacaoImpureza },
@@ -3181,7 +3181,6 @@ export const romaneioService = {
       const itensParaSalvar = classMap
         .filter((c) => c.valor > 0)
         .map((c) => {
-          // Buscar percentual de desconto da tabela de descontos do produto
           const faixa = mockClassificacaoDescontos.find(
             (cd) => cd.deletadoEm === null && cd.produtoId === r.produtoId &&
               cd.classificacaoTipoId === c.tipoId &&
@@ -3198,25 +3197,36 @@ export const romaneioService = {
       }
     }
 
-    // FURO 2: Conversão de unidades — converter pesoFinal da unidade do romaneio para unidade base do produto
+    // FURO 2: Conversão de unidades
     const unidadeRomaneioId = r.unidadeRomaneioId || getUnidadeBaseParaTipo(produto.tipoUnidade);
     const unidadeBaseId = getUnidadeBaseParaTipo(produto.tipoUnidade);
     let quantidadeEstoque: number;
-    let quantidadeContrato: number;
+    let quantidadeContrato = 0;
 
     try {
       quantidadeEstoque = unidadeMedidaService.converterQuantidade(pesoFinal, unidadeRomaneioId, unidadeBaseId, produto.id);
-      quantidadeContrato = unidadeMedidaService.converterQuantidade(pesoFinal, unidadeRomaneioId, contrato.unidadeNegociacaoId, produto.id);
+      if (contrato) {
+        quantidadeContrato = unidadeMedidaService.converterQuantidade(pesoFinal, unidadeRomaneioId, contrato.unidadeNegociacaoId, produto.id);
+      }
     } catch (e: any) {
       return { sucesso: false, mensagem: `Erro na conversão de unidades: ${e.message}` };
     }
 
-    const tipoMov: "ENTRADA" | "SAIDA" = contrato.tipoContrato === "COMPRA" ? "ENTRADA" : "SAIDA";
+    // Para colheita (sem contrato): sempre ENTRADA (produção colhida).
+    // Para contrato: COMPRA = ENTRADA, VENDA = SAÍDA.
+    const tipoMov: "ENTRADA" | "SAIDA" = contrato
+      ? (contrato.tipoContrato === "COMPRA" ? "ENTRADA" : "SAIDA")
+      : "ENTRADA";
 
-    // 1. Update estoque em trânsito (FURO 3: usar quantidade convertida para unidade do contrato)
-    estoqueTransitoService.registrarMovimento(contrato.id, quantidadeContrato);
+    // 1. Estoque em trânsito apenas para contrato
+    if (contrato) {
+      estoqueTransitoService.registrarMovimento(contrato.id, quantidadeContrato);
+    }
 
-    // 2. Create stock movement (uses quantidade convertida para unidade base)
+    // 2. Movimentação de estoque
+    const obsMov = contrato
+      ? `Romaneio ${r.id.substring(0, 8)} — Contrato ${contrato.numeroContrato}`
+      : `Romaneio ${r.id.substring(0, 8)} — Colheita ${r.safraId?.substring(0, 8) ?? ""}`;
     const mov: MovimentacaoEstoque = {
       id: `mov${Date.now()}`,
       grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
@@ -3226,36 +3236,37 @@ export const romaneioService = {
       unidadeMovimentacaoId: unidadeRomaneioId,
       quantidadeConvertidaBase: quantidadeEstoque,
       dataMovimentacao: now,
-      observacao: `Romaneio ${r.id.substring(0, 8)} — Contrato ${contrato.numeroContrato}`,
-      contratoId: contrato.id, romaneioId: r.id,
+      observacao: obsMov,
+      contratoId: contrato?.id ?? null,
+      romaneioId: r.id,
       criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
       deletadoEm: null, deletadoPor: null,
     };
     mockMovimentacoesEstoque.push(mov);
 
-    // 3. Update estoque saldo (em unidade base)
+    // 3. Update estoque saldo
     const saldoAtual = estoqueService.obterSaldo(r.produtoId, r.pontoEstoqueId);
     const qtdAtual = saldoAtual?.quantidadeAtual ?? 0;
     const novaQtd = tipoMov === "ENTRADA" ? qtdAtual + quantidadeEstoque : qtdAtual - quantidadeEstoque;
     estoqueService.atualizarSaldo(r.produtoId, r.pontoEstoqueId, novaQtd, ctx);
 
-    // 4. Update contract saldo (em unidade de negociação)
-    contrato.quantidadeEntregue += quantidadeContrato;
-    contrato.quantidadeSaldo = contrato.quantidadeTotal - contrato.quantidadeEntregue;
-    if (contrato.quantidadeSaldo <= 0) contrato.status = "FINALIZADO";
-    else if (contrato.quantidadeEntregue > 0) contrato.status = "PARCIAL";
-    contrato.atualizadoEm = now; contrato.atualizadoPor = "u1";
+    // 4. Update contract saldo (apenas se houver contrato)
+    if (contrato) {
+      contrato.quantidadeEntregue += quantidadeContrato;
+      contrato.quantidadeSaldo = contrato.quantidadeTotal - contrato.quantidadeEntregue;
+      if (contrato.quantidadeSaldo <= 0) contrato.status = "FINALIZADO";
+      else if (contrato.quantidadeEntregue > 0) contrato.status = "PARCIAL";
+      contrato.atualizadoEm = now; contrato.atualizadoPor = "u1";
+    }
 
     // 5. Finalize romaneio
     r.status = "FINALIZADO";
     r.atualizadoEm = now; r.atualizadoPor = "u1";
 
-    // Build result message with conversion info
     const unRomaneio = unidadeMedidaService.obterPorId(unidadeRomaneioId);
     const unBase = unidadeMedidaService.obterPorId(unidadeBaseId);
-    const unContrato = unidadeMedidaService.obterPorId(contrato.unidadeNegociacaoId);
     const msgConversao = unidadeRomaneioId !== unidadeBaseId
-      ? ` | Estoque: ${quantidadeEstoque.toFixed(3)} ${unBase?.codigo ?? ""} | Contrato: ${quantidadeContrato.toFixed(3)} ${unContrato?.codigo ?? ""}`
+      ? ` | Estoque: ${quantidadeEstoque.toFixed(3)} ${unBase?.codigo ?? ""}${contrato ? ` | Contrato: ${quantidadeContrato.toFixed(3)} ${unidadeMedidaService.obterPorId(contrato.unidadeNegociacaoId)?.codigo ?? ""}` : ""}`
       : "";
 
     return { sucesso: true, mensagem: `Romaneio finalizado. Peso comercial: ${pesoFinal.toFixed(3)} ${unRomaneio?.codigo ?? ""}${msgConversao}. Estoque atualizado.` };
