@@ -78,6 +78,7 @@ export default function ContasPage() {
   const [baixas, setBaixas] = useState<FinanceiroBaixa[]>([]);
   const [movimentacoes, setMovimentacoes] = useState<FinanceiroMovimentacao[]>([]);
   const [expandedParcela, setExpandedParcela] = useState<string | null>(null);
+  const [editandoVencParcela, setEditandoVencParcela] = useState<string | null>(null);
 
   // Gerar parcelas
   const [gerarParcelasOpen, setGerarParcelasOpen] = useState(false);
