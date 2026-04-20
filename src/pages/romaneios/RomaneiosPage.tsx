@@ -250,6 +250,9 @@ export default function RomaneiosPage() {
                 <button className="flex items-center gap-1 hover:text-foreground text-xs" onClick={() => toggleSort("origem")}>Origem <ArrowUpDown className="h-3 w-3" /></button>
               </TableHead>
               <TableHead>
+                <button className="flex items-center gap-1 hover:text-foreground text-xs" onClick={() => toggleSort("status")}>Status <ArrowUpDown className="h-3 w-3" /></button>
+              </TableHead>
+              <TableHead>
                 <button className="flex items-center gap-1 hover:text-foreground text-xs" onClick={() => toggleSort("produtoId")}>Produto <ArrowUpDown className="h-3 w-3" /></button>
               </TableHead>
               <TableHead>Motorista</TableHead>
@@ -259,9 +262,6 @@ export default function RomaneiosPage() {
               </TableHead>
               <TableHead className="text-right">
                 <button className="flex items-center gap-1 hover:text-foreground text-xs ml-auto" onClick={() => toggleSort("pesoClassificado")}>P. Classif. (kg) <ArrowUpDown className="h-3 w-3" /></button>
-              </TableHead>
-              <TableHead>
-                <button className="flex items-center gap-1 hover:text-foreground text-xs" onClick={() => toggleSort("status")}>Status <ArrowUpDown className="h-3 w-3" /></button>
               </TableHead>
               <TableHead>
                 <button className="flex items-center gap-1 hover:text-foreground text-xs" onClick={() => toggleSort("criadoEm")}>Data <ArrowUpDown className="h-3 w-3" /></button>
@@ -291,15 +291,6 @@ export default function RomaneiosPage() {
                       {ORIGEM_LABELS[rom.origem] || rom.origem}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-sm">{produtoMap[rom.produtoId] || "—"}</TableCell>
-                  <TableCell className="text-sm">{rom.motoristaNome || "—"}</TableCell>
-                  <TableCell className="text-sm font-mono">{rom.placaVeiculo || "—"}</TableCell>
-                  <TableCell className="text-right font-mono text-sm">
-                    {rom.pesoLiquidoFisico > 0 ? `${rom.pesoLiquidoFisico.toFixed(0)}` : "—"}
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-sm">
-                    {rom.pesoClassificado > 0 ? `${rom.pesoClassificado.toFixed(0)}` : (rom.pesoLiquidoSecoLimpo > 0 ? `${rom.pesoLiquidoSecoLimpo.toFixed(0)}` : "—")}
-                  </TableCell>
                   <TableCell>
                     {(() => {
                       const Icon = STATUS_ICONS[statusKey];
@@ -310,6 +301,15 @@ export default function RomaneiosPage() {
                         </Badge>
                       );
                     })()}
+                  </TableCell>
+                  <TableCell className="text-sm">{produtoMap[rom.produtoId] || "—"}</TableCell>
+                  <TableCell className="text-sm">{rom.motoristaNome || "—"}</TableCell>
+                  <TableCell className="text-sm font-mono">{rom.placaVeiculo || "—"}</TableCell>
+                  <TableCell className="text-right font-mono text-sm">
+                    {rom.pesoLiquidoFisico > 0 ? `${rom.pesoLiquidoFisico.toFixed(0)}` : "—"}
+                  </TableCell>
+                  <TableCell className="text-right font-mono text-sm">
+                    {rom.pesoClassificado > 0 ? `${rom.pesoClassificado.toFixed(0)}` : (rom.pesoLiquidoSecoLimpo > 0 ? `${rom.pesoLiquidoSecoLimpo.toFixed(0)}` : "—")}
                   </TableCell>
                   <TableCell className="text-xs">{format(new Date(rom.criadoEm), "dd/MM/yyyy HH:mm")}</TableCell>
                   <TableCell>
