@@ -143,12 +143,15 @@ export default function ContratosPage() {
   const prevGlobalEmpresaRef = useRef(empresaIdGlobal);
   const [localFiliais, setLocalFiliais] = useState<Filial[]>([]);
 
-  // Initialize local context from global on first load
+  // Initialize local context from global on first load (when empresa becomes available)
+  const didInitRef = useRef(false);
   useEffect(() => {
-    if (empresaIdGlobal && isSyncedWithGlobal) {
+    if (!didInitRef.current && empresaIdGlobal) {
+      didInitRef.current = true;
       setLocalEmpresaId(empresaIdGlobal);
+      setIsSyncedWithGlobal(true);
     }
-  }, []);
+  }, [empresaIdGlobal]);
 
   // Load filiais for local empresa selection
   useEffect(() => {
