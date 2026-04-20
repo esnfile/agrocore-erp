@@ -1193,6 +1193,11 @@ export default function ContratosPage() {
                   </button>
                 </TableHead>
                 <TableHead>
+                  <button className="flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("tipo")}>
+                    Tipo <SortIcon k="tipo" />
+                  </button>
+                </TableHead>
+                <TableHead>
                   <button className="flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("status")}>
                     Status <SortIcon k="status" />
                   </button>
@@ -1212,24 +1217,19 @@ export default function ContratosPage() {
                     Produto <SortIcon k="produto" />
                   </button>
                 </TableHead>
-                <TableHead>
-                  <button className="flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("tipo")}>
-                    Tipo <SortIcon k="tipo" />
-                  </button>
-                </TableHead>
                 <TableHead className="text-right">
                   <button className="flex items-center gap-1 hover:text-foreground ml-auto" onClick={() => toggleSort("volTotal")}>
-                    Vol. Total <SortIcon k="volTotal" />
+                    Qtde Total <SortIcon k="volTotal" />
                   </button>
                 </TableHead>
                 <TableHead className="text-right">
                   <button className="flex items-center gap-1 hover:text-foreground ml-auto" onClick={() => toggleSort("volPendente")}>
-                    Vol. Pendente <SortIcon k="volPendente" />
+                    Qtde Pendente <SortIcon k="volPendente" />
                   </button>
                 </TableHead>
                 <TableHead className="text-right">
                   <button className="flex items-center gap-1 hover:text-foreground ml-auto" onClick={() => toggleSort("preco")}>
-                    Preço <SortIcon k="preco" />
+                    Preço Unit <SortIcon k="preco" />
                   </button>
                 </TableHead>
                 <TableHead className="text-center">Duplic.</TableHead>
@@ -1251,20 +1251,22 @@ export default function ContratosPage() {
                     <TableCell className="text-xs">{getNomeEmpresa(c.empresaId)}</TableCell>
                     <TableCell className="text-xs">{getNomeFilial(c.filialId)}</TableCell>
                     <TableCell>
+                      <Badge variant={c.tipoContrato === "COMPRA" ? "default" : "secondary"}>
+                        {c.tipoContrato === "COMPRA" ? "Compra" : "Venda"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
                       <StatusBadge status={c.status} />
                     </TableCell>
                     <TableCell className="font-medium">{c.numeroContrato}</TableCell>
                     <TableCell>{getNomePessoa(c.pessoaId)}</TableCell>
                     <TableCell>{getNomeProduto(c.produtoId)}</TableCell>
-                    <TableCell>
-                      <Badge variant={c.tipoContrato === "COMPRA" ? "default" : "secondary"}>
-                        {c.tipoContrato === "COMPRA" ? "Compra" : "Venda"}
-                      </Badge>
-                    </TableCell>
                     <TableCell className="text-right">
                       {c.quantidadeTotal.toLocaleString("pt-BR")} {getCodigoUnidade(c.unidadeNegociacaoId)}
                     </TableCell>
-                    <TableCell className="text-right">{Math.round(c.quantidadeSaldo).toLocaleString("pt-BR")}</TableCell>
+                    <TableCell className="text-right">
+                      {Math.round(c.quantidadeSaldo).toLocaleString("pt-BR")} {getCodigoUnidade(c.unidadeNegociacaoId)}
+                    </TableCell>
                     <TableCell className="text-right">
                       {formatCurrency(c.precoUnitario, mockMoedas.find((m) => m.id === c.moedaId)?.codigo ?? "BRL")}
                     </TableCell>
