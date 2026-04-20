@@ -78,6 +78,7 @@ export default function ContasPage() {
   const [baixas, setBaixas] = useState<FinanceiroBaixa[]>([]);
   const [movimentacoes, setMovimentacoes] = useState<FinanceiroMovimentacao[]>([]);
   const [expandedParcela, setExpandedParcela] = useState<string | null>(null);
+  const [editandoVencParcela, setEditandoVencParcela] = useState<string | null>(null);
 
   // Gerar parcelas
   const [gerarParcelasOpen, setGerarParcelasOpen] = useState(false);
@@ -711,27 +712,48 @@ export default function ContasPage() {
                               </TableCell>
                               <TableCell className="font-mono">{p.numeroParcela}/{p.totalParcelas}</TableCell>
                               <TableCell>
-                                {podeEditarVencimento ? (
-                                  <Input
-                                    type="date"
-                                    value={p.dataVencimento}
-                                    className="w-40 h-8"
-                                    onClick={(e) => e.stopPropagation()}
-                                    onChange={async (e) => {
-                                      const novaData = e.target.value;
-                                      if (!novaData || novaData === p.dataVencimento) return;
-                                      try {
-                                        await financeiroParcelaService.atualizarVencimento(p.id, novaData);
-                                        setParcelas((prev) => prev.map((x) => x.id === p.id ? { ...x, dataVencimento: novaData } : x));
-                                        toast({ title: "Vencimento atualizado" });
-                                        carregar();
-                                      } catch (err: any) {
-                                        toast({ title: "Erro ao atualizar", description: err?.message ?? String(err), variant: "destructive" });
-                                      }
-                                    }}
-                                  />
+                                {podeEditarVencimento && editandoVencParcela === p.id ? (
+                                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                                    <Input
+                                      type="date"
+                                      defaultValue={p.dataVencimento}
+                                      autoFocus
+                                      className="w-40 h-8"
+                                      onBlur={async (e) => {
+                                        const novaData = e.target.value;
+                                        setEditandoVencParcela(null);
+                                        if (!novaData || novaData === p.dataVencimento) return;
+                                        try {
+                                          await financeiroParcelaService.atualizarVencimento(p.id, novaData);
+                                          setParcelas((prev) => prev.map((x) => x.id === p.id ? { ...x, dataVencimento: novaData } : x));
+                                          toast({ title: "Vencimento atualizado" });
+                                          carregar();
+                                        } catch (err: any) {
+                                          toast({ title: "Erro ao atualizar", description: err?.message ?? String(err), variant: "destructive" });
+                                        }
+                                      }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                                        if (e.key === "Escape") setEditandoVencParcela(null);
+                                      }}
+                                    />
+                                  </div>
                                 ) : (
-                                  formatDateBR(p.dataVencimento)
+                                  <div className="flex items-center gap-1">
+                                    <span>{formatDateBR(p.dataVencimento)}</span>
+                                    {podeEditarVencimento && (
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-6 w-6"
+                                        title="Editar vencimento"
+                                        onClick={(e) => { e.stopPropagation(); setEditandoVencParcela(p.id); }}
+                                      >
+                                        <Pencil className="h-3.5 w-3.5" />
+                                      </Button>
+                                    )}
+                                  </div>
                                 )}
                               </TableCell>
                               <TableCell className="text-right font-mono">{fmt(p.valorParcela)}</TableCell>
