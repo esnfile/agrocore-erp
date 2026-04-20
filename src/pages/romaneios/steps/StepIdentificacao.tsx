@@ -166,12 +166,46 @@ export function StepIdentificacao({ romaneio, pesagensCount, onSaved, ctx }: Ste
     setShowMotSugg(results.length > 0);
   };
 
+  // Auto-open quick register popup if motorista typed doesn't match any existing record
+  const handleMotoristaBlur = () => {
+    setTimeout(async () => {
+      setShowMotSugg(false);
+      if (!isEditable || !empresaId || !motoristaNome.trim()) return;
+      // Skip if a suggestion was just selected (documento was filled)
+      if (motoristaDocumento) return;
+      const results = await motoristaService.buscarPorNome(empresaId, filialId, motoristaNome);
+      const exact = results.find((m) => m.nome.toLowerCase() === motoristaNome.trim().toLowerCase());
+      if (!exact && !quickMotOpen) {
+        setQuickMotNome(motoristaNome);
+        setQuickMotDoc("");
+        setQuickMotOpen(true);
+      }
+    }, 200);
+  };
+
   const searchVeiculo = async (termo: string) => {
     setPlacaVeiculo(termo.toUpperCase());
     if (!empresaId || termo.length < 2) { setShowVeicSugg(false); return; }
     const results = await veiculoService.buscarPorPlaca(empresaId, filialId, termo);
     setVeiculoSugg(results);
     setShowVeicSugg(results.length > 0);
+  };
+
+  // Auto-open quick register popup if placa typed doesn't match any existing record
+  const handleVeiculoBlur = () => {
+    setTimeout(async () => {
+      setShowVeicSugg(false);
+      if (!isEditable || !empresaId || !placaVeiculo.trim()) return;
+      // Skip if a suggestion was just selected (tipo was filled)
+      if (tipoVeiculo) return;
+      const results = await veiculoService.buscarPorPlaca(empresaId, filialId, placaVeiculo);
+      const exact = results.find((v) => v.placa.toUpperCase() === placaVeiculo.trim().toUpperCase());
+      if (!exact && !quickVeicOpen) {
+        setQuickVeicPlaca(placaVeiculo);
+        setQuickVeicTipo("");
+        setQuickVeicOpen(true);
+      }
+    }, 200);
   };
 
   // CORREÇÃO 3: Block quick register when not editable (finalizado/cancelado)
@@ -188,6 +222,7 @@ export function StepIdentificacao({ romaneio, pesagensCount, onSaved, ctx }: Ste
     if (!ctx || !quickVeicPlaca || !isEditable) return;
     const v = await veiculoService.salvar({ placa: quickVeicPlaca.toUpperCase(), tipoVeiculo: quickVeicTipo }, ctx);
     setPlacaVeiculo(v.placa);
+    setTipoVeiculo(v.tipoVeiculo || "");
     setQuickVeicOpen(false); setQuickVeicPlaca(""); setQuickVeicTipo("");
     toast({ title: "Veículo cadastrado" });
   };
