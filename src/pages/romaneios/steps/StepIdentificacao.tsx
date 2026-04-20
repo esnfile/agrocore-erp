@@ -534,12 +534,20 @@ export function StepIdentificacao({ romaneio, pesagensCount, onSaved, ctx }: Ste
                     onChange={(e) => { setMotoristaDocumento(""); searchMotorista(e.target.value); }}
                     placeholder="Nome do motorista"
                     onBlur={handleMotoristaBlur}
+                    onKeyDown={handleMotoristaKeyDown}
                     disabled={!isEditable}
                   />
                   {showMotSugg && (
                     <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-md max-h-40 overflow-y-auto">
-                      {motoristaSugg.map((m) => (
-                        <button key={m.id} type="button" className="w-full text-left px-3 py-2 text-sm hover:bg-accent" onMouseDown={(e) => e.preventDefault()} onClick={() => { setMotoristaNome(m.nome); setMotoristaDocumento(m.documento); setShowMotSugg(false); }}>
+                      {motoristaSugg.map((m, idx) => (
+                        <button
+                          key={m.id}
+                          type="button"
+                          className={`w-full text-left px-3 py-2 text-sm ${idx === motHighlight ? "bg-accent text-accent-foreground" : "hover:bg-accent"}`}
+                          onMouseEnter={() => setMotHighlight(idx)}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => selectMotorista(m)}
+                        >
                           {m.nome} {m.documento && `— ${m.documento}`}
                         </button>
                       ))}
@@ -566,12 +574,20 @@ export function StepIdentificacao({ romaneio, pesagensCount, onSaved, ctx }: Ste
                     onChange={(e) => { setTipoVeiculo(""); searchVeiculo(e.target.value); }}
                     placeholder="Placa"
                     onBlur={handleVeiculoBlur}
+                    onKeyDown={handleVeiculoKeyDown}
                     disabled={!isEditable}
                   />
                   {showVeicSugg && (
                     <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-md max-h-40 overflow-y-auto">
-                      {veiculoSugg.map((v) => (
-                        <button key={v.id} type="button" className="w-full text-left px-3 py-2 text-sm hover:bg-accent" onMouseDown={(e) => e.preventDefault()} onClick={() => { setPlacaVeiculo(v.placa); setTipoVeiculo(v.tipoVeiculo || ""); setShowVeicSugg(false); }}>
+                      {veiculoSugg.map((v, idx) => (
+                        <button
+                          key={v.id}
+                          type="button"
+                          className={`w-full text-left px-3 py-2 text-sm ${idx === veicHighlight ? "bg-accent text-accent-foreground" : "hover:bg-accent"}`}
+                          onMouseEnter={() => setVeicHighlight(idx)}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => selectVeiculo(v)}
+                        >
                           {v.placa} {v.tipoVeiculo && `— ${v.tipoVeiculo}`}
                         </button>
                       ))}
