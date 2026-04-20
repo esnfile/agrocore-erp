@@ -1165,6 +1165,34 @@ export default function ContratosPage() {
               </SelectContent>
             </Select>
           </div>
+          <div className="space-y-1.5 min-w-[150px]">
+            <Label className="text-xs font-medium">Data Inicial</Label>
+            <Input
+              type="date"
+              value={dataInicioFiltro}
+              onChange={(e) => setDataInicioFiltro(e.target.value)}
+              className="h-9"
+            />
+          </div>
+          <div className="space-y-1.5 min-w-[150px]">
+            <Label className="text-xs font-medium">Data Final</Label>
+            <Input
+              type="date"
+              value={dataFimFiltro}
+              onChange={(e) => setDataFimFiltro(e.target.value)}
+              className="h-9"
+            />
+          </div>
+          {(dataInicioFiltro || dataFimFiltro) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-9"
+              onClick={() => { setDataInicioFiltro(""); setDataFimFiltro(""); }}
+            >
+              Limpar datas
+            </Button>
+          )}
           <div className="flex-1" />
           <Button onClick={openNew}>
             <Plus className="mr-2 h-4 w-4" />
