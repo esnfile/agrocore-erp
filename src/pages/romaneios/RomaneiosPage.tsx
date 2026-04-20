@@ -20,7 +20,7 @@ import { romaneioService } from "@/lib/services";
 import { produtos as mockProdutos, empresas, filiais } from "@/lib/mock-data";
 import type { Romaneio } from "@/lib/mock-data";
 import {
-  STATUS_LABELS, STATUS_BADGE_CLASSES, ORIGEM_LABELS,
+  STATUS_LABELS, STATUS_BADGE_CLASSES, STATUS_ICONS, ORIGEM_LABELS,
   type StatusRomaneioNew, type OrigemRomaneio,
 } from "./romaneio-types";
 import {

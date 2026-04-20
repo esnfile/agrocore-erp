@@ -11,7 +11,7 @@ import { toast } from "@/hooks/use-toast";
 import { romaneioService, pontoEstoqueService, contratoService } from "@/lib/services";
 import { produtos as mockProdutos } from "@/lib/mock-data";
 import type { Romaneio, PontoEstoque, Contrato } from "@/lib/mock-data";
-import { STATUS_LABELS, ORIGEM_LABELS, TIPO_LABELS, SAFRAS_REF, CULTIVOS_REF, STATUS_BADGE_CLASSES, type StatusRomaneioNew, resolveContratoUnidadeInfo, fmtDualUnit } from "../romaneio-types";
+import { STATUS_LABELS, ORIGEM_LABELS, TIPO_LABELS, SAFRAS_REF, CULTIVOS_REF, STATUS_BADGE_CLASSES, STATUS_ICONS, type StatusRomaneioNew, resolveContratoUnidadeInfo, fmtDualUnit } from "../romaneio-types";
 import { empresas, filiais } from "@/lib/mock-data";
 
 interface StepFechamentoProps {
