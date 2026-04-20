@@ -38,6 +38,30 @@ export const STATUS_BADGE_CLASSES: Record<StatusRomaneioNew, string> = {
   CANCELADO: "bg-red-100 text-red-700 border-red-300",
 };
 
+// Icon for each status — paired with STATUS_BADGE_CLASSES (kept colors).
+// Imported lazily to avoid circular deps with consumers.
+import {
+  FileEdit,
+  Truck,
+  FileText,
+  FlaskConical,
+  ClipboardCheck,
+  CheckCircle2,
+  XCircle,
+  type LucideIcon,
+} from "lucide-react";
+
+export const STATUS_ICONS: Record<StatusRomaneioNew, LucideIcon> = {
+  RASCUNHO: FileEdit,
+  AGUARDANDO_PESAGEM: Truck,
+  PESAGEM_PARCIAL: Truck,
+  AGUARDANDO_VINCULO: FileText,
+  AGUARDANDO_CLASSIFICACAO: FlaskConical,
+  CLASSIFICADO: ClipboardCheck,
+  FINALIZADO: CheckCircle2,
+  CANCELADO: XCircle,
+};
+
 // Keep STATUS_COLORS for backward compat but prefer STATUS_BADGE_CLASSES
 export const STATUS_COLORS: Record<StatusRomaneioNew, "default" | "secondary" | "destructive" | "outline"> = {
   RASCUNHO: "outline",

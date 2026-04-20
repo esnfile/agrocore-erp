@@ -20,7 +20,7 @@ import { romaneioService } from "@/lib/services";
 import { produtos as mockProdutos, empresas, filiais } from "@/lib/mock-data";
 import type { Romaneio } from "@/lib/mock-data";
 import {
-  STATUS_LABELS, STATUS_BADGE_CLASSES, ORIGEM_LABELS,
+  STATUS_LABELS, STATUS_BADGE_CLASSES, STATUS_ICONS, ORIGEM_LABELS,
   type StatusRomaneioNew, type OrigemRomaneio,
 } from "./romaneio-types";
 import {
@@ -301,9 +301,15 @@ export default function RomaneiosPage() {
                     {rom.pesoClassificado > 0 ? `${rom.pesoClassificado.toFixed(0)}` : (rom.pesoLiquidoSecoLimpo > 0 ? `${rom.pesoLiquidoSecoLimpo.toFixed(0)}` : "—")}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className={`text-[10px] ${STATUS_BADGE_CLASSES[statusKey] || ""}`}>
-                      {STATUS_LABELS[statusKey] || rom.status}
-                    </Badge>
+                    {(() => {
+                      const Icon = STATUS_ICONS[statusKey];
+                      return (
+                        <Badge variant="outline" className={`text-[10px] inline-flex items-center gap-1 ${STATUS_BADGE_CLASSES[statusKey] || ""}`}>
+                          {Icon && <Icon className="h-3 w-3" aria-hidden />}
+                          {STATUS_LABELS[statusKey] || rom.status}
+                        </Badge>
+                      );
+                    })()}
                   </TableCell>
                   <TableCell className="text-xs">{format(new Date(rom.criadoEm), "dd/MM/yyyy HH:mm")}</TableCell>
                   <TableCell>
