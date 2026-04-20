@@ -221,10 +221,14 @@ export default function ContratosPage() {
   const TODOS_STATUS = "__TODOS__";
   const [statusFiltro, setStatusFiltro] = useState<string>(TODOS_STATUS);
 
+  // Filtro por período (Data do Contrato)
+  const [dataInicioFiltro, setDataInicioFiltro] = useState<string>("");
+  const [dataFimFiltro, setDataFimFiltro] = useState<string>("");
+
   // Ordenação manual da tabela (clique no cabeçalho).
   // Quando null → usa ordenação padrão Empresa ASC → Filial ASC → dataContrato DESC.
   type SortKey =
-    | "empresa" | "filial" | "status" | "numero" | "pessoa" | "produto"
+    | "empresa" | "filial" | "status" | "numero" | "data" | "pessoa" | "produto"
     | "tipo" | "volTotal" | "volPendente" | "preco";
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
@@ -553,10 +557,17 @@ export default function ContratosPage() {
   // Filtro por status + ordenação padrão (Empresa ASC → Filial ASC → dataContrato DESC)
   // ou ordenação manual quando o usuário clica num cabeçalho.
   const contratosOrdenados = useMemo(() => {
-    const filtered =
-      statusFiltro === TODOS_STATUS
-        ? contratos
-        : contratos.filter((c) => c.status === statusFiltro);
+    let filtered = statusFiltro === TODOS_STATUS
+      ? contratos
+      : contratos.filter((c) => c.status === statusFiltro);
+
+    // Filtro por período da data do contrato
+    if (dataInicioFiltro) {
+      filtered = filtered.filter((c) => c.dataContrato >= dataInicioFiltro);
+    }
+    if (dataFimFiltro) {
+      filtered = filtered.filter((c) => c.dataContrato <= dataFimFiltro);
+    }
 
     const arr = [...filtered];
 
@@ -584,6 +595,7 @@ export default function ContratosPage() {
         case "filial": return getNomeFilial(c.filialId).toLowerCase();
         case "status": return c.status;
         case "numero": return c.numeroContrato;
+        case "data": return new Date(c.dataContrato).getTime();
         case "pessoa": return getNomePessoa(c.pessoaId).toLowerCase();
         case "produto": return getNomeProduto(c.produtoId).toLowerCase();
         case "tipo": return c.tipoContrato;
@@ -599,7 +611,7 @@ export default function ContratosPage() {
       return String(va).localeCompare(String(vb)) * dirMul;
     });
     return arr;
-  }, [contratos, statusFiltro, sortKey, sortDir, orgEmpresas, localFiliais, filiaisEmpresa]);
+  }, [contratos, statusFiltro, dataInicioFiltro, dataFimFiltro, sortKey, sortDir, orgEmpresas, localFiliais, filiaisEmpresa]);
 
   // Status disponíveis no filtro (apenas os reais de Contrato)
   const STATUS_CONTRATO_OPCOES: { value: string; label: string }[] = [
@@ -1153,6 +1165,34 @@ export default function ContratosPage() {
               </SelectContent>
             </Select>
           </div>
+          <div className="space-y-1.5 min-w-[150px]">
+            <Label className="text-xs font-medium">Data Inicial</Label>
+            <Input
+              type="date"
+              value={dataInicioFiltro}
+              onChange={(e) => setDataInicioFiltro(e.target.value)}
+              className="h-9"
+            />
+          </div>
+          <div className="space-y-1.5 min-w-[150px]">
+            <Label className="text-xs font-medium">Data Final</Label>
+            <Input
+              type="date"
+              value={dataFimFiltro}
+              onChange={(e) => setDataFimFiltro(e.target.value)}
+              className="h-9"
+            />
+          </div>
+          {(dataInicioFiltro || dataFimFiltro) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-9"
+              onClick={() => { setDataInicioFiltro(""); setDataFimFiltro(""); }}
+            >
+              Limpar datas
+            </Button>
+          )}
           <div className="flex-1" />
           <Button onClick={openNew}>
             <Plus className="mr-2 h-4 w-4" />
@@ -1208,6 +1248,11 @@ export default function ContratosPage() {
                   </button>
                 </TableHead>
                 <TableHead>
+                  <button className="flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("data")}>
+                    Data <SortIcon k="data" />
+                  </button>
+                </TableHead>
+                <TableHead>
                   <button className="flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("pessoa")}>
                     Pessoa <SortIcon k="pessoa" />
                   </button>
@@ -1239,7 +1284,7 @@ export default function ContratosPage() {
             <TableBody>
               {contratosOrdenados.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={13} className="text-center py-8 text-muted-foreground">
                     {contratos.length === 0
                       ? "Nenhum contrato cadastrado."
                       : "Nenhum contrato corresponde aos filtros aplicados."}
@@ -1259,6 +1304,7 @@ export default function ContratosPage() {
                       <StatusBadge status={c.status} />
                     </TableCell>
                     <TableCell className="font-medium">{c.numeroContrato}</TableCell>
+                    <TableCell className="text-xs whitespace-nowrap">{formatDateBR(c.dataContrato)}</TableCell>
                     <TableCell>{getNomePessoa(c.pessoaId)}</TableCell>
                     <TableCell>{getNomeProduto(c.produtoId)}</TableCell>
                     <TableCell className="text-right">
