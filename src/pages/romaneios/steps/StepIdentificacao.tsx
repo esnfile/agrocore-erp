@@ -48,8 +48,10 @@ export function StepIdentificacao({ romaneio, pesagensCount, onSaved, ctx }: Ste
   // Suggestions
   const [motoristaSugg, setMotoristaSugg] = useState<Motorista[]>([]);
   const [showMotSugg, setShowMotSugg] = useState(false);
+  const [motHighlight, setMotHighlight] = useState(0);
   const [veiculoSugg, setVeiculoSugg] = useState<Veiculo[]>([]);
   const [showVeicSugg, setShowVeicSugg] = useState(false);
+  const [veicHighlight, setVeicHighlight] = useState(0);
   const [quickMotOpen, setQuickMotOpen] = useState(false);
   const [quickMotNome, setQuickMotNome] = useState("");
   const [quickMotDoc, setQuickMotDoc] = useState("");
