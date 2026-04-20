@@ -1251,20 +1251,22 @@ export default function ContratosPage() {
                     <TableCell className="text-xs">{getNomeEmpresa(c.empresaId)}</TableCell>
                     <TableCell className="text-xs">{getNomeFilial(c.filialId)}</TableCell>
                     <TableCell>
+                      <Badge variant={c.tipoContrato === "COMPRA" ? "default" : "secondary"}>
+                        {c.tipoContrato === "COMPRA" ? "Compra" : "Venda"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
                       <StatusBadge status={c.status} />
                     </TableCell>
                     <TableCell className="font-medium">{c.numeroContrato}</TableCell>
                     <TableCell>{getNomePessoa(c.pessoaId)}</TableCell>
                     <TableCell>{getNomeProduto(c.produtoId)}</TableCell>
-                    <TableCell>
-                      <Badge variant={c.tipoContrato === "COMPRA" ? "default" : "secondary"}>
-                        {c.tipoContrato === "COMPRA" ? "Compra" : "Venda"}
-                      </Badge>
-                    </TableCell>
                     <TableCell className="text-right">
                       {c.quantidadeTotal.toLocaleString("pt-BR")} {getCodigoUnidade(c.unidadeNegociacaoId)}
                     </TableCell>
-                    <TableCell className="text-right">{Math.round(c.quantidadeSaldo).toLocaleString("pt-BR")}</TableCell>
+                    <TableCell className="text-right">
+                      {Math.round(c.quantidadeSaldo).toLocaleString("pt-BR")} {getCodigoUnidade(c.unidadeNegociacaoId)}
+                    </TableCell>
                     <TableCell className="text-right">
                       {formatCurrency(c.precoUnitario, mockMoedas.find((m) => m.id === c.moedaId)?.codigo ?? "BRL")}
                     </TableCell>
