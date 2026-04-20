@@ -1193,6 +1193,11 @@ export default function ContratosPage() {
                   </button>
                 </TableHead>
                 <TableHead>
+                  <button className="flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("tipo")}>
+                    Tipo <SortIcon k="tipo" />
+                  </button>
+                </TableHead>
+                <TableHead>
                   <button className="flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("status")}>
                     Status <SortIcon k="status" />
                   </button>
@@ -1212,24 +1217,19 @@ export default function ContratosPage() {
                     Produto <SortIcon k="produto" />
                   </button>
                 </TableHead>
-                <TableHead>
-                  <button className="flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("tipo")}>
-                    Tipo <SortIcon k="tipo" />
-                  </button>
-                </TableHead>
                 <TableHead className="text-right">
                   <button className="flex items-center gap-1 hover:text-foreground ml-auto" onClick={() => toggleSort("volTotal")}>
-                    Vol. Total <SortIcon k="volTotal" />
+                    Qtde Total <SortIcon k="volTotal" />
                   </button>
                 </TableHead>
                 <TableHead className="text-right">
                   <button className="flex items-center gap-1 hover:text-foreground ml-auto" onClick={() => toggleSort("volPendente")}>
-                    Vol. Pendente <SortIcon k="volPendente" />
+                    Qtde Pendente <SortIcon k="volPendente" />
                   </button>
                 </TableHead>
                 <TableHead className="text-right">
                   <button className="flex items-center gap-1 hover:text-foreground ml-auto" onClick={() => toggleSort("preco")}>
-                    Preço <SortIcon k="preco" />
+                    Preço Unit <SortIcon k="preco" />
                   </button>
                 </TableHead>
                 <TableHead className="text-center">Duplic.</TableHead>
