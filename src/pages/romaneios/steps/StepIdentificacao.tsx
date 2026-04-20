@@ -165,7 +165,31 @@ export function StepIdentificacao({ romaneio, pesagensCount, onSaved, ctx }: Ste
     if (!empresaId || termo.length < 2) { setShowMotSugg(false); return; }
     const results = await motoristaService.buscarPorNome(empresaId, filialId, termo);
     setMotoristaSugg(results);
+    setMotHighlight(0);
     setShowMotSugg(results.length > 0);
+  };
+
+  const selectMotorista = (m: Motorista) => {
+    setMotoristaNome(m.nome);
+    setMotoristaDocumento(m.documento);
+    setShowMotSugg(false);
+  };
+
+  const handleMotoristaKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showMotSugg || motoristaSugg.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setMotHighlight((i) => (i + 1) % motoristaSugg.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setMotHighlight((i) => (i - 1 + motoristaSugg.length) % motoristaSugg.length);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const m = motoristaSugg[motHighlight];
+      if (m) selectMotorista(m);
+    } else if (e.key === "Escape") {
+      setShowMotSugg(false);
+    }
   };
 
   // Auto-open quick register popup if motorista typed doesn't match any existing record
