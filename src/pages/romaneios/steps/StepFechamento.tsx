@@ -130,7 +130,7 @@ export function StepFechamento({ romaneio, onRefresh, ctx }: StepFechamentoProps
             <div><span className="text-muted-foreground">Tipo:</span> <Badge variant="outline" className="ml-1">{TIPO_LABELS[romaneio.tipoRomaneio]}</Badge></div>
             <div><span className="text-muted-foreground">Empresa:</span> <strong>{empresaNome}</strong></div>
             <div><span className="text-muted-foreground">Filial:</span> <strong>{filialNome}</strong></div>
-            <div><span className="text-muted-foreground">Status:</span> <Badge variant="outline" className={`ml-1 ${STATUS_BADGE_CLASSES[romaneio.status as StatusRomaneioNew] || ""}`}>{STATUS_LABELS[romaneio.status as keyof typeof STATUS_LABELS] || romaneio.status}</Badge></div>
+            <div><span className="text-muted-foreground">Status:</span> {(() => { const sk = romaneio.status as StatusRomaneioNew; const Icon = STATUS_ICONS[sk]; return (<Badge variant="outline" className={`ml-1 inline-flex items-center gap-1 ${STATUS_BADGE_CLASSES[sk] || ""}`}>{Icon && <Icon className="h-3 w-3" aria-hidden />}{STATUS_LABELS[sk] || romaneio.status}</Badge>); })()}</div>
             <div><span className="text-muted-foreground">Produto:</span> <strong>{produtoNome}</strong></div>
             <div><span className="text-muted-foreground">Motorista:</span> <strong>{romaneio.motoristaNome}</strong></div>
             <div><span className="text-muted-foreground">Veículo:</span> <strong>{romaneio.placaVeiculo}</strong></div>
