@@ -3371,27 +3371,37 @@ export default function ContratosPage() {
                       </div>
 
                       <div className="flex gap-2 pt-2">
-                        <Button onClick={() => setConfirmDialogOpen(true)} disabled={liquidacaoLoading}>
+                        <Button onClick={() => setConfirmDialogOpen(true)} disabled={liquidacaoLoading || !validacoesLiquidacao.podeAvancar}>
                           <FileCheck className="mr-2 h-4 w-4" />
                           Confirmar e Efetivar
                         </Button>
-                        <Button variant="outline" onClick={onGerarPrevia} disabled={liquidacaoLoading}>
+                        <Button variant="outline" onClick={onGerarPrevia} disabled={liquidacaoLoading || !validacoesLiquidacao.podeAvancar}>
                           Recalcular Simulação
                         </Button>
                         <Button variant="destructive" onClick={onCancelarLiquidacao} disabled={liquidacaoLoading}>
                           Cancelar Simulação
                         </Button>
                       </div>
+                      {!validacoesLiquidacao.podeAvancar && (
+                        <p className="text-xs text-destructive">
+                          Resolva as pendências do painel de validações acima para confirmar.
+                        </p>
+                      )}
                     </div>
                   ) : (
                     <div className="flex flex-col items-center gap-4 py-6">
                       <p className="text-sm text-muted-foreground">Nenhuma liquidação gerada para este contrato.</p>
-                      <Button onClick={onGerarPrevia} disabled={liquidacaoLoading || !canLiquidate}>
+                      <Button onClick={onGerarPrevia} disabled={liquidacaoLoading || !canLiquidate || !validacoesLiquidacao.podeAvancar}>
                         <FileCheck className="mr-2 h-4 w-4" />
                         Gerar Simulação de Liquidação
                       </Button>
-                      {editingContrato?.tipoPreco === "A_FIXAR" && saldoAFixar > 0 && (
-                        <p className="text-xs text-destructive">Fixe todo o volume entregue antes de liquidar.</p>
+                      {!validacoesLiquidacao.podeAvancar && (
+                        <p className="text-xs text-destructive text-center max-w-md">
+                          {validacoesLiquidacao.bloqueios[0]
+                            ?? (validacoesLiquidacao.requerJustificativa
+                              ? "Preencha a justificativa para divergência acima (mín. 20 caracteres)."
+                              : "Resolva as pendências do painel de validações acima.")}
+                        </p>
                       )}
                     </div>
                   )}
