@@ -3059,7 +3059,89 @@ export default function ContratosPage() {
                 </Card>
               )}
 
-              {editingContrato?.status === "LIQUIDADO" && liquidacao?.status === "CONFIRMADA" ? (
+              {/* Painel de Validações de Liquidação (não exibido se contrato já liquidado) */}
+              {editingContrato && editingContrato.status !== "LIQUIDADO" && editingContrato.status !== "CANCELADO" && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <FileCheck className="h-4 w-4" />
+                      Status de Validações
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {validacoesLiquidacao.itens.map((it) => {
+                      const Icon =
+                        it.status === "ok" ? CheckCircle2
+                        : it.status === "alerta" ? AlertCircle
+                        : it.status === "bloqueio" ? XCircle
+                        : MinusCircle;
+                      const colorCls =
+                        it.status === "ok" ? "text-primary"
+                        : it.status === "alerta" ? "text-amber-500"
+                        : it.status === "bloqueio" ? "text-destructive"
+                        : "text-muted-foreground";
+                      return (
+                        <div key={it.id} className="flex items-start gap-3 text-sm">
+                          <Icon className={`h-5 w-5 mt-0.5 shrink-0 ${colorCls}`} />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2 flex-wrap">
+                              <span className="font-medium text-foreground">{it.label}</span>
+                              <span className={`text-xs ${colorCls}`}>
+                                {it.status === "ok" ? "OK" : it.status === "alerta" ? "ATENÇÃO" : it.status === "bloqueio" ? "BLOQUEADO" : "N/A"}
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-0.5">{it.detalhe}</p>
+                            {it.mensagem && (
+                              <p className={`text-xs mt-1 ${it.status === "alerta" ? "text-amber-600" : "text-destructive"}`}>
+                                {it.mensagem}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* Justificativa obrigatória quando há divergência fora da tolerância */}
+                    {validacoesLiquidacao.requerJustificativa && (
+                      <div className="space-y-2 pt-3 border-t">
+                        <Label htmlFor="justificativa-divergencia" className="text-sm">
+                          Justificativa para Divergência (Obrigatória — mín. 20 caracteres)
+                        </Label>
+                        <Textarea
+                          id="justificativa-divergencia"
+                          value={justificativaDivergencia}
+                          onChange={(e) => setJustificativaDivergencia(e.target.value)}
+                          minLength={20}
+                          rows={3}
+                          placeholder="Ex: Quebra em transporte. Carregamento saiu de Londrina e chegou em Maringá com X SC a menos. Motorista atestou."
+                          disabled={viewOnly}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          {justificativaDivergencia.trim().length} / 20 caracteres mínimos
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Atalhos de resolução */}
+                    {validacoesLiquidacao.bloqueios.length > 0 && (
+                      <div className="flex flex-wrap gap-2 pt-3 border-t">
+                        {validacoesLiquidacao.itens.find((i) => i.id === "preco_fixado" && i.status === "bloqueio") && (
+                          <Button variant="outline" size="sm" onClick={() => setActiveTab("fixacao")}>
+                            Ir para Fixações →
+                          </Button>
+                        )}
+                        {(validacoesLiquidacao.itens.find((i) => i.id === "romaneios_finalizados" && i.status === "bloqueio")
+                          || validacoesLiquidacao.itens.find((i) => i.id === "status_romaneios" && i.status === "bloqueio")) && (
+                          <Button variant="outline" size="sm" onClick={() => setActiveTab("romaneios")}>
+                            Ir para Romaneios →
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 text-primary">
                     <FileCheck className="h-5 w-5" />
