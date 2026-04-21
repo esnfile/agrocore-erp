@@ -1,87 +1,70 @@
-## Análise da Proposta: Padronização Global de Status Badges
-
-### Avaliação honesta
-
-**A ideia é excelente e necessária.** Hoje temos badges espalhados em vários arquivos com cores e estilos diferentes para o mesmo status conceitual:
-
-- `romaneio-types.ts` tem `STATUS_BADGE_CLASSES` (8 status do Romaneio)
-- `ContasPage.tsx` tem badges inline (PENDENTE âmbar, PAGO verde, ATRASADO vermelho)
-- `ContratosPage.tsx` tem badges hardcoded (PARCIAL azul, FATURADO roxo, LIQUIDADO verde, PREVISTO âmbar, PENDENTE azul)
-- `FluxoCaixaPage.tsx` recém-recebeu badges próprios (Realizado/Pendente/Previsto)
-- `MovimentacoesPage.tsx`, `AdiantamentosPage.tsx` etc. têm seus próprios
-
-Isso já causou confusão real nesta conversa (PENDENTE aparecendo azul em um lugar e âmbar em outro). Centralizar resolve definitivamente.
-
-### Pontos de cuidado / ajustes que sugiro
-
-1. **Emojis como ícones (⌛ 💲 🔄 💰 ❌)**: não recomendo. O projeto inteiro usa **lucide-react** (Clock, DollarSign, RefreshCw, CheckCircle2, XCircle). Emojis renderizam diferente em cada SO/navegador, quebram alinhamento vertical e não respeitam `currentColor`. **Sugestão: usar lucide equivalentes** mantendo o mesmo significado visual.
-2. **Cores hardcoded via `style={{}}**`: o projeto segue tokens semânticos do `index.css` (HSL) e Tailwind. Misturar `style` inline com tokens quebra dark mode futuro e o tema agro (#1B5E20 já é nosso `--primary`). **Sugestão: mapear para classes Tailwind** (ex: `bg-amber-100 text-amber-800 border-amber-300`) — mantém consistência com o resto do sistema e o LIQUIDADO usa o verde primário do tema.
-3. **Status faltantes no mapa proposto** que existem hoje no código e precisam entrar:
-  - Romaneio: `RASCUNHO`, `AGUARDANDO_PESAGEM`, `PESAGEM_PARCIAL`, `AGUARDANDO_VINCULO`, `AGUARDANDO_CLASSIFICACAO`, `CLASSIFICADO`, `FINALIZADO`
-  - Financeiro: `PREVISTO`, `ATRASADO`, `BAIXADO_PARCIAL`
-  - Genéricos: `ATIVO`, `INATIVO`
-   Vou propor agrupamento dentro dos 5 grupos do Eduardo.
-4. **Arquivo `.jsx**` no prompt — o projeto é TypeScript. Será `.tsx`.
-5. **Migração ampla**: tocar todas as telas de uma vez é arriscado. Sugiro entregar componente + migrar telas críticas (Contratos, Contas, Fluxo de Caixa, Romaneios) em uma leva, e deixar as demais (Movimentações, Adiantamentos, Dashboard) prontas para migração incremental.
-
-### Plano proposto
-
-**1. Criar `src/components/StatusBadge.tsx**`
-
-- Mapa `STATUS_CONFIG` centralizado (lucide icon + classes Tailwind + label).
-- Props: `status`, `size?: "sm" | "md" | "lg"`, `className?`.
-- `React.memo`, `aria-label`, fallback com `console.error` para status desconhecido.
-- Suporta string livre (case-insensitive) para tolerar variações.
-
-**2. Mapeamento final (lucide + Tailwind)**
 
 
-| Status                                                                             | Ícone (lucide) | Classes                                                                                                    |
-| ---------------------------------------------------------------------------------- | -------------- | ---------------------------------------------------------------------------------------------------------- |
-| ABERTO, PENDENTE, PREVISTO, AGUARDANDO_*                                           | `Clock`        | `bg-amber-100 text-amber-800 border-amber-300`                                                             |
-| FATURADO                                                                           | `DollarSign`   | `bg-orange-100 text-orange-800 border-orange-300`                                                          |
-| PARCIAL, EM_ANDAMENTO, PROCESSANDO, PESAGEM_PARCIAL, BAIXADO_PARCIAL, CLASSIFICADO | `RefreshCw`    | `bg-purple-100 text-purple-800 border-purple-300`                                                          |
-| LIQUIDADO, PAGO, RECEBIDO, FINALIZADO, ATIVO                                       | `CheckCircle2` | `bg-green-100 text-green-800 border-green-300` (LIQUIDADO destacado: `bg-primary text-primary-foreground`) |
-| CANCELADO, INATIVO                                                                 | `XCircle`      | `bg-gray-200 text-gray-700 border-gray-400`                                                                |
-| ATRASADO                                                                           | `AlertCircle`  | `bg-red-100 text-red-800 border-red-300`                                                                   |
-| RASCUNHO                                                                           | `FileEdit`     | `bg-slate-100 text-slate-700 border-slate-300`                                                             |
+## Objetivo
+Reforçar a aba **Liquidação** (Comercial → Contratos) com um **painel de validações** que bloqueia a finalização quando o contrato não cumpriu todos os requisitos (sem romaneios, romaneios não finalizados, A_FIXAR sem fixação, divergência física fora da tolerância, etc.), com justificativa obrigatória para divergências.
 
+Hoje a aba existe e gera prévia, mas só bloqueia em 2 cenários (A_FIXAR sem saldo zerado e contrato cancelado/liquidado). Falta a barreira para os demais casos — exatamente o problema relatado (liquidar sem fixação/romaneios).
 
-**3. Migrar nesta primeira leva**
+## Escopo cirúrgico — não toca o que já funciona
+- ✅ Mantém `contratoLiquidacaoService.gerarPrevia` / `confirmar` / `cancelar` intactos
+- ✅ Mantém cálculo de romaneios, fixações, duplicatas, fluxo de caixa, estoque
+- ✅ Mantém todas as outras 5 abas do contrato
+- ✅ Apenas **adiciona um gate de validação** antes de permitir gerar prévia E antes de confirmar
 
-- `src/pages/comercial/ContratosPage.tsx` (status do contrato + badges de parcelas)
-- `src/pages/financeiro/ContasPage.tsx`
-- `src/pages/financeiro/FluxoCaixaPage.tsx`
-- `src/pages/romaneios/RomaneiosPage.tsx` + `RomaneioFormPage.tsx`
-- Manter `STATUS_BADGE_CLASSES` em `romaneio-types.ts` por compat, mas substituir usos.
+## Mudanças
 
-**4. Deixar pendente para 2ª leva** (não quebra nada, fica funcional como está)
+### 1. Painel de Validações (topo da aba Liquidação)
+Novo componente inline em `src/pages/comercial/ContratosPage.tsx` — 5 cards de status executados via `useMemo` sobre os dados já carregados (`romaneiosContrato`, `fixacoes`, `editingContrato`, `saldoAFixar`):
 
-- Movimentações, Adiantamentos, Dashboard, Plano de Contas — migração incremental futura.
+| # | Validação | Regra | Estado |
+|---|-----------|-------|--------|
+| 1 | Romaneios Finalizados | `romaneiosContrato.filter(status=FINALIZADO).length >= 1` | ✅/❌ + contador `N/M` |
+| 2 | Cumprimento Físico | `\|qtdContratada − qtdEntregueBruta\| / qtdContratada ≤ tolerância` (padrão **2%**) | ✅/⚠️/❌ |
+| 3 | Preço Fixado (A_FIXAR) | `tipoPreco==="FIXO"` → N/A; senão `saldoAFixar === 0` | ✅/❌/N/A |
+| 4 | Quantidade Líquida Apurada | `Σ pesoLiquido(romaneios FINALIZADOS) > 0` | ✅/❌ |
+| 5 | Status dos Romaneios | nenhum romaneio vinculado com status ≠ FINALIZADO | ✅/❌ |
 
-### O que NÃO muda
+Cada linha mostra ícone (`CheckCircle2` / `AlertCircle` / `XCircle` do lucide-react já importado), label e detalhe numérico (ex: "1000 / 1000 SC", "Saldo a fixar: 50 SC"). Cores: verde (`text-primary`), âmbar (`text-amber-500`), vermelho (`text-destructive`) — usando os tokens já existentes.
 
-- Valores dos status no banco/mock (strings continuam iguais).
-- Lógica de transição de status (PARCIAL → FATURADO → LIQUIDADO etc.).
-- Tema, tokens de cor existentes.
+### 2. Campo de Justificativa (condicional)
+Aparece **apenas** quando Validação 2 = ⚠️ (fora da tolerância, mas sem bloqueio crítico):
+- `<Textarea>` com `minLength=20`, label "Justificativa para Divergência (Obrigatória)"
+- Estado local `justificativaDivergencia`
+- Enquanto vazia, botões de prévia/confirmação ficam desabilitados
+- Persistida em `liquidacao.observacao` ao confirmar
 
-### Resultado
+### 3. Gate nos botões existentes
+Adicionar um `useMemo` `validacoesLiquidacao` que retorna `{ podeAvancar: boolean, bloqueios: string[], alertas: string[] }`.
 
-- Um único arquivo `StatusBadge.tsx` como fonte de verdade.
-- Mesmo status = mesma cor + ícone em qualquer tela.
-- Ícones consistentes (lucide, não emoji).
-- Acessível, memoizado, responsivo via `size`.
-- Telas críticas migradas; demais migram incrementalmente sem quebra.
+- **Botão "Gerar Simulação de Liquidação"**: `disabled={!validacoesLiquidacao.podeAvancar}`. Se houver bloqueios, mostrar lista logo abaixo.
+- **Botão "Confirmar e Efetivar"**: mesmo gate + checagem de justificativa quando aplicável. Antes de abrir o `AlertDialog`, revalida.
+- Mensagens exatas conforme especificação (ex: "Contrato sem romaneios vinculados...", "Contrato A_FIXAR com saldo a fixar pendente (X SC)...").
 
-### Pergunta antes de executar
+### 4. Painel de Prévia (já existe — apenas reordenar)
+A prévia atual continua igual, mas só renderiza quando `validacoesLiquidacao.podeAvancar === true`. Caso contrário, mostra apenas o painel de validações + mensagens de bloqueio.
 
-Confirma essas duas decisões?
+### 5. Tolerância
+Como `Contrato` não tem hoje campos `tolerancia_percentual_menos/mais`, usar **constante padrão 2%** declarada no topo do arquivo (`const TOLERANCIA_FISICA_PADRAO = 0.02`). Documentado como TODO para virar campo do contrato no futuro (sem migração de dados/quebra).
 
-- **Lucide icons em vez de emojis** (recomendação forte minha)
-- **Classes Tailwind em vez de cores HEX inline** (mantém o tema do projeto)
+### 6. Bloqueio do tipo "Contrato Cancelado/Liquidado"
+Mantido como está (já funciona).
 
-Se sim, executo já com a 1ª leva de migração. Se preferir emojis e HEX literais conforme o prompt, também faço — só perde consistência visual com o resto do sistema.  
-  
-Precisamos tomar cuidado para mexer nos status do romaneio, criamos com capricho, então não sei se é viavel fazer essas alterações de cores imensas... O que acha?
+## Arquivos modificados
+- `src/pages/comercial/ContratosPage.tsx` (único) — adiciona `useMemo validacoesLiquidacao`, estado `justificativaDivergencia`, painel de validações no início do `<TabsContent value="liquidacao">`, gate nos botões, mensagens.
 
-&nbsp;
+## O que NÃO muda
+- `src/lib/services.ts` — nenhuma alteração no `contratoLiquidacaoService` nem em romaneios/financeiro/estoque
+- `src/lib/mock-data.ts` — nenhuma alteração de schema
+- Outras abas do contrato e outras telas do sistema
+
+## Riscos e mitigação
+- **Risco**: bloquear contratos legados que já estavam em fluxo. **Mitigação**: contratos com status `LIQUIDADO`/`FINALIZADO` continuam exibindo o resumo read-only sem revalidar.
+- **Risco**: tolerância 2% hardcoded ser inadequada. **Mitigação**: constante isolada no topo, fácil ajustar; futura migração para campo no contrato é trivial.
+- **Risco**: quebrar fluxo A_FIXAR. **Mitigação**: a validação 3 reaproveita o `saldoAFixar` já calculado e o aviso visual existente.
+
+## Resultado esperado
+Quando você abrir o contrato problemático (A_FIXAR, sem fixação, sem romaneio) e for na aba Liquidação:
+- Verá o painel com ❌ em "Romaneios Finalizados", ❌ em "Preço Fixado", ❌ em "Quantidade Líquida"
+- Botão "Gerar Simulação" **desabilitado** com lista clara dos motivos
+- Atalho para abas correspondentes (Romaneios, Fixação) para resolver
+
