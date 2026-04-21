@@ -1135,6 +1135,15 @@ export default function ContratosPage() {
 
   const onConfirmarLiquidacao = async () => {
     if (!liquidacao || !editingContrato) return;
+    if (!validacoesLiquidacao.podeAvancar) {
+      const msg = validacoesLiquidacao.bloqueios[0]
+        ?? (validacoesLiquidacao.requerJustificativa && justificativaDivergencia.trim().length < 20
+          ? "Preencha a justificativa (mínimo 20 caracteres) para prosseguir."
+          : "Validações da liquidação não atendidas.");
+      toast({ title: "Bloqueado", description: msg, variant: "destructive" });
+      setConfirmDialogOpen(false);
+      return;
+    }
     setLiquidacaoLoading(true);
     setConfirmDialogOpen(false);
     try {
