@@ -1155,6 +1155,12 @@ export default function ContratosPage() {
       });
       if (result.sucesso) {
         toast({ title: "Sucesso", description: result.mensagem });
+        if (validacoesLiquidacao.requerJustificativa && justificativaDivergencia.trim()) {
+          toast({
+            title: "Divergência registrada",
+            description: "Justificativa de divergência registrada para auditoria.",
+          });
+        }
         await loadSubEntities(editingContrato.id);
         await loadContratos();
         const updated = (await contratoService.listarPorEmpresa(empresaId)).find((c) => c.id === editingContrato.id);
