@@ -686,6 +686,7 @@ export default function ContratosPage() {
     setFinBaixas([]);
     setFinMovs([]);
     setLiquidacao(null);
+    setJustificativaDivergencia("");
     setActiveTab("dados");
     setModalOpen(true);
   };
