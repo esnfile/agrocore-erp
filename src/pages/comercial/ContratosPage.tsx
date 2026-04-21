@@ -3142,6 +3142,7 @@ export default function ContratosPage() {
                 </Card>
               )}
 
+              {editingContrato?.status === "LIQUIDADO" && liquidacao?.status === "CONFIRMADA" ? (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 text-primary">
                     <FileCheck className="h-5 w-5" />
