@@ -76,7 +76,10 @@ import type {
   DescontoTipo,
   DescontoEmpresaConfig,
 } from "@/lib/mock-data";
-import { Plus, Pencil, Trash2, Eye, Lock, FileCheck, AlertTriangle, ExternalLink, Info, Clock, Building2, GitBranch, RefreshCw, DollarSign, ChevronDown, ChevronUp, ArrowUpDown, ArrowUp, ArrowDown, Filter } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, Lock, FileCheck, AlertTriangle, ExternalLink, Info, Clock, Building2, GitBranch, RefreshCw, DollarSign, ChevronDown, ChevronUp, ArrowUpDown, ArrowUp, ArrowDown, Filter, CheckCircle2, XCircle, AlertCircle, MinusCircle } from "lucide-react";
+
+// TODO: tornar configurável por contrato (campos tolerancia_percentual_menos / _mais)
+const TOLERANCIA_FISICA_PADRAO = 0.02; // 2%
 import { SearchableSelect, type SearchableOption } from "@/components/SearchableSelect";
 import { formatMoeda, formatDateBR } from "@/lib/format";
 
