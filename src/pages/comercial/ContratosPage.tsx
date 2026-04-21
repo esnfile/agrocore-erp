@@ -76,7 +76,10 @@ import type {
   DescontoTipo,
   DescontoEmpresaConfig,
 } from "@/lib/mock-data";
-import { Plus, Pencil, Trash2, Eye, Lock, FileCheck, AlertTriangle, ExternalLink, Info, Clock, Building2, GitBranch, RefreshCw, DollarSign, ChevronDown, ChevronUp, ArrowUpDown, ArrowUp, ArrowDown, Filter } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, Lock, FileCheck, AlertTriangle, ExternalLink, Info, Clock, Building2, GitBranch, RefreshCw, DollarSign, ChevronDown, ChevronUp, ArrowUpDown, ArrowUp, ArrowDown, Filter, CheckCircle2, XCircle, AlertCircle, MinusCircle } from "lucide-react";
+
+// TODO: tornar configurável por contrato (campos tolerancia_percentual_menos / _mais)
+const TOLERANCIA_FISICA_PADRAO = 0.02; // 2%
 import { SearchableSelect, type SearchableOption } from "@/components/SearchableSelect";
 import { formatMoeda, formatDateBR } from "@/lib/format";
 
@@ -683,6 +686,7 @@ export default function ContratosPage() {
     setFinBaixas([]);
     setFinMovs([]);
     setLiquidacao(null);
+    setJustificativaDivergencia("");
     setActiveTab("dados");
     setModalOpen(true);
   };
@@ -1012,6 +1016,8 @@ export default function ContratosPage() {
   const totalBaixas = finBaixas.reduce((s, b) => s + b.valorPago, 0);
 
   // ---- Liquidação handlers ----
+  const [justificativaDivergencia, setJustificativaDivergencia] = useState("");
+
   const canLiquidate = useMemo(() => {
     if (!editingContrato) return false;
     if (editingContrato.tipoPreco === "A_FIXAR" && saldoAFixar > 0) return false;
@@ -1019,14 +1025,93 @@ export default function ContratosPage() {
     return true;
   }, [editingContrato, saldoAFixar]);
 
+  // Painel de validações de liquidação (5 checagens)
+  type StatusValidacao = "ok" | "alerta" | "bloqueio" | "na";
+  const validacoesLiquidacao = useMemo(() => {
+    if (!editingContrato) {
+      return { itens: [] as Array<{ id: string; label: string; status: StatusValidacao; detalhe: string; mensagem?: string }>, podeAvancar: false, bloqueios: [] as string[], alertas: [] as string[], requerJustificativa: false };
+    }
+    const unCod = getCodigoUnidade(editingContrato.unidadeNegociacaoId);
+    const romFinal = romaneiosContrato.filter((r) => r.status === "FINALIZADO");
+    const romNaoFinal = romaneiosContrato.filter((r) => r.status !== "FINALIZADO");
+    const qtdContratada = editingContrato.quantidadeTotal ?? 0;
+    const qtdEntregueLiquida = romFinal.reduce((s, r) => s + r.pesoLiquido, 0);
+    const qtdEntregueBruta = romFinal.reduce((s, r) => s + ((r as any).pesoBruto ?? r.pesoLiquido), 0);
+    const diferencaFisica = Math.abs(qtdContratada - qtdEntregueBruta);
+    const percDif = qtdContratada > 0 ? diferencaFisica / qtdContratada : 0;
+    const dentroTolerancia = percDif <= TOLERANCIA_FISICA_PADRAO;
+    const toleranciaQtd = qtdContratada * TOLERANCIA_FISICA_PADRAO;
+
+    const itens: Array<{ id: string; label: string; status: StatusValidacao; detalhe: string; mensagem?: string }> = [];
+
+    itens.push({
+      id: "romaneios_finalizados",
+      label: "Romaneios Finalizados",
+      status: romFinal.length >= 1 ? "ok" : "bloqueio",
+      detalhe: `${romFinal.length} / ${romaneiosContrato.length} finalizados`,
+      mensagem: romFinal.length === 0 ? "Contrato sem romaneios vinculados. Pelo menos 1 romaneio finalizado é obrigatório." : undefined,
+    });
+
+    itens.push({
+      id: "cumprimento_fisico",
+      label: "Cumprimento Físico",
+      status: qtdEntregueBruta === 0 ? "bloqueio" : dentroTolerancia ? "ok" : "alerta",
+      detalhe: `${qtdEntregueBruta.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} / ${qtdContratada.toLocaleString("pt-BR")} ${unCod} • Diferença ${diferencaFisica.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} ${unCod} (${(percDif * 100).toFixed(2)}%) • Tolerância ${(TOLERANCIA_FISICA_PADRAO * 100).toFixed(0)}% (${toleranciaQtd.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} ${unCod})`,
+      mensagem: !dentroTolerancia && qtdEntregueBruta > 0
+        ? `Cumprimento físico fora da tolerância. Diferença: ${diferencaFisica.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} ${unCod} (${(percDif * 100).toFixed(2)}%). Digite uma justificativa abaixo para prosseguir.`
+        : undefined,
+    });
+
+    if (editingContrato.tipoPreco === "A_FIXAR") {
+      itens.push({
+        id: "preco_fixado",
+        label: "Preço Fixado (A_FIXAR)",
+        status: saldoAFixar <= 0 ? "ok" : "bloqueio",
+        detalhe: `Saldo a Fixar: ${saldoAFixar.toLocaleString("pt-BR")} ${unCod}`,
+        mensagem: saldoAFixar > 0 ? `Contrato A_FIXAR com saldo a fixar pendente (${saldoAFixar.toLocaleString("pt-BR")} ${unCod}). Fixe todos os preços antes de liquidar.` : undefined,
+      });
+    } else {
+      itens.push({
+        id: "preco_fixado",
+        label: "Preço Fixado",
+        status: "na",
+        detalhe: "Contrato FIXO — não aplicável",
+      });
+    }
+
+    itens.push({
+      id: "qtd_liquida",
+      label: "Quantidade Líquida Apurada",
+      status: qtdEntregueLiquida > 0 ? "ok" : "bloqueio",
+      detalhe: `${qtdEntregueLiquida.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} ${unCod} (após descontos)`,
+      mensagem: qtdEntregueLiquida <= 0 ? "Nenhuma quantidade líquida apurada após descontos. Verifique romaneios." : undefined,
+    });
+
+    itens.push({
+      id: "status_romaneios",
+      label: "Romaneios com Status Válido",
+      status: romNaoFinal.length === 0 ? "ok" : "bloqueio",
+      detalhe: romNaoFinal.length === 0 ? "Todos finalizados" : `${romNaoFinal.length} pendentes`,
+      mensagem: romNaoFinal.length > 0 ? `Existem ${romNaoFinal.length} romaneios não finalizados. Finalize todos antes de liquidar.` : undefined,
+    });
+
+    const bloqueios = itens.filter((i) => i.status === "bloqueio" && i.mensagem).map((i) => i.mensagem!);
+    const alertas = itens.filter((i) => i.status === "alerta" && i.mensagem).map((i) => i.mensagem!);
+    const requerJustificativa = itens.some((i) => i.status === "alerta");
+    const justificativaOk = !requerJustificativa || justificativaDivergencia.trim().length >= 20;
+    const podeAvancar = bloqueios.length === 0 && justificativaOk;
+
+    return { itens, podeAvancar, bloqueios, alertas, requerJustificativa };
+  }, [editingContrato, romaneiosContrato, saldoAFixar, justificativaDivergencia]);
+
   const onGerarPrevia = async () => {
     if (!editingContrato) return;
-    if (editingContrato.tipoPreco === "A_FIXAR" && saldoAFixar > 0) {
-      toast({
-        title: "Bloqueado",
-        description: "Defina fixações para todo o volume entregue antes de liquidar.",
-        variant: "destructive",
-      });
+    if (!validacoesLiquidacao.podeAvancar) {
+      const msg = validacoesLiquidacao.bloqueios[0]
+        ?? (validacoesLiquidacao.requerJustificativa && justificativaDivergencia.trim().length < 20
+          ? "Preencha a justificativa (mínimo 20 caracteres) para prosseguir."
+          : "Validações da liquidação não atendidas.");
+      toast({ title: "Bloqueado", description: msg, variant: "destructive" });
       return;
     }
     setLiquidacaoLoading(true);
@@ -1051,6 +1136,15 @@ export default function ContratosPage() {
 
   const onConfirmarLiquidacao = async () => {
     if (!liquidacao || !editingContrato) return;
+    if (!validacoesLiquidacao.podeAvancar) {
+      const msg = validacoesLiquidacao.bloqueios[0]
+        ?? (validacoesLiquidacao.requerJustificativa && justificativaDivergencia.trim().length < 20
+          ? "Preencha a justificativa (mínimo 20 caracteres) para prosseguir."
+          : "Validações da liquidação não atendidas.");
+      toast({ title: "Bloqueado", description: msg, variant: "destructive" });
+      setConfirmDialogOpen(false);
+      return;
+    }
     setLiquidacaoLoading(true);
     setConfirmDialogOpen(false);
     try {
@@ -1061,6 +1155,12 @@ export default function ContratosPage() {
       });
       if (result.sucesso) {
         toast({ title: "Sucesso", description: result.mensagem });
+        if (validacoesLiquidacao.requerJustificativa && justificativaDivergencia.trim()) {
+          toast({
+            title: "Divergência registrada",
+            description: "Justificativa de divergência registrada para auditoria.",
+          });
+        }
         await loadSubEntities(editingContrato.id);
         await loadContratos();
         const updated = (await contratoService.listarPorEmpresa(empresaId)).find((c) => c.id === editingContrato.id);
@@ -2965,6 +3065,89 @@ export default function ContratosPage() {
                 </Card>
               )}
 
+              {/* Painel de Validações de Liquidação (não exibido se contrato já liquidado) */}
+              {editingContrato && editingContrato.status !== "LIQUIDADO" && editingContrato.status !== "CANCELADO" && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <FileCheck className="h-4 w-4" />
+                      Status de Validações
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {validacoesLiquidacao.itens.map((it) => {
+                      const Icon =
+                        it.status === "ok" ? CheckCircle2
+                        : it.status === "alerta" ? AlertCircle
+                        : it.status === "bloqueio" ? XCircle
+                        : MinusCircle;
+                      const colorCls =
+                        it.status === "ok" ? "text-primary"
+                        : it.status === "alerta" ? "text-amber-500"
+                        : it.status === "bloqueio" ? "text-destructive"
+                        : "text-muted-foreground";
+                      return (
+                        <div key={it.id} className="flex items-start gap-3 text-sm">
+                          <Icon className={`h-5 w-5 mt-0.5 shrink-0 ${colorCls}`} />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2 flex-wrap">
+                              <span className="font-medium text-foreground">{it.label}</span>
+                              <span className={`text-xs ${colorCls}`}>
+                                {it.status === "ok" ? "OK" : it.status === "alerta" ? "ATENÇÃO" : it.status === "bloqueio" ? "BLOQUEADO" : "N/A"}
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-0.5">{it.detalhe}</p>
+                            {it.mensagem && (
+                              <p className={`text-xs mt-1 ${it.status === "alerta" ? "text-amber-600" : "text-destructive"}`}>
+                                {it.mensagem}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* Justificativa obrigatória quando há divergência fora da tolerância */}
+                    {validacoesLiquidacao.requerJustificativa && (
+                      <div className="space-y-2 pt-3 border-t">
+                        <Label htmlFor="justificativa-divergencia" className="text-sm">
+                          Justificativa para Divergência (Obrigatória — mín. 20 caracteres)
+                        </Label>
+                        <Textarea
+                          id="justificativa-divergencia"
+                          value={justificativaDivergencia}
+                          onChange={(e) => setJustificativaDivergencia(e.target.value)}
+                          minLength={20}
+                          rows={3}
+                          placeholder="Ex: Quebra em transporte. Carregamento saiu de Londrina e chegou em Maringá com X SC a menos. Motorista atestou."
+                          disabled={viewOnly}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          {justificativaDivergencia.trim().length} / 20 caracteres mínimos
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Atalhos de resolução */}
+                    {validacoesLiquidacao.bloqueios.length > 0 && (
+                      <div className="flex flex-wrap gap-2 pt-3 border-t">
+                        {validacoesLiquidacao.itens.find((i) => i.id === "preco_fixado" && i.status === "bloqueio") && (
+                          <Button variant="outline" size="sm" onClick={() => setActiveTab("fixacao")}>
+                            Ir para Fixações →
+                          </Button>
+                        )}
+                        {(validacoesLiquidacao.itens.find((i) => i.id === "romaneios_finalizados" && i.status === "bloqueio")
+                          || validacoesLiquidacao.itens.find((i) => i.id === "status_romaneios" && i.status === "bloqueio")) && (
+                          <Button variant="outline" size="sm" onClick={() => setActiveTab("romaneios")}>
+                            Ir para Romaneios →
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
               {editingContrato?.status === "LIQUIDADO" && liquidacao?.status === "CONFIRMADA" ? (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 text-primary">
@@ -3194,27 +3377,37 @@ export default function ContratosPage() {
                       </div>
 
                       <div className="flex gap-2 pt-2">
-                        <Button onClick={() => setConfirmDialogOpen(true)} disabled={liquidacaoLoading}>
+                        <Button onClick={() => setConfirmDialogOpen(true)} disabled={liquidacaoLoading || !validacoesLiquidacao.podeAvancar}>
                           <FileCheck className="mr-2 h-4 w-4" />
                           Confirmar e Efetivar
                         </Button>
-                        <Button variant="outline" onClick={onGerarPrevia} disabled={liquidacaoLoading}>
+                        <Button variant="outline" onClick={onGerarPrevia} disabled={liquidacaoLoading || !validacoesLiquidacao.podeAvancar}>
                           Recalcular Simulação
                         </Button>
                         <Button variant="destructive" onClick={onCancelarLiquidacao} disabled={liquidacaoLoading}>
                           Cancelar Simulação
                         </Button>
                       </div>
+                      {!validacoesLiquidacao.podeAvancar && (
+                        <p className="text-xs text-destructive">
+                          Resolva as pendências do painel de validações acima para confirmar.
+                        </p>
+                      )}
                     </div>
                   ) : (
                     <div className="flex flex-col items-center gap-4 py-6">
                       <p className="text-sm text-muted-foreground">Nenhuma liquidação gerada para este contrato.</p>
-                      <Button onClick={onGerarPrevia} disabled={liquidacaoLoading || !canLiquidate}>
+                      <Button onClick={onGerarPrevia} disabled={liquidacaoLoading || !canLiquidate || !validacoesLiquidacao.podeAvancar}>
                         <FileCheck className="mr-2 h-4 w-4" />
                         Gerar Simulação de Liquidação
                       </Button>
-                      {editingContrato?.tipoPreco === "A_FIXAR" && saldoAFixar > 0 && (
-                        <p className="text-xs text-destructive">Fixe todo o volume entregue antes de liquidar.</p>
+                      {!validacoesLiquidacao.podeAvancar && (
+                        <p className="text-xs text-destructive text-center max-w-md">
+                          {validacoesLiquidacao.bloqueios[0]
+                            ?? (validacoesLiquidacao.requerJustificativa
+                              ? "Preencha a justificativa para divergência acima (mín. 20 caracteres)."
+                              : "Resolva as pendências do painel de validações acima.")}
+                        </p>
                       )}
                     </div>
                   )}
