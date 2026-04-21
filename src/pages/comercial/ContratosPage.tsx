@@ -1105,12 +1105,12 @@ export default function ContratosPage() {
 
   const onGerarPrevia = async () => {
     if (!editingContrato) return;
-    if (editingContrato.tipoPreco === "A_FIXAR" && saldoAFixar > 0) {
-      toast({
-        title: "Bloqueado",
-        description: "Defina fixações para todo o volume entregue antes de liquidar.",
-        variant: "destructive",
-      });
+    if (!validacoesLiquidacao.podeAvancar) {
+      const msg = validacoesLiquidacao.bloqueios[0]
+        ?? (validacoesLiquidacao.requerJustificativa && justificativaDivergencia.trim().length < 20
+          ? "Preencha a justificativa (mínimo 20 caracteres) para prosseguir."
+          : "Validações da liquidação não atendidas.");
+      toast({ title: "Bloqueado", description: msg, variant: "destructive" });
       return;
     }
     setLiquidacaoLoading(true);
