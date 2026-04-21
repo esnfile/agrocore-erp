@@ -1015,12 +1015,93 @@ export default function ContratosPage() {
   const totalBaixas = finBaixas.reduce((s, b) => s + b.valorPago, 0);
 
   // ---- Liquidação handlers ----
+  const [justificativaDivergencia, setJustificativaDivergencia] = useState("");
+
   const canLiquidate = useMemo(() => {
     if (!editingContrato) return false;
     if (editingContrato.tipoPreco === "A_FIXAR" && saldoAFixar > 0) return false;
     if (editingContrato.status === "CANCELADO" || editingContrato.status === "LIQUIDADO") return false;
     return true;
   }, [editingContrato, saldoAFixar]);
+
+  // Painel de validações de liquidação (5 checagens)
+  type StatusValidacao = "ok" | "alerta" | "bloqueio" | "na";
+  const validacoesLiquidacao = useMemo(() => {
+    if (!editingContrato) {
+      return { itens: [] as Array<{ id: string; label: string; status: StatusValidacao; detalhe: string; mensagem?: string }>, podeAvancar: false, bloqueios: [] as string[], alertas: [] as string[], requerJustificativa: false };
+    }
+    const unCod = getCodigoUnidade(editingContrato.unidadeNegociacaoId);
+    const romFinal = romaneiosContrato.filter((r) => r.status === "FINALIZADO");
+    const romNaoFinal = romaneiosContrato.filter((r) => r.status !== "FINALIZADO");
+    const qtdContratada = editingContrato.quantidadeTotal ?? 0;
+    const qtdEntregueLiquida = romFinal.reduce((s, r) => s + r.pesoLiquido, 0);
+    const qtdEntregueBruta = romFinal.reduce((s, r) => s + ((r as any).pesoBruto ?? r.pesoLiquido), 0);
+    const diferencaFisica = Math.abs(qtdContratada - qtdEntregueBruta);
+    const percDif = qtdContratada > 0 ? diferencaFisica / qtdContratada : 0;
+    const dentroTolerancia = percDif <= TOLERANCIA_FISICA_PADRAO;
+    const toleranciaQtd = qtdContratada * TOLERANCIA_FISICA_PADRAO;
+
+    const itens: Array<{ id: string; label: string; status: StatusValidacao; detalhe: string; mensagem?: string }> = [];
+
+    itens.push({
+      id: "romaneios_finalizados",
+      label: "Romaneios Finalizados",
+      status: romFinal.length >= 1 ? "ok" : "bloqueio",
+      detalhe: `${romFinal.length} / ${romaneiosContrato.length} finalizados`,
+      mensagem: romFinal.length === 0 ? "Contrato sem romaneios vinculados. Pelo menos 1 romaneio finalizado é obrigatório." : undefined,
+    });
+
+    itens.push({
+      id: "cumprimento_fisico",
+      label: "Cumprimento Físico",
+      status: qtdEntregueBruta === 0 ? "bloqueio" : dentroTolerancia ? "ok" : "alerta",
+      detalhe: `${qtdEntregueBruta.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} / ${qtdContratada.toLocaleString("pt-BR")} ${unCod} • Diferença ${diferencaFisica.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} ${unCod} (${(percDif * 100).toFixed(2)}%) • Tolerância ${(TOLERANCIA_FISICA_PADRAO * 100).toFixed(0)}% (${toleranciaQtd.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} ${unCod})`,
+      mensagem: !dentroTolerancia && qtdEntregueBruta > 0
+        ? `Cumprimento físico fora da tolerância. Diferença: ${diferencaFisica.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} ${unCod} (${(percDif * 100).toFixed(2)}%). Digite uma justificativa abaixo para prosseguir.`
+        : undefined,
+    });
+
+    if (editingContrato.tipoPreco === "A_FIXAR") {
+      itens.push({
+        id: "preco_fixado",
+        label: "Preço Fixado (A_FIXAR)",
+        status: saldoAFixar <= 0 ? "ok" : "bloqueio",
+        detalhe: `Saldo a Fixar: ${saldoAFixar.toLocaleString("pt-BR")} ${unCod}`,
+        mensagem: saldoAFixar > 0 ? `Contrato A_FIXAR com saldo a fixar pendente (${saldoAFixar.toLocaleString("pt-BR")} ${unCod}). Fixe todos os preços antes de liquidar.` : undefined,
+      });
+    } else {
+      itens.push({
+        id: "preco_fixado",
+        label: "Preço Fixado",
+        status: "na",
+        detalhe: "Contrato FIXO — não aplicável",
+      });
+    }
+
+    itens.push({
+      id: "qtd_liquida",
+      label: "Quantidade Líquida Apurada",
+      status: qtdEntregueLiquida > 0 ? "ok" : "bloqueio",
+      detalhe: `${qtdEntregueLiquida.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} ${unCod} (após descontos)`,
+      mensagem: qtdEntregueLiquida <= 0 ? "Nenhuma quantidade líquida apurada após descontos. Verifique romaneios." : undefined,
+    });
+
+    itens.push({
+      id: "status_romaneios",
+      label: "Romaneios com Status Válido",
+      status: romNaoFinal.length === 0 ? "ok" : "bloqueio",
+      detalhe: romNaoFinal.length === 0 ? "Todos finalizados" : `${romNaoFinal.length} pendentes`,
+      mensagem: romNaoFinal.length > 0 ? `Existem ${romNaoFinal.length} romaneios não finalizados. Finalize todos antes de liquidar.` : undefined,
+    });
+
+    const bloqueios = itens.filter((i) => i.status === "bloqueio" && i.mensagem).map((i) => i.mensagem!);
+    const alertas = itens.filter((i) => i.status === "alerta" && i.mensagem).map((i) => i.mensagem!);
+    const requerJustificativa = itens.some((i) => i.status === "alerta");
+    const justificativaOk = !requerJustificativa || justificativaDivergencia.trim().length >= 20;
+    const podeAvancar = bloqueios.length === 0 && justificativaOk;
+
+    return { itens, podeAvancar, bloqueios, alertas, requerJustificativa };
+  }, [editingContrato, romaneiosContrato, saldoAFixar, justificativaDivergencia]);
 
   const onGerarPrevia = async () => {
     if (!editingContrato) return;
