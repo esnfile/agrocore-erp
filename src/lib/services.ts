@@ -3536,11 +3536,15 @@ export const contratoLiquidacaoService = {
     _ctx: { grupoId: string; empresaId: string; filialId: string },
     now: string
   ): { sucesso: boolean; mensagem: string; liquidacao: ContratoLiquidacao } {
-    // 1. Quantidade entregue = soma pesoLiquido dos romaneios FINALIZADOS (em unidade base KG)
+    // 1. Quantidade entregue = soma do peso líquido FINAL (após desconto qualidade) dos romaneios
+    //    FINALIZADOS, em unidade base (KG). Usa pesoLiquidoSecoLimpo se >0, senão pesoLiquido —
+    //    mesma regra usada na finalização do romaneio para somar em contrato.quantidadeEntregue.
     const romaneiosFinalizados = mockRomaneios.filter(
       (r) => r.contratoId === contrato.id && r.deletadoEm === null && r.status === "FINALIZADO"
     );
-    const quantidadeEntregueBase = romaneiosFinalizados.reduce((sum, r) => sum + r.pesoLiquido, 0);
+    const pesoFinalRom = (r: typeof romaneiosFinalizados[number]) =>
+      r.pesoLiquidoSecoLimpo > 0 ? r.pesoLiquidoSecoLimpo : r.pesoLiquido;
+    const quantidadeEntregueBase = romaneiosFinalizados.reduce((sum, r) => sum + pesoFinalRom(r), 0);
 
     // 1b. Converter para unidade de negociação do contrato (ex: KG → SC)
     const produto = mockProdutos.find((p) => p.id === contrato.produtoId);
