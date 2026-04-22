@@ -1104,9 +1104,9 @@ export default function ContratosPage() {
     itens.push({
       id: "cumprimento_fisico",
       label: "Cumprimento Físico",
-      status: qtdEntregueBruta === 0 ? "bloqueio" : dentroTolerancia ? "ok" : "alerta",
-      detalhe: `${fmt(qtdEntregueBruta)} / ${fmt(qtdContratada)} ${unCod} • Diferença ${fmt(diferencaFisica)} ${unCod} (${(percDif * 100).toFixed(2)}%) • Tolerância ${(tolPerc * 100).toFixed(0)}% (${fmt(toleranciaQtd)} ${unCod})`,
-      mensagem: !dentroTolerancia && qtdEntregueBruta > 0
+      status: qtdEntregueFisica === 0 ? "bloqueio" : dentroTolerancia ? "ok" : "alerta",
+      detalhe: `${fmt(qtdEntregueFisica)} / ${fmt(qtdContratada)} ${unCod} • Diferença ${fmt(diferencaFisica)} ${unCod} (${(percDif * 100).toFixed(2)}%) • Tolerância ${(tolPerc * 100).toFixed(0)}% (${fmt(toleranciaQtd)} ${unCod})`,
+      mensagem: !dentroTolerancia && qtdEntregueFisica > 0
         ? `Cumprimento físico fora da tolerância. Diferença: ${fmt(diferencaFisica)} ${unCod} (${(percDif * 100).toFixed(2)}%). Digite uma justificativa abaixo para prosseguir.`
         : undefined,
     });
