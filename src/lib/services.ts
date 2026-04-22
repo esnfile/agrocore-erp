@@ -3642,7 +3642,8 @@ export const contratoLiquidacaoService = {
   async confirmar(
     liquidacaoId: string,
     opcaoTitulos: "ATUALIZAR" | "COMPLEMENTAR",
-    ctx: { grupoId: string; empresaId: string; filialId: string }
+    ctx: { grupoId: string; empresaId: string; filialId: string },
+    observacao?: string
   ): Promise<{ sucesso: boolean; mensagem: string }> {
     await delay(400);
     const now = new Date().toISOString();
@@ -3656,9 +3657,12 @@ export const contratoLiquidacaoService = {
     const contrato = mockContratos.find((c) => c.id === liquidacao.contratoId && c.deletadoEm === null);
     if (!contrato) return { sucesso: false, mensagem: "Contrato não encontrado." };
 
-    // 1. Update liquidação status
+    // 1. Update liquidação status (e persiste justificativa de divergência, se houver)
     liquidacao.status = "CONFIRMADA";
     liquidacao.dataLiquidacao = now;
+    if (observacao && observacao.trim().length > 0) {
+      liquidacao.observacao = observacao.trim();
+    }
     liquidacao.atualizadoEm = now;
     liquidacao.atualizadoPor = "u1";
 

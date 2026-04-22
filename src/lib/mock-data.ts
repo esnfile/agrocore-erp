@@ -1563,6 +1563,9 @@ export interface Contrato {
   status: StatusContrato;
   duplicatasGeradas: boolean;
   observacoes: string;
+  // Tolerância física para liquidação (opcional; padrão 2% se não informado)
+  toleranciaPercentualMenos?: number | null;
+  toleranciaPercentualMais?: number | null;
   criadoEm: string;
   criadoPor: string;
   atualizadoEm: string;
