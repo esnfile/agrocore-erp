@@ -3536,25 +3536,40 @@ export const contratoLiquidacaoService = {
     _ctx: { grupoId: string; empresaId: string; filialId: string },
     now: string
   ): { sucesso: boolean; mensagem: string; liquidacao: ContratoLiquidacao } {
-    // 1. Quantidade entregue = soma pesoLiquido dos romaneios FINALIZADOS (em unidade base KG)
+    // 1. Quantidade entregue = soma do peso líquido FINAL (após desconto qualidade) dos romaneios
+    //    FINALIZADOS, em unidade base (KG). Usa pesoLiquidoSecoLimpo se >0, senão pesoLiquido —
+    //    mesma regra usada na finalização do romaneio para somar em contrato.quantidadeEntregue.
     const romaneiosFinalizados = mockRomaneios.filter(
       (r) => r.contratoId === contrato.id && r.deletadoEm === null && r.status === "FINALIZADO"
     );
-    const quantidadeEntregueBase = romaneiosFinalizados.reduce((sum, r) => sum + r.pesoLiquido, 0);
+    const pesoFinalRom = (r: typeof romaneiosFinalizados[number]) =>
+      r.pesoLiquidoSecoLimpo > 0 ? r.pesoLiquidoSecoLimpo : r.pesoLiquido;
+    const quantidadeEntregueBase = romaneiosFinalizados.reduce((sum, r) => sum + pesoFinalRom(r), 0);
 
     // 1b. Converter para unidade de negociação do contrato (ex: KG → SC)
+    // Helper de conversão (KG → unidade negociação do contrato)
     const produto = mockProdutos.find((p) => p.id === contrato.produtoId);
     const unidadeBaseIdConv = produto ? getUnidadeBaseParaTipo(produto.tipoUnidade) : null;
-    let quantidadeEntregue = quantidadeEntregueBase;
-    if (produto && unidadeBaseIdConv && contrato.unidadeNegociacaoId) {
+    const toNeg = (qtdBase: number): number => {
+      if (!produto || !unidadeBaseIdConv || !contrato.unidadeNegociacaoId) return qtdBase;
       try {
-        quantidadeEntregue = unidadeMedidaService.converterQuantidade(
-          quantidadeEntregueBase, unidadeBaseIdConv, contrato.unidadeNegociacaoId, produto.id
+        return unidadeMedidaService.converterQuantidade(
+          qtdBase, unidadeBaseIdConv, contrato.unidadeNegociacaoId, produto.id
         );
       } catch {
-        quantidadeEntregue = quantidadeEntregueBase;
+        return qtdBase;
       }
-    }
+    };
+
+    // 1b. Quantidade FÍSICA entregue (antes do desconto de qualidade) — define o valor BRUTO
+    const quantidadeFisicaBase = romaneiosFinalizados.reduce(
+      (sum, r) => sum + ((r as any).pesoLiquidoFisico ?? r.pesoLiquido),
+      0
+    );
+    const quantidadeFisica = toNeg(quantidadeFisicaBase);
+
+    // 1c. Quantidade LÍQUIDA entregue (após desconto qualidade) — define o valor LÍQUIDO de qualidade
+    const quantidadeEntregue = toNeg(quantidadeEntregueBase);
 
     // 2. Quantidade liquidada (em unidade de negociação)
     const quantidadeLiquidada = opcaoEncerrar
@@ -3574,16 +3589,21 @@ export const contratoLiquidacaoService = {
       }
     }
 
-    // 4. Valor bruto
-    const valorBruto = Math.round(quantidadeLiquidada * precoUnitario * 100) / 100;
+    // 4. Valor bruto = quantidade FÍSICA × preço (não inclui desconto de qualidade)
+    const valorBruto = Math.round(quantidadeFisica * precoUnitario * 100) / 100;
 
-    // 5. Descontos (condições financeiras do contrato)
+    // 5. Desconto de qualidade = diferença entre física e líquida × preço
+    const descontoQualidade = Math.round(
+      Math.max(0, quantidadeFisica - quantidadeLiquidada) * precoUnitario * 100
+    ) / 100;
+
+    // 6. Descontos financeiros (condições do contrato), aplicados sobre o valor pós-qualidade
     const condicoes = mockContratoCondicoes
       .filter((c) => c.contratoId === contrato.id && c.deletadoEm === null)
       .sort((a, b) => a.ordemCalculo - b.ordemCalculo);
 
-    let valorDescontos = 0;
-    let valorBase = valorBruto;
+    let descontosFinanceiros = 0;
+    let valorBase = valorBruto - descontoQualidade;
     for (const cond of condicoes) {
       let desconto = 0;
       if (cond.tipo === "PERCENTUAL") {
@@ -3591,43 +3611,19 @@ export const contratoLiquidacaoService = {
       } else {
         desconto = cond.valor;
       }
-      valorDescontos += desconto;
+      descontosFinanceiros += desconto;
       valorBase -= desconto;
     }
-    valorDescontos = Math.round(valorDescontos * 100) / 100;
+    descontosFinanceiros = Math.round(descontosFinanceiros * 100) / 100;
 
-    // 6. Descontos de classificação de qualidade (romaneios)
-    // pesoLiquido está em KG → converter para unidade de negociação antes de aplicar preço
-    let descontoQualidade = 0;
-    for (const rom of romaneiosFinalizados) {
-      let pesoNeg = rom.pesoLiquido;
-      if (produto && unidadeBaseIdConv && contrato.unidadeNegociacaoId) {
-        try {
-          pesoNeg = unidadeMedidaService.converterQuantidade(
-            rom.pesoLiquido, unidadeBaseIdConv, contrato.unidadeNegociacaoId, produto.id
-          );
-        } catch {
-          pesoNeg = rom.pesoLiquido;
-        }
-      }
-      const classificacoes = mockRomaneioClassificacoes.filter(
-        (rc) => rc.romaneioId === rom.id && rc.deletadoEm === null
-      );
-      for (const cl of classificacoes) {
-        if (cl.percentualDesconto > 0) {
-          descontoQualidade += pesoNeg * cl.percentualDesconto / 100 * precoUnitario;
-        }
-      }
-    }
-    descontoQualidade = Math.round(descontoQualidade * 100) / 100;
-    valorDescontos += descontoQualidade;
+    const valorDescontos = Math.round((descontoQualidade + descontosFinanceiros) * 100) / 100;
 
     // 7. Valor líquido
     const valorLiquido = Math.round((valorBruto - valorDescontos) * 100) / 100;
 
     // Update liquidação
     liquidacao.quantidadeContratada = contrato.quantidadeTotal;
-    liquidacao.quantidadeEntregue = quantidadeEntregue;
+    liquidacao.quantidadeEntregue = quantidadeFisica;
     liquidacao.quantidadeLiquidada = quantidadeLiquidada;
     liquidacao.precoUnitario = Math.round(precoUnitario * 100) / 100;
     liquidacao.valorBruto = valorBruto;
@@ -3689,9 +3685,11 @@ export const contratoLiquidacaoService = {
 
     if (contasDoContrato.length > 0 && opcaoTitulos === "ATUALIZAR") {
       // Adjust existing parcelas to reflect liquidation value
+      // Inclui parcelas PREVISTO (estimativa) e PENDENTE (efetivadas) — promove PREVISTO → PENDENTE
       for (const conta of contasDoContrato) {
         const parcelas = mockFinanceiroParcelas.filter(
-          (p) => p.contaId === conta.id && p.deletadoEm === null && p.status === "PENDENTE"
+          (p) => p.contaId === conta.id && p.deletadoEm === null &&
+            (p.status === "PENDENTE" || p.status === "PREVISTO")
         );
         if (parcelas.length > 0) {
           const valorPorParcela = Math.round((liquidacao.valorLiquido / parcelas.length) * 100) / 100;
@@ -3699,11 +3697,17 @@ export const contratoLiquidacaoService = {
             p.valorParcela = i === parcelas.length - 1
               ? liquidacao.valorLiquido - valorPorParcela * (parcelas.length - 1)
               : valorPorParcela;
+            p.valorReal = p.valorParcela;
             p.saldoParcela = p.valorParcela - p.valorPago;
+            // Promove PREVISTO → PENDENTE (efetivação ao liquidar contrato)
+            if (p.status === "PREVISTO") p.status = "PENDENTE";
             p.atualizadoEm = now;
             p.atualizadoPor = "u1";
           });
           conta.valorTotal = liquidacao.valorLiquido;
+          conta.valorTotalReal = liquidacao.valorLiquido;
+          // Marca data de faturamento (efetivação) se ainda não definida
+          if (!conta.dataFaturamento) conta.dataFaturamento = now.slice(0, 10);
           conta.atualizadoEm = now;
           conta.atualizadoPor = "u1";
         }
