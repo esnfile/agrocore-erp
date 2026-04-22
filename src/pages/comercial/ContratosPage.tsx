@@ -1191,11 +1191,14 @@ export default function ContratosPage() {
     setLiquidacaoLoading(true);
     setConfirmDialogOpen(false);
     try {
+      const observacaoLiquidacao = validacoesLiquidacao.requerJustificativa
+        ? justificativaDivergencia.trim()
+        : undefined;
       const result = await contratoLiquidacaoService.confirmar(liquidacao.id, opcaoTitulos, {
         grupoId,
         empresaId,
         filialId: editingContrato.filialId,
-      });
+      }, observacaoLiquidacao);
       if (result.sucesso) {
         toast({ title: "Sucesso", description: result.mensagem });
         if (validacoesLiquidacao.requerJustificativa && justificativaDivergencia.trim()) {
