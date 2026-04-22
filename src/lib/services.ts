@@ -3685,9 +3685,11 @@ export const contratoLiquidacaoService = {
 
     if (contasDoContrato.length > 0 && opcaoTitulos === "ATUALIZAR") {
       // Adjust existing parcelas to reflect liquidation value
+      // Inclui parcelas PREVISTO (estimativa) e PENDENTE (efetivadas) — promove PREVISTO → PENDENTE
       for (const conta of contasDoContrato) {
         const parcelas = mockFinanceiroParcelas.filter(
-          (p) => p.contaId === conta.id && p.deletadoEm === null && p.status === "PENDENTE"
+          (p) => p.contaId === conta.id && p.deletadoEm === null &&
+            (p.status === "PENDENTE" || p.status === "PREVISTO")
         );
         if (parcelas.length > 0) {
           const valorPorParcela = Math.round((liquidacao.valorLiquido / parcelas.length) * 100) / 100;
@@ -3695,11 +3697,17 @@ export const contratoLiquidacaoService = {
             p.valorParcela = i === parcelas.length - 1
               ? liquidacao.valorLiquido - valorPorParcela * (parcelas.length - 1)
               : valorPorParcela;
+            p.valorReal = p.valorParcela;
             p.saldoParcela = p.valorParcela - p.valorPago;
+            // Promove PREVISTO → PENDENTE (efetivação ao liquidar contrato)
+            if (p.status === "PREVISTO") p.status = "PENDENTE";
             p.atualizadoEm = now;
             p.atualizadoPor = "u1";
           });
           conta.valorTotal = liquidacao.valorLiquido;
+          conta.valorTotalReal = liquidacao.valorLiquido;
+          // Marca data de faturamento (efetivação) se ainda não definida
+          if (!conta.dataFaturamento) conta.dataFaturamento = now.slice(0, 10);
           conta.atualizadoEm = now;
           conta.atualizadoPor = "u1";
         }
