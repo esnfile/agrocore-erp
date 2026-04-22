@@ -1068,12 +1068,18 @@ export default function ContratosPage() {
       }
     };
 
+    // Peso líquido APÓS descontos de qualidade (para Quantidade Líquida Apurada)
     const qtdEntregueLiquidaBase = romFinal.reduce((s, r) => s + r.pesoLiquido, 0);
-    const qtdEntregueBrutaBase = romFinal.reduce((s, r) => s + ((r as any).pesoBruto ?? r.pesoLiquido), 0);
+    // Peso FÍSICO da mercadoria (sem caminhão, ANTES dos descontos de qualidade)
+    // Cumprimento Físico = quanto de produto realmente entrou — não o peso da balança com caminhão (pesoBruto).
+    const qtdEntregueFisicaBase = romFinal.reduce(
+      (s, r) => s + ((r as any).pesoLiquidoFisico ?? r.pesoLiquido),
+      0
+    );
     const qtdEntregueLiquida = converterParaNegociacao(qtdEntregueLiquidaBase);
-    const qtdEntregueBruta = converterParaNegociacao(qtdEntregueBrutaBase);
+    const qtdEntregueFisica = converterParaNegociacao(qtdEntregueFisicaBase);
 
-    const diferencaFisica = Math.abs(qtdContratada - qtdEntregueBruta);
+    const diferencaFisica = Math.abs(qtdContratada - qtdEntregueFisica);
     const percDif = qtdContratada > 0 ? diferencaFisica / qtdContratada : 0;
 
     // Tolerância: do contrato (se informada) ou padrão 2%
@@ -1098,9 +1104,9 @@ export default function ContratosPage() {
     itens.push({
       id: "cumprimento_fisico",
       label: "Cumprimento Físico",
-      status: qtdEntregueBruta === 0 ? "bloqueio" : dentroTolerancia ? "ok" : "alerta",
-      detalhe: `${fmt(qtdEntregueBruta)} / ${fmt(qtdContratada)} ${unCod} • Diferença ${fmt(diferencaFisica)} ${unCod} (${(percDif * 100).toFixed(2)}%) • Tolerância ${(tolPerc * 100).toFixed(0)}% (${fmt(toleranciaQtd)} ${unCod})`,
-      mensagem: !dentroTolerancia && qtdEntregueBruta > 0
+      status: qtdEntregueFisica === 0 ? "bloqueio" : dentroTolerancia ? "ok" : "alerta",
+      detalhe: `${fmt(qtdEntregueFisica)} / ${fmt(qtdContratada)} ${unCod} • Diferença ${fmt(diferencaFisica)} ${unCod} (${(percDif * 100).toFixed(2)}%) • Tolerância ${(tolPerc * 100).toFixed(0)}% (${fmt(toleranciaQtd)} ${unCod})`,
+      mensagem: !dentroTolerancia && qtdEntregueFisica > 0
         ? `Cumprimento físico fora da tolerância. Diferença: ${fmt(diferencaFisica)} ${unCod} (${(percDif * 100).toFixed(2)}%). Digite uma justificativa abaixo para prosseguir.`
         : undefined,
     });
