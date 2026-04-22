@@ -47,6 +47,7 @@ import {
   produtoService,
   empresaService,
   descontoTipoService,
+  unidadeMedidaService,
 } from "@/lib/services";
 import {
   pessoas as mockPessoas,
@@ -1025,22 +1026,64 @@ export default function ContratosPage() {
     return true;
   }, [editingContrato, saldoAFixar]);
 
-  // Painel de validações de liquidação (5 checagens)
+  // Painel de validações de liquidação (5 checagens + bloqueio de status)
   type StatusValidacao = "ok" | "alerta" | "bloqueio" | "na";
   const validacoesLiquidacao = useMemo(() => {
     if (!editingContrato) {
       return { itens: [] as Array<{ id: string; label: string; status: StatusValidacao; detalhe: string; mensagem?: string }>, podeAvancar: false, bloqueios: [] as string[], alertas: [] as string[], requerJustificativa: false };
     }
+
+    // ⛔ Bloqueio explícito: contrato cancelado ou já liquidado
+    if (editingContrato.status === "CANCELADO" || editingContrato.status === "LIQUIDADO") {
+      const motivo = editingContrato.status === "CANCELADO"
+        ? "Contrato CANCELADO — não pode ser liquidado."
+        : "Contrato já LIQUIDADO — operação não disponível.";
+      return {
+        itens: [{ id: "status_contrato", label: "Status do Contrato", status: "bloqueio" as StatusValidacao, detalhe: editingContrato.status, mensagem: motivo }],
+        podeAvancar: false,
+        bloqueios: [motivo],
+        alertas: [],
+        requerJustificativa: false,
+      };
+    }
+
     const unCod = getCodigoUnidade(editingContrato.unidadeNegociacaoId);
     const romFinal = romaneiosContrato.filter((r) => r.status === "FINALIZADO");
     const romNaoFinal = romaneiosContrato.filter((r) => r.status !== "FINALIZADO");
     const qtdContratada = editingContrato.quantidadeTotal ?? 0;
-    const qtdEntregueLiquida = romFinal.reduce((s, r) => s + r.pesoLiquido, 0);
-    const qtdEntregueBruta = romFinal.reduce((s, r) => s + ((r as any).pesoBruto ?? r.pesoLiquido), 0);
+
+    // 🔄 Romaneios armazenam peso em UNIDADE BASE (KG). Converter para a unidade
+    // de negociação do contrato (ex: SC) antes de qualquer comparação visual.
+    const produto = mockProdutos.find((p) => p.id === editingContrato.produtoId);
+    const unidadeBaseId = produto ? getUnidadeBaseParaTipo(produto.tipoUnidade) : null;
+    const converterParaNegociacao = (valorBase: number): number => {
+      if (!produto || !unidadeBaseId || !editingContrato.unidadeNegociacaoId) return valorBase;
+      if (unidadeBaseId === editingContrato.unidadeNegociacaoId) return valorBase;
+      try {
+        return unidadeMedidaService.converterQuantidade(
+          valorBase, unidadeBaseId, editingContrato.unidadeNegociacaoId, produto.id
+        );
+      } catch {
+        return valorBase;
+      }
+    };
+
+    const qtdEntregueLiquidaBase = romFinal.reduce((s, r) => s + r.pesoLiquido, 0);
+    const qtdEntregueBrutaBase = romFinal.reduce((s, r) => s + ((r as any).pesoBruto ?? r.pesoLiquido), 0);
+    const qtdEntregueLiquida = converterParaNegociacao(qtdEntregueLiquidaBase);
+    const qtdEntregueBruta = converterParaNegociacao(qtdEntregueBrutaBase);
+
     const diferencaFisica = Math.abs(qtdContratada - qtdEntregueBruta);
     const percDif = qtdContratada > 0 ? diferencaFisica / qtdContratada : 0;
-    const dentroTolerancia = percDif <= TOLERANCIA_FISICA_PADRAO;
-    const toleranciaQtd = qtdContratada * TOLERANCIA_FISICA_PADRAO;
+
+    // Tolerância: do contrato (se informada) ou padrão 2%
+    const tolPerc = (editingContrato.toleranciaPercentualMenos ?? null) !== null
+      ? Number(editingContrato.toleranciaPercentualMenos) / 100
+      : TOLERANCIA_FISICA_PADRAO;
+    const dentroTolerancia = percDif <= tolPerc;
+    const toleranciaQtd = qtdContratada * tolPerc;
+
+    const fmt = (v: number) => v.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
 
     const itens: Array<{ id: string; label: string; status: StatusValidacao; detalhe: string; mensagem?: string }> = [];
 
@@ -1056,9 +1099,9 @@ export default function ContratosPage() {
       id: "cumprimento_fisico",
       label: "Cumprimento Físico",
       status: qtdEntregueBruta === 0 ? "bloqueio" : dentroTolerancia ? "ok" : "alerta",
-      detalhe: `${qtdEntregueBruta.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} / ${qtdContratada.toLocaleString("pt-BR")} ${unCod} • Diferença ${diferencaFisica.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} ${unCod} (${(percDif * 100).toFixed(2)}%) • Tolerância ${(TOLERANCIA_FISICA_PADRAO * 100).toFixed(0)}% (${toleranciaQtd.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} ${unCod})`,
+      detalhe: `${fmt(qtdEntregueBruta)} / ${fmt(qtdContratada)} ${unCod} • Diferença ${fmt(diferencaFisica)} ${unCod} (${(percDif * 100).toFixed(2)}%) • Tolerância ${(tolPerc * 100).toFixed(0)}% (${fmt(toleranciaQtd)} ${unCod})`,
       mensagem: !dentroTolerancia && qtdEntregueBruta > 0
-        ? `Cumprimento físico fora da tolerância. Diferença: ${diferencaFisica.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} ${unCod} (${(percDif * 100).toFixed(2)}%). Digite uma justificativa abaixo para prosseguir.`
+        ? `Cumprimento físico fora da tolerância. Diferença: ${fmt(diferencaFisica)} ${unCod} (${(percDif * 100).toFixed(2)}%). Digite uma justificativa abaixo para prosseguir.`
         : undefined,
     });
 
@@ -1083,7 +1126,7 @@ export default function ContratosPage() {
       id: "qtd_liquida",
       label: "Quantidade Líquida Apurada",
       status: qtdEntregueLiquida > 0 ? "ok" : "bloqueio",
-      detalhe: `${qtdEntregueLiquida.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} ${unCod} (após descontos)`,
+      detalhe: `${fmt(qtdEntregueLiquida)} ${unCod} (após descontos)`,
       mensagem: qtdEntregueLiquida <= 0 ? "Nenhuma quantidade líquida apurada após descontos. Verifique romaneios." : undefined,
     });
 
