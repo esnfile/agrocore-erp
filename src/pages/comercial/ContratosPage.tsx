@@ -1068,12 +1068,18 @@ export default function ContratosPage() {
       }
     };
 
+    // Peso líquido APÓS descontos de qualidade (para Quantidade Líquida Apurada)
     const qtdEntregueLiquidaBase = romFinal.reduce((s, r) => s + r.pesoLiquido, 0);
-    const qtdEntregueBrutaBase = romFinal.reduce((s, r) => s + ((r as any).pesoBruto ?? r.pesoLiquido), 0);
+    // Peso FÍSICO da mercadoria (sem caminhão, ANTES dos descontos de qualidade)
+    // Cumprimento Físico = quanto de produto realmente entrou — não o peso da balança com caminhão (pesoBruto).
+    const qtdEntregueFisicaBase = romFinal.reduce(
+      (s, r) => s + ((r as any).pesoLiquidoFisico ?? r.pesoLiquido),
+      0
+    );
     const qtdEntregueLiquida = converterParaNegociacao(qtdEntregueLiquidaBase);
-    const qtdEntregueBruta = converterParaNegociacao(qtdEntregueBrutaBase);
+    const qtdEntregueFisica = converterParaNegociacao(qtdEntregueFisicaBase);
 
-    const diferencaFisica = Math.abs(qtdContratada - qtdEntregueBruta);
+    const diferencaFisica = Math.abs(qtdContratada - qtdEntregueFisica);
     const percDif = qtdContratada > 0 ? diferencaFisica / qtdContratada : 0;
 
     // Tolerância: do contrato (se informada) ou padrão 2%
