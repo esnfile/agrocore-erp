@@ -118,6 +118,7 @@ const contratoSchema = z.object({
   filialOrigemId: z.string().optional(),
   filialDestinoId: z.string().optional(),
   observacoes: z.string().optional(),
+  codigoInterno: z.string().optional().nullable(),
 });
 type ContratoForm = z.infer<typeof contratoSchema>;
 
@@ -344,6 +345,7 @@ export default function ContratosPage() {
       filialOrigemId: "",
       filialDestinoId: "",
       observacoes: "",
+      codigoInterno: "",
     },
   });
 
@@ -725,6 +727,7 @@ export default function ContratosPage() {
       filialOrigemId: c.filialOrigemId ?? "",
       filialDestinoId: c.filialDestinoId ?? "",
       observacoes: c.observacoes,
+      codigoInterno: c.codigoInterno ?? "",
     });
     loadSubEntities(c.id);
     setActiveTab("dados");
