@@ -1595,6 +1595,7 @@ export const contratoService = {
       id: `ctr${Date.now()}`,
       grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
       numeroContrato,
+      codigoInterno: data.codigoInterno ?? null,
       tipoContrato: data.tipoContrato ?? "COMPRA",
       pessoaId: data.pessoaId ?? "",
       produtoId: data.produtoId ?? "",

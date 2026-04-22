@@ -1543,6 +1543,7 @@ export interface Contrato {
   empresaId: string;
   filialId: string;
   numeroContrato: string;
+  codigoInterno?: string | null;
   tipoContrato: TipoContrato;
   pessoaId: string;
   produtoId: string;

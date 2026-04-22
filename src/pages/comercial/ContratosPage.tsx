@@ -118,6 +118,7 @@ const contratoSchema = z.object({
   filialOrigemId: z.string().optional(),
   filialDestinoId: z.string().optional(),
   observacoes: z.string().optional(),
+  codigoInterno: z.string().optional().nullable(),
 });
 type ContratoForm = z.infer<typeof contratoSchema>;
 
@@ -344,6 +345,7 @@ export default function ContratosPage() {
       filialOrigemId: "",
       filialDestinoId: "",
       observacoes: "",
+      codigoInterno: "",
     },
   });
 
@@ -725,6 +727,7 @@ export default function ContratosPage() {
       filialOrigemId: c.filialOrigemId ?? "",
       filialDestinoId: c.filialDestinoId ?? "",
       observacoes: c.observacoes,
+      codigoInterno: c.codigoInterno ?? "",
     });
     loadSubEntities(c.id);
     setActiveTab("dados");
@@ -1411,6 +1414,7 @@ export default function ContratosPage() {
                     Número <SortIcon k="numero" />
                   </button>
                 </TableHead>
+                <TableHead>Código Int.</TableHead>
                 <TableHead>
                   <button className="flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("data")}>
                     Data <SortIcon k="data" />
@@ -1448,7 +1452,7 @@ export default function ContratosPage() {
             <TableBody>
               {contratosOrdenados.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={13} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={14} className="text-center py-8 text-muted-foreground">
                     {contratos.length === 0
                       ? "Nenhum contrato cadastrado."
                       : "Nenhum contrato corresponde aos filtros aplicados."}
@@ -1468,6 +1472,7 @@ export default function ContratosPage() {
                       <StatusBadge status={c.status} />
                     </TableCell>
                     <TableCell className="font-medium">{c.numeroContrato}</TableCell>
+                    <TableCell className="text-xs">{c.codigoInterno ?? "—"}</TableCell>
                     <TableCell className="text-xs whitespace-nowrap">{formatDateBR(c.dataContrato)}</TableCell>
                     <TableCell>{getNomePessoa(c.pessoaId)}</TableCell>
                     <TableCell>{getNomeProduto(c.produtoId)}</TableCell>
@@ -1523,9 +1528,9 @@ export default function ContratosPage() {
         onClose={() => setModalOpen(false)}
         title={
           viewOnly
-            ? `Contrato ${editingContrato?.numeroContrato}`
+            ? `Contrato ${editingContrato?.numeroContrato}${editingContrato?.codigoInterno ? ` (${editingContrato.codigoInterno})` : ""}`
             : editingContrato
-              ? "Editar Contrato"
+              ? `Editar Contrato ${editingContrato.numeroContrato}${editingContrato.codigoInterno ? ` (${editingContrato.codigoInterno})` : ""}`
               : "Novo Contrato"
         }
         saving={saving}
@@ -1621,8 +1626,8 @@ export default function ContratosPage() {
                   </div>
                 )}
 
-                {/* Row 1: Tipo + Número + Data (3 cols) */}
-                <FormRow columns={3}>
+                {/* Row 1: Tipo + Número + Código Interno + Data (4 cols) */}
+                <FormRow columns={4}>
                   <div className="w-full">
                     <Label>
                       Tipo <span className="text-destructive">*</span>
@@ -1657,6 +1662,15 @@ export default function ContratosPage() {
                       placeholder="Gerado automaticamente"
                       disabled
                       className="bg-muted/50 cursor-not-allowed"
+                    />
+                  </div>
+                  <div className="w-full">
+                    <Label>Código Interno</Label>
+                    <Input
+                      placeholder="Ex: CTR-001, REF-2024..."
+                      {...contratoForm.register("codigoInterno")}
+                      disabled={viewOnly}
+                      className={viewOnly ? "bg-muted/50 cursor-not-allowed" : ""}
                     />
                   </div>
                   <div className="w-full">
