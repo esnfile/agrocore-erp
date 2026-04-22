@@ -3300,29 +3300,54 @@ export default function ContratosPage() {
                             <TableRow>
                               <TableHead>ID</TableHead>
                               <TableHead>Data</TableHead>
-                              <TableHead className="text-right">Peso Líquido</TableHead>
+                              <TableHead className="text-right">Peso Físico</TableHead>
+                              <TableHead className="text-right">Peso Classificado</TableHead>
                               <TableHead>Status</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {romaneiosContrato
                               .filter((r) => r.status === "FINALIZADO")
-                              .map((r) => (
+                              .map((r) => {
+                                const pf = (r as any).pesoLiquidoFisico ?? r.pesoLiquido;
+                                const pc =
+                                  (r as any).pesoLiquidoSecoLimpo > 0
+                                    ? (r as any).pesoLiquidoSecoLimpo
+                                    : (r as any).pesoClassificado > 0
+                                      ? (r as any).pesoClassificado
+                                      : pf;
+                                return (
                                 <TableRow key={r.id}>
                                   <TableCell className="font-mono text-xs">{r.id.substring(0, 8)}</TableCell>
                                   <TableCell>{format(new Date(r.criadoEm), "dd/MM/yyyy")}</TableCell>
-                                  <TableCell className="text-right font-medium">{r.pesoLiquido.toFixed(3)}</TableCell>
+                                  <TableCell className="text-right">{pf.toFixed(3)}</TableCell>
+                                  <TableCell className="text-right font-medium">{pc.toFixed(3)}</TableCell>
                                   <TableCell>
                                     <Badge variant="outline">FINALIZADO</Badge>
                                   </TableCell>
                                 </TableRow>
-                              ))}
+                                );
+                              })}
                             <TableRow className="font-bold bg-muted/50">
                               <TableCell colSpan={2}>TOTAL ENTREGUE</TableCell>
                               <TableCell className="text-right">
                                 {romaneiosContrato
                                   .filter((r) => r.status === "FINALIZADO")
-                                  .reduce((s, r) => s + r.pesoLiquido, 0)
+                                  .reduce((s, r) => s + ((r as any).pesoLiquidoFisico ?? r.pesoLiquido), 0)
+                                  .toFixed(3)}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {romaneiosContrato
+                                  .filter((r) => r.status === "FINALIZADO")
+                                  .reduce((s, r) => {
+                                    const pc =
+                                      (r as any).pesoLiquidoSecoLimpo > 0
+                                        ? (r as any).pesoLiquidoSecoLimpo
+                                        : (r as any).pesoClassificado > 0
+                                          ? (r as any).pesoClassificado
+                                          : ((r as any).pesoLiquidoFisico ?? r.pesoLiquido);
+                                    return s + pc;
+                                  }, 0)
                                   .toFixed(3)}
                               </TableCell>
                               <TableCell />
