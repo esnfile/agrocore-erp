@@ -635,8 +635,20 @@ export default function ContratosPage() {
   };
 
   // ---- Fixação computed values ----
+  // Usa peso CLASSIFICADO (após descontos de qualidade) — base financeira/fixação.
+  // Fallback para pesoLiquidoFisico apenas se romaneio ainda não foi classificado.
   const totalEntregue = useMemo(() => {
-    return romaneiosContrato.filter((r) => r.status === "FINALIZADO").reduce((s, r) => s + r.pesoLiquido, 0);
+    return romaneiosContrato
+      .filter((r) => r.status === "FINALIZADO")
+      .reduce((s, r) => {
+        const pesoComercial =
+          (r as any).pesoLiquidoSecoLimpo > 0
+            ? (r as any).pesoLiquidoSecoLimpo
+            : (r as any).pesoClassificado > 0
+              ? (r as any).pesoClassificado
+              : ((r as any).pesoLiquidoFisico ?? r.pesoLiquido);
+        return s + pesoComercial;
+      }, 0);
   }, [romaneiosContrato]);
 
   const totalFixado = useMemo(() => {
@@ -2183,7 +2195,8 @@ export default function ContratosPage() {
                       <TableHead>Data</TableHead>
                       <TableHead className="text-right">Peso Bruto</TableHead>
                       <TableHead className="text-right">Peso Tara</TableHead>
-                      <TableHead className="text-right">Peso Líquido</TableHead>
+                      <TableHead className="text-right">Peso Físico</TableHead>
+                      <TableHead className="text-right">Peso Classificado</TableHead>
                       <TableHead>Motorista</TableHead>
                       <TableHead>Placa</TableHead>
                       <TableHead>Status</TableHead>
@@ -2193,21 +2206,30 @@ export default function ContratosPage() {
                   <TableBody>
                     {romaneiosContrato.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                           Nenhum romaneio vinculado a este contrato.
                           <br />
                           <span className="text-xs">Crie romaneios pelo menu Romaneios e vincule a este contrato.</span>
                         </TableCell>
                       </TableRow>
                     ) : (
-                      romaneiosContrato.map((r) => (
+                      romaneiosContrato.map((r) => {
+                        const pesoFisico = (r as any).pesoLiquidoFisico ?? r.pesoLiquido;
+                        const pesoComercial =
+                          (r as any).pesoLiquidoSecoLimpo > 0
+                            ? (r as any).pesoLiquidoSecoLimpo
+                            : (r as any).pesoClassificado > 0
+                              ? (r as any).pesoClassificado
+                              : pesoFisico;
+                        return (
                         <TableRow key={r.id}>
                           <TableCell className="font-mono text-xs">{r.id.substring(0, 8)}</TableCell>
                           <TableCell>{format(new Date(r.criadoEm), "dd/MM/yyyy HH:mm")}</TableCell>
                           <TableCell className="text-right">{r.pesoBruto > 0 ? r.pesoBruto.toFixed(3) : "—"}</TableCell>
                           <TableCell className="text-right">{r.pesoTara > 0 ? r.pesoTara.toFixed(3) : "—"}</TableCell>
+                          <TableCell className="text-right">{pesoFisico > 0 ? pesoFisico.toFixed(3) : "—"}</TableCell>
                           <TableCell className="text-right font-medium">
-                            {r.pesoLiquido > 0 ? r.pesoLiquido.toFixed(3) : "—"}
+                            {pesoComercial > 0 ? pesoComercial.toFixed(3) : "—"}
                           </TableCell>
                           <TableCell>{r.motoristaNome || "—"}</TableCell>
                           <TableCell>{r.placaVeiculo || "—"}</TableCell>
