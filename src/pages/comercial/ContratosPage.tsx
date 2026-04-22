@@ -2250,7 +2250,8 @@ export default function ContratosPage() {
                             </Button>
                           </TableCell>
                         </TableRow>
-                      ))
+                        );
+                      })
                     )}
                   </TableBody>
                 </Table>
