@@ -3639,12 +3639,190 @@ export const contratoLiquidacaoService = {
     return { sucesso: true, mensagem: "Prévia de liquidação gerada.", liquidacao };
   },
 
+  /**
+   * Pré-análise (frontend chama antes de confirmar) para decidir se precisa
+   * exibir modal de escolha proporcional vs última parcela.
+   * Retorna cenário e o saldo a tratar.
+   */
+  async preAnalisar(
+    liquidacaoId: string
+  ): Promise<{
+    sucesso: boolean;
+    mensagem: string;
+    cenario?: "IGUAL" | "MENOR" | "MAIOR";
+    valorLiquido?: number;
+    valorContaTotal?: number;
+    valorPagoExistente?: number;
+    saldoPendenteAtual?: number;
+    diferenca?: number;
+    parcelasPagasCount?: number;
+    parcelasPendentesCount?: number;
+    deveMostrarModal?: boolean;
+    percentualReducao?: number;
+    threshold?: number;
+    geraraAdiantamento?: boolean;
+    valorAdiantamento?: number;
+  }> {
+    await delay(150);
+    const liquidacao = mockContratoLiquidacoes.find(
+      (l) => l.id === liquidacaoId && l.deletadoEm === null
+    );
+    if (!liquidacao) return { sucesso: false, mensagem: "Liquidação não encontrada." };
+    const contrato = mockContratos.find((c) => c.id === liquidacao.contratoId && c.deletadoEm === null);
+    if (!contrato) return { sucesso: false, mensagem: "Contrato não encontrado." };
+
+    const contas = mockFinanceiroContas.filter(
+      (fc) => fc.deletadoEm === null && fc.documentoReferencia === contrato.numeroContrato
+    );
+    const contaIds = contas.map((c) => c.id);
+    const parcelas = mockFinanceiroParcelas.filter(
+      (p) => p.deletadoEm === null && contaIds.includes(p.contaId)
+    );
+    const parcelasPagas = parcelas.filter((p) => p.status === "PAGO");
+    const parcelasPendentes = parcelas.filter(
+      (p) => p.status === "PENDENTE" || p.status === "PREVISTO" || p.status === "PARCIAL" || p.status === "VENCIDA"
+    );
+    const valorPagoExistente = parcelasPagas.reduce((s, p) => s + p.valorPago, 0);
+    const valorContaTotal = parcelas.reduce((s, p) => s + p.valorParcela, 0);
+    const saldoPendenteAtual = parcelasPendentes.reduce((s, p) => s + (p.valorParcela - p.valorPago), 0);
+
+    const valorLiquido = liquidacao.valorLiquido;
+    const diferenca = Math.round((valorLiquido - valorContaTotal) * 100) / 100;
+    let cenario: "IGUAL" | "MENOR" | "MAIOR" = "IGUAL";
+    if (Math.abs(diferenca) < 0.01) cenario = "IGUAL";
+    else if (diferenca < 0) cenario = "MENOR";
+    else cenario = "MAIOR";
+
+    const threshold = this._obterThreshold();
+    let deveMostrarModal = false;
+    let percentualReducao = 0;
+    let geraraAdiantamento = false;
+    let valorAdiantamento = 0;
+
+    if (cenario === "MENOR") {
+      const reducao = Math.abs(diferenca);
+      // Saldo real a receber/pagar = valorLiquido - jaPago
+      const saldoRealRestante = valorLiquido - valorPagoExistente;
+      if (saldoRealRestante < 0) {
+        // Pagou mais do que o real liquidado → gera adiantamento da diferença
+        geraraAdiantamento = true;
+        valorAdiantamento = Math.round(Math.abs(saldoRealRestante) * 100) / 100;
+      }
+      // Decide modal: % sobre pendentes OU se redução > última parcela
+      if (saldoPendenteAtual > 0) {
+        percentualReducao = (reducao / saldoPendenteAtual) * 100;
+        const ultimaParcela = parcelasPendentes
+          .slice()
+          .sort((a, b) => b.numeroParcela - a.numeroParcela)[0];
+        const valorUltima = ultimaParcela ? ultimaParcela.valorParcela - ultimaParcela.valorPago : 0;
+        if (percentualReducao > threshold || reducao > valorUltima) {
+          deveMostrarModal = true;
+        }
+      }
+    }
+
+    return {
+      sucesso: true,
+      mensagem: "OK",
+      cenario, valorLiquido, valorContaTotal, valorPagoExistente,
+      saldoPendenteAtual, diferenca,
+      parcelasPagasCount: parcelasPagas.length,
+      parcelasPendentesCount: parcelasPendentes.length,
+      deveMostrarModal, percentualReducao, threshold,
+      geraraAdiantamento, valorAdiantamento,
+    };
+  },
+
+  _obterThreshold(): number {
+    const p = mockParametros.find(
+      (x) => x.deletadoEm === null && x.chave === "THRESHOLD_REDACAO_DIFERENCA"
+    );
+    return p ? Number(p.valor) : 1.5;
+  },
+
+  _registrarMov(
+    parcelaId: string | null,
+    contaId: string,
+    contratoId: string,
+    liquidacaoId: string,
+    tipo: TipoMovimentacaoAjuste,
+    valorAnterior: number,
+    valorNovo: number,
+    motivo: string,
+    ctx: { grupoId: string; empresaId: string; filialId: string },
+    extras?: Record<string, any>
+  ): MovimentacaoAjusteParcela {
+    const now = new Date().toISOString();
+    const mov: MovimentacaoAjusteParcela = {
+      id: `mvaj${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      parcelaId, contaId, contratoOrigemId: contratoId, liquidacaoId,
+      tipoMovimento: tipo,
+      valorAnterior: Math.round(valorAnterior * 100) / 100,
+      valorNovo: Math.round(valorNovo * 100) / 100,
+      diferenca: Math.round((valorNovo - valorAnterior) * 100) / 100,
+      motivo, dadosExtras: extras ?? null,
+      usuarioId: "u1", dataMovimento: now,
+      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      deletadoEm: null, deletadoPor: null,
+    };
+    mockMovAjusteParcela.push(mov);
+    return mov;
+  },
+
+  _calcularVencimentoBonificacao(parcelas: FinanceiroParcela[], dataLiquidacao: string): string {
+    if (parcelas.length === 0) {
+      const d = new Date(dataLiquidacao);
+      d.setDate(d.getDate() + 30);
+      return d.toISOString().slice(0, 10);
+    }
+    const ultima = parcelas
+      .slice()
+      .sort((a, b) => new Date(b.dataVencimento).getTime() - new Date(a.dataVencimento).getTime())[0];
+    const dataUltima = new Date(ultima.dataVencimento);
+    const dataLiq = new Date(dataLiquidacao);
+    if (dataUltima >= dataLiq) return ultima.dataVencimento;
+    const fallback = new Date(dataLiq);
+    fallback.setDate(fallback.getDate() + 30);
+    return fallback.toISOString().slice(0, 10);
+  },
+
+  _recalcularStatusConta(conta: FinanceiroConta) {
+    const parcelas = mockFinanceiroParcelas.filter(
+      (p) => p.contaId === conta.id && p.deletadoEm === null
+    );
+    if (parcelas.length === 0) {
+      conta.status = "ABERTO";
+      conta.valorTotal = 0;
+      conta.valorTotalReal = 0;
+      return;
+    }
+    const total = parcelas.reduce((s, p) => s + p.valorParcela, 0);
+    const totalPago = parcelas.reduce((s, p) => s + p.valorPago, 0);
+    conta.valorTotal = Math.round(total * 100) / 100;
+    conta.valorTotalReal = Math.round(total * 100) / 100;
+    if (totalPago <= 0) conta.status = "ABERTO";
+    else if (Math.abs(totalPago - total) < 0.01) conta.status = "LIQUIDADO";
+    else conta.status = "PARCIAL";
+  },
+
   async confirmar(
     liquidacaoId: string,
-    opcaoTitulos: "ATUALIZAR" | "COMPLEMENTAR",
+    modoDistribuicao: "PROPORCIONAL" | "ULTIMA",
     ctx: { grupoId: string; empresaId: string; filialId: string },
     observacao?: string
-  ): Promise<{ sucesso: boolean; mensagem: string }> {
+  ): Promise<{
+    sucesso: boolean;
+    mensagem: string;
+    resumo?: {
+      cenario: "IGUAL" | "MENOR" | "MAIOR";
+      parcelasAjustadas: number;
+      parcelasZeradas: number;
+      bonificacaoGerada: boolean;
+      adiantamentoGeradoId?: string;
+      adiantamentoValor?: number;
+    };
+  }> {
     await delay(400);
     const now = new Date().toISOString();
 
@@ -3657,21 +3835,19 @@ export const contratoLiquidacaoService = {
     const contrato = mockContratos.find((c) => c.id === liquidacao.contratoId && c.deletadoEm === null);
     if (!contrato) return { sucesso: false, mensagem: "Contrato não encontrado." };
 
-    // 1. Update liquidação status (e persiste justificativa de divergência, se houver)
+    // 1. Atualiza status liquidação
     liquidacao.status = "CONFIRMADA";
     liquidacao.dataLiquidacao = now;
-    if (observacao && observacao.trim().length > 0) {
-      liquidacao.observacao = observacao.trim();
-    }
+    if (observacao && observacao.trim().length > 0) liquidacao.observacao = observacao.trim();
     liquidacao.atualizadoEm = now;
     liquidacao.atualizadoPor = "u1";
 
-    // 2. Encerrar contrato
+    // 2. Encerra contrato
     contrato.status = "LIQUIDADO";
     contrato.atualizadoEm = now;
     contrato.atualizadoPor = "u1";
 
-    // 3. Zerar estoque em trânsito
+    // 3. Zera estoque em trânsito
     const transito = mockEstoquesTransito.find(
       (t) => t.contratoId === contrato.id && t.deletadoEm === null && t.status === "ATIVO"
     );
@@ -3682,82 +3858,243 @@ export const contratoLiquidacaoService = {
       transito.atualizadoPor = "u1";
     }
 
-    // 4. Ajustar títulos financeiros (sem movimentar caixa)
-    const contasDoContrato = mockFinanceiroContas.filter(
+    // 4. Localiza conta(s) vinculada(s) ao contrato
+    const contas = mockFinanceiroContas.filter(
       (fc) => fc.deletadoEm === null && fc.documentoReferencia === contrato.numeroContrato
     );
 
-    if (contasDoContrato.length > 0 && opcaoTitulos === "ATUALIZAR") {
-      // Adjust existing parcelas to reflect liquidation value
-      // Inclui parcelas PREVISTO (estimativa) e PENDENTE (efetivadas) — promove PREVISTO → PENDENTE
-      for (const conta of contasDoContrato) {
-        const parcelas = mockFinanceiroParcelas.filter(
-          (p) => p.contaId === conta.id && p.deletadoEm === null &&
-            (p.status === "PENDENTE" || p.status === "PREVISTO")
-        );
-        if (parcelas.length > 0) {
-          const valorPorParcela = Math.round((liquidacao.valorLiquido / parcelas.length) * 100) / 100;
-          parcelas.forEach((p, i) => {
-            p.valorParcela = i === parcelas.length - 1
-              ? liquidacao.valorLiquido - valorPorParcela * (parcelas.length - 1)
-              : valorPorParcela;
-            p.valorReal = p.valorParcela;
-            p.saldoParcela = p.valorParcela - p.valorPago;
-            // Promove PREVISTO → PENDENTE (efetivação ao liquidar contrato)
-            if (p.status === "PREVISTO") p.status = "PENDENTE";
-            p.atualizadoEm = now;
-            p.atualizadoPor = "u1";
-          });
-          conta.valorTotal = liquidacao.valorLiquido;
-          conta.valorTotalReal = liquidacao.valorLiquido;
-          // Marca data de faturamento (efetivação) se ainda não definida
-          if (!conta.dataFaturamento) conta.dataFaturamento = now.slice(0, 10);
-          conta.atualizadoEm = now;
-          conta.atualizadoPor = "u1";
+    const resumo = {
+      cenario: "IGUAL" as "IGUAL" | "MENOR" | "MAIOR",
+      parcelasAjustadas: 0,
+      parcelasZeradas: 0,
+      bonificacaoGerada: false,
+      adiantamentoGeradoId: undefined as string | undefined,
+      adiantamentoValor: undefined as number | undefined,
+    };
+
+    if (contas.length === 0) {
+      return { sucesso: true, mensagem: "Liquidação confirmada (sem conta financeira vinculada).", resumo };
+    }
+
+    // Agrega todas parcelas das contas vinculadas
+    const todasParcelas = mockFinanceiroParcelas.filter(
+      (p) => p.deletadoEm === null && contas.some((c) => c.id === p.contaId)
+    );
+    const parcelasPagas = todasParcelas.filter((p) => p.status === "PAGO");
+    const parcelasPendentes = todasParcelas.filter(
+      (p) => p.status === "PENDENTE" || p.status === "PREVISTO" || p.status === "PARCIAL" || p.status === "VENCIDA"
+    );
+
+    const valorPago = parcelasPagas.reduce((s, p) => s + p.valorPago, 0);
+    const valorTotalAtual = todasParcelas.reduce((s, p) => s + p.valorParcela, 0);
+    const valorLiquido = liquidacao.valorLiquido;
+    const diferenca = Math.round((valorLiquido - valorTotalAtual) * 100) / 100;
+
+    if (Math.abs(diferenca) < 0.01) {
+      resumo.cenario = "IGUAL";
+    } else if (diferenca < 0) {
+      resumo.cenario = "MENOR";
+    } else {
+      resumo.cenario = "MAIOR";
+    }
+
+    // ===== CENÁRIO IGUAL → apenas promove PREVISTO → PENDENTE =====
+    if (resumo.cenario === "IGUAL") {
+      for (const p of parcelasPendentes) {
+        if (p.status === "PREVISTO") {
+          const valorAnt = p.valorParcela;
+          p.status = "PENDENTE";
+          p.atualizadoEm = now; p.atualizadoPor = "u1";
+          this._registrarMov(p.id, p.contaId, contrato.id, liquidacao.id,
+            "PROMOCAO_PREVISTO_PENDENTE", valorAnt, valorAnt,
+            "Parcela efetivada por liquidação do contrato.", ctx);
         }
-      }
-    } else if (opcaoTitulos === "COMPLEMENTAR") {
-      // Create complementary financial entry
-      const valorExistente = contasDoContrato.reduce((s, c) => s + c.valorTotal, 0);
-      const diferenca = liquidacao.valorLiquido - valorExistente;
-      if (Math.abs(diferenca) > 0.01) {
-        const tipo = contrato.tipoContrato === "COMPRA" ? "PAGAR" : "RECEBER";
-        const novaConta: FinanceiroConta = {
-          id: `fc${Date.now()}`,
-          grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
-          tipo: tipo as any,
-          pessoaId: contrato.pessoaId,
-          descricao: `Ajuste liquidação contrato ${contrato.numeroContrato}`,
-          dataEmissao: now.slice(0, 10),
-          valorTotal: Math.abs(diferenca),
-          valorTotalReal: Math.abs(diferenca),
-          status: "ABERTO",
-          origem: "CONTRATO" as any,
-          documentoReferencia: contrato.numeroContrato,
-          contratoId: contrato.id,
-          dataFaturamento: null,
-          dataLiquidacao: null,
-          observacoes: `Ajuste gerado pela liquidação do contrato. Diferença: ${diferenca > 0 ? "+" : ""}${diferenca.toFixed(2)}`,
-          criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
-          deletadoEm: null, deletadoPor: null,
-        };
-        mockFinanceiroContas.push(novaConta);
-        // Generate single parcela
-        const parcela: FinanceiroParcela = {
-          id: `fp${Date.now()}`,
-          grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
-          contaId: novaConta.id, numeroParcela: 1, totalParcelas: 1,
-          dataVencimento: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
-          valorParcela: Math.abs(diferenca), valorReal: Math.abs(diferenca), valorPago: 0, saldoParcela: Math.abs(diferenca),
-          status: "PENDENTE",
-          criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
-          deletadoEm: null, deletadoPor: null,
-        };
-        mockFinanceiroParcelas.push(parcela);
       }
     }
 
-    return { sucesso: true, mensagem: "Liquidação confirmada. Contrato encerrado." };
+    // ===== CENÁRIO MENOR → reduzir pendentes + gerar adiantamento se sobrar =====
+    if (resumo.cenario === "MENOR") {
+      const reducao = Math.abs(diferenca);
+      const saldoPendenteAtual = parcelasPendentes.reduce((s, p) => s + (p.valorParcela - p.valorPago), 0);
+
+      // Quanto cabe nas pendentes vs quanto vira adiantamento
+      const reducaoNasPendentes = Math.min(reducao, saldoPendenteAtual);
+      const sobraParaAdiantamento = Math.round((reducao - reducaoNasPendentes) * 100) / 100;
+
+      // Ordena por número (proporcional usa todas; última usa a maior numeração)
+      const ordenadas = parcelasPendentes.slice().sort((a, b) => a.numeroParcela - b.numeroParcela);
+
+      if (modoDistribuicao === "ULTIMA" && ordenadas.length > 0) {
+        // Absorve tudo na(s) última(s) parcela(s) — começando pela última
+        let restante = reducaoNasPendentes;
+        for (let i = ordenadas.length - 1; i >= 0 && restante > 0.005; i--) {
+          const p = ordenadas[i];
+          const saldoP = p.valorParcela - p.valorPago;
+          if (saldoP <= 0) continue;
+          const corte = Math.min(saldoP, restante);
+          const valorAnt = p.valorParcela;
+          const valorNovo = Math.round((p.valorParcela - corte) * 100) / 100;
+          p.valorParcela = valorNovo;
+          p.valorReal = valorNovo;
+          p.saldoParcela = Math.round((valorNovo - p.valorPago) * 100) / 100;
+          if (p.status === "PREVISTO") p.status = "PENDENTE";
+          if (p.saldoParcela <= 0.005 && p.valorPago <= 0.005) {
+            p.tipoEspecial = "AJUSTE_NEGATIVO";
+            p.motivoAjuste = "Zerada por liquidação";
+            resumo.parcelasZeradas++;
+          } else {
+            p.tipoEspecial = "AJUSTE_NEGATIVO";
+            p.motivoAjuste = `Reduzida em ${corte.toFixed(2)} por liquidação`;
+            resumo.parcelasAjustadas++;
+          }
+          p.atualizadoEm = now; p.atualizadoPor = "u1";
+          this._registrarMov(p.id, p.contaId, contrato.id, liquidacao.id,
+            valorNovo <= 0.005 ? "PARCELA_ZERADA" : "AJUSTE_LIQUIDACAO",
+            valorAnt, valorNovo,
+            `Liquidação reduziu valor (modo: absorver na última). Diferença total: -${reducao.toFixed(2)}`,
+            ctx);
+          restante = Math.round((restante - corte) * 100) / 100;
+        }
+      } else {
+        // PROPORCIONAL — distribui redução entre pendentes pelo peso de cada uma
+        const baseSomaSaldos = ordenadas.reduce((s, p) => s + (p.valorParcela - p.valorPago), 0);
+        let acumulado = 0;
+        ordenadas.forEach((p, idx) => {
+          const saldoP = p.valorParcela - p.valorPago;
+          let corte = idx === ordenadas.length - 1
+            ? Math.round((reducaoNasPendentes - acumulado) * 100) / 100
+            : Math.round((reducaoNasPendentes * (saldoP / baseSomaSaldos)) * 100) / 100;
+          if (corte > saldoP) corte = saldoP;
+          if (corte < 0) corte = 0;
+          acumulado = Math.round((acumulado + corte) * 100) / 100;
+          if (corte <= 0.005 && p.status !== "PREVISTO") return;
+          const valorAnt = p.valorParcela;
+          const valorNovo = Math.round((p.valorParcela - corte) * 100) / 100;
+          p.valorParcela = valorNovo;
+          p.valorReal = valorNovo;
+          p.saldoParcela = Math.round((valorNovo - p.valorPago) * 100) / 100;
+          if (p.status === "PREVISTO") p.status = "PENDENTE";
+          if (corte > 0.005) {
+            p.tipoEspecial = "AJUSTE_NEGATIVO";
+            p.motivoAjuste = `Reduzida em ${corte.toFixed(2)} por liquidação`;
+            if (valorNovo <= 0.005 && p.valorPago <= 0.005) {
+              resumo.parcelasZeradas++;
+            } else {
+              resumo.parcelasAjustadas++;
+            }
+            this._registrarMov(p.id, p.contaId, contrato.id, liquidacao.id,
+              valorNovo <= 0.005 ? "PARCELA_ZERADA" : "AJUSTE_LIQUIDACAO",
+              valorAnt, valorNovo,
+              `Liquidação reduziu valor (modo: proporcional). Redução desta parcela: -${corte.toFixed(2)}`,
+              ctx);
+          } else {
+            // Apenas promove status sem alteração
+            this._registrarMov(p.id, p.contaId, contrato.id, liquidacao.id,
+              "PROMOCAO_PREVISTO_PENDENTE", valorAnt, valorAnt,
+              "Parcela efetivada por liquidação (sem ajuste de valor).", ctx);
+          }
+          p.atualizadoEm = now; p.atualizadoPor = "u1";
+        });
+      }
+
+      // Se sobrou redução além das pendentes → gera adiantamento (crédito)
+      if (sobraParaAdiantamento > 0.005) {
+        const contaPrincipal = contas[0];
+        const adt: FinanceiroAdiantamento = {
+          id: `adt${Date.now()}`,
+          grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+          pessoaId: contrato.pessoaId,
+          contratoId: contrato.id,
+          movimentacaoFinanceiraId: "", // sem movimento de caixa imediato
+          dataAdiantamento: now.slice(0, 10),
+          valorAdiantamento: sobraParaAdiantamento,
+          saldoUtilizado: 0,
+          saldoRestante: sobraParaAdiantamento,
+          status: "ABERTO",
+          origemTipo: "LIQUIDACAO_CONTRATO",
+          liquidacaoOrigemId: liquidacao.id,
+          contaOrigemId: contaPrincipal.id,
+          observacao: `Crédito gerado por liquidação do contrato ${contrato.numeroContrato} — valor pago em excesso.`,
+          criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+          deletadoEm: null, deletadoPor: null,
+        };
+        mockFinanceiroAdiantamentos.push(adt);
+        resumo.adiantamentoGeradoId = adt.id;
+        resumo.adiantamentoValor = sobraParaAdiantamento;
+        this._registrarMov(null, contaPrincipal.id, contrato.id, liquidacao.id,
+          "ADIANTAMENTO_GERADO", 0, sobraParaAdiantamento,
+          `Adiantamento (crédito) gerado por liquidação com pagamento em excesso. Aplicável em próximas operações.`,
+          ctx, { adiantamentoId: adt.id, pessoaId: contrato.pessoaId });
+      }
+    }
+
+    // ===== CENÁRIO MAIOR → cria parcela de bonificação na conta principal =====
+    if (resumo.cenario === "MAIOR") {
+      const aumento = diferenca; // já positivo
+      const contaPrincipal = contas[0];
+      // Promove PREVISTO → PENDENTE primeiro (sem alterar valores das originais)
+      for (const p of parcelasPendentes) {
+        if (p.status === "PREVISTO") {
+          const valorAnt = p.valorParcela;
+          p.status = "PENDENTE";
+          p.atualizadoEm = now; p.atualizadoPor = "u1";
+          this._registrarMov(p.id, p.contaId, contrato.id, liquidacao.id,
+            "PROMOCAO_PREVISTO_PENDENTE", valorAnt, valorAnt,
+            "Parcela efetivada por liquidação do contrato.", ctx);
+        }
+      }
+      const parcelasDaConta = mockFinanceiroParcelas.filter(
+        (p) => p.contaId === contaPrincipal.id && p.deletadoEm === null
+      );
+      const proxNum = parcelasDaConta.reduce((m, p) => Math.max(m, p.numeroParcela), 0) + 1;
+      const vencimento = this._calcularVencimentoBonificacao(parcelasDaConta, now.slice(0, 10));
+      const bonif: FinanceiroParcela = {
+        id: `fpbon${Date.now()}`,
+        grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+        contaId: contaPrincipal.id,
+        numeroParcela: proxNum,
+        totalParcelas: proxNum,
+        dataVencimento: vencimento,
+        valorParcela: aumento,
+        valorReal: aumento,
+        valorPago: 0,
+        saldoParcela: aumento,
+        status: "PENDENTE",
+        tipoEspecial: "BONIFICACAO",
+        motivoAjuste: `BONIFICAÇÃO - Liquidação com Ganho (+${aumento.toFixed(2)})`,
+        criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+        deletadoEm: null, deletadoPor: null,
+      };
+      mockFinanceiroParcelas.push(bonif);
+      // Atualiza totalParcelas das demais
+      parcelasDaConta.forEach((p) => { p.totalParcelas = proxNum; });
+      resumo.bonificacaoGerada = true;
+      this._registrarMov(bonif.id, contaPrincipal.id, contrato.id, liquidacao.id,
+        "BONIFICACAO_GERADA", 0, aumento,
+        `Parcela P${proxNum} criada como bonificação (liquidação com ganho de +${aumento.toFixed(2)}).`,
+        ctx, { vencimento });
+    }
+
+    // 5. Recalcula status/valores de cada conta
+    for (const conta of contas) {
+      this._recalcularStatusConta(conta);
+      if (!conta.dataFaturamento) conta.dataFaturamento = now.slice(0, 10);
+      conta.atualizadoEm = now;
+      conta.atualizadoPor = "u1";
+    }
+
+    return { sucesso: true, mensagem: "Liquidação confirmada. Contrato encerrado.", resumo };
+  },
+
+  /**
+   * Lista o histórico de movimentações de ajuste vinculadas a um contrato
+   * (para o painel de auditoria na aba Financeiro).
+   */
+  async listarHistoricoAjustes(contratoId: string): Promise<MovimentacaoAjusteParcela[]> {
+    await delay(100);
+    return mockMovAjusteParcela
+      .filter((m) => m.deletadoEm === null && m.contratoOrigemId === contratoId)
+      .sort((a, b) => new Date(b.dataMovimento).getTime() - new Date(a.dataMovimento).getTime());
   },
 
   async cancelar(liquidacaoId: string): Promise<{ sucesso: boolean; mensagem: string }> {
