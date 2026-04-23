@@ -770,6 +770,11 @@ export default function ContratosPage() {
     setCondicoes(conds);
     const activeLiq = liqs.find((l) => l.status === "PREVIA" || l.status === "CONFIRMADA");
     setLiquidacao(activeLiq || null);
+    // Carrega histórico de ajustes do contrato (auditoria)
+    try {
+      const hist = await contratoLiquidacaoService.listarHistoricoAjustes(contratoId);
+      setHistoricoAjustes(hist);
+    } catch { setHistoricoAjustes([]); }
 
     // Load financeiro REAL
     const contas = await financeiroContaService.listarPorContrato(contratoId);
