@@ -3407,6 +3407,7 @@ export const financeiroMovimentacoes: FinanceiroMovimentacao[] = [];
 
 // ---- Adiantamento ----
 export type StatusAdiantamento = "ABERTO" | "PARCIAL" | "LIQUIDADO" | "CANCELADO";
+export type OrigemAdiantamento = "MANUAL" | "LIQUIDACAO_CONTRATO" | "DEVOLUCAO";
 
 export interface FinanceiroAdiantamento {
   id: string;
@@ -3421,6 +3422,11 @@ export interface FinanceiroAdiantamento {
   saldoUtilizado: number;
   saldoRestante: number;
   status: StatusAdiantamento;
+  // Rastreabilidade de origem (criado por liquidação de contrato, devolução, etc.)
+  origemTipo?: OrigemAdiantamento;
+  liquidacaoOrigemId?: string | null;
+  contaOrigemId?: string | null;
+  observacao?: string | null;
   criadoEm: string;
   criadoPor: string;
   atualizadoEm: string;
@@ -3430,6 +3436,78 @@ export interface FinanceiroAdiantamento {
 }
 
 export const financeiroAdiantamentos: FinanceiroAdiantamento[] = [];
+
+// ---- Movimentação de Ajuste de Parcela (auditoria de liquidação) ----
+export type TipoMovimentacaoAjuste =
+  | "AJUSTE_LIQUIDACAO"        // Parcela teve valor ajustado (redução/aumento)
+  | "PROMOCAO_PREVISTO_PENDENTE" // PREVISTO → PENDENTE sem mudança de valor
+  | "BONIFICACAO_GERADA"       // Nova parcela criada por liquidação maior
+  | "ADIANTAMENTO_GERADO"      // Crédito gerado por liquidação negativa excedente
+  | "PARCELA_ZERADA";          // Pendente zerada por liquidação
+
+export interface MovimentacaoAjusteParcela {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  parcelaId: string | null;       // null para ADIANTAMENTO_GERADO (não vinculado a parcela)
+  contaId: string;
+  contratoOrigemId: string;
+  liquidacaoId: string;
+  tipoMovimento: TipoMovimentacaoAjuste;
+  valorAnterior: number;
+  valorNovo: number;
+  diferenca: number;
+  motivo: string;
+  dadosExtras?: Record<string, any> | null;
+  usuarioId: string;
+  dataMovimento: string;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export const movimentacoesAjusteParcela: MovimentacaoAjusteParcela[] = [];
+
+// ---- Parâmetros do Sistema (preparação backend) ----
+export type TipoParametro = "NUMBER" | "STRING" | "BOOLEAN";
+export type EscopoParametro = "GLOBAL" | "GRUPO" | "EMPRESA" | "FILIAL";
+
+export interface Parametro {
+  id: string;
+  chave: string;
+  valor: string;          // serializado; converte conforme tipo
+  tipo: TipoParametro;
+  escopo: EscopoParametro;
+  grupoId?: string | null;
+  empresaId?: string | null;
+  filialId?: string | null;
+  descricao: string;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export const mockParametros: Parametro[] = [
+  {
+    id: "param-threshold-reducao",
+    chave: "THRESHOLD_REDACAO_DIFERENCA",
+    valor: "1.5",
+    tipo: "NUMBER",
+    escopo: "GLOBAL",
+    grupoId: null, empresaId: null, filialId: null,
+    descricao: "Percentual mínimo de redução (sobre parcelas pendentes) para exigir escolha do usuário entre distribuição proporcional ou absorção na última parcela.",
+    criadoEm: "2025-01-01T00:00:00Z", criadoPor: "system",
+    atualizadoEm: "2025-01-01T00:00:00Z", atualizadoPor: "system",
+    deletadoEm: null, deletadoPor: null,
+  },
+];
 
 // ============================================================
 // Motoristas
