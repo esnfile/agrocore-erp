@@ -302,8 +302,11 @@ export default function ContratosPage() {
   const [liquidacao, setLiquidacao] = useState<ContratoLiquidacao | null>(null);
   const [liquidacaoLoading, setLiquidacaoLoading] = useState(false);
   const [opcaoEncerrar, setOpcaoEncerrar] = useState(true);
-  const [opcaoTitulos, setOpcaoTitulos] = useState<"ATUALIZAR" | "COMPLEMENTAR">("ATUALIZAR");
+  const [modoDistribuicao, setModoDistribuicao] = useState<"PROPORCIONAL" | "ULTIMA">("PROPORCIONAL");
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [escolhaModoOpen, setEscolhaModoOpen] = useState(false);
+  const [preAnalise, setPreAnalise] = useState<any>(null);
+  const [historicoAjustes, setHistoricoAjustes] = useState<any[]>([]);
 
   // Financeiro real
   const [finContas, setFinContas] = useState<FinanceiroConta[]>([]);
