@@ -3543,24 +3543,23 @@ export default function ContratosPage() {
                         </div>
                       )}
 
-                      <div className="rounded-md border p-4 space-y-3">
-                        <h4 className="text-sm font-semibold">Opções de Confirmação</h4>
-                        <div className="space-y-2">
-                          <Label className="text-sm">Tratamento de Títulos Financeiros</Label>
-                          <Select value={opcaoTitulos} onValueChange={(v) => setOpcaoTitulos(v as any)}>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="ATUALIZAR">Atualizar parcelas pendentes</SelectItem>
-                              <SelectItem value="COMPLEMENTAR">Criar título complementar</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
+                      <div className="rounded-md border p-4 space-y-2 bg-muted/30">
+                        <h4 className="text-sm font-semibold">Tratamento Automático de Títulos Financeiros</h4>
+                        <p className="text-xs text-muted-foreground">
+                          O sistema decide automaticamente o melhor tratamento ao confirmar:
+                        </p>
+                        <ul className="text-xs text-muted-foreground list-disc pl-5 space-y-1">
+                          <li><strong>Liquidação igual ao previsto:</strong> apenas efetiva as parcelas (PREVISTO → PENDENTE).</li>
+                          <li><strong>Liquidação MENOR:</strong> reduz parcelas pendentes (parcelas pagas são preservadas). Se a redução exceder o saldo pendente, gera <strong>adiantamento (crédito)</strong> a favor da pessoa.</li>
+                          <li><strong>Liquidação MAIOR:</strong> cria parcela de <strong>BONIFICAÇÃO</strong> dentro da conta original.</li>
+                        </ul>
+                        <p className="text-xs text-muted-foreground">
+                          Se a redução for relevante, será solicitada sua escolha entre distribuição proporcional ou absorção na última parcela.
+                        </p>
                       </div>
 
                       <div className="flex gap-2 pt-2">
-                        <Button onClick={() => setConfirmDialogOpen(true)} disabled={liquidacaoLoading || !validacoesLiquidacao.podeAvancar}>
+                        <Button onClick={onIniciarConfirmacao} disabled={liquidacaoLoading || !validacoesLiquidacao.podeAvancar}>
                           <FileCheck className="mr-2 h-4 w-4" />
                           Confirmar e Efetivar
                         </Button>
