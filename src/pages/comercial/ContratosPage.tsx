@@ -2898,11 +2898,27 @@ export default function ContratosPage() {
                               const isExpanded = expandedParcelaId === p.id;
                               return (
                                 <>
-                                  <TableRow key={p.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setExpandedParcelaId(isExpanded ? null : p.id)}>
+                                  <TableRow key={p.id} className={`cursor-pointer hover:bg-muted/50 ${(p as any).tipoEspecial === "BONIFICACAO" ? "bg-primary/5" : (p as any).tipoEspecial === "AJUSTE_NEGATIVO" ? "bg-amber-500/5" : ""}`} onClick={() => setExpandedParcelaId(isExpanded ? null : p.id)}>
                                     <TableCell className="p-2">
                                       {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                                     </TableCell>
-                                    <TableCell>{p.numeroParcela}/{p.totalParcelas}</TableCell>
+                                    <TableCell>
+                                      <div className="flex items-center gap-1.5">
+                                        <span>{p.numeroParcela}/{p.totalParcelas}</span>
+                                        {(p as any).tipoEspecial === "BONIFICACAO" && (
+                                          <Badge variant="default" className="text-[9px] px-1 py-0 h-4">BONIFICAÇÃO</Badge>
+                                        )}
+                                        {(p as any).tipoEspecial === "AJUSTE_NEGATIVO" && (
+                                          <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-amber-500 text-amber-600 dark:text-amber-500">AJUSTADA</Badge>
+                                        )}
+                                        {p.status === "PAGO" && (
+                                          <span title="Parcela paga (imutável)" className="text-muted-foreground">🔒</span>
+                                        )}
+                                      </div>
+                                      {(p as any).motivoAjuste && (
+                                        <div className="text-[10px] text-muted-foreground mt-0.5">{(p as any).motivoAjuste}</div>
+                                      )}
+                                    </TableCell>
                                     <TableCell>{formatDateBR(p.dataVencimento)}</TableCell>
                                     <TableCell className="text-right">
                                       {p.valorParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
