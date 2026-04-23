@@ -3849,14 +3849,84 @@ export default function ContratosPage() {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Modal de Escolha do Modo de Distribuição (redução) */}
+      <AlertDialog open={escolhaModoOpen} onOpenChange={setEscolhaModoOpen}>
+        <AlertDialogContent className="sm:max-w-xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Como distribuir a redução?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm">
+                <p>
+                  A liquidação é <strong>menor</strong> que o valor previsto nas parcelas.
+                  Escolha como distribuir essa redução entre as parcelas pendentes:
+                </p>
+                {preAnalise && (
+                  <div className="rounded-md border bg-muted/40 p-3 text-xs space-y-1">
+                    <div className="flex justify-between"><span>Valor previsto nas parcelas:</span><strong>R$ {(preAnalise.valorContaTotal ?? 0).toFixed(2)}</strong></div>
+                    <div className="flex justify-between"><span>Valor líquido apurado:</span><strong>R$ {(preAnalise.valorLiquido ?? 0).toFixed(2)}</strong></div>
+                    <div className="flex justify-between text-destructive"><span>Redução total:</span><strong>R$ {Math.abs(preAnalise.diferenca ?? 0).toFixed(2)} ({(preAnalise.percentualReducao ?? 0).toFixed(2)}% das pendentes)</strong></div>
+                    <div className="flex justify-between"><span>Parcelas pendentes afetadas:</span><strong>{preAnalise.parcelasPendentesCount}</strong></div>
+                    {(preAnalise.parcelasPagasCount ?? 0) > 0 && (
+                      <div className="flex justify-between text-amber-600 dark:text-amber-500"><span>Parcelas já pagas (preservadas):</span><strong>{preAnalise.parcelasPagasCount}</strong></div>
+                    )}
+                    {preAnalise.geraraAdiantamento && (
+                      <div className="flex justify-between text-primary"><span>Adiantamento (crédito) a gerar:</span><strong>R$ {(preAnalise.valorAdiantamento ?? 0).toFixed(2)}</strong></div>
+                    )}
+                  </div>
+                )}
+                <div className="space-y-2 pt-2">
+                  <button
+                    type="button"
+                    className={`w-full rounded-md border p-3 text-left text-sm transition ${modoDistribuicao === "PROPORCIONAL" ? "border-primary bg-primary/10" : "hover:bg-muted/50"}`}
+                    onClick={() => setModoDistribuicao("PROPORCIONAL")}
+                  >
+                    <div className="font-semibold">Distribuir Proporcionalmente</div>
+                    <div className="text-xs text-muted-foreground">Reduz cada parcela pendente conforme seu peso. Recomendado.</div>
+                  </button>
+                  <button
+                    type="button"
+                    className={`w-full rounded-md border p-3 text-left text-sm transition ${modoDistribuicao === "ULTIMA" ? "border-primary bg-primary/10" : "hover:bg-muted/50"}`}
+                    onClick={() => setModoDistribuicao("ULTIMA")}
+                  >
+                    <div className="font-semibold">Absorver na Última Parcela</div>
+                    <div className="text-xs text-muted-foreground">Mantém as primeiras parcelas iguais e reduz a última. Pode zerá-la.</div>
+                  </button>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setEscolhaModoOpen(false); setConfirmDialogOpen(true); }}>
+              Continuar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Liquidação Confirm Dialog */}
       <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar e Efetivar Liquidação</AlertDialogTitle>
-            <AlertDialogDescription>
-              Ao confirmar, o contrato será encerrado (LIQUIDADO) e os títulos financeiros serão atualizados. Estoque
-              NÃO será alterado (já foi movimentado pelos romaneios). Esta ação não pode ser desfeita facilmente.
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <p>
+                  O contrato será encerrado (LIQUIDADO) e os títulos financeiros serão atualizados atomicamente.
+                  Estoque NÃO será alterado (já movimentado pelos romaneios). Esta ação não pode ser desfeita facilmente.
+                </p>
+                {preAnalise && preAnalise.cenario === "MENOR" && (
+                  <p className="text-xs text-muted-foreground">
+                    Modo escolhido: <strong>{modoDistribuicao === "PROPORCIONAL" ? "Distribuição proporcional" : "Absorver na última parcela"}</strong>
+                    {preAnalise.geraraAdiantamento && ` • Adiantamento de R$ ${(preAnalise.valorAdiantamento ?? 0).toFixed(2)} será gerado`}
+                  </p>
+                )}
+                {preAnalise && preAnalise.cenario === "MAIOR" && (
+                  <p className="text-xs text-muted-foreground">
+                    Será criada uma <strong>parcela de BONIFICAÇÃO</strong> de R$ {Math.abs(preAnalise.diferenca ?? 0).toFixed(2)} na conta vinculada.
+                  </p>
+                )}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
