@@ -2440,6 +2440,8 @@ export interface FinanceiroConta {
   deletadoPor: string | null;
 }
 
+export type TipoParcelaEspecial = "BONIFICACAO" | "AJUSTE_NEGATIVO";
+
 export interface FinanceiroParcela {
   id: string;
   grupoId: string;
@@ -2454,6 +2456,9 @@ export interface FinanceiroParcela {
   valorPago: number;
   saldoParcela: number;
   status: StatusParcela;
+  // Marcação opcional para parcelas geradas/ajustadas por liquidação
+  tipoEspecial?: TipoParcelaEspecial | null;
+  motivoAjuste?: string | null;
   criadoEm: string;
   criadoPor: string;
   atualizadoEm: string;
