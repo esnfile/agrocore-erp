@@ -51,6 +51,8 @@ import {
   financeiroCentrosCusto as mockFinanceiroCentrosCusto,
   financeiroMovimentacoes as mockFinanceiroMovimentacoes,
   financeiroAdiantamentos as mockFinanceiroAdiantamentos,
+  movimentacoesAjusteParcela as mockMovAjusteParcela,
+  mockParametros,
 } from "./mock-data";
 import { getUnidadeBaseParaTipo } from "./mock-data";
 import type {
@@ -70,6 +72,7 @@ import type {
   FinanceiroFormaPagto, TipoFormaPagamento, FinanceiroPlanoConta, TipoPlanoConta,
   FinanceiroCentroCusto, FinanceiroMovimentacao, TipoMovimentoFinanceiro,
   FinanceiroAdiantamento, StatusAdiantamento,
+  MovimentacaoAjusteParcela, TipoMovimentacaoAjuste,
 } from "./mock-data";
 
 const delay = (ms = 300) => new Promise((r) => setTimeout(r, ms));
