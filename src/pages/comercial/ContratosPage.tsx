@@ -302,8 +302,11 @@ export default function ContratosPage() {
   const [liquidacao, setLiquidacao] = useState<ContratoLiquidacao | null>(null);
   const [liquidacaoLoading, setLiquidacaoLoading] = useState(false);
   const [opcaoEncerrar, setOpcaoEncerrar] = useState(true);
-  const [opcaoTitulos, setOpcaoTitulos] = useState<"ATUALIZAR" | "COMPLEMENTAR">("ATUALIZAR");
+  const [modoDistribuicao, setModoDistribuicao] = useState<"PROPORCIONAL" | "ULTIMA">("PROPORCIONAL");
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [escolhaModoOpen, setEscolhaModoOpen] = useState(false);
+  const [preAnalise, setPreAnalise] = useState<any>(null);
+  const [historicoAjustes, setHistoricoAjustes] = useState<any[]>([]);
 
   // Financeiro real
   const [finContas, setFinContas] = useState<FinanceiroConta[]>([]);
@@ -767,6 +770,11 @@ export default function ContratosPage() {
     setCondicoes(conds);
     const activeLiq = liqs.find((l) => l.status === "PREVIA" || l.status === "CONFIRMADA");
     setLiquidacao(activeLiq || null);
+    // Carrega histórico de ajustes do contrato (auditoria)
+    try {
+      const hist = await contratoLiquidacaoService.listarHistoricoAjustes(contratoId);
+      setHistoricoAjustes(hist);
+    } catch { setHistoricoAjustes([]); }
 
     // Load financeiro REAL
     const contas = await financeiroContaService.listarPorContrato(contratoId);
@@ -1198,6 +1206,56 @@ export default function ContratosPage() {
     }
   };
 
+  const carregarHistoricoAjustes = async (contratoId: string) => {
+    try {
+      const hist = await contratoLiquidacaoService.listarHistoricoAjustes(contratoId);
+      setHistoricoAjustes(hist);
+    } catch {
+      setHistoricoAjustes([]);
+    }
+  };
+
+  // Inicia o fluxo: faz pré-análise, decide se abre modal de escolha
+  const onIniciarConfirmacao = async () => {
+    if (!liquidacao || !editingContrato) return;
+    if (!validacoesLiquidacao.podeAvancar) {
+      const msg = validacoesLiquidacao.bloqueios[0]
+        ?? (validacoesLiquidacao.requerJustificativa && justificativaDivergencia.trim().length < 20
+          ? "Preencha a justificativa (mínimo 20 caracteres) para prosseguir."
+          : "Validações da liquidação não atendidas.");
+      toast({ title: "Bloqueado", description: msg, variant: "destructive" });
+      return;
+    }
+    setLiquidacaoLoading(true);
+    try {
+      const pre = await contratoLiquidacaoService.preAnalisar(liquidacao.id);
+      if (!pre.sucesso) {
+        toast({ title: "Erro", description: pre.mensagem, variant: "destructive" });
+        return;
+      }
+      setPreAnalise(pre);
+      // Aviso de parcelas pagas
+      if ((pre.parcelasPagasCount ?? 0) > 0 && pre.cenario === "MENOR") {
+        toast({
+          title: "Atenção",
+          description: `Existem ${pre.parcelasPagasCount} parcela(s) já paga(s). Apenas as parcelas pendentes serão ajustadas.`,
+        });
+      }
+      // Decide próximo passo
+      if (pre.cenario === "MENOR" && pre.deveMostrarModal) {
+        setEscolhaModoOpen(true);
+      } else {
+        // Define modo padrão proporcional e abre confirmação direta
+        setModoDistribuicao("PROPORCIONAL");
+        setConfirmDialogOpen(true);
+      }
+    } catch {
+      toast({ title: "Erro", description: "Falha na pré-análise da liquidação.", variant: "destructive" });
+    } finally {
+      setLiquidacaoLoading(false);
+    }
+  };
+
   const onConfirmarLiquidacao = async () => {
     if (!liquidacao || !editingContrato) return;
     if (!validacoesLiquidacao.podeAvancar) {
@@ -1215,13 +1273,28 @@ export default function ContratosPage() {
       const observacaoLiquidacao = validacoesLiquidacao.requerJustificativa
         ? justificativaDivergencia.trim()
         : undefined;
-      const result = await contratoLiquidacaoService.confirmar(liquidacao.id, opcaoTitulos, {
+      const result = await contratoLiquidacaoService.confirmar(liquidacao.id, modoDistribuicao, {
         grupoId,
         empresaId,
         filialId: editingContrato.filialId,
       }, observacaoLiquidacao);
       if (result.sucesso) {
-        toast({ title: "Sucesso", description: result.mensagem });
+        // Toast principal
+        toast({ title: "Liquidação concluída", description: result.mensagem });
+        // Resumo detalhado
+        if (result.resumo) {
+          const r = result.resumo;
+          const partes: string[] = [];
+          if (r.parcelasAjustadas > 0) partes.push(`${r.parcelasAjustadas} parcela(s) ajustada(s)`);
+          if (r.parcelasZeradas > 0) partes.push(`${r.parcelasZeradas} parcela(s) zerada(s)`);
+          if (r.bonificacaoGerada) partes.push(`bonificação criada`);
+          if (r.adiantamentoValor && r.adiantamentoValor > 0) {
+            partes.push(`adiantamento (crédito) de R$ ${r.adiantamentoValor.toFixed(2)} gerado`);
+          }
+          if (partes.length > 0) {
+            toast({ title: "Resumo", description: partes.join(" • ") });
+          }
+        }
         if (validacoesLiquidacao.requerJustificativa && justificativaDivergencia.trim()) {
           toast({
             title: "Divergência registrada",
@@ -1230,6 +1303,7 @@ export default function ContratosPage() {
         }
         await loadSubEntities(editingContrato.id);
         await loadContratos();
+        await carregarHistoricoAjustes(editingContrato.id);
         const updated = (await contratoService.listarPorEmpresa(empresaId)).find((c) => c.id === editingContrato.id);
         if (updated) setEditingContrato(updated);
       } else {
@@ -2824,11 +2898,27 @@ export default function ContratosPage() {
                               const isExpanded = expandedParcelaId === p.id;
                               return (
                                 <>
-                                  <TableRow key={p.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setExpandedParcelaId(isExpanded ? null : p.id)}>
+                                  <TableRow key={p.id} className={`cursor-pointer hover:bg-muted/50 ${(p as any).tipoEspecial === "BONIFICACAO" ? "bg-primary/5" : (p as any).tipoEspecial === "AJUSTE_NEGATIVO" ? "bg-amber-500/5" : ""}`} onClick={() => setExpandedParcelaId(isExpanded ? null : p.id)}>
                                     <TableCell className="p-2">
                                       {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                                     </TableCell>
-                                    <TableCell>{p.numeroParcela}/{p.totalParcelas}</TableCell>
+                                    <TableCell>
+                                      <div className="flex items-center gap-1.5">
+                                        <span>{p.numeroParcela}/{p.totalParcelas}</span>
+                                        {(p as any).tipoEspecial === "BONIFICACAO" && (
+                                          <Badge variant="default" className="text-[9px] px-1 py-0 h-4">BONIFICAÇÃO</Badge>
+                                        )}
+                                        {(p as any).tipoEspecial === "AJUSTE_NEGATIVO" && (
+                                          <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-amber-500 text-amber-600 dark:text-amber-500">AJUSTADA</Badge>
+                                        )}
+                                        {p.status === "PAGO" && (
+                                          <span title="Parcela paga (imutável)" className="text-muted-foreground">🔒</span>
+                                        )}
+                                      </div>
+                                      {(p as any).motivoAjuste && (
+                                        <div className="text-[10px] text-muted-foreground mt-0.5">{(p as any).motivoAjuste}</div>
+                                      )}
+                                    </TableCell>
                                     <TableCell>{formatDateBR(p.dataVencimento)}</TableCell>
                                     <TableCell className="text-right">
                                       {p.valorParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
@@ -2889,6 +2979,56 @@ export default function ContratosPage() {
                                     </TableRow>
                                   )}
                                 </>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Histórico de Alterações (auditoria de liquidação) */}
+                  {historicoAjustes.length > 0 && (
+                    <div className="space-y-2">
+                      <h4 className="font-semibold text-foreground text-sm">Histórico de Alterações</h4>
+                      <p className="text-xs text-muted-foreground">
+                        Trilha de auditoria das movimentações geradas pela liquidação do contrato.
+                      </p>
+                      <div className="overflow-auto rounded-md border">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="text-xs">Data/Hora</TableHead>
+                              <TableHead className="text-xs">Tipo</TableHead>
+                              <TableHead className="text-xs text-right">De</TableHead>
+                              <TableHead className="text-xs text-right">Para</TableHead>
+                              <TableHead className="text-xs text-right">Diferença</TableHead>
+                              <TableHead className="text-xs">Motivo</TableHead>
+                              <TableHead className="text-xs">Usuário</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {historicoAjustes.map((m: any) => {
+                              const tipoLabel: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
+                                AJUSTE_LIQUIDACAO: { label: "Ajuste", variant: "outline" },
+                                PROMOCAO_PREVISTO_PENDENTE: { label: "Efetivação", variant: "secondary" },
+                                BONIFICACAO_GERADA: { label: "Bonificação", variant: "default" },
+                                ADIANTAMENTO_GERADO: { label: "Adiantamento", variant: "default" },
+                                PARCELA_ZERADA: { label: "Zerada", variant: "destructive" },
+                              };
+                              const cfg = tipoLabel[m.tipoMovimento] ?? { label: m.tipoMovimento, variant: "outline" as const };
+                              return (
+                                <TableRow key={m.id}>
+                                  <TableCell className="text-xs">{format(new Date(m.dataMovimento), "dd/MM/yyyy HH:mm")}</TableCell>
+                                  <TableCell className="text-xs"><Badge variant={cfg.variant} className="text-[10px]">{cfg.label}</Badge></TableCell>
+                                  <TableCell className="text-xs text-right">{m.valorAnterior.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                                  <TableCell className="text-xs text-right">{m.valorNovo.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                                  <TableCell className={`text-xs text-right ${m.diferenca < 0 ? "text-destructive" : m.diferenca > 0 ? "text-primary" : "text-muted-foreground"}`}>
+                                    {m.diferenca > 0 ? "+" : ""}{m.diferenca.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                  </TableCell>
+                                  <TableCell className="text-xs text-muted-foreground">{m.motivo}</TableCell>
+                                  <TableCell className="text-xs">{m.usuarioId}</TableCell>
+                                </TableRow>
                               );
                             })}
                           </TableBody>
@@ -3474,24 +3614,23 @@ export default function ContratosPage() {
                         </div>
                       )}
 
-                      <div className="rounded-md border p-4 space-y-3">
-                        <h4 className="text-sm font-semibold">Opções de Confirmação</h4>
-                        <div className="space-y-2">
-                          <Label className="text-sm">Tratamento de Títulos Financeiros</Label>
-                          <Select value={opcaoTitulos} onValueChange={(v) => setOpcaoTitulos(v as any)}>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="ATUALIZAR">Atualizar parcelas pendentes</SelectItem>
-                              <SelectItem value="COMPLEMENTAR">Criar título complementar</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
+                      <div className="rounded-md border p-4 space-y-2 bg-muted/30">
+                        <h4 className="text-sm font-semibold">Tratamento Automático de Títulos Financeiros</h4>
+                        <p className="text-xs text-muted-foreground">
+                          O sistema decide automaticamente o melhor tratamento ao confirmar:
+                        </p>
+                        <ul className="text-xs text-muted-foreground list-disc pl-5 space-y-1">
+                          <li><strong>Liquidação igual ao previsto:</strong> apenas efetiva as parcelas (PREVISTO → PENDENTE).</li>
+                          <li><strong>Liquidação MENOR:</strong> reduz parcelas pendentes (parcelas pagas são preservadas). Se a redução exceder o saldo pendente, gera <strong>adiantamento (crédito)</strong> a favor da pessoa.</li>
+                          <li><strong>Liquidação MAIOR:</strong> cria parcela de <strong>BONIFICAÇÃO</strong> dentro da conta original.</li>
+                        </ul>
+                        <p className="text-xs text-muted-foreground">
+                          Se a redução for relevante, será solicitada sua escolha entre distribuição proporcional ou absorção na última parcela.
+                        </p>
                       </div>
 
                       <div className="flex gap-2 pt-2">
-                        <Button onClick={() => setConfirmDialogOpen(true)} disabled={liquidacaoLoading || !validacoesLiquidacao.podeAvancar}>
+                        <Button onClick={onIniciarConfirmacao} disabled={liquidacaoLoading || !validacoesLiquidacao.podeAvancar}>
                           <FileCheck className="mr-2 h-4 w-4" />
                           Confirmar e Efetivar
                         </Button>
@@ -3781,14 +3920,84 @@ export default function ContratosPage() {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Modal de Escolha do Modo de Distribuição (redução) */}
+      <AlertDialog open={escolhaModoOpen} onOpenChange={setEscolhaModoOpen}>
+        <AlertDialogContent className="sm:max-w-xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Como distribuir a redução?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm">
+                <p>
+                  A liquidação é <strong>menor</strong> que o valor previsto nas parcelas.
+                  Escolha como distribuir essa redução entre as parcelas pendentes:
+                </p>
+                {preAnalise && (
+                  <div className="rounded-md border bg-muted/40 p-3 text-xs space-y-1">
+                    <div className="flex justify-between"><span>Valor previsto nas parcelas:</span><strong>R$ {(preAnalise.valorContaTotal ?? 0).toFixed(2)}</strong></div>
+                    <div className="flex justify-between"><span>Valor líquido apurado:</span><strong>R$ {(preAnalise.valorLiquido ?? 0).toFixed(2)}</strong></div>
+                    <div className="flex justify-between text-destructive"><span>Redução total:</span><strong>R$ {Math.abs(preAnalise.diferenca ?? 0).toFixed(2)} ({(preAnalise.percentualReducao ?? 0).toFixed(2)}% das pendentes)</strong></div>
+                    <div className="flex justify-between"><span>Parcelas pendentes afetadas:</span><strong>{preAnalise.parcelasPendentesCount}</strong></div>
+                    {(preAnalise.parcelasPagasCount ?? 0) > 0 && (
+                      <div className="flex justify-between text-amber-600 dark:text-amber-500"><span>Parcelas já pagas (preservadas):</span><strong>{preAnalise.parcelasPagasCount}</strong></div>
+                    )}
+                    {preAnalise.geraraAdiantamento && (
+                      <div className="flex justify-between text-primary"><span>Adiantamento (crédito) a gerar:</span><strong>R$ {(preAnalise.valorAdiantamento ?? 0).toFixed(2)}</strong></div>
+                    )}
+                  </div>
+                )}
+                <div className="space-y-2 pt-2">
+                  <button
+                    type="button"
+                    className={`w-full rounded-md border p-3 text-left text-sm transition ${modoDistribuicao === "PROPORCIONAL" ? "border-primary bg-primary/10" : "hover:bg-muted/50"}`}
+                    onClick={() => setModoDistribuicao("PROPORCIONAL")}
+                  >
+                    <div className="font-semibold">Distribuir Proporcionalmente</div>
+                    <div className="text-xs text-muted-foreground">Reduz cada parcela pendente conforme seu peso. Recomendado.</div>
+                  </button>
+                  <button
+                    type="button"
+                    className={`w-full rounded-md border p-3 text-left text-sm transition ${modoDistribuicao === "ULTIMA" ? "border-primary bg-primary/10" : "hover:bg-muted/50"}`}
+                    onClick={() => setModoDistribuicao("ULTIMA")}
+                  >
+                    <div className="font-semibold">Absorver na Última Parcela</div>
+                    <div className="text-xs text-muted-foreground">Mantém as primeiras parcelas iguais e reduz a última. Pode zerá-la.</div>
+                  </button>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setEscolhaModoOpen(false); setConfirmDialogOpen(true); }}>
+              Continuar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Liquidação Confirm Dialog */}
       <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar e Efetivar Liquidação</AlertDialogTitle>
-            <AlertDialogDescription>
-              Ao confirmar, o contrato será encerrado (LIQUIDADO) e os títulos financeiros serão atualizados. Estoque
-              NÃO será alterado (já foi movimentado pelos romaneios). Esta ação não pode ser desfeita facilmente.
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <p>
+                  O contrato será encerrado (LIQUIDADO) e os títulos financeiros serão atualizados atomicamente.
+                  Estoque NÃO será alterado (já movimentado pelos romaneios). Esta ação não pode ser desfeita facilmente.
+                </p>
+                {preAnalise && preAnalise.cenario === "MENOR" && (
+                  <p className="text-xs text-muted-foreground">
+                    Modo escolhido: <strong>{modoDistribuicao === "PROPORCIONAL" ? "Distribuição proporcional" : "Absorver na última parcela"}</strong>
+                    {preAnalise.geraraAdiantamento && ` • Adiantamento de R$ ${(preAnalise.valorAdiantamento ?? 0).toFixed(2)} será gerado`}
+                  </p>
+                )}
+                {preAnalise && preAnalise.cenario === "MAIOR" && (
+                  <p className="text-xs text-muted-foreground">
+                    Será criada uma <strong>parcela de BONIFICAÇÃO</strong> de R$ {Math.abs(preAnalise.diferenca ?? 0).toFixed(2)} na conta vinculada.
+                  </p>
+                )}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
