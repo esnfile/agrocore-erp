@@ -2987,6 +2987,56 @@ export default function ContratosPage() {
                     </div>
                   )}
 
+                  {/* Histórico de Alterações (auditoria de liquidação) */}
+                  {historicoAjustes.length > 0 && (
+                    <div className="space-y-2">
+                      <h4 className="font-semibold text-foreground text-sm">Histórico de Alterações</h4>
+                      <p className="text-xs text-muted-foreground">
+                        Trilha de auditoria das movimentações geradas pela liquidação do contrato.
+                      </p>
+                      <div className="overflow-auto rounded-md border">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="text-xs">Data/Hora</TableHead>
+                              <TableHead className="text-xs">Tipo</TableHead>
+                              <TableHead className="text-xs text-right">De</TableHead>
+                              <TableHead className="text-xs text-right">Para</TableHead>
+                              <TableHead className="text-xs text-right">Diferença</TableHead>
+                              <TableHead className="text-xs">Motivo</TableHead>
+                              <TableHead className="text-xs">Usuário</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {historicoAjustes.map((m: any) => {
+                              const tipoLabel: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
+                                AJUSTE_LIQUIDACAO: { label: "Ajuste", variant: "outline" },
+                                PROMOCAO_PREVISTO_PENDENTE: { label: "Efetivação", variant: "secondary" },
+                                BONIFICACAO_GERADA: { label: "Bonificação", variant: "default" },
+                                ADIANTAMENTO_GERADO: { label: "Adiantamento", variant: "default" },
+                                PARCELA_ZERADA: { label: "Zerada", variant: "destructive" },
+                              };
+                              const cfg = tipoLabel[m.tipoMovimento] ?? { label: m.tipoMovimento, variant: "outline" as const };
+                              return (
+                                <TableRow key={m.id}>
+                                  <TableCell className="text-xs">{format(new Date(m.dataMovimento), "dd/MM/yyyy HH:mm")}</TableCell>
+                                  <TableCell className="text-xs"><Badge variant={cfg.variant} className="text-[10px]">{cfg.label}</Badge></TableCell>
+                                  <TableCell className="text-xs text-right">{m.valorAnterior.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                                  <TableCell className="text-xs text-right">{m.valorNovo.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                                  <TableCell className={`text-xs text-right ${m.diferenca < 0 ? "text-destructive" : m.diferenca > 0 ? "text-primary" : "text-muted-foreground"}`}>
+                                    {m.diferenca > 0 ? "+" : ""}{m.diferenca.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                  </TableCell>
+                                  <TableCell className="text-xs text-muted-foreground">{m.motivo}</TableCell>
+                                  <TableCell className="text-xs">{m.usuarioId}</TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Link to Financeiro */}
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" onClick={() => window.location.href = "/financeiro/contas"}>
