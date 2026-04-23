@@ -1201,6 +1201,56 @@ export default function ContratosPage() {
     }
   };
 
+  const carregarHistoricoAjustes = async (contratoId: string) => {
+    try {
+      const hist = await contratoLiquidacaoService.listarHistoricoAjustes(contratoId);
+      setHistoricoAjustes(hist);
+    } catch {
+      setHistoricoAjustes([]);
+    }
+  };
+
+  // Inicia o fluxo: faz pré-análise, decide se abre modal de escolha
+  const onIniciarConfirmacao = async () => {
+    if (!liquidacao || !editingContrato) return;
+    if (!validacoesLiquidacao.podeAvancar) {
+      const msg = validacoesLiquidacao.bloqueios[0]
+        ?? (validacoesLiquidacao.requerJustificativa && justificativaDivergencia.trim().length < 20
+          ? "Preencha a justificativa (mínimo 20 caracteres) para prosseguir."
+          : "Validações da liquidação não atendidas.");
+      toast({ title: "Bloqueado", description: msg, variant: "destructive" });
+      return;
+    }
+    setLiquidacaoLoading(true);
+    try {
+      const pre = await contratoLiquidacaoService.preAnalisar(liquidacao.id);
+      if (!pre.sucesso) {
+        toast({ title: "Erro", description: pre.mensagem, variant: "destructive" });
+        return;
+      }
+      setPreAnalise(pre);
+      // Aviso de parcelas pagas
+      if ((pre.parcelasPagasCount ?? 0) > 0 && pre.cenario === "MENOR") {
+        toast({
+          title: "Atenção",
+          description: `Existem ${pre.parcelasPagasCount} parcela(s) já paga(s). Apenas as parcelas pendentes serão ajustadas.`,
+        });
+      }
+      // Decide próximo passo
+      if (pre.cenario === "MENOR" && pre.deveMostrarModal) {
+        setEscolhaModoOpen(true);
+      } else {
+        // Define modo padrão proporcional e abre confirmação direta
+        setModoDistribuicao("PROPORCIONAL");
+        setConfirmDialogOpen(true);
+      }
+    } catch {
+      toast({ title: "Erro", description: "Falha na pré-análise da liquidação.", variant: "destructive" });
+    } finally {
+      setLiquidacaoLoading(false);
+    }
+  };
+
   const onConfirmarLiquidacao = async () => {
     if (!liquidacao || !editingContrato) return;
     if (!validacoesLiquidacao.podeAvancar) {
@@ -1218,13 +1268,28 @@ export default function ContratosPage() {
       const observacaoLiquidacao = validacoesLiquidacao.requerJustificativa
         ? justificativaDivergencia.trim()
         : undefined;
-      const result = await contratoLiquidacaoService.confirmar(liquidacao.id, opcaoTitulos, {
+      const result = await contratoLiquidacaoService.confirmar(liquidacao.id, modoDistribuicao, {
         grupoId,
         empresaId,
         filialId: editingContrato.filialId,
       }, observacaoLiquidacao);
       if (result.sucesso) {
-        toast({ title: "Sucesso", description: result.mensagem });
+        // Toast principal
+        toast({ title: "Liquidação concluída", description: result.mensagem });
+        // Resumo detalhado
+        if (result.resumo) {
+          const r = result.resumo;
+          const partes: string[] = [];
+          if (r.parcelasAjustadas > 0) partes.push(`${r.parcelasAjustadas} parcela(s) ajustada(s)`);
+          if (r.parcelasZeradas > 0) partes.push(`${r.parcelasZeradas} parcela(s) zerada(s)`);
+          if (r.bonificacaoGerada) partes.push(`bonificação criada`);
+          if (r.adiantamentoValor && r.adiantamentoValor > 0) {
+            partes.push(`adiantamento (crédito) de R$ ${r.adiantamentoValor.toFixed(2)} gerado`);
+          }
+          if (partes.length > 0) {
+            toast({ title: "Resumo", description: partes.join(" • ") });
+          }
+        }
         if (validacoesLiquidacao.requerJustificativa && justificativaDivergencia.trim()) {
           toast({
             title: "Divergência registrada",
@@ -1233,6 +1298,7 @@ export default function ContratosPage() {
         }
         await loadSubEntities(editingContrato.id);
         await loadContratos();
+        await carregarHistoricoAjustes(editingContrato.id);
         const updated = (await contratoService.listarPorEmpresa(empresaId)).find((c) => c.id === editingContrato.id);
         if (updated) setEditingContrato(updated);
       } else {
