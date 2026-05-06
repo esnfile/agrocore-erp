@@ -2502,14 +2502,10 @@ export const financeiroContaService = {
     mockFinanceiroParcelas.push(...novasParcelas);
     
     // Mark duplicatas as generated.
-    // FATURADO só ocorre quando: contrato FIXO definitivo (efetivação) OU
-    // A_FIXAR com TODAS as entregas finalizadas e TODO o saldo fixado/duplicado.
+    // NÃO altera status do contrato — faturamento/liquidação são tratados
+    // exclusivamente pela aba Liquidação. Manipulações na aba Financeiro
+    // (gerar/reconfigurar parcelas) não devem mudar o status do contrato.
     contrato.duplicatasGeradas = true;
-    const isFixacao = !!options?.fixacaoId;
-    if (!provisorio && !isFixacao) {
-      // Caminho FIXO definitivo (não é fixação parcial)
-      contrato.status = "FATURADO";
-    }
     contrato.atualizadoEm = now;
     contrato.atualizadoPor = "u1";
     
