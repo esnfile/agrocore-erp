@@ -87,7 +87,7 @@ export function StepPesagens({ romaneio, pesagens, onRefresh, ctx }: StepPesagen
     else if (!temSaida) setPesagemTipo("SAIDA");
     setPesagemPeso("");
     setPesagemObs("");
-    setPesagemOrigem("MANUAL");
+    setPesagemOrigem("BALANCA");
     setPesagemOpen(true);
   };
 
