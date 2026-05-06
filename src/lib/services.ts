@@ -2382,7 +2382,82 @@ export const financeiroContaService = {
     }));
     const valorTotal = parcelasBRL.reduce((s, p) => s + p.valorParcela, 0);
     const valorOriginal = parcelasConfig.reduce((s, p) => s + p.valorParcela, 0);
-    
+
+    // ============================================================
+    // RECONFIGURAÇÃO: se já existe conta vinculada ao contrato (mesma fixação ou sem fixação),
+    // reaproveitamos a conta, soft-deletamos parcelas PREVISTO/PENDENTE e preservamos PAGO.
+    // Isto evita duplicação de duplicatas ao reconfigurar parcelas.
+    // ============================================================
+    const fixacaoIdAtual = options?.fixacaoId ?? null;
+    const contaExistente = mockFinanceiroContas.find(
+      (c) => c.deletadoEm === null && c.contratoId === contratoId && (c.fixacaoId ?? null) === fixacaoIdAtual
+    );
+
+    if (contaExistente) {
+      const parcelasExistentes = mockFinanceiroParcelas.filter(
+        (p) => p.deletadoEm === null && p.contaId === contaExistente.id
+      );
+      const pagas = parcelasExistentes.filter((p) => p.status === "PAGO" || p.valorPago > 0);
+      const editaveis = parcelasExistentes.filter((p) => p.status !== "PAGO" && p.valorPago === 0);
+
+      if (pagas.length > 0) {
+        throw new Error(
+          "Não é possível reconfigurar: existem parcelas já pagas. Use Liquidação para ajustar diferenças."
+        );
+      }
+
+      // Determina status a usar nas novas parcelas: preserva o status anterior das editáveis
+      // (se todas eram PREVISTO mantém PREVISTO; caso contrário usa PENDENTE)
+      const todasEramPrevisto = editaveis.length > 0 && editaveis.every((p) => p.status === "PREVISTO");
+      const statusNovo: StatusParcela = todasEramPrevisto ? "PREVISTO" : "PENDENTE";
+
+      // Soft delete das parcelas editáveis antigas
+      editaveis.forEach((p) => {
+        p.deletadoEm = now;
+        p.deletadoPor = "u1";
+        p.atualizadoEm = now;
+        p.atualizadoPor = "u1";
+      });
+
+      // Atualiza conta existente
+      contaExistente.valorTotal = valorTotal;
+      contaExistente.valorTotalReal = valorTotal;
+      contaExistente.valorOriginalMoeda = valorOriginal;
+      contaExistente.cotacaoUsada = cotacao;
+      contaExistente.atualizadoEm = now;
+      contaExistente.atualizadoPor = "u1";
+
+      const totalP2 = parcelasBRL.length;
+      const novasParcelas: FinanceiroParcela[] = parcelasBRL.map((input, i) => ({
+        id: `fp${Date.now()}${i}`,
+        grupoId: ctx.grupoId,
+        empresaId: ctx.empresaId,
+        filialId: ctx.filialId,
+        contaId: contaExistente.id,
+        numeroParcela: input.numeroParcela,
+        totalParcelas: totalP2,
+        dataVencimento: input.dataVencimento,
+        valorParcela: input.valorParcela,
+        valorReal: input.valorParcela,
+        valorPago: 0,
+        saldoParcela: input.valorParcela,
+        status: statusNovo,
+        criadoEm: now,
+        criadoPor: "u1",
+        atualizadoEm: now,
+        atualizadoPor: "u1",
+        deletadoEm: null,
+        deletadoPor: null,
+      }));
+      mockFinanceiroParcelas.push(...novasParcelas);
+
+      contrato.duplicatasGeradas = true;
+      contrato.atualizadoEm = now;
+      contrato.atualizadoPor = "u1";
+
+      return { conta: contaExistente, parcelas: novasParcelas };
+    }
+
     const conta: FinanceiroConta = {
       id: `fc${Date.now()}`,
       grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
