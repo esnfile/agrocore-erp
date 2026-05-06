@@ -4160,21 +4160,38 @@ export default function ContratosPage() {
                               <TableCell className="text-right">
                                 <Input
                                   type="text"
-                                  inputMode="decimal"
+                                  inputMode="numeric"
                                   value={(Number(p.valorParcela) || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                   onChange={(e) => {
-                                  const raw = e.target.value.replace(/\./g, "").replace(",", ".").replace(/[^0-9.]/g, "");
-                                  const novoValor = parseFloat(raw) || 0;
-                                  const vt = valorEsperado;
-                                  setGcParcelasEditaveis((prev) => {
-                                    const updated = prev.map((pp, i) => i === idx ? { ...pp, valorParcela: novoValor } : pp);
-                                    if (updated.length > 1 && idx !== updated.length - 1) {
-                                      const somaOutras = updated.reduce((s, pp, i) => i !== updated.length - 1 ? s + pp.valorParcela : s, 0);
-                                      updated[updated.length - 1] = { ...updated[updated.length - 1], valorParcela: Math.round((vt - somaOutras) * 100) / 100 };
-                                    }
-                                    return updated;
-                                  });
-                                }} className="w-32 text-right ml-auto" />
+                                    // Máscara monetária right-to-left: trata input como centavos
+                                    const digits = e.target.value.replace(/\D/g, "");
+                                    const novoValor = digits ? parseInt(digits, 10) / 100 : 0;
+                                    const vt = valorEsperado;
+                                    setGcParcelasEditaveis((prev) => {
+                                      const updated = prev.map((pp, i) => i === idx ? { ...pp, valorParcela: novoValor } : pp);
+                                      if (updated.length > 1 && idx !== updated.length - 1) {
+                                        const somaOutras = updated.reduce((s, pp, i) => i !== updated.length - 1 ? s + pp.valorParcela : s, 0);
+                                        updated[updated.length - 1] = { ...updated[updated.length - 1], valorParcela: Math.round((vt - somaOutras) * 100) / 100 };
+                                      }
+                                      return updated;
+                                    });
+                                  }}
+                                  onFocus={(e) => {
+                                    const el = e.currentTarget;
+                                    requestAnimationFrame(() => {
+                                      const len = el.value.length;
+                                      el.setSelectionRange(len, len);
+                                    });
+                                  }}
+                                  onKeyDown={(e) => {
+                                    // Mantém cursor sempre no final (right-to-left)
+                                    const el = e.currentTarget;
+                                    requestAnimationFrame(() => {
+                                      const len = el.value.length;
+                                      el.setSelectionRange(len, len);
+                                    });
+                                  }}
+                                  className="w-32 text-right ml-auto" />
                               </TableCell>
                             </TableRow>
                           ))}
