@@ -26,7 +26,7 @@ export function StepPesagens({ romaneio, pesagens, onRefresh, ctx }: StepPesagen
   const [pesagemOpen, setPesagemOpen] = useState(false);
   const [pesagemTipo, setPesagemTipo] = useState<TipoPesagem>("ENTRADA");
   const [pesagemPeso, setPesagemPeso] = useState("");
-  const [pesagemOrigem, setPesagemOrigem] = useState<"MANUAL" | "BALANCA">("MANUAL");
+  const [pesagemOrigem, setPesagemOrigem] = useState<"MANUAL" | "BALANCA">("BALANCA");
   const [pesagemObs, setPesagemObs] = useState("");
 
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -87,7 +87,7 @@ export function StepPesagens({ romaneio, pesagens, onRefresh, ctx }: StepPesagen
     else if (!temSaida) setPesagemTipo("SAIDA");
     setPesagemPeso("");
     setPesagemObs("");
-    setPesagemOrigem("MANUAL");
+    setPesagemOrigem("BALANCA");
     setPesagemOpen(true);
   };
 
