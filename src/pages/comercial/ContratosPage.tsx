@@ -3977,11 +3977,9 @@ export default function ContratosPage() {
               );
               setFinContas([result.conta]);
               setFinParcelas(result.parcelas);
-              // Para fixação (A_FIXAR), NÃO promover a FATURADO — contrato segue PARCIAL
-              // até que todas as entregas estejam finalizadas e todo o saldo esteja fixado.
-              if (!isProvisorio && !fixacaoParaDuplicata) {
-                ctr.status = "FATURADO";
-              }
+              // Geração/reconfiguração de parcelas na aba Financeiro não altera
+              // o status do contrato. Faturamento/liquidação ficam exclusivos
+              // da aba Liquidação.
               ctr.duplicatasGeradas = true;
               toast({ title: `Duplicatas geradas com sucesso! ${result.parcelas.length} parcela(s) criadas.` });
               setGerarContasOpen(false);
