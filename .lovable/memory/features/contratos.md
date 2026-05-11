@@ -17,7 +17,9 @@ type: feature
 ### Faturamento
 - Gera **Conta Financeira** (`mockFinanceiroContas`) + parcelas vinculadas.
 - `documentoReferencia = numeroContrato`.
-- **Uma Conta = Um Contrato.** Nunca criar conta órfã.
+- **FIXO**: Uma Conta = Um Contrato.
+- **A_FIXAR**: Uma Conta = Uma Fixação. Cada fixação (mesmo parcial) gera sua própria Conta Financeira ao salvar — modal de duplicatas abre automaticamente se houver romaneio FINALIZADO. Liquidação final exige `saldoAFixar = 0`.
+- Nunca criar conta órfã.
 
 ---
 
