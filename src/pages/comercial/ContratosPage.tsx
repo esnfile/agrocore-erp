@@ -929,8 +929,36 @@ export default function ContratosPage() {
         toast({ title: "Sucesso", description: result.mensagem });
         setFixacaoModalOpen(false);
         await loadSubEntities(editingContrato.id);
-        // Geração de duplicatas é manual: usuário usa o botão "Gerar" na
-        // tabela "Fixações Realizadas" da aba Financeiro.
+
+        // Abrir automaticamente o modal de geração de duplicatas para a fixação recém-salva.
+        // Regras:
+        //  - contrato A_FIXAR
+        //  - fixação ainda não tem contas geradas
+        //  - existe ao menos 1 romaneio FINALIZADO
+        const fixSalva = result.fixacao;
+        const temRomFinal = romaneiosContrato.some((r) => r.status === "FINALIZADO");
+        if (
+          fixSalva &&
+          editingContrato.tipoPreco === "A_FIXAR" &&
+          !fixSalva.contasGeradas &&
+          !editingFixacao
+        ) {
+          if (!temRomFinal) {
+            toast({
+              title: "Romaneio pendente",
+              description: "Finalize ao menos um romaneio para gerar as duplicatas desta fixação.",
+            });
+          } else {
+            setFixacaoParaDuplicata(fixSalva);
+            setGcNumParcelas("1");
+            setGcFrequencia("MENSAL");
+            setGcDiasPersonalizado("30");
+            setGcDataPrimeiraParcela(new Date().toISOString().slice(0, 10));
+            setGcParcelasEditaveis([]);
+            setGcParcelasGeradas(false);
+            setGerarContasOpen(true);
+          }
+        }
       } else {
         toast({ title: "Erro", description: result.mensagem, variant: "destructive" });
       }
@@ -2650,7 +2678,7 @@ export default function ContratosPage() {
                             </Button>
                           )}
                           <p className="text-xs text-muted-foreground italic">
-                            ℹ️ Para contratos A Fixar, gere as duplicatas a partir da tabela "Fixações Realizadas" abaixo (uma duplicata por fixação).
+                            ℹ️ Cada fixação gera sua própria duplicata. A liquidação final do contrato só será liberada quando todo o saldo a fixar for zerado.
                           </p>
                         </div>
                       </CardContent>
