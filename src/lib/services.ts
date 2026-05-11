@@ -1843,6 +1843,7 @@ export const contratoFixacaoService = {
       precoFixado: data.precoFixado ?? 0,
       moedaId: data.moedaId ?? "moeda1",
       observacoes: data.observacoes ?? "",
+      contasGeradas: false,
       criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
       deletadoEm: null, deletadoPor: null,
     };
