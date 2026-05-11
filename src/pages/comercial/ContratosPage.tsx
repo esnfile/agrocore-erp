@@ -4061,6 +4061,7 @@ export default function ContratosPage() {
               setAutoGerarDuplicatasContrato(null);
               setFixacaoParaDuplicata(null);
               loadContratos();
+              if (editingContrato) await loadSubEntities(editingContrato.id);
             } catch (err: any) {
               toast({ title: err.message || "Erro ao gerar contas", variant: "destructive" });
             } finally { setGcSaving(false); }
