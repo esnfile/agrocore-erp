@@ -2678,7 +2678,7 @@ export default function ContratosPage() {
                             </Button>
                           )}
                           <p className="text-xs text-muted-foreground italic">
-                            ℹ️ Para contratos A Fixar, gere as duplicatas a partir da tabela "Fixações Realizadas" abaixo (uma duplicata por fixação).
+                            ℹ️ Cada fixação gera sua própria duplicata. A liquidação final do contrato só será liberada quando todo o saldo a fixar for zerado.
                           </p>
                         </div>
                       </CardContent>
