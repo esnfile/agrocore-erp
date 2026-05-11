@@ -2514,7 +2514,12 @@ export const financeiroContaService = {
     contrato.duplicatasGeradas = true;
     contrato.atualizadoEm = now;
     contrato.atualizadoPor = "u1";
-    
+
+    if (options?.fixacaoId) {
+      const fix = mockContratoFixacoes.find((f) => f.id === options.fixacaoId && f.deletadoEm === null);
+      if (fix) { fix.contasGeradas = true; fix.atualizadoEm = now; fix.atualizadoPor = "u1"; }
+    }
+
     return { conta, parcelas: novasParcelas };
   },
 };
