@@ -929,18 +929,8 @@ export default function ContratosPage() {
         toast({ title: "Sucesso", description: result.mensagem });
         setFixacaoModalOpen(false);
         await loadSubEntities(editingContrato.id);
-        // Após nova fixação (não edição), abrir modal de duplicatas com valor pré-calculado
-        if (!editingFixacao && result.fixacao) {
-          setFixacaoParaDuplicata(result.fixacao);
-          setAutoGerarDuplicatasContrato(editingContrato);
-          setGcNumParcelas("1");
-          setGcFrequencia("MENSAL");
-          setGcDiasPersonalizado("30");
-          setGcDataPrimeiraParcela(new Date().toISOString().slice(0, 10));
-          setGcParcelasEditaveis([]);
-          setGcParcelasGeradas(false);
-          setGerarContasOpen(true);
-        }
+        // Geração de duplicatas é manual: usuário usa o botão "Gerar" na
+        // tabela "Fixações Realizadas" da aba Financeiro.
       } else {
         toast({ title: "Erro", description: result.mensagem, variant: "destructive" });
       }
@@ -2660,12 +2650,97 @@ export default function ContratosPage() {
                             </Button>
                           )}
                           <p className="text-xs text-muted-foreground italic">
-                            ℹ️ Para contratos A Fixar, as duplicatas são geradas automaticamente ao registrar cada fixação de preço (uma duplicata por fixação, status ABERTO).
+                            ℹ️ Para contratos A Fixar, gere as duplicatas a partir da tabela "Fixações Realizadas" abaixo (uma duplicata por fixação).
                           </p>
                         </div>
                       </CardContent>
                     </Card>
                   )}
+
+                  {/* Fixações Realizadas — A_FIXAR */}
+                  {editingContrato.tipoPreco === "A_FIXAR" && fixacoes.length > 0 && (() => {
+                    const temRomaneios = romaneiosContrato.some((r) => r.status === "FINALIZADO");
+                    const motivoBloqueio = !temRomaneios ? "Nenhum romaneio finalizado" : "";
+                    const ctrSimbolo = getSimboloMoeda(editingContrato.moedaId);
+                    return (
+                      <Card>
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-sm">📌 Fixações Realizadas</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="overflow-auto">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Data</TableHead>
+                                  <TableHead className="text-right">Quantidade</TableHead>
+                                  <TableHead className="text-right">Preço/UN</TableHead>
+                                  <TableHead className="text-right">Valor Total</TableHead>
+                                  <TableHead>Status</TableHead>
+                                  {!viewOnly && <TableHead className="text-right">Ação</TableHead>}
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {fixacoes.map((f) => {
+                                  const valorTotalFix = f.quantidadeFixada * f.precoFixado;
+                                  const jaGerou = !!f.contasGeradas;
+                                  const desabilitado = jaGerou || !temRomaneios;
+                                  const tooltipTxt = jaGerou ? "Contas já geradas para esta fixação" : motivoBloqueio;
+                                  return (
+                                    <TableRow key={f.id}>
+                                      <TableCell>{formatDateBR(f.dataFixacao)}</TableCell>
+                                      <TableCell className="text-right">{f.quantidadeFixada.toLocaleString("pt-BR")}</TableCell>
+                                      <TableCell className="text-right">{ctrSimbolo} {f.precoFixado.toFixed(2)}</TableCell>
+                                      <TableCell className="text-right font-medium">{formatMoeda(valorTotalFix, ctrSimbolo)}</TableCell>
+                                      <TableCell>
+                                        {jaGerou ? (
+                                          <Badge variant="outline" className="text-primary border-primary/40">CONTAS GERADAS</Badge>
+                                        ) : (
+                                          <Badge variant="secondary">FIXADO</Badge>
+                                        )}
+                                      </TableCell>
+                                      {!viewOnly && (
+                                        <TableCell className="text-right">
+                                          <TooltipProvider>
+                                            <Tooltip>
+                                              <TooltipTrigger asChild>
+                                                <span className="inline-block">
+                                                  <Button
+                                                    size="sm"
+                                                    variant={desabilitado ? "outline" : "default"}
+                                                    disabled={desabilitado}
+                                                    onClick={() => {
+                                                      setFixacaoParaDuplicata(f);
+                                                      setGcNumParcelas("1");
+                                                      setGcFrequencia("MENSAL");
+                                                      setGcDiasPersonalizado("30");
+                                                      setGcDataPrimeiraParcela(new Date().toISOString().slice(0, 10));
+                                                      setGcParcelasEditaveis([]);
+                                                      setGcParcelasGeradas(false);
+                                                      setGerarContasOpen(true);
+                                                    }}
+                                                  >
+                                                    {jaGerou ? "Geradas" : "Gerar"}
+                                                  </Button>
+                                                </span>
+                                              </TooltipTrigger>
+                                              {tooltipTxt && (
+                                                <TooltipContent>{tooltipTxt}</TooltipContent>
+                                              )}
+                                            </Tooltip>
+                                          </TooltipProvider>
+                                        </TableCell>
+                                      )}
+                                    </TableRow>
+                                  );
+                                })}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })()}
 
                   {/* Botão para FIXO - Gerar Duplicatas de Previsão */}
                   {editingContrato.tipoPreco === "FIXO" && !editingContrato.duplicatasGeradas && !viewOnly && (
@@ -3986,6 +4061,7 @@ export default function ContratosPage() {
               setAutoGerarDuplicatasContrato(null);
               setFixacaoParaDuplicata(null);
               loadContratos();
+              if (editingContrato) await loadSubEntities(editingContrato.id);
             } catch (err: any) {
               toast({ title: err.message || "Erro ao gerar contas", variant: "destructive" });
             } finally { setGcSaving(false); }

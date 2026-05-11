@@ -1843,6 +1843,7 @@ export const contratoFixacaoService = {
       precoFixado: data.precoFixado ?? 0,
       moedaId: data.moedaId ?? "moeda1",
       observacoes: data.observacoes ?? "",
+      contasGeradas: false,
       criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
       deletadoEm: null, deletadoPor: null,
     };
@@ -2455,6 +2456,11 @@ export const financeiroContaService = {
       contrato.atualizadoEm = now;
       contrato.atualizadoPor = "u1";
 
+      if (fixacaoIdAtual) {
+        const fix = mockContratoFixacoes.find((f) => f.id === fixacaoIdAtual && f.deletadoEm === null);
+        if (fix) { fix.contasGeradas = true; fix.atualizadoEm = now; fix.atualizadoPor = "u1"; }
+      }
+
       return { conta: contaExistente, parcelas: novasParcelas };
     }
 
@@ -2508,7 +2514,12 @@ export const financeiroContaService = {
     contrato.duplicatasGeradas = true;
     contrato.atualizadoEm = now;
     contrato.atualizadoPor = "u1";
-    
+
+    if (options?.fixacaoId) {
+      const fix = mockContratoFixacoes.find((f) => f.id === options.fixacaoId && f.deletadoEm === null);
+      if (fix) { fix.contasGeradas = true; fix.atualizadoEm = now; fix.atualizadoPor = "u1"; }
+    }
+
     return { conta, parcelas: novasParcelas };
   },
 };

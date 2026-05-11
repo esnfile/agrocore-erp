@@ -1615,6 +1615,7 @@ export interface ContratoFixacao {
   precoFixado: number;
   moedaId: string;
   observacoes: string;
+  contasGeradas?: boolean;
   criadoEm: string;
   criadoPor: string;
   atualizadoEm: string;
