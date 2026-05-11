@@ -929,18 +929,8 @@ export default function ContratosPage() {
         toast({ title: "Sucesso", description: result.mensagem });
         setFixacaoModalOpen(false);
         await loadSubEntities(editingContrato.id);
-        // Após nova fixação (não edição), abrir modal de duplicatas com valor pré-calculado
-        if (!editingFixacao && result.fixacao) {
-          setFixacaoParaDuplicata(result.fixacao);
-          setAutoGerarDuplicatasContrato(editingContrato);
-          setGcNumParcelas("1");
-          setGcFrequencia("MENSAL");
-          setGcDiasPersonalizado("30");
-          setGcDataPrimeiraParcela(new Date().toISOString().slice(0, 10));
-          setGcParcelasEditaveis([]);
-          setGcParcelasGeradas(false);
-          setGerarContasOpen(true);
-        }
+        // Geração de duplicatas é manual: usuário usa o botão "Gerar" na
+        // tabela "Fixações Realizadas" da aba Financeiro.
       } else {
         toast({ title: "Erro", description: result.mensagem, variant: "destructive" });
       }
