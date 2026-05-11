@@ -2818,8 +2818,8 @@ export default function ContratosPage() {
                         </div>
                       </div>
                     </>
-                  ) : (
-                    /* Se NÃO tem duplicatas previstas → gerar contas definitivas */
+                  ) : editingContrato.tipoPreco === "FIXO" ? (
+                    /* FIXO sem duplicatas previstas → gerar contas definitivas */
                     <div className="rounded-md border p-6 text-center space-y-4">
                       <p className="text-sm text-muted-foreground">
                         O contrato está finalizado. Gere as contas a pagar/receber para iniciar o controle financeiro.
@@ -2835,6 +2835,21 @@ export default function ContratosPage() {
                       }}>
                         Gerar Contas a {editingContrato.tipoContrato === "COMPRA" ? "Pagar" : "Receber"}
                       </Button>
+                    </div>
+                  ) : (
+                    /* A_FIXAR sem fixações → orientar a fixar primeiro */
+                    <div className="rounded-md border border-dashed p-6 text-center space-y-2">
+                      <p className="text-sm font-medium text-foreground">
+                        Nenhuma fixação registrada
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Para contratos A Fixar, é necessário registrar pelo menos uma fixação de preço antes de gerar contas a {editingContrato.tipoContrato === "COMPRA" ? "pagar" : "receber"}.
+                      </p>
+                      {!viewOnly && (
+                        <Button variant="outline" size="sm" onClick={() => { setActiveTab("fixacoes"); openNewFixacao(); }}>
+                          Ir para Fixação de Preço
+                        </Button>
+                      )}
                     </div>
                   )}
                 </div>
