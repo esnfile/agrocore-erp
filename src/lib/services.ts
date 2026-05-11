@@ -2456,6 +2456,11 @@ export const financeiroContaService = {
       contrato.atualizadoEm = now;
       contrato.atualizadoPor = "u1";
 
+      if (fixacaoIdAtual) {
+        const fix = mockContratoFixacoes.find((f) => f.id === fixacaoIdAtual && f.deletadoEm === null);
+        if (fix) { fix.contasGeradas = true; fix.atualizadoEm = now; fix.atualizadoPor = "u1"; }
+      }
+
       return { conta: contaExistente, parcelas: novasParcelas };
     }
 
