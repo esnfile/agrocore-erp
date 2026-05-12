@@ -2458,6 +2458,10 @@ export default function ContratosPage() {
                 </div>
               )}
               <div className="overflow-auto">
+                {(() => {
+                  const temRomFinal = romaneiosContrato.some((r) => r.status === "FINALIZADO");
+                  const motivoBloqueio = !temRomFinal ? "Finalize ao menos um romaneio para gerar contas" : "";
+                  return (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -2465,6 +2469,7 @@ export default function ContratosPage() {
                       <TableHead className="text-right">Volume Fixado</TableHead>
                       <TableHead className="text-right">Preço Unitário</TableHead>
                       <TableHead className="text-right">Valor Total</TableHead>
+                      <TableHead>Financeiro</TableHead>
                       <TableHead>Observações</TableHead>
                       {!viewOnly && <TableHead className="text-right">Ações</TableHead>}
                     </TableRow>
@@ -2472,7 +2477,7 @@ export default function ContratosPage() {
                   <TableBody>
                     {fixacoes.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={viewOnly ? 5 : 6} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={viewOnly ? 6 : 7} className="text-center py-8 text-muted-foreground">
                           Nenhuma fixação registrada.
                           {saldoAFixar > 0 && (
                             <>
@@ -2483,7 +2488,11 @@ export default function ContratosPage() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      fixacoes.map((f) => (
+                      fixacoes.map((f) => {
+                        const jaGerou = !!f.contasGeradas;
+                        const desabilitado = jaGerou || !temRomFinal;
+                        const tooltipTxt = jaGerou ? "Contas já geradas para esta fixação" : motivoBloqueio;
+                        return (
                         <TableRow key={f.id}>
                           <TableCell>{format(new Date(f.dataFixacao), "dd/MM/yyyy HH:mm")}</TableCell>
                           <TableCell className="text-right">
@@ -2495,26 +2504,63 @@ export default function ContratosPage() {
                           <TableCell className="text-right font-medium">
                             {formatCurrency(f.quantidadeFixada * f.precoFixado, getCodigoMoeda(f.moedaId))}
                           </TableCell>
+                          <TableCell>
+                            {jaGerou ? (
+                              <Badge variant="outline" className="text-primary border-primary/40">CONTAS GERADAS</Badge>
+                            ) : (
+                              <Badge variant="secondary">PENDENTE</Badge>
+                            )}
+                          </TableCell>
                           <TableCell className="text-muted-foreground text-xs max-w-[150px] truncate">
                             {f.observacoes || "—"}
                           </TableCell>
                           {!viewOnly && (
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-1">
-                                <Button variant="ghost" size="icon" onClick={() => openEditFixacao(f)}>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="inline-block">
+                                        <Button
+                                          variant={desabilitado ? "ghost" : "default"}
+                                          size="sm"
+                                          disabled={desabilitado}
+                                          onClick={() => {
+                                            setFixacaoParaDuplicata(f);
+                                            setGcNumParcelas("1");
+                                            setGcFrequencia("MENSAL");
+                                            setGcDiasPersonalizado("30");
+                                            setGcDataPrimeiraParcela(new Date().toISOString().slice(0, 10));
+                                            setGcParcelasEditaveis([]);
+                                            setGcParcelasGeradas(false);
+                                            setGerarContasOpen(true);
+                                          }}
+                                        >
+                                          <DollarSign className="h-4 w-4 mr-1" />
+                                          {jaGerou ? "Geradas" : "Gerar Contas"}
+                                        </Button>
+                                      </span>
+                                    </TooltipTrigger>
+                                    {tooltipTxt && <TooltipContent>{tooltipTxt}</TooltipContent>}
+                                  </Tooltip>
+                                </TooltipProvider>
+                                <Button variant="ghost" size="icon" onClick={() => openEditFixacao(f)} disabled={jaGerou} title={jaGerou ? "Fixação com contas geradas — não editável" : "Editar"}>
                                   <Pencil className="h-4 w-4" />
                                 </Button>
-                                <Button variant="ghost" size="icon" onClick={() => onDeleteFixacao(f.id)}>
+                                <Button variant="ghost" size="icon" onClick={() => onDeleteFixacao(f.id)} disabled={jaGerou} title={jaGerou ? "Fixação com contas geradas — não excluível" : "Excluir"}>
                                   <Trash2 className="h-4 w-4 text-destructive" />
                                 </Button>
                               </div>
                             </TableCell>
                           )}
                         </TableRow>
-                      ))
+                        );
+                      })
                     )}
                   </TableBody>
                 </Table>
+                  );
+                })()}
               </div>
             </div>
           </TabsContent>
