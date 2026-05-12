@@ -2839,7 +2839,7 @@ export default function ContratosPage() {
               {editingContrato && editingContrato.status === "FINALIZADO" && (
                 <div className="space-y-4">
                   {/* Se tem duplicatas PREVISTO → oferecer efetivação */}
-                  {editingContrato.duplicatasGeradas && finParcelas.some(p => p.status === "PREVISTO" || p.status === "PENDENTE") ? (
+                  {editingContrato.duplicatasGeradas && editingContrato.tipoPreco !== "A_FIXAR" && finParcelas.some(p => p.status === "PREVISTO" || p.status === "PENDENTE") ? (
                     <>
                       <div className="flex justify-end">
                         <Button variant="secondary" onClick={() => {
