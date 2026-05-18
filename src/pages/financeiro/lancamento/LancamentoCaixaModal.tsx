@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { CrudModal } from "@/components/CrudModal";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
@@ -37,14 +36,12 @@ export function LancamentoCaixaModal({
   const [state, setState] = useState<LancamentoFormState>(() =>
     initialFormState(empresaAtual?.id ?? "", filialAtual?.id ?? "")
   );
-  const [accordionValue, setAccordionValue] = useState<string[]>(["dados"]);
   const [saving, setSaving] = useState(false);
   const [formasPagto, setFormasPagto] = useState<FinanceiroFormaPagto[]>([]);
 
   useEffect(() => {
     if (open) {
       setState(initialFormState(empresaAtual?.id ?? "", filialAtual?.id ?? ""));
-      setAccordionValue(["dados"]);
       financeiroFormaPagtoService.listar(empresaAtual?.id ?? "", filialAtual?.id ?? "").then(setFormasPagto);
     }
   }, [open, empresaAtual, filialAtual]);
@@ -52,13 +49,6 @@ export function LancamentoCaixaModal({
   const update = (patch: Partial<LancamentoFormState>) => setState((s) => ({ ...s, ...patch }));
 
   const tipoSel = tiposLancamento.find((t) => t.id === state.tipoLancamentoId);
-
-  // Auto-open detalhes ao selecionar tipo
-  useEffect(() => {
-    if (tipoSel && !accordionValue.includes("detalhes")) {
-      setAccordionValue((v) => [...v, "detalhes"]);
-    }
-  }, [tipoSel?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const totalFormas = useMemo(() => sumFormas(state.formas), [state.formas]);
 
@@ -145,52 +135,35 @@ export function LancamentoCaixaModal({
   const valorEsperado = tipoSel?.categoria === "PROLABORE" ? state.valorDetalhe : undefined;
 
   return (
-    <CrudModal open={open} onClose={onClose} title="Novo Lançamento de Caixa" saving={saving} onSave={handleSave} maxWidth="sm:max-w-3xl">
-      <Accordion type="multiple" value={accordionValue} onValueChange={(v) => setAccordionValue(v as string[])}>
-        <AccordionItem value="dados">
-          <AccordionTrigger>Dados Base</AccordionTrigger>
-          <AccordionContent>
-            <DadosBaseSection
-              state={state}
-              update={update}
-              empresas={empresas}
-              filiais={filiais}
-              contasFinanceiras={contasFinanceiras}
-              tiposLancamento={tiposLancamento}
-            />
-          </AccordionContent>
-        </AccordionItem>
+    <CrudModal open={open} onClose={onClose} title="Novo Lançamento de Caixa" saving={saving} onSave={handleSave} maxWidth="sm:max-w-5xl">
+      <div className="space-y-5">
+        <DadosBaseSection
+          state={state}
+          update={update}
+          empresas={empresas}
+          filiais={filiais}
+          contasFinanceiras={contasFinanceiras}
+          tiposLancamento={tiposLancamento}
+        />
 
-        {tipoSel && (
-          <AccordionItem value="detalhes">
-            <AccordionTrigger>Detalhes {tipoSel ? `— ${tipoSel.descricao}` : ""}</AccordionTrigger>
-            <AccordionContent>{renderDetalhes()}</AccordionContent>
-          </AccordionItem>
-        )}
+        <div className="border-t" />
+        {renderDetalhes()}
 
-        <AccordionItem value="formas">
-          <AccordionTrigger>Formas de Pagamento</AccordionTrigger>
-          <AccordionContent>
-            <FormasPagamentoSection state={state} update={update} valorEsperado={valorEsperado} />
-          </AccordionContent>
-        </AccordionItem>
+        <div className="border-t" />
+        <FormasPagamentoSection state={state} update={update} valorEsperado={valorEsperado} />
 
-        <AccordionItem value="historico">
-          <AccordionTrigger>Histórico</AccordionTrigger>
-          <AccordionContent>
-            <div className="space-y-1.5">
-              <Label>Histórico</Label>
-              <Textarea
-                rows={3}
-                maxLength={500}
-                value={state.historico}
-                onChange={(e) => update({ historico: e.target.value })}
-              />
-              <p className="text-xs text-muted-foreground text-right">{state.historico.length}/500</p>
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
+        <div className="border-t" />
+        <div className="space-y-1.5">
+          <Label>Histórico</Label>
+          <Textarea
+            rows={3}
+            maxLength={500}
+            value={state.historico}
+            onChange={(e) => update({ historico: e.target.value })}
+          />
+          <p className="text-xs text-muted-foreground text-right">{state.historico.length}/500</p>
+        </div>
+      </div>
     </CrudModal>
   );
 }
