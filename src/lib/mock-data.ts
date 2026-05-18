@@ -3217,6 +3217,21 @@ export const financeiroFormasPagto: FinanceiroFormaPagto[] = [
     deletadoEm: null,
     deletadoPor: null,
   },
+  {
+    id: "ffp10",
+    grupoId: "g1",
+    empresaId: null,
+    filialId: null,
+    descricao: "Adiantamento",
+    tipo: "DINHEIRO",
+    ativo: true,
+    criadoEm: "2025-01-01T08:00:00Z",
+    criadoPor: "u1",
+    atualizadoEm: "2025-01-01T08:00:00Z",
+    atualizadoPor: "u1",
+    deletadoEm: null,
+    deletadoPor: null,
+  },
 ];
 
 // ---- Plano de Contas ----
