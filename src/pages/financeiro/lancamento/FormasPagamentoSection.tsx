@@ -26,7 +26,7 @@ export function FormasPagamentoSection({ state, update, valorEsperado }: Props) 
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {field("Dinheiro", "dinheiro")}
         {field("Cheque", "cheque")}
         {field("Cartão", "cartao")}
