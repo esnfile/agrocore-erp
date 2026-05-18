@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { CrudModal } from "@/components/CrudModal";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
