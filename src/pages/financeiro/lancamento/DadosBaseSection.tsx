@@ -26,7 +26,7 @@ export function DadosBaseSection({ state, update, empresas, filiais, contasFinan
         <Select value={state.empresaId} onValueChange={(v) => update({ empresaId: v })}>
           <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
           <SelectContent>
-            {empresas.map((e) => <SelectItem key={e.id} value={e.id}>{e.nomeRazao}</SelectItem>)}
+            {empresas.map((e) => <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
