@@ -339,7 +339,7 @@ export const pessoas: Pessoa[] = [
     filialId: "f1",
     tipoPessoa: "PF",
     grupoPessoaId: "gp1",
-    relacaoComercial: ["Produtor", "Cliente"],
+    relacaoComercial: ["Produtor", "Cliente", "Sócio"],
     nomeRazao: "Carlos Eduardo Mendes",
     dataNascimentoAbertura: "1985-06-15",
     cpfCnpj: "456.789.123-00",
@@ -2838,6 +2838,19 @@ export const financeiroContasFinanceiras: FinanceiroContaFinanceira[] = [
 // ---- Tipo de Lançamento ----
 export type TipoMovimentoFinanceiro = "ENTRADA" | "SAIDA" | "TRANSFERENCIA";
 
+export type CategoriaTipoLancamento =
+  | "PROLABORE"
+  | "REC_DUPLICATA"
+  | "PAG_DUPLICATA"
+  | "ADIANT_FORNECEDOR"
+  | "ADIANT_CLIENTE"
+  | "FUNCIONARIO"
+  | "DEPOSITO_DINHEIRO"
+  | "DEPOSITO_CHEQUE"
+  | "TRANSFERENCIA"
+  | "GERAL"
+  | "AUTOMATICO";
+
 export interface FinanceiroTipoLancamento {
   id: string;
   grupoId: string;
@@ -2846,10 +2859,13 @@ export interface FinanceiroTipoLancamento {
   descricao: string;
   tipoMovimento: TipoMovimentoFinanceiro;
   tipoConta: string[];
+  categoria: CategoriaTipoLancamento;
   origemSistema: boolean;
   permiteEdicao: boolean;
   permiteExclusao: boolean;
   exigeCentroCusto: boolean;
+  exigePlanoContas: boolean;
+  apareceNaPesquisa: boolean;
   ativo: boolean;
   criadoEm: string;
   criadoPor: string;
@@ -2872,6 +2888,9 @@ export const financeiroTiposLancamento: FinanceiroTipoLancamento[] = [
     permiteEdicao: false,
     permiteExclusao: false,
     exigeCentroCusto: false,
+    categoria: "AUTOMATICO",
+    exigePlanoContas: false,
+    apareceNaPesquisa: false,
     ativo: true,
     criadoEm: "2025-01-01T08:00:00Z",
     criadoPor: "u1",
@@ -2892,6 +2911,9 @@ export const financeiroTiposLancamento: FinanceiroTipoLancamento[] = [
     permiteEdicao: false,
     permiteExclusao: false,
     exigeCentroCusto: false,
+    categoria: "AUTOMATICO",
+    exigePlanoContas: false,
+    apareceNaPesquisa: false,
     ativo: true,
     criadoEm: "2025-01-01T08:00:00Z",
     criadoPor: "u1",
@@ -2912,6 +2934,9 @@ export const financeiroTiposLancamento: FinanceiroTipoLancamento[] = [
     permiteEdicao: false,
     permiteExclusao: false,
     exigeCentroCusto: false,
+    categoria: "TRANSFERENCIA",
+    exigePlanoContas: false,
+    apareceNaPesquisa: true,
     ativo: true,
     criadoEm: "2025-01-01T08:00:00Z",
     criadoPor: "u1",
@@ -2932,6 +2957,9 @@ export const financeiroTiposLancamento: FinanceiroTipoLancamento[] = [
     permiteEdicao: true,
     permiteExclusao: true,
     exigeCentroCusto: false,
+    categoria: "ADIANT_CLIENTE",
+    exigePlanoContas: false,
+    apareceNaPesquisa: true,
     ativo: true,
     criadoEm: "2025-01-01T08:00:00Z",
     criadoPor: "u1",
@@ -2952,6 +2980,9 @@ export const financeiroTiposLancamento: FinanceiroTipoLancamento[] = [
     permiteEdicao: true,
     permiteExclusao: true,
     exigeCentroCusto: false,
+    categoria: "ADIANT_FORNECEDOR",
+    exigePlanoContas: false,
+    apareceNaPesquisa: true,
     ativo: true,
     criadoEm: "2025-01-01T08:00:00Z",
     criadoPor: "u1",
@@ -2972,6 +3003,9 @@ export const financeiroTiposLancamento: FinanceiroTipoLancamento[] = [
     permiteEdicao: true,
     permiteExclusao: true,
     exigeCentroCusto: true,
+    categoria: "GERAL",
+    exigePlanoContas: true,
+    apareceNaPesquisa: true,
     ativo: true,
     criadoEm: "2025-01-01T08:00:00Z",
     criadoPor: "u1",
@@ -2992,6 +3026,32 @@ export const financeiroTiposLancamento: FinanceiroTipoLancamento[] = [
     permiteEdicao: true,
     permiteExclusao: true,
     exigeCentroCusto: true,
+    categoria: "GERAL",
+    exigePlanoContas: true,
+    apareceNaPesquisa: true,
+    ativo: true,
+    criadoEm: "2025-01-01T08:00:00Z",
+    criadoPor: "u1",
+    atualizadoEm: "2025-01-01T08:00:00Z",
+    atualizadoPor: "u1",
+    deletadoEm: null,
+    deletadoPor: null,
+  },
+  {
+    id: "ftl8",
+    grupoId: "g1",
+    empresaId: null,
+    filialId: null,
+    descricao: "PROLABORE",
+    tipoMovimento: "SAIDA",
+    tipoConta: ["CAIXA", "BANCO"],
+    categoria: "PROLABORE",
+    origemSistema: false,
+    permiteEdicao: true,
+    permiteExclusao: true,
+    exigeCentroCusto: false,
+    exigePlanoContas: false,
+    apareceNaPesquisa: true,
     ativo: true,
     criadoEm: "2025-01-01T08:00:00Z",
     criadoPor: "u1",
@@ -3149,6 +3209,21 @@ export const financeiroFormasPagto: FinanceiroFormaPagto[] = [
     filialId: null,
     descricao: "Cartão Crédito",
     tipo: "ELETRONICO",
+    ativo: true,
+    criadoEm: "2025-01-01T08:00:00Z",
+    criadoPor: "u1",
+    atualizadoEm: "2025-01-01T08:00:00Z",
+    atualizadoPor: "u1",
+    deletadoEm: null,
+    deletadoPor: null,
+  },
+  {
+    id: "ffp10",
+    grupoId: "g1",
+    empresaId: null,
+    filialId: null,
+    descricao: "Adiantamento",
+    tipo: "DINHEIRO",
     ativo: true,
     criadoEm: "2025-01-01T08:00:00Z",
     criadoPor: "u1",
