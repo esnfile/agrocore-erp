@@ -339,7 +339,7 @@ export const pessoas: Pessoa[] = [
     filialId: "f1",
     tipoPessoa: "PF",
     grupoPessoaId: "gp1",
-    relacaoComercial: ["Produtor", "Cliente"],
+    relacaoComercial: ["Produtor", "Cliente", "Sócio"],
     nomeRazao: "Carlos Eduardo Mendes",
     dataNascimentoAbertura: "1985-06-15",
     cpfCnpj: "456.789.123-00",
