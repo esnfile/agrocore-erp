@@ -95,7 +95,7 @@ export default function MovimentacoesPage() {
               const fp = m.formasPagamentoDetalhe;
               const isOpen = !!expanded[m.id];
               return (
-                <>
+                <Fragment key={m.id}>
                   <TableRow key={m.id} className="cursor-pointer" onClick={() => setExpanded((s) => ({ ...s, [m.id]: !s[m.id] }))}>
                     <TableCell>
                       {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
