@@ -124,7 +124,7 @@ export default function MovimentacoesPage() {
                       </TableCell>
                     </TableRow>
                   )}
-                </>
+                </Fragment>
               );
             })}
           </TableBody>
