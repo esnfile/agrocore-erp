@@ -13,7 +13,23 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Lock } from "lucide-react";
 import { financeiroTipoLancamentoService, financeiroTipoContaService } from "@/lib/services";
-import type { FinanceiroTipoLancamento, FinanceiroTipoConta, TipoMovimentoFinanceiro } from "@/lib/mock-data";
+import type { FinanceiroTipoLancamento, FinanceiroTipoConta, TipoMovimentoFinanceiro, CategoriaTipoLancamento } from "@/lib/mock-data";
+
+const CATEGORIAS: { value: CategoriaTipoLancamento; label: string }[] = [
+  { value: "PROLABORE", label: "Prolabore" },
+  { value: "REC_DUPLICATA", label: "Recebimento de Duplicatas" },
+  { value: "PAG_DUPLICATA", label: "Pagamento de Duplicatas" },
+  { value: "ADIANT_CLIENTE", label: "Adiantamento de Cliente" },
+  { value: "ADIANT_FORNECEDOR", label: "Adiantamento a Fornecedor" },
+  { value: "FUNCIONARIO", label: "Pagamento de Funcionários" },
+  { value: "DEPOSITO_DINHEIRO", label: "Saída para Depósito em Dinheiro" },
+  { value: "DEPOSITO_CHEQUE", label: "Saída para Depósito em Cheque" },
+  { value: "TRANSFERENCIA", label: "Transferência entre Contas" },
+  { value: "GERAL", label: "Geral" },
+  { value: "AUTOMATICO", label: "Automático (sistema)" },
+];
+
+const catLabel = (c: CategoriaTipoLancamento) => CATEGORIAS.find((x) => x.value === c)?.label ?? c;
 
 export default function TiposLancamentoPage() {
   const { grupoAtual, empresaAtual, filialAtual } = useOrganization();
@@ -33,7 +49,10 @@ export default function TiposLancamentoPage() {
   const [descricao, setDescricao] = useState("");
   const [tipoMovimento, setTipoMovimento] = useState<TipoMovimentoFinanceiro>("ENTRADA");
   const [tipoConta, setTipoConta] = useState<string[]>([]);
+  const [categoria, setCategoria] = useState<CategoriaTipoLancamento>("GERAL");
   const [exigeCentroCusto, setExigeCentroCusto] = useState(false);
+  const [exigePlanoContas, setExigePlanoContas] = useState(false);
+  const [apareceNaPesquisa, setApareceNaPesquisa] = useState(true);
   const [ativo, setAtivo] = useState(true);
 
   const carregar = useCallback(async () => {
@@ -49,14 +68,18 @@ export default function TiposLancamentoPage() {
   useEffect(() => { carregar(); }, [carregar]);
 
   const reset = () => {
-    setDescricao(""); setTipoMovimento("ENTRADA"); setTipoConta([]); setExigeCentroCusto(false); setAtivo(true); setEditId(null);
+    setDescricao(""); setTipoMovimento("ENTRADA"); setTipoConta([]);
+    setCategoria("GERAL"); setExigeCentroCusto(false); setExigePlanoContas(false);
+    setApareceNaPesquisa(true); setAtivo(true); setEditId(null);
   };
 
   const openNew = () => { reset(); setModalOpen(true); };
   const openEdit = (row: FinanceiroTipoLancamento) => {
     if (!row.permiteEdicao) { toast({ title: "Tipo de sistema não pode ser editado", variant: "destructive" }); return; }
     setEditId(row.id); setDescricao(row.descricao); setTipoMovimento(row.tipoMovimento);
-    setTipoConta(row.tipoConta); setExigeCentroCusto(row.exigeCentroCusto); setAtivo(row.ativo);
+    setTipoConta(row.tipoConta); setCategoria(row.categoria);
+    setExigeCentroCusto(row.exigeCentroCusto); setExigePlanoContas(row.exigePlanoContas);
+    setApareceNaPesquisa(row.apareceNaPesquisa); setAtivo(row.ativo);
     setModalOpen(true);
   };
 
@@ -69,7 +92,8 @@ export default function TiposLancamentoPage() {
     setSaving(true);
     try {
       await financeiroTipoLancamentoService.salvar({
-        id: editId ?? undefined, descricao, tipoMovimento, tipoConta, exigeCentroCusto, ativo,
+        id: editId ?? undefined, descricao, tipoMovimento, tipoConta, categoria,
+        exigeCentroCusto, exigePlanoContas, apareceNaPesquisa, ativo,
       }, { grupoId, empresaId, filialId });
       toast({ title: "Tipo de lançamento salvo" });
       setModalOpen(false); carregar();
@@ -101,24 +125,30 @@ export default function TiposLancamentoPage() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-24">ID</TableHead>
               <TableHead>Descrição</TableHead>
-              <TableHead className="w-32">Movimento</TableHead>
+              <TableHead className="w-40">Categoria</TableHead>
+              <TableHead className="w-32">Espécie</TableHead>
               <TableHead>Tipo Conta</TableHead>
               <TableHead className="w-24">Sistema</TableHead>
-              <TableHead className="w-28">Centro Custo</TableHead>
+              <TableHead className="w-28">C. Custo</TableHead>
+              <TableHead className="w-28">P. Contas</TableHead>
+              <TableHead className="w-24">Pesquisa</TableHead>
               <TableHead className="w-24">Status</TableHead>
               <TableHead className="w-28 text-center">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={11} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
             ) : data.map((t) => (
               <TableRow key={t.id}>
+                <TableCell className="font-mono text-xs text-muted-foreground">{t.id.slice(0, 8)}</TableCell>
                 <TableCell className="font-medium">
                   {t.origemSistema && <Lock className="inline h-3 w-3 mr-1 text-muted-foreground" />}
                   {t.descricao}
                 </TableCell>
+                <TableCell><Badge variant="outline">{catLabel(t.categoria)}</Badge></TableCell>
                 <TableCell><Badge variant="outline" className={movColors[t.tipoMovimento]}>{t.tipoMovimento}</Badge></TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-1">
@@ -127,6 +157,8 @@ export default function TiposLancamentoPage() {
                 </TableCell>
                 <TableCell>{t.origemSistema ? "Sim" : "Não"}</TableCell>
                 <TableCell>{t.exigeCentroCusto ? "Sim" : "Não"}</TableCell>
+                <TableCell>{t.exigePlanoContas ? "Sim" : "Não"}</TableCell>
+                <TableCell>{t.apareceNaPesquisa ? "Sim" : "Não"}</TableCell>
                 <TableCell><Badge variant={t.ativo ? "default" : "secondary"}>{t.ativo ? "Ativo" : "Inativo"}</Badge></TableCell>
                 <TableCell>
                   <div className="flex gap-1 justify-center">
@@ -146,16 +178,27 @@ export default function TiposLancamentoPage() {
             <Label>Descrição <span className="text-destructive">*</span></Label>
             <Input value={descricao} onChange={(e) => setDescricao(e.target.value)} />
           </div>
-          <div className="space-y-1.5">
-            <Label>Tipo de Movimento <span className="text-destructive">*</span></Label>
-            <Select value={tipoMovimento} onValueChange={(v) => setTipoMovimento(v as TipoMovimentoFinanceiro)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ENTRADA">Entrada</SelectItem>
-                <SelectItem value="SAIDA">Saída</SelectItem>
-                <SelectItem value="TRANSFERENCIA">Transferência</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label>Categoria <span className="text-destructive">*</span></Label>
+              <Select value={categoria} onValueChange={(v) => setCategoria(v as CategoriaTipoLancamento)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CATEGORIAS.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Espécie (Movimento) <span className="text-destructive">*</span></Label>
+              <Select value={tipoMovimento} onValueChange={(v) => setTipoMovimento(v as TipoMovimentoFinanceiro)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ENTRADA">Entrada</SelectItem>
+                  <SelectItem value="SAIDA">Saída</SelectItem>
+                  <SelectItem value="TRANSFERENCIA">Transferência</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <div className="space-y-1.5">
             <Label>Tipos de Conta (tags)</Label>
@@ -172,13 +215,23 @@ export default function TiposLancamentoPage() {
               ))}
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <Switch checked={exigeCentroCusto} onCheckedChange={setExigeCentroCusto} />
-            <Label>Exige Centro de Custo</Label>
-          </div>
-          <div className="flex items-center gap-3">
-            <Switch checked={ativo} onCheckedChange={setAtivo} />
-            <Label>Ativo</Label>
+          <div className="grid grid-cols-2 gap-4 pt-2">
+            <div className="flex items-center gap-3">
+              <Switch checked={exigeCentroCusto} onCheckedChange={setExigeCentroCusto} />
+              <Label>Exige Centro de Custo</Label>
+            </div>
+            <div className="flex items-center gap-3">
+              <Switch checked={exigePlanoContas} onCheckedChange={setExigePlanoContas} />
+              <Label>Exige Plano de Contas</Label>
+            </div>
+            <div className="flex items-center gap-3">
+              <Switch checked={apareceNaPesquisa} onCheckedChange={setApareceNaPesquisa} />
+              <Label>Aparece na Pesquisa</Label>
+            </div>
+            <div className="flex items-center gap-3">
+              <Switch checked={ativo} onCheckedChange={setAtivo} />
+              <Label>Ativo</Label>
+            </div>
           </div>
         </div>
       </CrudModal>
