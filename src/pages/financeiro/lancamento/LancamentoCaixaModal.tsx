@@ -77,40 +77,49 @@ export function LancamentoCaixaModal({
       setSaving(true);
       try {
         const numeroDocumento = `PRO-${Date.now()}`;
-        const mapping: [number, FinanceiroFormaPagto | undefined, string][] = [
+
+        // Forma de pagamento "dominante" para vincular ao registro único.
+        // Se houver mais de uma, prefere "Múltiplo" se existir; senão, a primeira não-zero.
+        const candidatos: [number, FinanceiroFormaPagto | undefined, string][] = [
           [state.formas.dinheiro, findForma("Dinheiro"), "Dinheiro"],
           [state.formas.cheque, findForma("Cheque"), "Cheque"],
           [state.formas.cartao, findForma("Cartão") ?? findForma("Cartao"), "Cartão"],
           [state.formas.adiantamento, findForma("Adiantamento"), "Adiantamento"],
         ];
-
-        for (const [valor, forma, label] of mapping) {
-          if (valor <= 0) continue;
-          if (!forma) {
-            toast({ title: `Forma de pagamento "${label}" não cadastrada`, variant: "destructive" });
-            setSaving(false); return;
-          }
-          const result = await financeiroMovimentacaoService.registrar({
-            contaFinanceiraId: state.contaFinanceiraId,
-            tipoLancamentoId: tipoSel.id,
-            formaPagamentoId: forma.id,
-            planoContaId: null,
-            centroCustoId: state.centroCustoId || null,
-            dataMovimento: state.dataMovimento,
-            valor,
-            numeroDocumento,
-            historico: state.historico || `Prolabore - ${label}`,
-            contaOrigemId: null,
-            contaDestinoId: null,
-            parcelaId: null,
-            pessoaId: state.socioId,
-          }, { grupoId: grupoAtual?.id ?? "", empresaId: state.empresaId, filialId: state.filialId });
-          if (!result.sucesso) {
-            toast({ title: "Erro", description: result.mensagem, variant: "destructive" });
-            setSaving(false); return;
-          }
+        const naoZero = candidatos.filter(([v]) => v > 0);
+        if (naoZero.length === 0) {
+          toast({ title: "Informe ao menos uma forma de pagamento", variant: "destructive" });
+          setSaving(false); return;
         }
-        toast({ title: "Prolabore lançado com sucesso" });
+        const formaDominante =
+          (naoZero.length > 1 ? findForma("Múltiplo") ?? findForma("Multiplo") : undefined)
+          ?? naoZero[0][1];
+        if (!formaDominante) {
+          toast({ title: `Forma de pagamento "${naoZero[0][2]}" não cadastrada`, variant: "destructive" });
+          setSaving(false); return;
+        }
+
+        const result = await financeiroMovimentacaoService.registrar({
+          contaFinanceiraId: state.contaFinanceiraId,
+          tipoLancamentoId: tipoSel.id,
+          formaPagamentoId: formaDominante.id,
+          planoContaId: null,
+          centroCustoId: state.centroCustoId || null,
+          dataMovimento: state.dataMovimento,
+          valor: state.valorDetalhe,
+          numeroDocumento,
+          historico: state.historico || "Prolabore",
+          contaOrigemId: null,
+          contaDestinoId: null,
+          parcelaId: null,
+          pessoaId: state.socioId,
+          formasPagamentoDetalhe: { ...state.formas },
+        }, { grupoId: grupoAtual?.id ?? "", empresaId: state.empresaId, filialId: state.filialId });
+        if (!result.sucesso) {
+          toast({ title: "Erro", description: result.mensagem, variant: "destructive" });
+          setSaving(false); return;
+        }
+        toast({ title: "Prolabore registrado com sucesso" });
         onSaved();
         onClose();
       } finally { setSaving(false); }

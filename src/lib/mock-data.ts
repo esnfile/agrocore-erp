@@ -3476,6 +3476,7 @@ export interface FinanceiroMovimentacao {
   contaDestinoId: string | null;
   parcelaId: string | null;
   pessoaId: string | null;
+  formasPagamentoDetalhe: { dinheiro: number; cheque: number; cartao: number; adiantamento: number } | null;
   criadoEm: string;
   criadoPor: string;
   atualizadoEm: string;

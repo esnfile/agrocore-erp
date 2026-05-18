@@ -2899,6 +2899,7 @@ export const financeiroMovimentacaoService = {
       contaDestinoId?: string | null;
       parcelaId?: string | null;
       pessoaId?: string | null;
+      formasPagamentoDetalhe?: { dinheiro: number; cheque: number; cartao: number; adiantamento: number } | null;
     },
     ctx: { grupoId: string; empresaId: string; filialId: string }
   ): Promise<{ sucesso: boolean; mensagem: string; movimentacao?: FinanceiroMovimentacao }> {
@@ -2953,6 +2954,7 @@ export const financeiroMovimentacaoService = {
       contaDestinoId: data.contaDestinoId ?? null,
       parcelaId: data.parcelaId ?? null,
       pessoaId: data.pessoaId ?? null,
+      formasPagamentoDetalhe: data.formasPagamentoDetalhe ?? null,
       criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
       deletadoEm: null, deletadoPor: null,
     };
