@@ -2838,6 +2838,19 @@ export const financeiroContasFinanceiras: FinanceiroContaFinanceira[] = [
 // ---- Tipo de Lançamento ----
 export type TipoMovimentoFinanceiro = "ENTRADA" | "SAIDA" | "TRANSFERENCIA";
 
+export type CategoriaTipoLancamento =
+  | "PROLABORE"
+  | "REC_DUPLICATA"
+  | "PAG_DUPLICATA"
+  | "ADIANT_FORNECEDOR"
+  | "ADIANT_CLIENTE"
+  | "FUNCIONARIO"
+  | "DEPOSITO_DINHEIRO"
+  | "DEPOSITO_CHEQUE"
+  | "TRANSFERENCIA"
+  | "GERAL"
+  | "AUTOMATICO";
+
 export interface FinanceiroTipoLancamento {
   id: string;
   grupoId: string;
@@ -2846,10 +2859,13 @@ export interface FinanceiroTipoLancamento {
   descricao: string;
   tipoMovimento: TipoMovimentoFinanceiro;
   tipoConta: string[];
+  categoria: CategoriaTipoLancamento;
   origemSistema: boolean;
   permiteEdicao: boolean;
   permiteExclusao: boolean;
   exigeCentroCusto: boolean;
+  exigePlanoContas: boolean;
+  apareceNaPesquisa: boolean;
   ativo: boolean;
   criadoEm: string;
   criadoPor: string;
