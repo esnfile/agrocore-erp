@@ -36,14 +36,12 @@ export function LancamentoCaixaModal({
   const [state, setState] = useState<LancamentoFormState>(() =>
     initialFormState(empresaAtual?.id ?? "", filialAtual?.id ?? "")
   );
-  const [accordionValue, setAccordionValue] = useState<string[]>(["dados"]);
   const [saving, setSaving] = useState(false);
   const [formasPagto, setFormasPagto] = useState<FinanceiroFormaPagto[]>([]);
 
   useEffect(() => {
     if (open) {
       setState(initialFormState(empresaAtual?.id ?? "", filialAtual?.id ?? ""));
-      setAccordionValue(["dados"]);
       financeiroFormaPagtoService.listar(empresaAtual?.id ?? "", filialAtual?.id ?? "").then(setFormasPagto);
     }
   }, [open, empresaAtual, filialAtual]);
@@ -51,13 +49,6 @@ export function LancamentoCaixaModal({
   const update = (patch: Partial<LancamentoFormState>) => setState((s) => ({ ...s, ...patch }));
 
   const tipoSel = tiposLancamento.find((t) => t.id === state.tipoLancamentoId);
-
-  // Auto-open detalhes ao selecionar tipo
-  useEffect(() => {
-    if (tipoSel && !accordionValue.includes("detalhes")) {
-      setAccordionValue((v) => [...v, "detalhes"]);
-    }
-  }, [tipoSel?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const totalFormas = useMemo(() => sumFormas(state.formas), [state.formas]);
 
