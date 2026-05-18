@@ -2810,7 +2810,10 @@ export const financeiroTipoLancamentoService = {
       existing.descricao = (data.descricao ?? existing.descricao).trim();
       existing.tipoMovimento = data.tipoMovimento ?? existing.tipoMovimento;
       existing.tipoConta = data.tipoConta ?? existing.tipoConta;
+      existing.categoria = data.categoria ?? existing.categoria;
       existing.exigeCentroCusto = data.exigeCentroCusto ?? existing.exigeCentroCusto;
+      existing.exigePlanoContas = data.exigePlanoContas ?? existing.exigePlanoContas;
+      existing.apareceNaPesquisa = data.apareceNaPesquisa ?? existing.apareceNaPesquisa;
       existing.ativo = data.ativo ?? existing.ativo;
       existing.atualizadoEm = now;
       existing.atualizadoPor = "u1";
@@ -2822,10 +2825,13 @@ export const financeiroTipoLancamentoService = {
       descricao: (data.descricao ?? "").trim(),
       tipoMovimento: data.tipoMovimento ?? "ENTRADA",
       tipoConta: data.tipoConta ?? [],
+      categoria: data.categoria ?? "GERAL",
       origemSistema: false,
       permiteEdicao: true,
       permiteExclusao: true,
       exigeCentroCusto: data.exigeCentroCusto ?? false,
+      exigePlanoContas: data.exigePlanoContas ?? false,
+      apareceNaPesquisa: data.apareceNaPesquisa ?? true,
       ativo: data.ativo ?? true,
       criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
       deletadoEm: null, deletadoPor: null,
