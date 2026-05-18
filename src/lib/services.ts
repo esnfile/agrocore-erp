@@ -2954,6 +2954,7 @@ export const financeiroMovimentacaoService = {
       contaDestinoId: data.contaDestinoId ?? null,
       parcelaId: data.parcelaId ?? null,
       pessoaId: data.pessoaId ?? null,
+      formasPagamentoDetalhe: data.formasPagamentoDetalhe ?? null,
       criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
       deletadoEm: null, deletadoPor: null,
     };
