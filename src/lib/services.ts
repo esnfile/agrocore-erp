@@ -51,6 +51,7 @@ import {
   financeiroCentrosCusto as mockFinanceiroCentrosCusto,
   financeiroMovimentacoes as mockFinanceiroMovimentacoes,
   financeiroAdiantamentos as mockFinanceiroAdiantamentos,
+  adiantamentoSolicitacoes as mockAdiantamentoSolicitacoes,
   movimentacoesAjusteParcela as mockMovAjusteParcela,
   mockParametros,
 } from "./mock-data";
@@ -71,7 +72,8 @@ import type {
   FinanceiroBanco, FinanceiroTipoConta, FinanceiroContaFinanceira, FinanceiroTipoLancamento,
   FinanceiroFormaPagto, TipoFormaPagamento, FinanceiroPlanoConta, TipoPlanoConta,
   FinanceiroCentroCusto, FinanceiroMovimentacao, TipoMovimentoFinanceiro,
-  FinanceiroAdiantamento, StatusAdiantamento,
+  FinanceiroAdiantamento, StatusAdiantamento, TipoBeneficiarioAdiantamento,
+  AdiantamentoSolicitacao, StatusSolicitacaoAdiantamento,
   MovimentacaoAjusteParcela, TipoMovimentacaoAjuste,
 } from "./mock-data";
 
