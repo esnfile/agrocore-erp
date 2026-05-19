@@ -4065,6 +4065,7 @@ export const contratoLiquidacaoService = {
           id: `adt${Date.now()}`,
           grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
           pessoaId: contrato.pessoaId,
+          tipoBeneficiario: "CLIENTE",
           contratoId: contrato.id,
           movimentacaoFinanceiraId: "", // sem movimento de caixa imediato
           dataAdiantamento: now.slice(0, 10),
