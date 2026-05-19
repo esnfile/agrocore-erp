@@ -43,6 +43,7 @@ import PlanoContasPage from "@/pages/financeiro/PlanoContasPage";
 import CentrosCustoPage from "@/pages/financeiro/CentrosCustoPage";
 import MovimentacoesPage from "@/pages/financeiro/MovimentacoesPage";
 import AdiantamentosPage from "@/pages/financeiro/AdiantamentosPage";
+import SolicitacoesAdiantamentoPage from "@/pages/financeiro/adiantamentos/SolicitacoesPage";
 import RomaneiosPage from "@/pages/romaneios/RomaneiosPage";
 import RomaneioFormPage from "@/pages/romaneios/RomaneioFormPage";
 import MotoristasPage from "@/pages/romaneios/MotoristasPage";
@@ -95,6 +96,7 @@ const App = () => (
               <Route path="/financeiro/centros-custo" element={<CentrosCustoPage />} />
               <Route path="/financeiro/movimentacoes" element={<MovimentacoesPage />} />
               <Route path="/financeiro/adiantamentos" element={<AdiantamentosPage />} />
+              <Route path="/financeiro/adiantamentos/solicitacoes" element={<SolicitacoesAdiantamentoPage />} />
               {/* Romaneios */}
               <Route path="/romaneios" element={<RomaneiosPage />} />
               <Route path="/romaneios/novo" element={<RomaneioFormPage />} />

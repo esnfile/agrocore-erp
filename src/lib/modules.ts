@@ -228,7 +228,8 @@ export const modules: Module[] = [
     items: [
       { title: "Contas", url: "/financeiro/contas", icon: FileText },
       { title: "Caixa e Bancos", url: "/financeiro/movimentacoes", icon: DollarSign },
-      { title: "Adiantamentos", url: "/financeiro/adiantamentos", icon: ArrowDownCircle },
+      { title: "Adiantamentos (Saldos)", url: "/financeiro/adiantamentos", icon: ArrowDownCircle },
+      { title: "Solicitações de Adiantamento", url: "/financeiro/adiantamentos/solicitacoes", icon: ArrowUpCircle },
       {
         title: "Tabelas",
         icon: Layers,
