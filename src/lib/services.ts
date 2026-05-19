@@ -3047,6 +3047,84 @@ export const financeiroAdiantamentoService = {
 };
 
 // ============================================================
+// Adiantamento — Solicitações (somente Fornecedor)
+// ============================================================
+export const adiantamentoSolicitacaoService = {
+  async listar(empresaId: string, filialId: string): Promise<AdiantamentoSolicitacao[]> {
+    await delay();
+    return mockAdiantamentoSolicitacoes
+      .filter((s) => s.deletadoEm === null && s.empresaId === empresaId && s.filialId === filialId)
+      .sort((a, b) => b.dataSolicitacao.localeCompare(a.dataSolicitacao));
+  },
+  async listarAprovadosPorPessoa(pessoaId: string): Promise<AdiantamentoSolicitacao[]> {
+    await delay(100);
+    return mockAdiantamentoSolicitacoes.filter(
+      (s) => s.deletadoEm === null && s.pessoaId === pessoaId && s.status === "APROVADO"
+    );
+  },
+  async criar(
+    data: { pessoaId: string; valor: number; observacoes: string },
+    ctx: { grupoId: string; empresaId: string; filialId: string; usuarioId: string }
+  ): Promise<{ sucesso: boolean; mensagem: string; solicitacao?: AdiantamentoSolicitacao }> {
+    await delay(200);
+    if (!data.pessoaId) return { sucesso: false, mensagem: "Informe o fornecedor." };
+    if (!data.valor || data.valor <= 0) return { sucesso: false, mensagem: "Valor deve ser maior que zero." };
+    const now = new Date().toISOString();
+    const sol: AdiantamentoSolicitacao = {
+      id: `sol${Date.now()}`,
+      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      pessoaId: data.pessoaId,
+      valor: data.valor,
+      status: "SOLICITADO",
+      dataSolicitacao: now.slice(0, 10),
+      dataAprovacao: null,
+      observacoes: data.observacoes ?? "",
+      usuarioCriacaoId: ctx.usuarioId,
+      usuarioAprovacaoId: null,
+      movimentacaoFinanceiraId: null,
+      adiantamentoId: null,
+      criadoEm: now, criadoPor: ctx.usuarioId,
+      atualizadoEm: now, atualizadoPor: ctx.usuarioId,
+      deletadoEm: null, deletadoPor: null,
+    };
+    mockAdiantamentoSolicitacoes.push(sol);
+    return { sucesso: true, mensagem: "Solicitação criada.", solicitacao: sol };
+  },
+  async _transicao(
+    id: string,
+    permitidos: StatusSolicitacaoAdiantamento[],
+    novoStatus: StatusSolicitacaoAdiantamento,
+    usuarioId: string,
+    setAprovacao = false
+  ): Promise<{ sucesso: boolean; mensagem: string }> {
+    await delay(150);
+    const sol = mockAdiantamentoSolicitacoes.find((s) => s.id === id && s.deletadoEm === null);
+    if (!sol) return { sucesso: false, mensagem: "Solicitação não encontrada." };
+    if (!permitidos.includes(sol.status)) {
+      return { sucesso: false, mensagem: `Solicitação com status ${sol.status} não permite essa ação.` };
+    }
+    const now = new Date().toISOString();
+    sol.status = novoStatus;
+    sol.atualizadoEm = now;
+    sol.atualizadoPor = usuarioId;
+    if (setAprovacao) {
+      sol.dataAprovacao = now.slice(0, 10);
+      sol.usuarioAprovacaoId = usuarioId;
+    }
+    return { sucesso: true, mensagem: "OK" };
+  },
+  aprovar(id: string, usuarioId = "u1") {
+    return this._transicao(id, ["SOLICITADO"], "APROVADO", usuarioId, true);
+  },
+  rejeitar(id: string, usuarioId = "u1") {
+    return this._transicao(id, ["SOLICITADO"], "REJEITADO", usuarioId);
+  },
+  cancelar(id: string, usuarioId = "u1") {
+    return this._transicao(id, ["SOLICITADO", "APROVADO"], "CANCELADO", usuarioId);
+  },
+};
+
+// ============================================================
 // Motoristas
 // ============================================================
 import {
