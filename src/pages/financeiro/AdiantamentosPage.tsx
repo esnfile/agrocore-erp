@@ -40,32 +40,40 @@ export default function AdiantamentosPage() {
 
   return (
     <div>
-      <PageHeader title="Adiantamentos" description="Adiantamentos de produtores/fornecedores (gerados automaticamente via movimentação)" />
+      <PageHeader title="Adiantamentos" description="Saldos de adiantamentos (Cliente e Fornecedor) — gerados pelo Caixa ou por liquidação de contrato" />
       <div className="rounded-md border bg-card">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Pessoa</TableHead>
+              <TableHead className="w-28">Tipo</TableHead>
               <TableHead className="w-28">Data</TableHead>
               <TableHead className="w-36 text-right">Valor</TableHead>
               <TableHead className="w-36 text-right">Utilizado</TableHead>
               <TableHead className="w-36 text-right">Restante</TableHead>
               <TableHead className="w-28">Status</TableHead>
+              <TableHead className="w-32">Origem</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
             ) : data.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhum adiantamento registrado</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhum adiantamento registrado</TableCell></TableRow>
             ) : data.map((a) => (
               <TableRow key={a.id}>
                 <TableCell className="font-medium">{getNome(a.pessoaId)}</TableCell>
+                <TableCell>
+                  <Badge variant="outline" className={a.tipoBeneficiario === "CLIENTE" ? "border-success/40 text-success" : "border-blue-400 text-blue-600"}>
+                    {a.tipoBeneficiario}
+                  </Badge>
+                </TableCell>
                 <TableCell>{new Date(a.dataAdiantamento).toLocaleDateString("pt-BR")}</TableCell>
                 <TableCell className="text-right font-mono">{fmt(a.valorAdiantamento)}</TableCell>
                 <TableCell className="text-right font-mono">{fmt(a.saldoUtilizado)}</TableCell>
                 <TableCell className="text-right font-mono">{fmt(a.saldoRestante)}</TableCell>
                 <TableCell><Badge variant="outline" className={statusColors[a.status]}>{a.status}</Badge></TableCell>
+                <TableCell className="text-xs text-muted-foreground">{a.origemTipo ?? "—"}</TableCell>
               </TableRow>
             ))}
           </TableBody>

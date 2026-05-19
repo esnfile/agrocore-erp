@@ -1,144 +1,128 @@
-## Objetivo
+# Adiantamentos — Fornecedor e Cliente
 
-Refatorar a tela de Caixa e Bancos para um modelo de **lançamento por tipo** com layout em accordions, começando pelo tipo **PROLABORE** (mais simples). Também estender a entidade `FinanceiroTipoLancamento` com os novos atributos de comportamento e ajustar a tela de Tipos de Lançamento.
+## Visão geral
 
-A estrutura ficará pronta para receber os próximos tipos (Recebimento de Duplicatas, Pagamento de Duplicatas, Adiantamentos, Funcionários, Depósitos, Transferências, Geral) em iterações seguintes, sem retrabalho.
+Já existe no projeto a entidade `FinanceiroAdiantamento` (saldo liberado, com `valorAdiantamento`, `saldoUtilizado`, `saldoRestante`, status `ABERTO/PARCIAL/LIQUIDADO/CANCELADO`, `origemTipo`). Ela corresponde 1‑para‑1 às tabelas `pessoa_adiantamento_cliente` / `pessoa_adiantamento_fornecedor` do prompt — não precisamos duplicar. O que falta é:
 
----
+1. Uma entidade nova **`AdiantamentoSolicitacao`** com fluxo de aprovação (somente Fornecedor).
+2. Distinguir Cliente x Fornecedor no `FinanceiroAdiantamento` existente.
+3. Duas novas seções de detalhe no Caixa (`DetalhesAdiantFornecedor`, `DetalhesAdiantCliente`) + dois novos tipos de lançamento.
+4. Uma tela `AdiantamentosSolicitacoesPage` (somente Fornecedor) e reaproveitar a `AdiantamentosPage` atual como tela de saldos.
+5. Modal de autorização por senha para Adiantamento de Cliente.
 
-## 1. Extensão dos Tipos de Lançamento
-
-### 1.1 Modelo (`mock-data.ts` → `FinanceiroTipoLancamento`)
-
-Adicionar campos:
-
-- `categoria: 'PROLABORE' | 'REC_DUPLICATA' | 'PAG_DUPLICATA' | 'ADIANT_FORNECEDOR' | 'ADIANT_CLIENTE' | 'FUNCIONARIO' | 'DEPOSITO_DINHEIRO' | 'DEPOSITO_CHEQUE' | 'TRANSFERENCIA' | 'GERAL' | 'AUTOMATICO'` — chave que liga o tipo ao bloco de "Detalhes" correto.
-- `exigePlanoContas: boolean`
-- `apareceNaPesquisa: boolean` — tipos automáticos (ex: "Entrada por Depósito") ficam ocultos no select da tela de lançamento.
-
-Seeds atuais (BAIXA CONTA RECEBER, BAIXA CONTA PAGAR, TRANSFERENCIA, etc.) recebem `categoria` correspondente (`AUTOMATICO` para os que já são gerados pelo sistema), `apareceNaPesquisa=false` quando aplicável.
-
-Novo seed obrigatório: **PROLABORE** (`tipoMovimento: SAIDA`, `tipoConta: ['CAIXA','BANCO']`, `exigeCentroCusto: false`, `exigePlanoContas: false`, `apareceNaPesquisa: true`).
-
-### 1.2 Tela `TiposLancamentoPage`
-
-Adicionar no grid e no modal:
-
-- Coluna/campo **Categoria** (Select com as opções acima).
-- Switch **Exige Plano de Contas**.
-- Switch **Aparece na Pesquisa** (default `true`).
-- Coluna **ID** visível na listagem (curta, primeiros 8 chars).
-- Coluna **Espécie** já existe (Movimento) — manter.
+Vou dividir em **3 fases** entregáveis isoladamente para reduzir risco de regressão.
 
 ---
 
-## 2. Pessoa marcada como Sócio
+## Fase 1 — Modelo de dados e serviços (sem UI nova)
 
-Hoje `Pessoa.relacaoComercial: string[]` aceita rótulos livres. Padronizar a string **"Sócio"** como valor canônico. O dropdown de Sócio na tela de Prolabore filtra `pessoas.filter(p => p.relacaoComercial.includes("Sócio"))`. Adicionar ao menos 1 pessoa seed com "Sócio" para testes.
+### `src/lib/mock-data.ts`
+- Adicionar campo `tipoBeneficiario: "CLIENTE" | "FORNECEDOR"` em `FinanceiroAdiantamento` (default `"FORNECEDOR"` para os já gerados por liquidação de contrato — eles são crédito do cliente comprador, então na verdade são `"CLIENTE"`; revisar o ponto único em `services.ts` que gera adiantamento via liquidação e setar `"CLIENTE"`).
+- Adicionar `OrigemAdiantamento`: `"SOLICITACAO_FORNECEDOR" | "CAIXA_CLIENTE"` (sem quebrar os existentes).
+- Adicionar campo `solicitacaoId: string | null` em `FinanceiroAdiantamento`.
+- Nova interface e array:
+  ```ts
+  type StatusSolicitacaoAdiantamento = "SOLICITADO" | "APROVADO" | "LIBERADO" | "REJEITADO" | "CANCELADO";
+  interface AdiantamentoSolicitacao {
+    id; grupoId; empresaId; filialId;
+    pessoaId;                       // fornecedor
+    valor; status;
+    dataSolicitacao; dataAprovacao: string | null;
+    observacoes: string;
+    movimentacaoFinanceiraId: string | null;  // preenchido ao liberar no caixa
+    adiantamentoId: string | null;            // FK para o saldo gerado
+    // auditoria padrão
+  }
+  const adiantamentoSolicitacoes: AdiantamentoSolicitacao[] = [/* 2 seeds */];
+  ```
 
-Nenhuma mudança estrutural no schema de Pessoa.
+### `src/lib/services.ts`
+- Novo `adiantamentoSolicitacaoService` com:
+  - `listar(empresaId, filialId, filtros?)`
+  - `listarAprovadosPorPessoa(pessoaId)` — usado pelo dropdown no Caixa.
+  - `criar({ pessoaId, valor, observacoes })` → status `SOLICITADO`.
+  - `aprovar(id)` / `rejeitar(id)` / `cancelar(id)` — só transita se status permitir.
+  - `marcarLiberada(id, movimentacaoId, adiantamentoId)` — usado pelo serviço de caixa.
+- Extender `financeiroMovimentacaoService.registrar` para tratar duas novas categorias (ver Fase 2). A criação do `FinanceiroAdiantamento` (saldo) deve acontecer **dentro** desse serviço, em transação lógica única com o lançamento de caixa, para não deixar saldo órfão.
 
----
-
-## 3. Refatoração da Tela de Movimentações (Caixa e Bancos)
-
-Substituir o modal único atual por um layout em **accordions** dentro do mesmo `CrudModal` (mantendo a listagem da página principal como está).
-
-### 3.1 Estrutura visual (Accordion shadcn)
-
-```
-[ DADOS BASE ]              (default open, sempre visível)
-  - Empresa  (Dropdown, do contexto - podendo ser alterada, no futuro vamos atrelar a permissão do usuario, mas por enquanto vamos permitir apenas para prototipo)
-  - Filial   (Dropdown, do contexto - podendo ser alterada, no futuro vamos atrelar a permissão do usuario, mas por enquanto vamos permitir apenas para prototipo)
-  - Conta Financeira (Select)
-  - Data do Lançamento (DatePicker — não permite futura)
-  - Tipo de Lançamento (Select com busca; só lista tipos com apareceNaPesquisa=true)
-
-[ DETALHES ]                (dinâmico — aparece ao escolher Tipo, conteúdo varia por categoria)
-  PROLABORE:
-    - Sócio (Select, obrigatório)
-    - Valor (numérico > 0)
-    - Centro de Custo (Select; obrigatório apenas se tipo.exigeCentroCusto)
-
-[ FORMAS DE PAGAMENTO ]     (sempre visível para tipos não-automáticos)
-  - Dinheiro / Cheque / Cartão / Adiantamento (numéricos)
-  - TOTAL (read-only, soma em tempo real)
-  - Alerta inline quando TOTAL ≠ Valor dos Detalhes
-
-[ HISTÓRICO ]               (sempre visível)
-  - Textarea (máx 500)
-```
-
-Auto-comportamento:
-
-- Ao selecionar Tipo, abrir automaticamente o accordion DETALHES.
-- DETALHES renderiza um componente filho por categoria (`<DetalhesProlabore />`); demais categorias ficarão como placeholder "Em breve" para iterações futuras.
-
-### 3.2 Validações (Prolabore)
-
-- Sócio obrigatório.
-- Valor > 0, 2 casas decimais.
-- TOTAL das formas de pagamento = Valor do Prolabore (bloqueia Salvar; mostra alerta destacando diferença).
-- Data ≤ hoje.
-
-### 3.3 Persistência
-
-Reaproveita `financeiroMovimentacaoService.registrar` já existente, com:
-
-- `tipoLancamentoId` = id do Prolabore selecionado
-- `pessoaId` = sócio
-- `valor` = soma das formas
-- `historico`, `centroCustoId` conforme preenchido
-
-Como as 4 formas de pagamento podem coexistir, criar **uma movimentação por forma de pagamento com valor > 0**, todas amarradas por um mesmo `numeroDocumento` (timestamp/UUID curto) para agrupamento futuro. Alternativa simples para esta primeira fatia: 1 única movimentação com `formaPagamentoId` da forma de maior valor + campo `historico` detalhando o split. **Decisão recomendada:** múltiplas movimentações (uma por forma) para refletir o caixa real.
-
-### 3.4 Organização de arquivos
-
-```
-src/pages/financeiro/
-  MovimentacoesPage.tsx                 (lista + abre modal)
-  lancamento/
-    LancamentoCaixaModal.tsx            (orquestra accordions + estado comum)
-    DadosBaseSection.tsx
-    DetalhesProlabore.tsx
-    FormasPagamentoSection.tsx
-    HistoricoSection.tsx
-    types.ts                            (FormState, helpers)
-```
-
-Estrutura modular já preparada para os próximos `DetalhesRecebimentoDup.tsx`, `DetalhesDeposito.tsx`, etc.
+### Tipos de lançamento (seed)
+- Adicionar em `mock-data.ts` (seed de `financeiroTiposLancamento`) dois registros novos:
+  - `ADIANTAMENTO A FORNECEDOR` — categoria `ADIANT_FORNECEDOR`, `tipoMovimento: "SAIDA"`, `apareceNaPesquisa: true`.
+  - `ADIANTAMENTO DE CLIENTE` — categoria `ADIANT_CLIENTE`, `tipoMovimento: "ENTRADA"`, `apareceNaPesquisa: true`.
+- Ambas as categorias já existem no enum `CategoriaTipoLancamento`.
 
 ---
 
-## 4. Memória do projeto
+## Fase 2 — Integração no LancamentoCaixaModal
 
-Atualizar `mem://features/` com novo arquivo `lancamento-caixa.md` documentando:
+### Novos componentes
+- `src/pages/financeiro/lancamento/DetalhesAdiantFornecedor.tsx`
+  - Dropdown **Fornecedor** (filtra `pessoas` com `relacaoComercial` contendo `"Fornecedor"`).
+  - Dropdown **Solicitação aprovada** (chama `adiantamentoSolicitacaoService.listarAprovadosPorPessoa(fornecedorId)`; formato `"R$ X — dd/mm/aaaa — obs"`).
+  - **Valor** (numérico, pré‑preenchido pelo selecionado, editável; valida `0 < valor ≤ valorSolicitacao` — parcial permitida).
+  - **Centro de custo** opcional.
+- `src/pages/financeiro/lancamento/DetalhesAdiantCliente.tsx`
+  - Dropdown **Cliente** (filtra `relacaoComercial` contendo `"Cliente"`).
+  - **Valor** (numérico > 0).
+  - **Centro de custo** opcional.
+  - **Referência/Motivo** (Textarea obrigatória, máx 500 chars).
 
-- Categorias de tipo de lançamento e o que cada uma exibe
-- Regra `apareceNaPesquisa` (tipos AUTOMATICO ocultos)
-- Regra TOTAL formas = Valor detalhes
-- Convenção: sócios = `relacaoComercial` contém "Sócio"
+### `LancamentoCaixaModal.tsx`
+- Acrescentar `solicitacaoAdiantamentoId` no `LancamentoFormState`/`types.ts`.
+- No `renderDetalhes()`: switch por categoria (`PROLABORE` ✓, `ADIANT_FORNECEDOR`, `ADIANT_CLIENTE`).
+- Em `handleSave()`:
+  - **Fornecedor**: valida fornecedor + solicitação + valor ≤ valor solicitação; TOTAL formas = valor; `tipoMovimento` é `SAIDA`. Chama `financeiroMovimentacaoService.registrar(..., { tipoBeneficiario:"FORNECEDOR", solicitacaoId })`; o service cria a movimentação, cria `FinanceiroAdiantamento` saldo `ABERTO` linkando à solicitação, e marca solicitação `LIBERADO`.
+  - **Cliente**: valida cliente + valor > 0 + referência preenchida; TOTAL formas = valor; `tipoMovimento` é `ENTRADA`. Antes de chamar o service, dispara fluxo de autorização (abaixo). Service cria movimentação + `FinanceiroAdiantamento` `tipoBeneficiario:"CLIENTE"`, sem solicitação.
+- `valorEsperado` deve ser preenchido nas duas novas categorias.
 
-Atualizar `mem://index.md` referenciando o novo arquivo.
+### Modal de autorização (Cliente)
+- `src/pages/financeiro/lancamento/AutorizacaoSupervisorModal.tsx`.
+- Como ainda não há controle de permissão real, usaremos um flag estático: `const REQUER_AUTORIZACAO_ADIANT_CLIENTE = true;` em `constants.ts`. Senha mock: `"admin123"`.
+- Fluxo: ao clicar Salvar em ADIANT_CLIENTE, se flag ligada → abre modal pedindo senha; só prossegue se senha correta. Erro vermelho inline para senha inválida.
+- Quando houver módulo de permissões, substituir o flag pela checagem `usuario.nivel >= SUPERVISAO` (TODO documentado no código).
 
 ---
 
-## Detalhes técnicos
+## Fase 3 — Telas
 
-- **Componentes**: `Accordion` shadcn (já em `components/ui/accordion.tsx`), `Popover + Calendar` para DatePicker (com `pointer-events-auto`).
-- **Estado**: um único objeto `FormState` no modal pai, passado por props para cada seção.
-- **Soma reativa**: `useMemo` somando as 4 formas.
-- **Tipos**: novos campos do `FinanceiroTipoLancamento` opcionais nos seeds antigos via migração simples no array (default `apareceNaPesquisa=true`, `categoria='GERAL'` para os não classificados).
-- Mantida arquitetura: nenhuma regra de negócio nova fora do que já é mock; backend .NET 8 fará a real persistência futuramente.
+### `src/pages/financeiro/adiantamentos/SolicitacoesPage.tsx` (nova)
+Rota: `/financeiro/adiantamentos/solicitacoes`, item de menu novo em "Financeiro".
+
+- Tabela com colunas: Pessoa | Valor | Status | Data Solicitação | Data Aprovação | Observações | Ações.
+- Filtros: Pessoa, Status, Período.
+- Botão **[+ Nova Solicitação]** abre modal com: Pessoa (fornecedor), Valor, Observações. Tipo é fixo Fornecedor (Cliente não tem solicitação por design).
+- Ações condicionais por status:
+  - `SOLICITADO` → [Aprovar] [Rejeitar] [Cancelar]
+  - `APROVADO` → [Cancelar] (e badge "Aguardando liberação no caixa")
+  - `LIBERADO` → somente [Ver Detalhes] com link para a movimentação
+  - `REJEITADO`/`CANCELADO` → somente leitura
+- Cada ação chama o service e usa `StatusBadge` global (memória do projeto manda).
+
+### `AdiantamentosPage.tsx` (existente — pequenos ajustes)
+- Continua como **listagem de saldos** (`FinanceiroAdiantamento`).
+- Adicionar coluna **Tipo** (CLIENTE/FORNECEDOR) e filtro por tipo.
+- Mostrar `solicitacaoId` (link) e `origemTipo` para rastreabilidade.
+
+### Menu (`src/lib/modules.ts` ou onde está o sidebar)
+- Adicionar item "Solicitações de Adiantamento" abaixo de "Adiantamentos" no grupo Financeiro.
 
 ---
 
-## Entregáveis desta iteração
+## Pontos de atenção / decisões tomadas
 
-1. Modelo + seeds + tela de Tipos de Lançamento atualizados.
-2. Tela de Caixa e Bancos refatorada com accordions.
-3. Fluxo PROLABORE completo (criar, validar, salvar, refletir na listagem).
-4. Placeholder "Em desenvolvimento" para as demais categorias (mantendo a estrutura).
-5. Memória de projeto atualizada.
+- **Reaproveitamento da entidade de saldo**: usamos `FinanceiroAdiantamento` já existente para os dois lados (Cliente/Fornecedor) via novo campo `tipoBeneficiario`. Evita duas tabelas quase idênticas e mantém compatibilidade com o fluxo de liquidação de contrato já implementado.
+- **Atomicidade**: criação do saldo + lançamento + atualização da solicitação ficam dentro de `financeiroMovimentacaoService.registrar`, espelhando o padrão de "transação lógica" usado em liquidação de contrato (memória `contratos.md`).
+- **Adiantamento de Cliente sem solicitação**: confirmado pelo prompt — a auditoria fica em `historico` + campo "Referência/Motivo" obrigatório.
+- **Permissão de supervisor**: flag estático + senha mock `"admin123"`, com TODO claro para troca quando o módulo de permissões existir.
+- **Forma de pagamento "Adiantamento"** dentro do Caixa: continua sendo o campo numérico já existente em `FormasPagamentoSection` (usado em outros tipos para *abater* de saldo). Não conflita: aqui ele é apenas mais uma forma compondo o TOTAL.
+- **Validação TOTAL = Valor**: já existe para PROLABORE; replicar para as duas novas categorias.
+- **Sem mexer em StatusBadge específico**, usar o global (regra do projeto).
+- **Memória**: ao final, atualizar `mem://features/adiantamentos.md` e `mem://features/lancamento-caixa.md` com as novas categorias e o fluxo de solicitação.
 
-Próximas iterações (fora do escopo agora): Recebimento de Duplicatas → Saída para Depósito → Pagamento de Funcionários → demais.
+## Ordem de implementação sugerida
+1. Fase 1 inteira (tipos + service + seeds) — sem efeito visível, mas testável via console.
+2. Fase 3 tela de Solicitações — permite criar/aprovar antes de integrar Caixa.
+3. Fase 2 integração Caixa (Fornecedor primeiro, depois Cliente + modal de autorização).
+4. Ajustes finais em `AdiantamentosPage` (coluna Tipo, filtros) e memória.
+
+Posso começar pela Fase 1 assim que aprovar — ou se preferir entregar tudo de uma vez, sigo as 3 fases em sequência sem pausa.

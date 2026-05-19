@@ -31,3 +31,8 @@ export const ESTADOS_BRASILEIROS = [
   { sigla: "SP" },
   { sigla: "TO" },
 ] as const;
+
+// Adiantamento de Cliente exige autorização de supervisor (mock).
+// TODO: substituir por verificação de permissão real quando o módulo de Usuários/Permissões existir.
+export const REQUER_AUTORIZACAO_ADIANT_CLIENTE = true;
+export const SENHA_SUPERVISOR_MOCK = "admin123";
