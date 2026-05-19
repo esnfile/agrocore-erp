@@ -2902,19 +2902,18 @@ export const financeiroMovimentacaoService = {
       parcelaId?: string | null;
       pessoaId?: string | null;
       formasPagamentoDetalhe?: { dinheiro: number; cheque: number; cartao: number; adiantamento: number } | null;
+      solicitacaoAdiantamentoId?: string | null;
     },
     ctx: { grupoId: string; empresaId: string; filialId: string }
-  ): Promise<{ sucesso: boolean; mensagem: string; movimentacao?: FinanceiroMovimentacao }> {
+  ): Promise<{ sucesso: boolean; mensagem: string; movimentacao?: FinanceiroMovimentacao; adiantamento?: FinanceiroAdiantamento }> {
     await delay(400);
     const now = new Date().toISOString();
 
-    // Get tipo lancamento
     const tipoLanc = mockFinanceiroTiposLancamento.find((t) => t.id === data.tipoLancamentoId && t.deletadoEm === null);
     if (!tipoLanc) return { sucesso: false, mensagem: "Tipo de lançamento não encontrado." };
 
     const tipoMovimento = tipoLanc.tipoMovimento;
 
-    // Handle transfer
     if (tipoMovimento === "TRANSFERENCIA") {
       if (!data.contaOrigemId || !data.contaDestinoId) return { sucesso: false, mensagem: "Informe conta origem e destino." };
       const contaOrigem = mockFinanceiroContasFinanceiras.find((c) => c.id === data.contaOrigemId && c.deletadoEm === null);
@@ -2926,7 +2925,6 @@ export const financeiroMovimentacaoService = {
       contaOrigem.saldoAtual -= data.valor;
       contaDestino.saldoAtual += data.valor;
     } else {
-      // ENTRADA or SAIDA
       const contaFin = mockFinanceiroContasFinanceiras.find((c) => c.id === data.contaFinanceiraId && c.deletadoEm === null);
       if (!contaFin) return { sucesso: false, mensagem: "Conta financeira não encontrada." };
       if (tipoMovimento === "ENTRADA") {
@@ -2962,15 +2960,11 @@ export const financeiroMovimentacaoService = {
     };
     mockFinanceiroMovimentacoes.push(mov);
 
-    // If baixa conta pagar/receber — update parcela
     if (data.parcelaId) {
       const parcela = mockFinanceiroParcelas.find((p) => p.id === data.parcelaId && p.deletadoEm === null);
       if (parcela) {
         if (parcela.status === "PREVISTO") {
-          return {
-            sucesso: false,
-            mensagem: "Duplicata em status de previsão não pode ser baixada. Aguarde a efetivação do contrato.",
-          };
+          return { sucesso: false, mensagem: "Duplicata em status de previsão não pode ser baixada. Aguarde a efetivação do contrato." };
         }
         if (parcela.status === "CANCELADA") {
           return { sucesso: false, mensagem: "Parcela cancelada não pode receber baixa." };
@@ -2984,12 +2978,22 @@ export const financeiroMovimentacaoService = {
       }
     }
 
-    // If adiantamento a fornecedor
-    if (tipoLanc.descricao === "ADIANTAMENTO A FORNECEDOR" && data.pessoaId) {
-      const adiant: FinanceiroAdiantamento = {
+    // Gera saldo de Adiantamento (Cliente ou Fornecedor) atomicamente com o lançamento.
+    let adiantamentoCriado: FinanceiroAdiantamento | undefined;
+    if (
+      (tipoLanc.categoria === "ADIANT_FORNECEDOR" || tipoLanc.categoria === "ADIANT_CLIENTE")
+      && data.pessoaId
+    ) {
+      const tipoBenef: TipoBeneficiarioAdiantamento =
+        tipoLanc.categoria === "ADIANT_FORNECEDOR" ? "FORNECEDOR" : "CLIENTE";
+      const origem: "SOLICITACAO_FORNECEDOR" | "CAIXA_CLIENTE" =
+        tipoBenef === "FORNECEDOR" ? "SOLICITACAO_FORNECEDOR" : "CAIXA_CLIENTE";
+
+      adiantamentoCriado = {
         id: `fad${Date.now()}`,
         grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
         pessoaId: data.pessoaId,
+        tipoBeneficiario: tipoBenef,
         contratoId: null,
         movimentacaoFinanceiraId: mov.id,
         dataAdiantamento: data.dataMovimento,
@@ -2997,13 +3001,34 @@ export const financeiroMovimentacaoService = {
         saldoUtilizado: 0,
         saldoRestante: data.valor,
         status: "ABERTO",
+        origemTipo: origem,
+        solicitacaoId: data.solicitacaoAdiantamentoId ?? null,
+        observacao: data.historico || null,
         criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
         deletadoEm: null, deletadoPor: null,
       };
-      mockFinanceiroAdiantamentos.push(adiant);
+      mockFinanceiroAdiantamentos.push(adiantamentoCriado);
+
+      if (data.solicitacaoAdiantamentoId) {
+        const sol = mockAdiantamentoSolicitacoes.find(
+          (s) => s.id === data.solicitacaoAdiantamentoId && s.deletadoEm === null
+        );
+        if (sol) {
+          sol.status = "LIBERADO";
+          sol.movimentacaoFinanceiraId = mov.id;
+          sol.adiantamentoId = adiantamentoCriado.id;
+          sol.atualizadoEm = now;
+          sol.atualizadoPor = "u1";
+        }
+      }
     }
 
-    return { sucesso: true, mensagem: "Movimentação registrada com sucesso.", movimentacao: mov };
+    return {
+      sucesso: true,
+      mensagem: "Movimentação registrada com sucesso.",
+      movimentacao: mov,
+      adiantamento: adiantamentoCriado,
+    };
   },
 };
 
