@@ -1,6 +1,6 @@
 ---
 name: Lançamento de Caixa
-description: Tela multi-tipo de movimentação de caixa/bancos com accordions (Dados Base, Detalhes dinâmico, Formas de Pagamento, Histórico). Cada tipo de lançamento tem uma categoria que dispara o bloco de detalhes correspondente.
+description: Tela multi-tipo de movimentação. Categorias implementadas: PROLABORE, ADIANT_FORNECEDOR, ADIANT_CLIENTE. Cada categoria tem componente Detalhes* próprio. Saldos de adiantamento gerados ATOMICAMENTE pelo service.
 type: feature
 ---
 
