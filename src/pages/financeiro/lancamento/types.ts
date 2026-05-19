@@ -15,7 +15,10 @@ export interface LancamentoFormState {
   dataMovimento: string;
   tipoLancamentoId: string;
   // Detalhes (varia por categoria)
-  socioId: string;
+  socioId: string;          // Prolabore
+  pessoaId: string;         // Fornecedor / Cliente (adiantamento)
+  solicitacaoAdiantamentoId: string; // Fornecedor: solicitação aprovada selecionada
+  referenciaMotivo: string; // Cliente: motivo obrigatório
   valorDetalhe: number;
   centroCustoId: string;
   // Formas de pagamento
@@ -31,6 +34,9 @@ export const initialFormState = (empresaId: string, filialId: string): Lancament
   dataMovimento: new Date().toISOString().slice(0, 10),
   tipoLancamentoId: "",
   socioId: "",
+  pessoaId: "",
+  solicitacaoAdiantamentoId: "",
+  referenciaMotivo: "",
   valorDetalhe: 0,
   centroCustoId: "",
   formas: { dinheiro: 0, cheque: 0, cartao: 0, adiantamento: 0 },
@@ -40,4 +46,8 @@ export const initialFormState = (empresaId: string, filialId: string): Lancament
 export const sumFormas = (f: FormasPagamentoState) =>
   (f.dinheiro || 0) + (f.cheque || 0) + (f.cartao || 0) + (f.adiantamento || 0);
 
-export const categoriasImplementadas: CategoriaTipoLancamento[] = ["PROLABORE"];
+export const categoriasImplementadas: CategoriaTipoLancamento[] = [
+  "PROLABORE",
+  "ADIANT_FORNECEDOR",
+  "ADIANT_CLIENTE",
+];
