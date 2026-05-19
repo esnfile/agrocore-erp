@@ -3489,7 +3489,13 @@ export const financeiroMovimentacoes: FinanceiroMovimentacao[] = [];
 
 // ---- Adiantamento ----
 export type StatusAdiantamento = "ABERTO" | "PARCIAL" | "LIQUIDADO" | "CANCELADO";
-export type OrigemAdiantamento = "MANUAL" | "LIQUIDACAO_CONTRATO" | "DEVOLUCAO";
+export type OrigemAdiantamento =
+  | "MANUAL"
+  | "LIQUIDACAO_CONTRATO"
+  | "DEVOLUCAO"
+  | "SOLICITACAO_FORNECEDOR"
+  | "CAIXA_CLIENTE";
+export type TipoBeneficiarioAdiantamento = "CLIENTE" | "FORNECEDOR";
 
 export interface FinanceiroAdiantamento {
   id: string;
@@ -3497,6 +3503,7 @@ export interface FinanceiroAdiantamento {
   empresaId: string;
   filialId: string;
   pessoaId: string;
+  tipoBeneficiario: TipoBeneficiarioAdiantamento;
   contratoId: string | null;
   movimentacaoFinanceiraId: string;
   dataAdiantamento: string;
@@ -3508,6 +3515,7 @@ export interface FinanceiroAdiantamento {
   origemTipo?: OrigemAdiantamento;
   liquidacaoOrigemId?: string | null;
   contaOrigemId?: string | null;
+  solicitacaoId?: string | null;
   observacao?: string | null;
   criadoEm: string;
   criadoPor: string;
@@ -3518,6 +3526,78 @@ export interface FinanceiroAdiantamento {
 }
 
 export const financeiroAdiantamentos: FinanceiroAdiantamento[] = [];
+
+// ---- Solicitação de Adiantamento (somente Fornecedor) ----
+export type StatusSolicitacaoAdiantamento =
+  | "SOLICITADO"
+  | "APROVADO"
+  | "LIBERADO"
+  | "REJEITADO"
+  | "CANCELADO";
+
+export interface AdiantamentoSolicitacao {
+  id: string;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  pessoaId: string; // Fornecedor
+  valor: number;
+  status: StatusSolicitacaoAdiantamento;
+  dataSolicitacao: string;
+  dataAprovacao: string | null;
+  observacoes: string;
+  usuarioCriacaoId: string;
+  usuarioAprovacaoId: string | null;
+  movimentacaoFinanceiraId: string | null;
+  adiantamentoId: string | null;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export const adiantamentoSolicitacoes: AdiantamentoSolicitacao[] = [
+  {
+    id: "sol1",
+    grupoId: "g1",
+    empresaId: "e1",
+    filialId: "f1",
+    pessoaId: "p2",
+    valor: 100000,
+    status: "SOLICITADO",
+    dataSolicitacao: "2026-05-18",
+    dataAprovacao: null,
+    observacoes: "Solicitado via telefone para adiantamento de safra.",
+    usuarioCriacaoId: "u1",
+    usuarioAprovacaoId: null,
+    movimentacaoFinanceiraId: null,
+    adiantamentoId: null,
+    criadoEm: "2026-05-18T10:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2026-05-18T10:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "sol2",
+    grupoId: "g1",
+    empresaId: "e1",
+    filialId: "f1",
+    pessoaId: "p2",
+    valor: 50000,
+    status: "APROVADO",
+    dataSolicitacao: "2026-05-17",
+    dataAprovacao: "2026-05-18",
+    observacoes: "Aprovado para compra de insumos.",
+    usuarioCriacaoId: "u1",
+    usuarioAprovacaoId: "u1",
+    movimentacaoFinanceiraId: null,
+    adiantamentoId: null,
+    criadoEm: "2026-05-17T10:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2026-05-18T09:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+];
 
 // ---- Movimentação de Ajuste de Parcela (auditoria de liquidação) ----
 export type TipoMovimentacaoAjuste =
