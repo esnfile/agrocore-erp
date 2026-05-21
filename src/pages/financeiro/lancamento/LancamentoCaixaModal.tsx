@@ -326,7 +326,7 @@ export function LancamentoCaixaModal({
           {renderDetalhes()}
 
           <div className="border-t" />
-          <FormasPagamentoSection state={state} update={update} valorEsperado={valorEsperado} />
+          <FormasPagamentoSection state={state} update={update} valorEsperado={valorEsperado} adiantamentoReadOnly={adiantamentoReadOnly} />
 
           <div className="border-t" />
           <div className="space-y-1.5">

@@ -114,13 +114,50 @@ export default function MovimentacoesPage() {
                   {isOpen && (
                     <TableRow key={m.id + "-det"} className="bg-muted/30 hover:bg-muted/30">
                       <TableCell></TableCell>
-                      <TableCell colSpan={10} className="text-sm py-3">
+                      <TableCell colSpan={10} className="text-sm py-3 space-y-3">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-1">
                           <div><span className="text-muted-foreground">Pessoa/Sócio: </span><span className="font-medium">{getPessoaNome(m.pessoaId)}</span></div>
                           <div><span className="text-muted-foreground">Centro de Custo: </span><span className="font-medium">{getCcNome(m.centroCustoId)}</span></div>
                           <div><span className="text-muted-foreground">Categoria: </span><span className="font-medium">{tipo?.categoria ?? "—"}</span></div>
                           <div className="md:col-span-3"><span className="text-muted-foreground">Histórico: </span><span>{m.historico || "—"}</span></div>
                         </div>
+                        {m.parcelasLiquidadas && m.parcelasLiquidadas.length > 0 && (
+                          <div>
+                            <p className="text-xs font-semibold text-muted-foreground mb-1">Duplicatas liquidadas</p>
+                            <div className="rounded-md border bg-background overflow-hidden">
+                              <table className="w-full text-xs">
+                                <thead className="bg-muted/40">
+                                  <tr>
+                                    <th className="text-left px-2 py-1">Parcela</th>
+                                    <th className="text-right px-2 py-1">Valor</th>
+                                    <th className="text-left px-2 py-1">Status anterior</th>
+                                    <th className="text-left px-2 py-1">Status atual</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {m.parcelasLiquidadas.map((p) => (
+                                    <tr key={p.parcelaId} className="border-t">
+                                      <td className="px-2 py-1 font-mono">{p.parcelaId}</td>
+                                      <td className="px-2 py-1 text-right font-mono">{fmt(p.valorLiquidado)}</td>
+                                      <td className="px-2 py-1">{p.statusAntes}</td>
+                                      <td className="px-2 py-1 font-medium">{p.statusDepois}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        )}
+                        {m.adiantamentosUsados && m.adiantamentosUsados.length > 0 && (
+                          <div>
+                            <p className="text-xs font-semibold text-muted-foreground mb-1">Adiantamentos utilizados</p>
+                            <ul className="text-xs space-y-0.5">
+                              {m.adiantamentosUsados.map((a) => (
+                                <li key={a.adiantamentoId} className="font-mono">{a.adiantamentoId} — {fmt(a.valor)}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
                       </TableCell>
                     </TableRow>
                   )}
