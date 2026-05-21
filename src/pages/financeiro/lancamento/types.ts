@@ -7,6 +7,11 @@ export interface FormasPagamentoState {
   adiantamento: number;
 }
 
+export interface AdiantamentoUso {
+  adiantamentoId: string;
+  valor: number;
+}
+
 export interface LancamentoFormState {
   // Dados base
   empresaId: string;
@@ -16,11 +21,14 @@ export interface LancamentoFormState {
   tipoLancamentoId: string;
   // Detalhes (varia por categoria)
   socioId: string;          // Prolabore
-  pessoaId: string;         // Fornecedor / Cliente (adiantamento)
+  pessoaId: string;         // Fornecedor / Cliente
   solicitacaoAdiantamentoId: string; // Fornecedor: solicitação aprovada selecionada
-  referenciaMotivo: string; // Cliente: motivo obrigatório
+  referenciaMotivo: string; // Cliente: motivo obrigatório (adiantamento)
   valorDetalhe: number;
   centroCustoId: string;
+  // Duplicatas (REC/PAG_DUPLICATA)
+  parcelasSelecionadas: string[];
+  adiantamentosSelecionados: AdiantamentoUso[];
   // Formas de pagamento
   formas: FormasPagamentoState;
   // Histórico
@@ -39,6 +47,8 @@ export const initialFormState = (empresaId: string, filialId: string): Lancament
   referenciaMotivo: "",
   valorDetalhe: 0,
   centroCustoId: "",
+  parcelasSelecionadas: [],
+  adiantamentosSelecionados: [],
   formas: { dinheiro: 0, cheque: 0, cartao: 0, adiantamento: 0 },
   historico: "",
 });
@@ -50,4 +60,6 @@ export const categoriasImplementadas: CategoriaTipoLancamento[] = [
   "PROLABORE",
   "ADIANT_FORNECEDOR",
   "ADIANT_CLIENTE",
+  "REC_DUPLICATA",
+  "PAG_DUPLICATA",
 ];

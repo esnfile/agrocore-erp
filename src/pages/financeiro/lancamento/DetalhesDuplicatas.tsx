@@ -1,0 +1,212 @@
+import { useEffect, useMemo, useState } from "react";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AlertCircle, Wallet } from "lucide-react";
+import type {
+  Pessoa, FinanceiroCentroCusto, FinanceiroParcela, FinanceiroConta,
+  TipoBeneficiarioAdiantamento, FinanceiroAdiantamento,
+} from "@/lib/mock-data";
+import {
+  financeiroParcelaService, financeiroAdiantamentoService,
+} from "@/lib/services";
+import type { LancamentoFormState } from "./types";
+import { SelecionarAdiantamentoModal } from "./SelecionarAdiantamentoModal";
+
+const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+interface Props {
+  state: LancamentoFormState;
+  update: (patch: Partial<LancamentoFormState>) => void;
+  pessoas: Pessoa[];
+  centrosCusto: FinanceiroCentroCusto[];
+  tipoConta: "RECEBER" | "PAGAR";
+}
+
+export function DetalhesDuplicatas({ state, update, pessoas, centrosCusto, tipoConta }: Props) {
+  const isReceber = tipoConta === "RECEBER";
+  const relacao = isReceber ? "Cliente" : "Fornecedor";
+  const tipoBeneficiario: TipoBeneficiarioAdiantamento = isReceber ? "CLIENTE" : "FORNECEDOR";
+
+  const elegiveis = pessoas.filter((p) => p.relacaoComercial?.includes(relacao));
+
+  const [parcelas, setParcelas] = useState<Array<FinanceiroParcela & { conta?: FinanceiroConta; vencida?: boolean }>>([]);
+  const [adiantamentos, setAdiantamentos] = useState<FinanceiroAdiantamento[]>([]);
+  const [modalAdiantOpen, setModalAdiantOpen] = useState(false);
+
+  useEffect(() => {
+    if (!state.pessoaId) { setParcelas([]); setAdiantamentos([]); return; }
+    (async () => {
+      const allParcelas = await financeiroParcelaService.listarTodas(state.empresaId, state.filialId);
+      const hoje = new Date().toISOString().slice(0, 10);
+      const filtradas = allParcelas
+        .filter((p) => {
+          const c = p.conta;
+          return c?.tipo === tipoConta && c.pessoaId === state.pessoaId
+            && (p.status === "PENDENTE" || p.status === "PARCIAL" || p.status === "VENCIDA");
+        })
+        .map((p) => ({ ...p, vencida: p.dataVencimento < hoje && p.status !== "PAGO" }))
+        .sort((a, b) => a.dataVencimento.localeCompare(b.dataVencimento));
+      setParcelas(filtradas);
+
+      const allAdt = await financeiroAdiantamentoService.listarPorPessoa(state.pessoaId);
+      setAdiantamentos(allAdt.filter((a) =>
+        a.tipoBeneficiario === tipoBeneficiario && a.saldoRestante > 0 && a.status !== "CANCELADO"
+      ));
+    })();
+  }, [state.pessoaId, state.empresaId, state.filialId, tipoConta, tipoBeneficiario]);
+
+  // Limpa seleções e adiantamentos ao trocar pessoa
+  useEffect(() => {
+    update({ parcelasSelecionadas: [], adiantamentosSelecionados: [], valorDetalhe: 0 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.pessoaId]);
+
+  const totalSelecionado = useMemo(() =>
+    parcelas
+      .filter((p) => state.parcelasSelecionadas.includes(p.id))
+      .reduce((s, p) => s + p.saldoParcela, 0),
+    [parcelas, state.parcelasSelecionadas]
+  );
+
+  // Mantém valorDetalhe = totalSelecionado quando muda seleção
+  useEffect(() => {
+    update({ valorDetalhe: +totalSelecionado.toFixed(2) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalSelecionado]);
+
+  const toggleParcela = (id: string, checked: boolean) => {
+    const next = checked
+      ? [...state.parcelasSelecionadas, id]
+      : state.parcelasSelecionadas.filter((x) => x !== id);
+    update({ parcelasSelecionadas: next });
+  };
+
+  const saldoAdiantTotal = adiantamentos.reduce((s, a) => s + a.saldoRestante, 0);
+  const adiantUsado = state.adiantamentosSelecionados.reduce((s, a) => s + a.valor, 0);
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <Label>{relacao} <span className="text-destructive">*</span></Label>
+          <Select value={state.pessoaId} onValueChange={(v) => update({ pessoaId: v })}>
+            <SelectTrigger><SelectValue placeholder={`Selecione o ${relacao.toLowerCase()}...`} /></SelectTrigger>
+            <SelectContent>
+              {elegiveis.length === 0
+                ? <div className="px-2 py-1.5 text-sm text-muted-foreground">Nenhum {relacao.toLowerCase()} cadastrado</div>
+                : elegiveis.map((p) => <SelectItem key={p.id} value={p.id}>{p.nomeRazao}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label>Centro de Custo</Label>
+          <Select value={state.centroCustoId} onValueChange={(v) => update({ centroCustoId: v })}>
+            <SelectTrigger><SelectValue placeholder="Opcional..." /></SelectTrigger>
+            <SelectContent>
+              {centrosCusto.filter((c) => c.ativo).map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.descricao}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {state.pessoaId && (
+        <div className="rounded-md border overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-10"></TableHead>
+                <TableHead>Documento</TableHead>
+                <TableHead>Parcela</TableHead>
+                <TableHead>Vencimento</TableHead>
+                <TableHead className="text-right">Saldo</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {parcelas.length === 0 ? (
+                <TableRow><TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
+                  Nenhuma duplicata em aberto para {relacao.toLowerCase()} selecionado.
+                </TableCell></TableRow>
+              ) : parcelas.map((p) => {
+                const checked = state.parcelasSelecionadas.includes(p.id);
+                return (
+                  <TableRow key={p.id} className={checked ? "bg-primary/5" : ""}>
+                    <TableCell><Checkbox checked={checked} onCheckedChange={(c) => toggleParcela(p.id, !!c)} /></TableCell>
+                    <TableCell className="font-mono text-xs">{p.conta?.documentoReferencia ?? p.contaId}</TableCell>
+                    <TableCell className="text-xs">{p.numeroParcela}/{p.totalParcelas}</TableCell>
+                    <TableCell className="text-xs">{new Date(p.dataVencimento).toLocaleDateString("pt-BR")}</TableCell>
+                    <TableCell className="text-right font-mono">{fmt(p.saldoParcela)}</TableCell>
+                    <TableCell>
+                      {p.vencida
+                        ? <Badge variant="outline" className="border-destructive/50 text-destructive">VENCIDA</Badge>
+                        : <Badge variant="outline">{p.status}</Badge>}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      {state.parcelasSelecionadas.length > 0 && (
+        <div className="flex items-center justify-between rounded-md bg-muted/40 px-3 py-2">
+          <span className="text-sm font-medium">TOTAL SELECIONADO</span>
+          <span className="text-lg font-mono font-bold">{fmt(totalSelecionado)}</span>
+        </div>
+      )}
+
+      {state.pessoaId && (
+        <div className="rounded-md border p-3 space-y-3">
+          {saldoAdiantTotal > 0 ? (
+            <div className="flex items-start gap-2 text-sm bg-warning/10 border border-warning/30 rounded-md px-3 py-2">
+              <AlertCircle className="h-4 w-4 mt-0.5 text-warning-foreground" />
+              <span>{relacao} possui adiantamento disponível: <strong>{fmt(saldoAdiantTotal)}</strong></span>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">Sem adiantamento disponível para este {relacao.toLowerCase()}.</p>
+          )}
+
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setModalAdiantOpen(true)}
+              disabled={saldoAdiantTotal <= 0}
+            >
+              <Wallet className="h-4 w-4 mr-1" /> Selecionar Adiantamento
+            </Button>
+            <div className="text-sm">
+              <span className="text-muted-foreground">Adiantamento Selecionado: </span>
+              <span className="font-mono font-medium">{fmt(adiantUsado)}</span>
+              <span className="text-muted-foreground ml-3">Saldo Restante: </span>
+              <span className="font-mono">{fmt(saldoAdiantTotal - adiantUsado)}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <SelecionarAdiantamentoModal
+        open={modalAdiantOpen}
+        onClose={() => setModalAdiantOpen(false)}
+        pessoaId={state.pessoaId}
+        tipoBeneficiario={tipoBeneficiario}
+        selecionadosAtuais={state.adiantamentosSelecionados}
+        onConfirm={(sel) => {
+          const total = sel.reduce((s, a) => s + a.valor, 0);
+          update({
+            adiantamentosSelecionados: sel,
+            formas: { ...state.formas, adiantamento: +total.toFixed(2) },
+          });
+        }}
+      />
+    </div>
+  );
+}

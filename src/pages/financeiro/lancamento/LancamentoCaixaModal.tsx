@@ -16,6 +16,7 @@ import { DadosBaseSection } from "./DadosBaseSection";
 import { DetalhesProlabore } from "./DetalhesProlabore";
 import { DetalhesAdiantFornecedor } from "./DetalhesAdiantFornecedor";
 import { DetalhesAdiantCliente } from "./DetalhesAdiantCliente";
+import { DetalhesDuplicatas } from "./DetalhesDuplicatas";
 import { FormasPagamentoSection } from "./FormasPagamentoSection";
 import { AutorizacaoSupervisorModal } from "./AutorizacaoSupervisorModal";
 import { initialFormState, sumFormas, type LancamentoFormState } from "./types";
@@ -105,8 +106,51 @@ export function LancamentoCaixaModal({
     if (tipoSel.categoria === "PROLABORE") return salvarProlabore();
     if (tipoSel.categoria === "ADIANT_FORNECEDOR") return salvarAdiantFornecedor();
     if (tipoSel.categoria === "ADIANT_CLIENTE") return iniciarSalvarAdiantCliente();
+    if (tipoSel.categoria === "REC_DUPLICATA" || tipoSel.categoria === "PAG_DUPLICATA") return salvarBaixaDuplicatas();
 
     toast({ title: "Tipo ainda não implementado", description: "Em breve.", variant: "destructive" });
+  };
+
+  // ------ Recebimento / Pagamento de Duplicatas ------
+  const salvarBaixaDuplicatas = async () => {
+    if (!tipoSel) return;
+    if (!state.pessoaId) { toast({ title: "Selecione a pessoa", variant: "destructive" }); return; }
+    if (state.parcelasSelecionadas.length === 0) {
+      toast({ title: "Selecione ao menos uma duplicata", variant: "destructive" }); return;
+    }
+    if (state.valorDetalhe <= 0) {
+      toast({ title: "Valor inválido", variant: "destructive" }); return;
+    }
+    const v = validarTotalFormas(state.valorDetalhe);
+    if (!v.ok || !v.forma) return;
+
+    setSaving(true);
+    try {
+      const prefix = tipoSel.categoria === "REC_DUPLICATA" ? "REC" : "PAG";
+      const numeroDocumento = `${prefix}-${Date.now()}`;
+      const result = await financeiroMovimentacaoService.registrarBaixaDuplicatas({
+        contaFinanceiraId: state.contaFinanceiraId,
+        tipoLancamentoId: tipoSel.id,
+        formaPagamentoId: v.forma.id,
+        centroCustoId: state.centroCustoId || null,
+        dataMovimento: state.dataMovimento,
+        pessoaId: state.pessoaId,
+        parcelaIds: state.parcelasSelecionadas,
+        valorTotal: state.valorDetalhe,
+        numeroDocumento,
+        historico: state.historico || (tipoSel.categoria === "REC_DUPLICATA" ? "Recebimento de duplicata" : "Pagamento de duplicata"),
+        formasPagamentoDetalhe: { ...state.formas },
+        adiantamentosUsados: state.adiantamentosSelecionados,
+      }, { grupoId: grupoAtual?.id ?? "", empresaId: state.empresaId, filialId: state.filialId });
+      if (!result.sucesso) { toast({ title: "Erro", description: result.mensagem, variant: "destructive" }); return; }
+      toast({
+        title: tipoSel.categoria === "REC_DUPLICATA" ? "Recebimento registrado" : "Pagamento registrado",
+        description: `Duplicatas baixadas: ${result.parcelasLiquidadas}${
+          state.formas.adiantamento > 0 ? ` — Adiantamento utilizado: ${state.formas.adiantamento.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : ""
+        }`,
+      });
+      onSaved(); onClose();
+    } finally { setSaving(false); }
   };
 
   // ------ Prolabore ------
@@ -240,6 +284,12 @@ export function LancamentoCaixaModal({
     if (tipoSel.categoria === "ADIANT_CLIENTE") {
       return <DetalhesAdiantCliente state={state} update={update} pessoas={pessoas} centrosCusto={centrosCusto} />;
     }
+    if (tipoSel.categoria === "REC_DUPLICATA") {
+      return <DetalhesDuplicatas state={state} update={update} pessoas={pessoas} centrosCusto={centrosCusto} tipoConta="RECEBER" />;
+    }
+    if (tipoSel.categoria === "PAG_DUPLICATA") {
+      return <DetalhesDuplicatas state={state} update={update} pessoas={pessoas} centrosCusto={centrosCusto} tipoConta="PAGAR" />;
+    }
     return (
       <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
         Detalhes para <strong>{tipoSel.descricao}</strong> ({tipoSel.categoria}) em desenvolvimento.
@@ -251,7 +301,11 @@ export function LancamentoCaixaModal({
     tipoSel.categoria === "PROLABORE"
     || tipoSel.categoria === "ADIANT_FORNECEDOR"
     || tipoSel.categoria === "ADIANT_CLIENTE"
+    || tipoSel.categoria === "REC_DUPLICATA"
+    || tipoSel.categoria === "PAG_DUPLICATA"
   ) ? state.valorDetalhe : undefined;
+
+  const adiantamentoReadOnly = tipoSel?.categoria === "REC_DUPLICATA" || tipoSel?.categoria === "PAG_DUPLICATA";
 
   const clienteSel = pessoas.find((p) => p.id === state.pessoaId);
 
@@ -272,7 +326,7 @@ export function LancamentoCaixaModal({
           {renderDetalhes()}
 
           <div className="border-t" />
-          <FormasPagamentoSection state={state} update={update} valorEsperado={valorEsperado} />
+          <FormasPagamentoSection state={state} update={update} valorEsperado={valorEsperado} adiantamentoReadOnly={adiantamentoReadOnly} />
 
           <div className="border-t" />
           <div className="space-y-1.5">

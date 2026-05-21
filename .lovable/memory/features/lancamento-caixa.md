@@ -1,40 +1,44 @@
 ---
 name: Lançamento de Caixa
-description: Tela multi-tipo de movimentação. Categorias implementadas: PROLABORE, ADIANT_FORNECEDOR, ADIANT_CLIENTE. Cada categoria tem componente Detalhes* próprio. Saldos de adiantamento gerados ATOMICAMENTE pelo service.
+description: Tela multi-tipo de movimentação. Categorias implementadas: PROLABORE, ADIANT_FORNECEDOR, ADIANT_CLIENTE, REC_DUPLICATA, PAG_DUPLICATA. Baixa multi-parcela com distribuição sequencial por vencimento.
 type: feature
 ---
 
 ## Arquitetura
 
-Tela `MovimentacoesPage` lista as movimentações e abre `LancamentoCaixaModal` (em `src/pages/financeiro/lancamento/`).
+`MovimentacoesPage` lista as movimentações e abre `LancamentoCaixaModal` (em `src/pages/financeiro/lancamento/`).
 
-O modal é composto por 4 accordions:
-- **Dados Base** (sempre aberto inicialmente): Empresa, Filial, Conta Financeira, Data, Tipo de Lançamento
-- **Detalhes** (abre automaticamente ao selecionar o tipo): conteúdo varia por `tipo.categoria`
-- **Formas de Pagamento**: Dinheiro, Cheque, Cartão, Adiantamento + TOTAL + alerta de divergência
-- **Histórico**: Textarea máx 500 chars
+O modal tem 4 seções: Dados Base, Detalhes (varia por `tipo.categoria`), Formas de Pagamento (Dinheiro, Cheque, Cartão, Adiantamento + TOTAL), Histórico.
 
-## Tipo de Lançamento — categoria
+## Categorias implementadas
 
-Campo `categoria: CategoriaTipoLancamento` em `FinanceiroTipoLancamento` controla o bloco de detalhes:
-PROLABORE, REC_DUPLICATA, PAG_DUPLICATA, ADIANT_FORNECEDOR, ADIANT_CLIENTE, FUNCIONARIO, DEPOSITO_DINHEIRO, DEPOSITO_CHEQUE, TRANSFERENCIA, GERAL, AUTOMATICO.
+- **PROLABORE** — `DetalhesProlabore.tsx`, gera 1 movimentação com `formasPagamentoDetalhe`.
+- **ADIANT_FORNECEDOR** — `DetalhesAdiantFornecedor.tsx`, consome `AdiantamentoSolicitacao` aprovada e cria `FinanceiroAdiantamento` (SAIDA).
+- **ADIANT_CLIENTE** — `DetalhesAdiantCliente.tsx`, cria `FinanceiroAdiantamento` (ENTRADA) com motivo obrigatório + autorização supervisor (`REQUER_AUTORIZACAO_ADIANT_CLIENTE`).
+- **REC_DUPLICATA / PAG_DUPLICATA** — `DetalhesDuplicatas.tsx` (componente único parametrizado por `tipoConta: RECEBER|PAGAR`) + `SelecionarAdiantamentoModal.tsx`.
 
-Outros flags relevantes:
-- `apareceNaPesquisa: boolean` — tipos `AUTOMATICO` (ex: "BAIXA CONTA RECEBER" gerada pelo sistema) ficam ocultos no select de lançamento.
-- `exigeCentroCusto`, `exigePlanoContas` — tornam os campos obrigatórios na tela.
+## REC/PAG_DUPLICATA — Baixa multi-parcela
 
-## Regra TOTAL = Valor
+**Service:** `financeiroMovimentacaoService.registrarBaixaDuplicatas()` (atômico).
 
-Para tipos com valor único (Prolabore, etc.), a soma das 4 formas de pagamento deve ser igual ao valor informado em Detalhes. Bloqueia salvar.
+**Regra de distribuição sequencial:** parcelas selecionadas são ordenadas por `dataVencimento ASC, id ASC`; o `valorTotal` informado é aplicado liquidando totalmente as mais antigas e deixando PARCIAL apenas a última que sobrar. Status PAGO/CANCELADA/PREVISTO não podem ser selecionadas; VENCIDA pode (badge visual).
 
-## Sócio
+**Fonte da verdade:** o próprio `FinanceiroMovimentacao` carrega:
+- `parcelasLiquidadas: [{ parcelaId, valorLiquidado, statusAntes, statusDepois }]`
+- `adiantamentosUsados: [{ adiantamentoId, valor }]`
 
-Pessoas marcadas como sócio têm `"Sócio"` em `relacaoComercial: string[]`. O dropdown de Sócio na tela de Prolabore filtra por isso.
+Não existem tabelas `liquidacoes_duplicata`/`liquidacoes_adiantamento` — auditoria é feita em 1 query na movimentação. Adiantamentos têm `saldoRestante` debitado e status atualizado para PARCIAL/LIQUIDADO.
 
-## Persistência de Prolabore
+**Validações:** ≥1 parcela; `valorTotal > 0`; `valorTotal ≤ soma dos saldos`; `soma formas = valorTotal`; cada adiantamento usado ≤ `saldoRestante`.
 
-Cada forma de pagamento com valor > 0 gera **uma** `FinanceiroMovimentacao` separada, todas amarradas por um mesmo `numeroDocumento` (`PRO-{timestamp}`). Permite refletir corretamente o caixa real (dinheiro entra em Caixa, cheque sai do Banco, etc.) no futuro.
+**UI:** campo "Adiantamento" em `FormasPagamentoSection` vira READ-ONLY nessas categorias — preenchido automaticamente pela soma da seleção no `SelecionarAdiantamentoModal`. Listagem expande mostrando parcelas liquidadas (status antes→depois) e adiantamentos consumidos.
 
-## Próximos tipos a implementar
+## Tipo de Lançamento — flags
 
-Ordem prevista: Recebimento de Duplicatas → Saída para Depósito (Dinheiro/Cheque) → Pagamento de Funcionários → Adiantamentos → Transferências → Geral. Cada um vira um componente `Detalhes*.tsx` na pasta `lancamento/` e um caso no switch do modal.
+- `categoria: CategoriaTipoLancamento` controla o bloco de detalhes.
+- `apareceNaPesquisa: false` oculta tipos AUTOMATICO no select.
+- `exigeCentroCusto`, `exigePlanoContas` — obrigatoriedade no form.
+
+## Próximos tipos
+
+Funcionário, Depósito (Dinheiro/Cheque), Transferência, Geral. Cada um vira um `Detalhes*.tsx` + caso no switch.

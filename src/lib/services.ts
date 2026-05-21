@@ -3030,6 +3030,149 @@ export const financeiroMovimentacaoService = {
       adiantamento: adiantamentoCriado,
     };
   },
+
+  /**
+   * Baixa multi-parcela (REC_DUPLICATA / PAG_DUPLICATA).
+   * Distribuição sequencial: ordena parcelas selecionadas por dataVencimento ASC, id ASC,
+   * liquida totalmente as mais antigas e deixa parcial na última que sobrar.
+   * Cria 1 FinanceiroMovimentacao com arrays de rastreabilidade.
+   */
+  async registrarBaixaDuplicatas(
+    data: {
+      contaFinanceiraId: string;
+      tipoLancamentoId: string;
+      formaPagamentoId: string;
+      centroCustoId?: string | null;
+      dataMovimento: string;
+      pessoaId: string;
+      parcelaIds: string[];
+      valorTotal: number;
+      numeroDocumento: string;
+      historico: string;
+      formasPagamentoDetalhe: { dinheiro: number; cheque: number; cartao: number; adiantamento: number };
+      adiantamentosUsados: Array<{ adiantamentoId: string; valor: number }>;
+    },
+    ctx: { grupoId: string; empresaId: string; filialId: string }
+  ): Promise<{ sucesso: boolean; mensagem: string; movimentacao?: FinanceiroMovimentacao; parcelasLiquidadas?: number }> {
+    await delay(400);
+    const now = new Date().toISOString();
+
+    const tipoLanc = mockFinanceiroTiposLancamento.find((t) => t.id === data.tipoLancamentoId && t.deletadoEm === null);
+    if (!tipoLanc) return { sucesso: false, mensagem: "Tipo de lançamento não encontrado." };
+    if (tipoLanc.categoria !== "REC_DUPLICATA" && tipoLanc.categoria !== "PAG_DUPLICATA") {
+      return { sucesso: false, mensagem: "Categoria inválida para baixa de duplicatas." };
+    }
+    if (data.parcelaIds.length === 0) return { sucesso: false, mensagem: "Selecione ao menos uma duplicata." };
+
+    // Carrega e valida parcelas
+    const parcelas = data.parcelaIds
+      .map((id) => mockFinanceiroParcelas.find((p) => p.id === id && p.deletadoEm === null))
+      .filter((p): p is FinanceiroParcela => !!p);
+    if (parcelas.length !== data.parcelaIds.length) {
+      return { sucesso: false, mensagem: "Uma ou mais duplicatas não foram encontradas." };
+    }
+    for (const p of parcelas) {
+      if (p.status === "PAGO" || p.status === "CANCELADA" || p.status === "PREVISTO") {
+        return { sucesso: false, mensagem: `Parcela ${p.id} não pode ser baixada (status ${p.status}).` };
+      }
+    }
+    const somaSaldos = parcelas.reduce((s, p) => s + p.saldoParcela, 0);
+    if (data.valorTotal > somaSaldos + 0.0001) {
+      return { sucesso: false, mensagem: "Valor informado excede a soma dos saldos das duplicatas selecionadas." };
+    }
+
+    // Valida e debita adiantamentos
+    const adts = data.adiantamentosUsados.map((a) => ({
+      a,
+      entity: mockFinanceiroAdiantamentos.find((x) => x.id === a.adiantamentoId && x.deletadoEm === null),
+    }));
+    for (const { a, entity } of adts) {
+      if (!entity) return { sucesso: false, mensagem: `Adiantamento ${a.adiantamentoId} não encontrado.` };
+      if (entity.saldoRestante + 0.0001 < a.valor) {
+        return { sucesso: false, mensagem: `Adiantamento sem saldo suficiente (${entity.saldoRestante.toFixed(2)}).` };
+      }
+    }
+
+    // Atualiza saldo da conta financeira (1x pelo total)
+    const contaFin = mockFinanceiroContasFinanceiras.find((c) => c.id === data.contaFinanceiraId && c.deletadoEm === null);
+    if (!contaFin) return { sucesso: false, mensagem: "Conta financeira não encontrada." };
+    if (tipoLanc.tipoMovimento === "ENTRADA") {
+      contaFin.saldoAtual += data.valorTotal;
+    } else {
+      if (!contaFin.permiteSaldoNegativo && contaFin.saldoAtual - data.valorTotal < 0) {
+        return { sucesso: false, mensagem: "Saldo insuficiente. Conta não permite saldo negativo." };
+      }
+      contaFin.saldoAtual -= data.valorTotal;
+    }
+
+    // Distribuição sequencial por vencimento
+    const ordenadas = [...parcelas].sort((x, y) => {
+      const cmp = x.dataVencimento.localeCompare(y.dataVencimento);
+      return cmp !== 0 ? cmp : x.id.localeCompare(y.id);
+    });
+    const parcelasLiquidadas: NonNullable<FinanceiroMovimentacao["parcelasLiquidadas"]> = [];
+    let restante = data.valorTotal;
+    for (const p of ordenadas) {
+      if (restante <= 0.0001) break;
+      const aplicar = Math.min(p.saldoParcela, restante);
+      const statusAntes = p.status;
+      p.valorPago += aplicar;
+      p.saldoParcela = +(p.valorParcela - p.valorPago).toFixed(2);
+      if (p.saldoParcela <= 0.0001) { p.saldoParcela = 0; p.status = "PAGO"; }
+      else { p.status = "PARCIAL"; }
+      p.atualizadoEm = now; p.atualizadoPor = "u1";
+      parcelasLiquidadas.push({
+        parcelaId: p.id,
+        valorLiquidado: +aplicar.toFixed(2),
+        statusAntes,
+        statusDepois: p.status,
+      });
+      restante = +(restante - aplicar).toFixed(2);
+      await financeiroContaService.atualizarStatus(p.contaId);
+    }
+
+    // Debita adiantamentos
+    for (const { a, entity } of adts) {
+      if (!entity || a.valor <= 0) continue;
+      entity.saldoUtilizado += a.valor;
+      entity.saldoRestante = +(entity.valorAdiantamento - entity.saldoUtilizado).toFixed(2);
+      if (entity.saldoRestante <= 0.0001) { entity.saldoRestante = 0; entity.status = "LIQUIDADO"; }
+      else { entity.status = "PARCIAL"; }
+      entity.atualizadoEm = now; entity.atualizadoPor = "u1";
+    }
+
+    const mov: FinanceiroMovimentacao = {
+      id: `fmov${Date.now()}`,
+      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
+      contaFinanceiraId: data.contaFinanceiraId,
+      tipoLancamentoId: data.tipoLancamentoId,
+      tipoMovimento: tipoLanc.tipoMovimento,
+      formaPagamentoId: data.formaPagamentoId,
+      planoContaId: null,
+      centroCustoId: data.centroCustoId ?? null,
+      dataMovimento: data.dataMovimento,
+      valor: data.valorTotal,
+      numeroDocumento: data.numeroDocumento,
+      historico: data.historico,
+      contaOrigemId: null,
+      contaDestinoId: null,
+      parcelaId: null,
+      pessoaId: data.pessoaId,
+      formasPagamentoDetalhe: { ...data.formasPagamentoDetalhe },
+      parcelasLiquidadas,
+      adiantamentosUsados: data.adiantamentosUsados.filter((a) => a.valor > 0),
+      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      deletadoEm: null, deletadoPor: null,
+    };
+    mockFinanceiroMovimentacoes.push(mov);
+
+    return {
+      sucesso: true,
+      mensagem: "Baixa registrada com sucesso.",
+      movimentacao: mov,
+      parcelasLiquidadas: parcelasLiquidadas.length,
+    };
+  },
 };
 
 // ============================================================

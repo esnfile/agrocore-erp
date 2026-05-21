@@ -3060,6 +3060,28 @@ export const financeiroTiposLancamento: FinanceiroTipoLancamento[] = [
     deletadoEm: null,
     deletadoPor: null,
   },
+  {
+    id: "ftl9", grupoId: "g1", empresaId: null, filialId: null,
+    descricao: "RECEBIMENTO DE DUPLICATA",
+    tipoMovimento: "ENTRADA", tipoConta: ["CAIXA", "BANCO"],
+    categoria: "REC_DUPLICATA",
+    origemSistema: false, permiteEdicao: true, permiteExclusao: true,
+    exigeCentroCusto: false, exigePlanoContas: false, apareceNaPesquisa: true, ativo: true,
+    criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "ftl10", grupoId: "g1", empresaId: null, filialId: null,
+    descricao: "PAGAMENTO DE DUPLICATA",
+    tipoMovimento: "SAIDA", tipoConta: ["CAIXA", "BANCO"],
+    categoria: "PAG_DUPLICATA",
+    origemSistema: false, permiteEdicao: true, permiteExclusao: true,
+    exigeCentroCusto: false, exigePlanoContas: false, apareceNaPesquisa: true, ativo: true,
+    criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
 ];
 
 // ---- Forma de Pagamento (tabela) ----
@@ -3477,6 +3499,14 @@ export interface FinanceiroMovimentacao {
   parcelaId: string | null;
   pessoaId: string | null;
   formasPagamentoDetalhe: { dinheiro: number; cheque: number; cartao: number; adiantamento: number } | null;
+  // Rastreabilidade de baixa multi-parcela (REC_DUPLICATA / PAG_DUPLICATA)
+  parcelasLiquidadas?: Array<{
+    parcelaId: string;
+    valorLiquidado: number;
+    statusAntes: StatusParcela;
+    statusDepois: StatusParcela;
+  }> | null;
+  adiantamentosUsados?: Array<{ adiantamentoId: string; valor: number }> | null;
   criadoEm: string;
   criadoPor: string;
   atualizadoEm: string;
@@ -3525,7 +3555,30 @@ export interface FinanceiroAdiantamento {
   deletadoPor: string | null;
 }
 
-export const financeiroAdiantamentos: FinanceiroAdiantamento[] = [];
+export const financeiroAdiantamentos: FinanceiroAdiantamento[] = [
+  {
+    id: "fad_seed1", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    pessoaId: "p1", tipoBeneficiario: "CLIENTE", contratoId: null,
+    movimentacaoFinanceiraId: "", dataAdiantamento: "2025-01-15",
+    valorAdiantamento: 30000, saldoUtilizado: 0, saldoRestante: 30000,
+    status: "ABERTO", origemTipo: "CAIXA_CLIENTE", solicitacaoId: null,
+    observacao: "Sinal antecipado venda safra",
+    criadoEm: "2025-01-15T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-01-15T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "fad_seed2", grupoId: "g1", empresaId: "e1", filialId: "f1",
+    pessoaId: "p2", tipoBeneficiario: "FORNECEDOR", contratoId: null,
+    movimentacaoFinanceiraId: "", dataAdiantamento: "2025-01-20",
+    valorAdiantamento: 10000, saldoUtilizado: 0, saldoRestante: 10000,
+    status: "ABERTO", origemTipo: "SOLICITACAO_FORNECEDOR", solicitacaoId: null,
+    observacao: "Adiantamento aprovado",
+    criadoEm: "2025-01-20T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-01-20T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+];
 
 // ---- Solicitação de Adiantamento (somente Fornecedor) ----
 export type StatusSolicitacaoAdiantamento =
