@@ -41,7 +41,7 @@ export function DetalhesDuplicatas({ state, update, pessoas, centrosCusto, tipoC
     if (!state.pessoaId) { setParcelas([]); setAdiantamentos([]); return; }
     (async () => {
       const allParcelas = await financeiroParcelaService.listarTodas(state.empresaId, state.filialId);
-      const contas = await financeiroContaService.listar({ empresaId: state.empresaId, filialId: state.filialId });
+      const contas = await financeiroContaService.listar(state.empresaId, state.filialId, { tipo: tipoConta, pessoaId: state.pessoaId });
       const hoje = new Date().toISOString().slice(0, 10);
       const filtradas = allParcelas
         .filter((p) => {
