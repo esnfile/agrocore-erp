@@ -9,18 +9,25 @@ interface Props {
   state: LancamentoFormState;
   update: (patch: Partial<LancamentoFormState>) => void;
   valorEsperado?: number;
+  adiantamentoReadOnly?: boolean;
 }
 
-export function FormasPagamentoSection({ state, update, valorEsperado }: Props) {
+export function FormasPagamentoSection({ state, update, valorEsperado, adiantamentoReadOnly }: Props) {
   const total = sumFormas(state.formas);
   const dif = valorEsperado !== undefined ? +(total - valorEsperado).toFixed(2) : 0;
   const setF = (k: keyof LancamentoFormState["formas"]) => (e: React.ChangeEvent<HTMLInputElement>) =>
     update({ formas: { ...state.formas, [k]: parseFloat(e.target.value) || 0 } });
 
-  const field = (label: string, k: keyof LancamentoFormState["formas"]) => (
+  const field = (label: string, k: keyof LancamentoFormState["formas"], readOnly = false) => (
     <div className="space-y-1.5">
-      <Label>{label}</Label>
-      <Input type="number" step="0.01" min="0" value={state.formas[k] || ""} onChange={setF(k)} />
+      <Label>{label}{readOnly && <span className="ml-1 text-xs text-muted-foreground">(auto)</span>}</Label>
+      <Input
+        type="number" step="0.01" min="0"
+        value={state.formas[k] || ""}
+        onChange={readOnly ? undefined : setF(k)}
+        readOnly={readOnly}
+        className={readOnly ? "bg-muted cursor-not-allowed" : ""}
+      />
     </div>
   );
 
@@ -30,7 +37,7 @@ export function FormasPagamentoSection({ state, update, valorEsperado }: Props) 
         {field("Dinheiro", "dinheiro")}
         {field("Cheque", "cheque")}
         {field("Cartão", "cartao")}
-        {field("Adiantamento", "adiantamento")}
+        {field("Adiantamento", "adiantamento", adiantamentoReadOnly)}
       </div>
       <div className="flex items-center justify-between border-t pt-3">
         <span className="text-sm font-medium">TOTAL</span>
