@@ -11,7 +11,7 @@ import type {
   TipoBeneficiarioAdiantamento, FinanceiroAdiantamento,
 } from "@/lib/mock-data";
 import {
-  financeiroParcelaService, financeiroContaService, financeiroAdiantamentoService,
+  financeiroParcelaService, financeiroAdiantamentoService,
 } from "@/lib/services";
 import type { LancamentoFormState } from "./types";
 import { SelecionarAdiantamentoModal } from "./SelecionarAdiantamentoModal";
@@ -41,12 +41,11 @@ export function DetalhesDuplicatas({ state, update, pessoas, centrosCusto, tipoC
     if (!state.pessoaId) { setParcelas([]); setAdiantamentos([]); return; }
     (async () => {
       const allParcelas = await financeiroParcelaService.listarTodas(state.empresaId, state.filialId);
-      const contas = await financeiroContaService.listar(state.empresaId, state.filialId, { tipo: tipoConta, pessoaId: state.pessoaId });
       const hoje = new Date().toISOString().slice(0, 10);
       const filtradas = allParcelas
         .filter((p) => {
-          const conta = contas.find((c) => c.id === p.contaId);
-          return conta?.tipo === tipoConta && conta.pessoaId === state.pessoaId
+          const c = p.conta;
+          return c?.tipo === tipoConta && c.pessoaId === state.pessoaId
             && (p.status === "PENDENTE" || p.status === "PARCIAL" || p.status === "VENCIDA");
         })
         .map((p) => ({ ...p, vencida: p.dataVencimento < hoje && p.status !== "PAGO" }))
