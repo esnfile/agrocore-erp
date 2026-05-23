@@ -14,6 +14,7 @@ import {
   financeiroParcelaService, financeiroAdiantamentoService,
 } from "@/lib/services";
 import type { LancamentoFormState } from "./types";
+import { sumFormas } from "./types";
 import { SelecionarAdiantamentoModal } from "./SelecionarAdiantamentoModal";
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
