@@ -17,9 +17,11 @@ import { DetalhesProlabore } from "./DetalhesProlabore";
 import { DetalhesAdiantFornecedor } from "./DetalhesAdiantFornecedor";
 import { DetalhesAdiantCliente } from "./DetalhesAdiantCliente";
 import { DetalhesDuplicatas } from "./DetalhesDuplicatas";
+import { DetalhesGeral } from "./DetalhesGeral";
 import { FormasPagamentoSection } from "./FormasPagamentoSection";
 import { AutorizacaoSupervisorModal } from "./AutorizacaoSupervisorModal";
 import { initialFormState, sumFormas, type LancamentoFormState } from "./types";
+
 
 interface Props {
   open: boolean;
@@ -52,7 +54,30 @@ export function LancamentoCaixaModal({
     }
   }, [open, empresaAtual, filialAtual]);
 
-  const update = (patch: Partial<LancamentoFormState>) => setState((s) => ({ ...s, ...patch }));
+  const update = (patch: Partial<LancamentoFormState>) =>
+    setState((s) => {
+      // Limpeza ao trocar de Tipo de Lançamento: zera campos específicos das categorias.
+      if (patch.tipoLancamentoId !== undefined && patch.tipoLancamentoId !== s.tipoLancamentoId) {
+        return {
+          ...s,
+          ...patch,
+          socioId: "",
+          pessoaId: "",
+          solicitacaoAdiantamentoId: "",
+          referenciaMotivo: "",
+          valorDetalhe: 0,
+          multa: 0,
+          juros: 0,
+          descontos: 0,
+          totalGeral: 0,
+          parcelasSelecionadas: [],
+          adiantamentosSelecionados: [],
+          formas: { dinheiro: 0, cheque: 0, cartao: 0, adiantamento: 0 },
+        };
+      }
+      return { ...s, ...patch };
+    });
+
 
   const tipoSel = tiposLancamento.find((t) => t.id === state.tipoLancamentoId);
 
@@ -107,9 +132,55 @@ export function LancamentoCaixaModal({
     if (tipoSel.categoria === "ADIANT_FORNECEDOR") return salvarAdiantFornecedor();
     if (tipoSel.categoria === "ADIANT_CLIENTE") return iniciarSalvarAdiantCliente();
     if (tipoSel.categoria === "REC_DUPLICATA" || tipoSel.categoria === "PAG_DUPLICATA") return salvarBaixaDuplicatas();
+    if (tipoSel.categoria === "GERAL") return salvarGeral();
 
     toast({ title: "Tipo ainda não implementado", description: "Em breve.", variant: "destructive" });
   };
+
+  // ------ Despesa/Receita Geral ------
+  const salvarGeral = async () => {
+    if (!tipoSel) return;
+    if (state.valorDetalhe <= 0) {
+      toast({ title: "Valor deve ser maior que zero", variant: "destructive" }); return;
+    }
+    const totalCalc = state.valorDetalhe + (state.multa || 0) + (state.juros || 0) - (state.descontos || 0);
+    if (totalCalc < 0) {
+      toast({
+        title: "Descontos inválidos",
+        description: "Descontos não podem ser maiores que o valor total. Corrija e tente novamente.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (tipoSel.exigeCentroCusto && !state.centroCustoId) {
+      toast({ title: "Centro de Custo é obrigatório para este tipo", variant: "destructive" }); return;
+    }
+    const total = +totalCalc.toFixed(2);
+    const v = validarTotalFormas(total);
+    if (!v.ok || !v.forma) return;
+
+    setSaving(true);
+    try {
+      const numeroDocumento = `GER-${Date.now()}`;
+      const result = await financeiroMovimentacaoService.registrar({
+        contaFinanceiraId: state.contaFinanceiraId,
+        tipoLancamentoId: tipoSel.id,
+        formaPagamentoId: v.forma.id,
+        planoContaId: tipoSel.contaContabilId ?? null,
+        centroCustoId: state.centroCustoId || null,
+        dataMovimento: state.dataMovimento,
+        valor: total,
+        numeroDocumento,
+        historico: state.historico || tipoSel.descricao,
+        pessoaId: null,
+        formasPagamentoDetalhe: { ...state.formas },
+      }, { grupoId: grupoAtual?.id ?? "", empresaId: state.empresaId, filialId: state.filialId });
+      if (!result.sucesso) { toast({ title: "Erro", description: result.mensagem, variant: "destructive" }); return; }
+      toast({ title: "Lançamento registrado com sucesso" });
+      onSaved(); onClose();
+    } finally { setSaving(false); }
+  };
+
 
   // ------ Recebimento / Pagamento de Duplicatas ------
   const salvarBaixaDuplicatas = async () => {
@@ -314,6 +385,9 @@ export function LancamentoCaixaModal({
     if (tipoSel.categoria === "PAG_DUPLICATA") {
       return <DetalhesDuplicatas state={state} update={update} pessoas={pessoas} centrosCusto={centrosCusto} tipoConta="PAGAR" />;
     }
+    if (tipoSel.categoria === "GERAL") {
+      return <DetalhesGeral state={state} update={update} centrosCusto={centrosCusto} tipo={tipoSel} />;
+    }
     return (
       <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
         Detalhes para <strong>{tipoSel.descricao}</strong> ({tipoSel.categoria}) em desenvolvimento.
@@ -327,7 +401,9 @@ export function LancamentoCaixaModal({
     || tipoSel.categoria === "ADIANT_CLIENTE"
     || tipoSel.categoria === "REC_DUPLICATA"
     || tipoSel.categoria === "PAG_DUPLICATA"
-  ) ? state.valorDetalhe : undefined;
+    || tipoSel.categoria === "GERAL"
+  ) ? (tipoSel.categoria === "GERAL" ? state.totalGeral : state.valorDetalhe) : undefined;
+
 
   const adiantamentoReadOnly = tipoSel?.categoria === "REC_DUPLICATA" || tipoSel?.categoria === "PAG_DUPLICATA";
   const permitirParcial = tipoSel?.categoria === "REC_DUPLICATA" || tipoSel?.categoria === "PAG_DUPLICATA";
