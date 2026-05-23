@@ -73,11 +73,15 @@ export function DetalhesDuplicatas({ state, update, pessoas, centrosCusto, tipoC
     [parcelas, state.parcelasSelecionadas]
   );
 
-  // Mantém valorDetalhe = totalSelecionado quando muda seleção
+  // Sincroniza valorDetalhe com a soma das parcelas selecionadas (apenas referência);
+  // a validação real usa totalFormas (permitindo baixa parcial).
   useEffect(() => {
     update({ valorDetalhe: +totalSelecionado.toFixed(2) });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [totalSelecionado]);
+
+  const totalFormas = sumFormas(state.formas);
+  const dif = +(totalSelecionado - totalFormas).toFixed(2);
 
   const toggleParcela = (id: string, checked: boolean) => {
     const next = checked
