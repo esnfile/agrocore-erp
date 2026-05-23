@@ -117,6 +117,14 @@ export function LancamentoCaixaModal({
     if (!state.empresaId || !state.filialId || !state.contaFinanceiraId) {
       toast({ title: "Preencha empresa, filial e conta financeira", variant: "destructive" }); return false;
     }
+    if (tipoContaConta && !tipoSel.tipoConta.includes(tipoContaConta)) {
+      toast({
+        title: "Tipo incompatível com a conta",
+        description: `"${tipoSel.descricao}" não é permitido para ${tipoContaConta}. Aceitos: ${tipoSel.tipoConta.join(", ")}.`,
+        variant: "destructive",
+      });
+      return false;
+    }
     if (new Date(state.dataMovimento) > new Date(new Date().toISOString().slice(0, 10))) {
       toast({ title: "Data não pode ser futura", variant: "destructive" }); return false;
     }
