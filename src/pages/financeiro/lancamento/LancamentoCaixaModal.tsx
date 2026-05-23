@@ -56,30 +56,53 @@ export function LancamentoCaixaModal({
     }
   }, [open, empresaAtual, filialAtual]);
 
+  const resetDetalhes = (s: LancamentoFormState): LancamentoFormState => ({
+    ...s,
+    tipoLancamentoId: "",
+    socioId: "",
+    pessoaId: "",
+    solicitacaoAdiantamentoId: "",
+    referenciaMotivo: "",
+    valorDetalhe: 0,
+    multa: 0,
+    juros: 0,
+    descontos: 0,
+    totalGeral: 0,
+    parcelasSelecionadas: [],
+    adiantamentosSelecionados: [],
+    formas: { dinheiro: 0, cheque: 0, cartao: 0, adiantamento: 0 },
+  });
+
   const update = (patch: Partial<LancamentoFormState>) =>
     setState((s) => {
-      // Limpeza ao trocar de Tipo de Lançamento: zera campos específicos das categorias.
+      // Trocou a Conta Financeira: limpa tipo + todos os detalhes (mantém empresa/filial/data/centro/histórico)
+      if (patch.contaFinanceiraId !== undefined && patch.contaFinanceiraId !== s.contaFinanceiraId) {
+        return resetDetalhes({ ...s, ...patch });
+      }
+      // Trocou o Tipo de Lançamento: zera campos específicos das categorias.
       if (patch.tipoLancamentoId !== undefined && patch.tipoLancamentoId !== s.tipoLancamentoId) {
-        return {
-          ...s,
-          ...patch,
-          socioId: "",
-          pessoaId: "",
-          solicitacaoAdiantamentoId: "",
-          referenciaMotivo: "",
-          valorDetalhe: 0,
-          multa: 0,
-          juros: 0,
-          descontos: 0,
-          totalGeral: 0,
-          parcelasSelecionadas: [],
-          adiantamentosSelecionados: [],
-          formas: { dinheiro: 0, cheque: 0, cartao: 0, adiantamento: 0 },
-        };
+        return { ...resetDetalhes(s), ...patch };
       }
       return { ...s, ...patch };
     });
 
+
+  const contaSel = contasFinanceiras.find((c) => c.id === state.contaFinanceiraId);
+  const tipoContaConta = contaSel
+    ? financeiroTipoContas.find((tc) => tc.id === contaSel.tipoContaId)?.descricao ?? null
+    : null;
+
+  const tiposFiltrados = useMemo(
+    () =>
+      tiposLancamento.filter(
+        (t) =>
+          t.ativo &&
+          t.apareceNaPesquisa &&
+          categoriasImplementadas.includes(t.categoria) &&
+          (!tipoContaConta || t.tipoConta.includes(tipoContaConta)),
+      ),
+    [tiposLancamento, tipoContaConta],
+  );
 
   const tipoSel = tiposLancamento.find((t) => t.id === state.tipoLancamentoId);
 
