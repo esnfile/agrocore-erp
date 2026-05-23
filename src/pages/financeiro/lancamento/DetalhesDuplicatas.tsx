@@ -186,14 +186,20 @@ export function DetalhesDuplicatas({ state, update, pessoas, centrosCusto, tipoC
 
 
       {state.pessoaId && (
-        <div className="rounded-md border p-3 space-y-3">
+        <div className="rounded-md border bg-muted/30 p-3 space-y-3">
           {saldoAdiantTotal > 0 ? (
-            <div className="flex items-start gap-2 text-sm bg-warning/10 border border-warning/30 rounded-md px-3 py-2">
-              <AlertCircle className="h-4 w-4 mt-0.5 text-warning-foreground" />
-              <span>{relacao} possui adiantamento disponível: <strong>{fmt(saldoAdiantTotal)}</strong></span>
+            <div className="flex items-center gap-2 text-sm">
+              <CreditCard className="h-4 w-4 text-primary shrink-0" />
+              <span className="text-foreground">
+                {relacao} possui adiantamento disponível:{" "}
+                <strong className="text-primary">{fmt(saldoAdiantTotal)}</strong>
+              </span>
             </div>
           ) : (
-            <p className="text-xs text-muted-foreground">Sem adiantamento disponível para este {relacao.toLowerCase()}.</p>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <CreditCard className="h-4 w-4 shrink-0" />
+              <span>Sem adiantamento disponível para este {relacao.toLowerCase()}.</span>
+            </div>
           )}
 
           <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -204,7 +210,7 @@ export function DetalhesDuplicatas({ state, update, pessoas, centrosCusto, tipoC
               onClick={() => setModalAdiantOpen(true)}
               disabled={saldoAdiantTotal <= 0}
             >
-              <Wallet className="h-4 w-4 mr-1" /> Selecionar Adiantamento
+              <Wallet className={`h-4 w-4 mr-1 ${saldoAdiantTotal > 0 ? "text-primary" : ""}`} /> Selecionar Adiantamento
             </Button>
             <div className="text-sm">
               <span className="text-muted-foreground">Adiantamento Selecionado: </span>
