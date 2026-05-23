@@ -2817,6 +2817,8 @@ export const financeiroTipoLancamentoService = {
       existing.exigePlanoContas = data.exigePlanoContas ?? existing.exigePlanoContas;
       existing.apareceNaPesquisa = data.apareceNaPesquisa ?? existing.apareceNaPesquisa;
       existing.ativo = data.ativo ?? existing.ativo;
+      existing.contaContabilId = existing.exigePlanoContas ? (data.contaContabilId ?? null) : null;
+      existing.contaContabilNome = existing.exigePlanoContas ? (data.contaContabilNome ?? null) : null;
       existing.atualizadoEm = now;
       existing.atualizadoPor = "u1";
       return existing;
@@ -2835,6 +2837,8 @@ export const financeiroTipoLancamentoService = {
       exigePlanoContas: data.exigePlanoContas ?? false,
       apareceNaPesquisa: data.apareceNaPesquisa ?? true,
       ativo: data.ativo ?? true,
+      contaContabilId: (data.exigePlanoContas ?? false) ? (data.contaContabilId ?? null) : null,
+      contaContabilNome: (data.exigePlanoContas ?? false) ? (data.contaContabilNome ?? null) : null,
       criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
       deletadoEm: null, deletadoPor: null,
     };

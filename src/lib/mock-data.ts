@@ -2867,6 +2867,8 @@ export interface FinanceiroTipoLancamento {
   exigePlanoContas: boolean;
   apareceNaPesquisa: boolean;
   ativo: boolean;
+  contaContabilId?: string | null;
+  contaContabilNome?: string | null;
   criadoEm: string;
   criadoPor: string;
   atualizadoEm: string;
