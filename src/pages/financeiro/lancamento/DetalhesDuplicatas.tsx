@@ -175,12 +175,6 @@ export function DetalhesDuplicatas({ state, update, pessoas, centrosCusto, tipoC
               </span>
             </div>
           )}
-          {dif < -0.0001 && (
-            <div className="text-sm rounded-md px-3 py-2 bg-destructive/10 text-destructive flex items-start gap-2">
-              <AlertCircle className="h-4 w-4 mt-0.5" />
-              <span>TOTAL das formas ({fmt(totalFormas)}) é maior que o valor das parcelas ({fmt(totalSelecionado)}).</span>
-            </div>
-          )}
         </div>
       )}
 
