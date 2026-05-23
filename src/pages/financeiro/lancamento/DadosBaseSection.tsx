@@ -14,10 +14,11 @@ interface Props {
   filiais: Filial[];
   contasFinanceiras: FinanceiroContaFinanceira[];
   tiposLancamento: FinanceiroTipoLancamento[];
+  tipoDisabled?: boolean;
 }
 
-export function DadosBaseSection({ state, update, empresas, filiais, contasFinanceiras, tiposLancamento }: Props) {
-  const tiposVisiveis = tiposLancamento.filter((t) => t.ativo && t.apareceNaPesquisa);
+export function DadosBaseSection({ state, update, empresas, filiais, contasFinanceiras, tiposLancamento, tipoDisabled }: Props) {
+  const tiposVisiveis = tiposLancamento;
 
   return (
     <div className="space-y-4">
