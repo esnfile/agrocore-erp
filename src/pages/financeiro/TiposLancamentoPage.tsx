@@ -12,8 +12,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Lock } from "lucide-react";
-import { financeiroTipoLancamentoService, financeiroTipoContaService } from "@/lib/services";
-import type { FinanceiroTipoLancamento, FinanceiroTipoConta, TipoMovimentoFinanceiro, CategoriaTipoLancamento } from "@/lib/mock-data";
+import { financeiroTipoLancamentoService, financeiroTipoContaService, financeiroPlanoContaService } from "@/lib/services";
+import type { FinanceiroTipoLancamento, FinanceiroTipoConta, FinanceiroPlanoConta, TipoMovimentoFinanceiro, CategoriaTipoLancamento } from "@/lib/mock-data";
+
+const especieToTipoConta = (e: TipoMovimentoFinanceiro): "RECEITA" | "DESPESA" | null =>
+  e === "ENTRADA" ? "RECEITA" : e === "SAIDA" ? "DESPESA" : null;
 
 const CATEGORIAS: { value: CategoriaTipoLancamento; label: string }[] = [
   { value: "PROLABORE", label: "Prolabore" },
@@ -40,6 +43,7 @@ export default function TiposLancamentoPage() {
 
   const [data, setData] = useState<FinanceiroTipoLancamento[]>([]);
   const [tiposContas, setTiposContas] = useState<FinanceiroTipoConta[]>([]);
+  const [planoContas, setPlanoContas] = useState<FinanceiroPlanoConta[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -52,16 +56,18 @@ export default function TiposLancamentoPage() {
   const [categoria, setCategoria] = useState<CategoriaTipoLancamento>("GERAL");
   const [exigeCentroCusto, setExigeCentroCusto] = useState(false);
   const [exigePlanoContas, setExigePlanoContas] = useState(false);
+  const [contaContabilId, setContaContabilId] = useState<string | null>(null);
   const [apareceNaPesquisa, setApareceNaPesquisa] = useState(true);
   const [ativo, setAtivo] = useState(true);
 
   const carregar = useCallback(async () => {
     setLoading(true);
-    const [d, tc] = await Promise.all([
+    const [d, tc, pc] = await Promise.all([
       financeiroTipoLancamentoService.listar(empresaId, filialId),
       financeiroTipoContaService.listar(empresaId, filialId),
+      financeiroPlanoContaService.listar(empresaId, filialId),
     ]);
-    setData(d); setTiposContas(tc);
+    setData(d); setTiposContas(tc); setPlanoContas(pc);
     setLoading(false);
   }, [empresaId, filialId]);
 
