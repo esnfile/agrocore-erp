@@ -279,7 +279,6 @@ export default function TiposLancamentoPage() {
           )}
           <div className="grid grid-cols-2 gap-4 pt-2">
             <div className="flex items-center gap-3">
-            <div className="flex items-center gap-3">
               <Switch checked={apareceNaPesquisa} onCheckedChange={setApareceNaPesquisa} />
               <Label>Aparece na Pesquisa</Label>
             </div>
