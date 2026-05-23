@@ -3084,7 +3084,44 @@ export const financeiroTiposLancamento: FinanceiroTipoLancamento[] = [
     atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1",
     deletadoEm: null, deletadoPor: null,
   },
+  {
+    id: "ftl11", grupoId: "g1", empresaId: null, filialId: null,
+    descricao: "ENERGIA ELÉTRICA",
+    tipoMovimento: "SAIDA", tipoConta: ["CAIXA", "BANCO"],
+    categoria: "GERAL",
+    origemSistema: false, permiteEdicao: true, permiteExclusao: true,
+    exigeCentroCusto: false, exigePlanoContas: true, apareceNaPesquisa: true, ativo: true,
+    contaContabilId: "fpc5", contaContabilNome: "2.3 - Despesa Administrativa",
+    criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "ftl12", grupoId: "g1", empresaId: null, filialId: null,
+    descricao: "MANUTENÇÃO DE MÁQUINAS",
+    tipoMovimento: "SAIDA", tipoConta: ["CAIXA", "BANCO"],
+    categoria: "GERAL",
+    origemSistema: false, permiteEdicao: true, permiteExclusao: true,
+    exigeCentroCusto: true, exigePlanoContas: true, apareceNaPesquisa: true, ativo: true,
+    contaContabilId: "fpc3", contaContabilNome: "2.1 - Despesa com Insumos",
+    criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "ftl13", grupoId: "g1", empresaId: null, filialId: null,
+    descricao: "COMBUSTÍVEL",
+    tipoMovimento: "SAIDA", tipoConta: ["CAIXA", "BANCO"],
+    categoria: "GERAL",
+    origemSistema: false, permiteEdicao: true, permiteExclusao: true,
+    exigeCentroCusto: true, exigePlanoContas: true, apareceNaPesquisa: true, ativo: true,
+    contaContabilId: "fpc4", contaContabilNome: "2.2 - Despesa com Frete",
+    criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
 ];
+
 
 // ---- Forma de Pagamento (tabela) ----
 export type TipoFormaPagamento = "DINHEIRO" | "BANCARIO" | "ELETRONICO";
