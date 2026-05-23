@@ -118,11 +118,31 @@ export function LancamentoCaixaModal({
     if (state.parcelasSelecionadas.length === 0) {
       toast({ title: "Selecione ao menos uma duplicata", variant: "destructive" }); return;
     }
-    if (state.valorDetalhe <= 0) {
-      toast({ title: "Valor inválido", variant: "destructive" }); return;
+
+    // Validação específica de duplicatas (permite baixa parcial)
+    const totalParcelas = state.valorDetalhe; // sincronizado em DetalhesDuplicatas com soma dos saldos
+    if (totalFormas <= 0.0001) {
+      toast({ title: "Informe ao menos um valor em Formas de Pagamento", variant: "destructive" }); return;
     }
-    const v = validarTotalFormas(state.valorDetalhe);
-    if (!v.ok || !v.forma) return;
+    if (totalFormas > totalParcelas + 0.01) {
+      toast({ title: "TOTAL não pode ser maior que o valor das parcelas", variant: "destructive" }); return;
+    }
+
+    // Resolve forma de pagamento a partir dos campos preenchidos
+    const candidatos: [number, FinanceiroFormaPagto | undefined, string][] = [
+      [state.formas.dinheiro, findForma("Dinheiro"), "Dinheiro"],
+      [state.formas.cheque, findForma("Cheque"), "Cheque"],
+      [state.formas.cartao, findForma("Cartão") ?? findForma("Cartao"), "Cartão"],
+      [state.formas.adiantamento, findForma("Adiantamento"), "Adiantamento"],
+    ];
+    const naoZero = candidatos.filter(([v]) => v > 0);
+    const forma =
+      (naoZero.length > 1 ? findForma("Múltiplo") ?? findForma("Multiplo") : undefined)
+      ?? naoZero[0]?.[1];
+    if (!forma) {
+      toast({ title: `Forma de pagamento "${naoZero[0]?.[2] ?? ""}" não cadastrada`, variant: "destructive" });
+      return;
+    }
 
     setSaving(true);
     try {
@@ -131,27 +151,31 @@ export function LancamentoCaixaModal({
       const result = await financeiroMovimentacaoService.registrarBaixaDuplicatas({
         contaFinanceiraId: state.contaFinanceiraId,
         tipoLancamentoId: tipoSel.id,
-        formaPagamentoId: v.forma.id,
+        formaPagamentoId: forma.id,
         centroCustoId: state.centroCustoId || null,
         dataMovimento: state.dataMovimento,
         pessoaId: state.pessoaId,
         parcelaIds: state.parcelasSelecionadas,
-        valorTotal: state.valorDetalhe,
+        valorTotal: +totalFormas.toFixed(2),
         numeroDocumento,
         historico: state.historico || (tipoSel.categoria === "REC_DUPLICATA" ? "Recebimento de duplicata" : "Pagamento de duplicata"),
         formasPagamentoDetalhe: { ...state.formas },
         adiantamentosUsados: state.adiantamentosSelecionados,
       }, { grupoId: grupoAtual?.id ?? "", empresaId: state.empresaId, filialId: state.filialId });
       if (!result.sucesso) { toast({ title: "Erro", description: result.mensagem, variant: "destructive" }); return; }
+      const parcial = totalFormas + 0.01 < totalParcelas;
+      const saldoRest = +(totalParcelas - totalFormas).toFixed(2);
+      const fmtBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
       toast({
         title: tipoSel.categoria === "REC_DUPLICATA" ? "Recebimento registrado" : "Pagamento registrado",
-        description: `Duplicatas baixadas: ${result.parcelasLiquidadas}${
-          state.formas.adiantamento > 0 ? ` — Adiantamento utilizado: ${state.formas.adiantamento.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : ""
-        }`,
+        description: parcial
+          ? `${result.parcelasLiquidadas} duplicata(s) baixada(s) — última ficou PARCIAL (saldo: ${fmtBRL(saldoRest)}).`
+          : `Duplicatas quitadas com sucesso (${result.parcelasLiquidadas} baixada(s)).`,
       });
       onSaved(); onClose();
     } finally { setSaving(false); }
   };
+
 
   // ------ Prolabore ------
   const salvarProlabore = async () => {

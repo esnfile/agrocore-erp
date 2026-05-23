@@ -14,6 +14,7 @@ import {
   financeiroParcelaService, financeiroAdiantamentoService,
 } from "@/lib/services";
 import type { LancamentoFormState } from "./types";
+import { sumFormas } from "./types";
 import { SelecionarAdiantamentoModal } from "./SelecionarAdiantamentoModal";
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -72,11 +73,15 @@ export function DetalhesDuplicatas({ state, update, pessoas, centrosCusto, tipoC
     [parcelas, state.parcelasSelecionadas]
   );
 
-  // Mantém valorDetalhe = totalSelecionado quando muda seleção
+  // Sincroniza valorDetalhe com a soma das parcelas selecionadas (apenas referência);
+  // a validação real usa totalFormas (permitindo baixa parcial).
   useEffect(() => {
     update({ valorDetalhe: +totalSelecionado.toFixed(2) });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [totalSelecionado]);
+
+  const totalFormas = sumFormas(state.formas);
+  const dif = +(totalSelecionado - totalFormas).toFixed(2);
 
   const toggleParcela = (id: string, checked: boolean) => {
     const next = checked
@@ -156,11 +161,29 @@ export function DetalhesDuplicatas({ state, update, pessoas, centrosCusto, tipoC
       )}
 
       {state.parcelasSelecionadas.length > 0 && (
-        <div className="flex items-center justify-between rounded-md bg-muted/40 px-3 py-2">
-          <span className="text-sm font-medium">TOTAL SELECIONADO</span>
-          <span className="text-lg font-mono font-bold">{fmt(totalSelecionado)}</span>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between rounded-md bg-muted/40 px-3 py-2">
+            <span className="text-sm font-medium">TOTAL SELECIONADO</span>
+            <span className="text-lg font-mono font-bold">{fmt(totalSelecionado)}</span>
+          </div>
+          {totalFormas > 0 && dif > 0.0001 && (
+            <div className="text-sm rounded-md px-3 py-2 bg-warning/10 border border-warning/30 text-warning-foreground flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 mt-0.5" />
+              <span>
+                Baixa <strong>parcial</strong>: pagando <strong>{fmt(totalFormas)}</strong> de {fmt(totalSelecionado)}.
+                Saldo restante de <strong>{fmt(dif)}</strong> permanecerá como PARCIAL na última parcela liquidada.
+              </span>
+            </div>
+          )}
+          {dif < -0.0001 && (
+            <div className="text-sm rounded-md px-3 py-2 bg-destructive/10 text-destructive flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 mt-0.5" />
+              <span>TOTAL das formas ({fmt(totalFormas)}) é maior que o valor das parcelas ({fmt(totalSelecionado)}).</span>
+            </div>
+          )}
         </div>
       )}
+
 
       {state.pessoaId && (
         <div className="rounded-md border p-3 space-y-3">
