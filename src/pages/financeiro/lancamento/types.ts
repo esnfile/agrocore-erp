@@ -29,6 +29,11 @@ export interface LancamentoFormState {
   // Duplicatas (REC/PAG_DUPLICATA)
   parcelasSelecionadas: string[];
   adiantamentosSelecionados: AdiantamentoUso[];
+  // Geral (categoria GERAL) — multa/juros somam, descontos subtrai. totalGeral é derivado.
+  multa: number;
+  juros: number;
+  descontos: number;
+  totalGeral: number;
   // Formas de pagamento
   formas: FormasPagamentoState;
   // Histórico
@@ -49,6 +54,10 @@ export const initialFormState = (empresaId: string, filialId: string): Lancament
   centroCustoId: "",
   parcelasSelecionadas: [],
   adiantamentosSelecionados: [],
+  multa: 0,
+  juros: 0,
+  descontos: 0,
+  totalGeral: 0,
   formas: { dinheiro: 0, cheque: 0, cartao: 0, adiantamento: 0 },
   historico: "",
 });
@@ -62,4 +71,6 @@ export const categoriasImplementadas: CategoriaTipoLancamento[] = [
   "ADIANT_CLIENTE",
   "REC_DUPLICATA",
   "PAG_DUPLICATA",
+  "GERAL",
 ];
+
