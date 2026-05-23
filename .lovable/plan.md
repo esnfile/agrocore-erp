@@ -1,47 +1,76 @@
-## Correção: Permitir Baixa Parcial de Duplicatas
+# Fase 1 — Conta Contábil no Tipo de Lançamento
 
-### Diagnóstico
+Pré-requisito para o futuro `DetalhesGeral`. Adiciona vínculo opcional/obrigatório entre `FinanceiroTipoLancamento` e `FinanceiroPlanoConta`, com filtro dinâmico por espécie (Entrada/Saída).
 
-Hoje a UI força `valorDetalhe = totalSelecionado` (soma dos saldos das parcelas marcadas) via `useEffect` em `DetalhesDuplicatas.tsx`, e `validarTotalFormas` exige `totalFormas === valorDetalhe`. Isso impede qualquer baixa parcial. O service `registrarBaixaDuplicatas` já distribui sequencialmente por vencimento e suporta parcial — nenhuma mudança lá.
+## Escopo
 
-### Mudanças (apenas UI / handler, sem mexer no service)
+Apenas o modal/cadastro de Tipos de Lançamento (`src/pages/financeiro/TiposLancamentoPage.tsx`) e os tipos/serviços que o suportam. Nenhuma alteração em telas de lançamento de caixa, duplicatas, prolabore ou adiantamentos.
 
-**1. `src/pages/financeiro/lancamento/DetalhesDuplicatas.tsx`**
-- Remover o `useEffect` que sobrescreve `valorDetalhe` a cada mudança de seleção.
-- Manter `totalSelecionado` apenas como referência exibida ("Valor das Parcelas").
-- Adicionar bloco visual abaixo do TOTAL:
-  - Aviso amarelo (warning) quando `totalFormas > 0 && totalFormas < totalSelecionado` mostrando "Baixa parcial: pagando X de Y. Saldo restante: Z ficará como PARCIAL na última parcela."
-  - Aviso destrutivo quando `totalFormas > totalSelecionado`.
-- Inicializar `valorDetalhe` com `totalSelecionado` apenas na primeira marcação de cada parcela (carregar saldo nas formas automaticamente é mantido — comportamento atual de UX), mas o usuário pode editar livremente as formas para um valor menor.
+## Mudanças nos dados (mock)
 
-**2. `src/pages/financeiro/lancamento/LancamentoCaixaModal.tsx` — `salvarBaixaDuplicatas`**
-Substituir a chamada genérica `validarTotalFormas(state.valorDetalhe)` por validação específica para duplicatas:
+`src/lib/mock-data.ts` — interface `FinanceiroTipoLancamento`:
 
-```text
-totalFormas = sum(formas)
-totalParcelas = soma dos saldos das parcelasSelecionadas
-- se totalFormas <= 0       → erro "Informe ao menos um valor em Formas de Pagamento"
-- se totalFormas > totalParcelas + 0.01 → erro "TOTAL não pode ser maior que o valor das parcelas"
-- caso contrário            → permitido (igual ou parcial)
-```
+- Adicionar `contaContabilId?: string`
+- Adicionar `contaContabilNome?: string` (denormalizado para exibição rápida)
 
-Enviar `valorTotal: totalFormas` (não `state.valorDetalhe`) para `registrarBaixaDuplicatas`. A distribuição sequencial do service automaticamente deixa a última parcela atingida em `PARCIAL`.
+Registros mock existentes ficam com os campos `undefined` (compatível).
 
-**3. Toast de sucesso**
-Após o save, consultar `result.parcelasLiquidadas` (e o array detalhado já retornado pela movimentação) para diferenciar mensagem:
-- Total: "Duplicatas quitadas com sucesso (N baixadas)."
-- Parcial: "N duplicatas baixadas — última ficou PARCIAL (saldo restante: R$ X)."
+## Mapeamento Espécie ↔ Tipo da Conta
 
-Para isso, expandir o retorno de `registrarBaixaDuplicatas` para incluir `parcelasLiquidadasDetalhe` (já existe internamente como `parcelasLiquidadas` no objeto `mov`) — pequena mudança não-quebrante: adicionar campo opcional ao tipo de retorno e popular com o array já calculado. Nenhum caller existente é afetado.
+`FinanceiroPlanoConta.tipo` hoje é `"RECEITA" | "DESPESA"`. O Tipo de Lançamento usa `TipoMovimentoFinanceiro = "ENTRADA" | "SAIDA" | "TRANSFERENCIA"`. Mapeamento usado no filtro:
 
-### Casos de teste (após mudança)
-- TOTAL=80, Parcelas=120 → salva, última fica PARCIAL, toast parcial.
-- TOTAL=120, Parcelas=120 → salva, todas PAGO, toast total.
-- TOTAL=150, Parcelas=120 → bloqueia com erro.
-- TOTAL=0 → bloqueia com erro.
-- Adiantamento entra normalmente como uma das formas (continua read-only somando os selecionados).
+- `ENTRADA` → mostra contas com `tipo = "RECEITA"`
+- `SAIDA` → mostra contas com `tipo = "DESPESA"`
+- `TRANSFERENCIA` → campo Conta Contábil não se aplica; se `exigePlanoContas` estiver marcado junto com `TRANSFERENCIA`, exibir aviso e tratar como não aplicável (campo oculto).
 
-### Garantias de não-regressão
-- `validarTotalFormas` continua intocado e segue sendo usado por PROLABORE, ADIANT_FORNECEDOR, ADIANT_CLIENTE (que exigem igualdade).
-- Service `registrarBaixaDuplicatas` permanece igual; só o `valorTotal` enviado muda (já era validado contra `somaSaldos`).
-- Rastreabilidade (`parcelasLiquidadas`, `adiantamentosUsados`) intacta.
+Filtro final no dropdown: `ativo === true` + tipo compatível com a espécie atual.
+
+## UI — `TiposLancamentoPage.tsx`
+
+1. Novo estado: `contaContabilId: string | null`.
+2. Carregar lista de planos de contas via `financeiroPlanoContaService.listar(empresaId, filialId)` no `carregar()`.
+3. Renderizar o campo "Qual Conta Contábil *" logo abaixo do toggle "Exige Plano de Contas" e antes do toggle "Aparece na Pesquisa", apenas quando:
+  - `exigePlanoContas === true` E
+  - `tipoMovimento !== "TRANSFERENCIA"`
+4. Componente: `Select` (shadcn) com opções `"{codigo} - {nome}"`, placeholder "Selecione uma conta...".
+5. Comportamentos reativos:
+  - Ao desmarcar `exigePlanoContas` → limpa `contaContabilId`.
+  - Ao mudar `tipoMovimento` → se a conta atual não pertence mais ao tipo compatível, limpa `contaContabilId`.
+6. `openEdit` carrega `contaContabilId` da linha; `reset` zera.
+
+## Validação ao salvar
+
+Em `handleSave`, antes de chamar o service:
+
+- Se `exigePlanoContas && tipoMovimento !== "TRANSFERENCIA"`:
+  - Bloquear se `!contaContabilId` → toast "Selecione uma Conta Contábil".
+  - Bloquear se a conta selecionada não corresponder ao tipo mapeado da espécie → toast "Conta Contábil não compatível com a Espécie".
+- Resolver `contaContabilNome` a partir da lista carregada e enviar ambos no payload.
+
+## Service
+
+`financeiroTipoLancamentoService.salvar` em `src/lib/services.ts`:
+
+- Persistir `contaContabilId` e `contaContabilNome` (tanto no update quanto no create), aceitando `undefined`/`null` para limpar.
+
+## Tabela (listagem)
+
+Sem nova coluna nesta fase para não poluir. O vínculo aparece apenas no modal de edição (mantém a régua atual de 11 colunas).
+
+## Checklist  
+
+
+- Campos adicionados em `FinanceiroTipoLancamento`
+- Service persiste os dois campos
+- Dropdown renderiza condicionalmente
+- Filtro por espécie (RECEITA/DESPESA) funcionando
+- Limpeza automática ao mudar espécie ou desmarcar flag
+- Validação obrigatória + cruzada no salvar
+- Edição preserva valor existente
+- Sem alterações em outras telas
+
+Quando desmarcar o toogle Exige plano de contas, precisa zerar o dropdown Conta contabel e ocultar   
+Fora de escopo (próxima fase)
+
+- `DetalhesGeral` consumindo `contaContabilId` para pré-preencher/lockar a conta no lançamento.
+- Hierarquia Grupo/SubGrupo/Plano de Contas.
