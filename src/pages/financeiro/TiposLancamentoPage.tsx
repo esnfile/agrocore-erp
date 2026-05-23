@@ -76,6 +76,7 @@ export default function TiposLancamentoPage() {
   const reset = () => {
     setDescricao(""); setTipoMovimento("ENTRADA"); setTipoConta([]);
     setCategoria("GERAL"); setExigeCentroCusto(false); setExigePlanoContas(false);
+    setContaContabilId(null);
     setApareceNaPesquisa(true); setAtivo(true); setEditId(null);
   };
 
@@ -85,6 +86,7 @@ export default function TiposLancamentoPage() {
     setEditId(row.id); setDescricao(row.descricao); setTipoMovimento(row.tipoMovimento);
     setTipoConta(row.tipoConta); setCategoria(row.categoria);
     setExigeCentroCusto(row.exigeCentroCusto); setExigePlanoContas(row.exigePlanoContas);
+    setContaContabilId(row.contaContabilId ?? null);
     setApareceNaPesquisa(row.apareceNaPesquisa); setAtivo(row.ativo);
     setModalOpen(true);
   };
@@ -93,13 +95,39 @@ export default function TiposLancamentoPage() {
     setTipoConta((prev) => prev.includes(desc) ? prev.filter((t) => t !== desc) : [...prev, desc]);
   };
 
+  const tipoContaEsperado = especieToTipoConta(tipoMovimento);
+  const contasFiltradas = planoContas.filter((c) => c.ativo && tipoContaEsperado && c.tipo === tipoContaEsperado);
+  const mostrarContaContabil = exigePlanoContas && tipoContaEsperado !== null;
+
+  // Limpa conta quando flag é desmarcada
+  useEffect(() => {
+    if (!exigePlanoContas) setContaContabilId(null);
+  }, [exigePlanoContas]);
+
+  // Limpa conta quando espécie muda e conta atual não é mais compatível
+  useEffect(() => {
+    if (!contaContabilId) return;
+    const conta = planoContas.find((c) => c.id === contaContabilId);
+    if (!conta || conta.tipo !== tipoContaEsperado) setContaContabilId(null);
+  }, [tipoMovimento, planoContas]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleSave = async () => {
     if (!descricao) { toast({ title: "Preencha a descrição", variant: "destructive" }); return; }
+    if (mostrarContaContabil) {
+      if (!contaContabilId) { toast({ title: "Selecione uma Conta Contábil", variant: "destructive" }); return; }
+      const conta = planoContas.find((c) => c.id === contaContabilId);
+      if (!conta || conta.tipo !== tipoContaEsperado) {
+        toast({ title: "Conta Contábil não compatível com a Espécie", variant: "destructive" }); return;
+      }
+    }
     setSaving(true);
     try {
+      const contaSel = mostrarContaContabil ? planoContas.find((c) => c.id === contaContabilId) : null;
       await financeiroTipoLancamentoService.salvar({
         id: editId ?? undefined, descricao, tipoMovimento, tipoConta, categoria,
         exigeCentroCusto, exigePlanoContas, apareceNaPesquisa, ativo,
+        contaContabilId: contaSel?.id ?? null,
+        contaContabilNome: contaSel ? `${contaSel.codigo} - ${contaSel.descricao}` : null,
       }, { grupoId, empresaId, filialId });
       toast({ title: "Tipo de lançamento salvo" });
       setModalOpen(false); carregar();
