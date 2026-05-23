@@ -167,8 +167,8 @@ export function DetalhesDuplicatas({ state, update, pessoas, centrosCusto, tipoC
             <span className="text-lg font-mono font-bold">{fmt(totalSelecionado)}</span>
           </div>
           {totalFormas > 0 && dif > 0.0001 && (
-            <div className="text-sm rounded-md px-3 py-2 bg-warning/10 border border-warning/30 text-warning-foreground flex items-start gap-2">
-              <AlertCircle className="h-4 w-4 mt-0.5" />
+            <div className="text-sm rounded-md px-3 py-2 bg-warning/10 border border-warning/30 text-foreground flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 mt-0.5 text-warning shrink-0" />
               <span>
                 Baixa <strong>parcial</strong>: pagando <strong>{fmt(totalFormas)}</strong> de {fmt(totalSelecionado)}.
                 Saldo restante de <strong>{fmt(dif)}</strong> permanecerá como PARCIAL na última parcela liquidada.

@@ -330,6 +330,7 @@ export function LancamentoCaixaModal({
   ) ? state.valorDetalhe : undefined;
 
   const adiantamentoReadOnly = tipoSel?.categoria === "REC_DUPLICATA" || tipoSel?.categoria === "PAG_DUPLICATA";
+  const permitirParcial = tipoSel?.categoria === "REC_DUPLICATA" || tipoSel?.categoria === "PAG_DUPLICATA";
 
   const clienteSel = pessoas.find((p) => p.id === state.pessoaId);
 
@@ -350,7 +351,7 @@ export function LancamentoCaixaModal({
           {renderDetalhes()}
 
           <div className="border-t" />
-          <FormasPagamentoSection state={state} update={update} valorEsperado={valorEsperado} adiantamentoReadOnly={adiantamentoReadOnly} />
+          <FormasPagamentoSection state={state} update={update} valorEsperado={valorEsperado} adiantamentoReadOnly={adiantamentoReadOnly} permitirParcial={permitirParcial} />
 
           <div className="border-t" />
           <div className="space-y-1.5">
