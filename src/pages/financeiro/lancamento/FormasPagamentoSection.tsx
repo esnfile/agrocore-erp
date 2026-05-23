@@ -49,10 +49,10 @@ export function FormasPagamentoSection({ state, update, valorEsperado, adiantame
         <span className="text-lg font-mono font-bold">{fmt(total)}</span>
       </div>
       {mostrarAviso && (
-        <div className={`text-sm rounded-md px-3 py-2 ${dif < 0 ? "bg-destructive/10 text-destructive" : "bg-warning/10 text-warning-foreground"}`}>
-          {dif < 0
-            ? `Soma das formas (${fmt(total)}) é menor que o valor informado (${fmt(valorEsperado)}). Diferença: ${fmt(Math.abs(dif))}`
-            : `Soma das formas (${fmt(total)}) é maior que o valor informado (${fmt(valorEsperado)}). Diferença: ${fmt(dif)}`}
+        <div className={`text-sm rounded-md px-3 py-2 ${dif > 0 ? "bg-destructive/10 text-destructive" : "bg-warning/10 text-warning-foreground"}`}>
+          {dif > 0
+            ? `Soma das formas (${fmt(total)}) é maior que o valor informado (${fmt(valorEsperado)}). Diferença: ${fmt(dif)}`
+            : `Soma das formas (${fmt(total)}) é menor que o valor informado (${fmt(valorEsperado)}). Diferença: ${fmt(Math.abs(dif))}`}
         </div>
       )}
     </div>
