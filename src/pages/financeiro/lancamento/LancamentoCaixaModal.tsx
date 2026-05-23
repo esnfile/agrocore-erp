@@ -132,9 +132,55 @@ export function LancamentoCaixaModal({
     if (tipoSel.categoria === "ADIANT_FORNECEDOR") return salvarAdiantFornecedor();
     if (tipoSel.categoria === "ADIANT_CLIENTE") return iniciarSalvarAdiantCliente();
     if (tipoSel.categoria === "REC_DUPLICATA" || tipoSel.categoria === "PAG_DUPLICATA") return salvarBaixaDuplicatas();
+    if (tipoSel.categoria === "GERAL") return salvarGeral();
 
     toast({ title: "Tipo ainda não implementado", description: "Em breve.", variant: "destructive" });
   };
+
+  // ------ Despesa/Receita Geral ------
+  const salvarGeral = async () => {
+    if (!tipoSel) return;
+    if (state.valorDetalhe <= 0) {
+      toast({ title: "Valor deve ser maior que zero", variant: "destructive" }); return;
+    }
+    const totalCalc = state.valorDetalhe + (state.multa || 0) + (state.juros || 0) - (state.descontos || 0);
+    if (totalCalc < 0) {
+      toast({
+        title: "Descontos inválidos",
+        description: "Descontos não podem ser maiores que o valor total. Corrija e tente novamente.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (tipoSel.exigeCentroCusto && !state.centroCustoId) {
+      toast({ title: "Centro de Custo é obrigatório para este tipo", variant: "destructive" }); return;
+    }
+    const total = +totalCalc.toFixed(2);
+    const v = validarTotalFormas(total);
+    if (!v.ok || !v.forma) return;
+
+    setSaving(true);
+    try {
+      const numeroDocumento = `GER-${Date.now()}`;
+      const result = await financeiroMovimentacaoService.registrar({
+        contaFinanceiraId: state.contaFinanceiraId,
+        tipoLancamentoId: tipoSel.id,
+        formaPagamentoId: v.forma.id,
+        planoContaId: tipoSel.contaContabilId ?? null,
+        centroCustoId: state.centroCustoId || null,
+        dataMovimento: state.dataMovimento,
+        valor: total,
+        numeroDocumento,
+        historico: state.historico || tipoSel.descricao,
+        pessoaId: null,
+        formasPagamentoDetalhe: { ...state.formas },
+      }, { grupoId: grupoAtual?.id ?? "", empresaId: state.empresaId, filialId: state.filialId });
+      if (!result.sucesso) { toast({ title: "Erro", description: result.mensagem, variant: "destructive" }); return; }
+      toast({ title: "Lançamento registrado com sucesso" });
+      onSaved(); onClose();
+    } finally { setSaving(false); }
+  };
+
 
   // ------ Recebimento / Pagamento de Duplicatas ------
   const salvarBaixaDuplicatas = async () => {
