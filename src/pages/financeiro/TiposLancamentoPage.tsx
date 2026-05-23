@@ -12,8 +12,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Lock } from "lucide-react";
-import { financeiroTipoLancamentoService, financeiroTipoContaService } from "@/lib/services";
-import type { FinanceiroTipoLancamento, FinanceiroTipoConta, TipoMovimentoFinanceiro, CategoriaTipoLancamento } from "@/lib/mock-data";
+import { financeiroTipoLancamentoService, financeiroTipoContaService, financeiroPlanoContaService } from "@/lib/services";
+import type { FinanceiroTipoLancamento, FinanceiroTipoConta, FinanceiroPlanoConta, TipoMovimentoFinanceiro, CategoriaTipoLancamento } from "@/lib/mock-data";
+
+const especieToTipoConta = (e: TipoMovimentoFinanceiro): "RECEITA" | "DESPESA" | null =>
+  e === "ENTRADA" ? "RECEITA" : e === "SAIDA" ? "DESPESA" : null;
 
 const CATEGORIAS: { value: CategoriaTipoLancamento; label: string }[] = [
   { value: "PROLABORE", label: "Prolabore" },
@@ -40,6 +43,7 @@ export default function TiposLancamentoPage() {
 
   const [data, setData] = useState<FinanceiroTipoLancamento[]>([]);
   const [tiposContas, setTiposContas] = useState<FinanceiroTipoConta[]>([]);
+  const [planoContas, setPlanoContas] = useState<FinanceiroPlanoConta[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -52,16 +56,18 @@ export default function TiposLancamentoPage() {
   const [categoria, setCategoria] = useState<CategoriaTipoLancamento>("GERAL");
   const [exigeCentroCusto, setExigeCentroCusto] = useState(false);
   const [exigePlanoContas, setExigePlanoContas] = useState(false);
+  const [contaContabilId, setContaContabilId] = useState<string | null>(null);
   const [apareceNaPesquisa, setApareceNaPesquisa] = useState(true);
   const [ativo, setAtivo] = useState(true);
 
   const carregar = useCallback(async () => {
     setLoading(true);
-    const [d, tc] = await Promise.all([
+    const [d, tc, pc] = await Promise.all([
       financeiroTipoLancamentoService.listar(empresaId, filialId),
       financeiroTipoContaService.listar(empresaId, filialId),
+      financeiroPlanoContaService.listar(empresaId, filialId),
     ]);
-    setData(d); setTiposContas(tc);
+    setData(d); setTiposContas(tc); setPlanoContas(pc);
     setLoading(false);
   }, [empresaId, filialId]);
 
@@ -70,6 +76,7 @@ export default function TiposLancamentoPage() {
   const reset = () => {
     setDescricao(""); setTipoMovimento("ENTRADA"); setTipoConta([]);
     setCategoria("GERAL"); setExigeCentroCusto(false); setExigePlanoContas(false);
+    setContaContabilId(null);
     setApareceNaPesquisa(true); setAtivo(true); setEditId(null);
   };
 
@@ -79,6 +86,7 @@ export default function TiposLancamentoPage() {
     setEditId(row.id); setDescricao(row.descricao); setTipoMovimento(row.tipoMovimento);
     setTipoConta(row.tipoConta); setCategoria(row.categoria);
     setExigeCentroCusto(row.exigeCentroCusto); setExigePlanoContas(row.exigePlanoContas);
+    setContaContabilId(row.contaContabilId ?? null);
     setApareceNaPesquisa(row.apareceNaPesquisa); setAtivo(row.ativo);
     setModalOpen(true);
   };
@@ -87,13 +95,39 @@ export default function TiposLancamentoPage() {
     setTipoConta((prev) => prev.includes(desc) ? prev.filter((t) => t !== desc) : [...prev, desc]);
   };
 
+  const tipoContaEsperado = especieToTipoConta(tipoMovimento);
+  const contasFiltradas = planoContas.filter((c) => c.ativo && tipoContaEsperado && c.tipo === tipoContaEsperado);
+  const mostrarContaContabil = exigePlanoContas && tipoContaEsperado !== null;
+
+  // Limpa conta quando flag é desmarcada
+  useEffect(() => {
+    if (!exigePlanoContas) setContaContabilId(null);
+  }, [exigePlanoContas]);
+
+  // Limpa conta quando espécie muda e conta atual não é mais compatível
+  useEffect(() => {
+    if (!contaContabilId) return;
+    const conta = planoContas.find((c) => c.id === contaContabilId);
+    if (!conta || conta.tipo !== tipoContaEsperado) setContaContabilId(null);
+  }, [tipoMovimento, planoContas]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleSave = async () => {
     if (!descricao) { toast({ title: "Preencha a descrição", variant: "destructive" }); return; }
+    if (mostrarContaContabil) {
+      if (!contaContabilId) { toast({ title: "Selecione uma Conta Contábil", variant: "destructive" }); return; }
+      const conta = planoContas.find((c) => c.id === contaContabilId);
+      if (!conta || conta.tipo !== tipoContaEsperado) {
+        toast({ title: "Conta Contábil não compatível com a Espécie", variant: "destructive" }); return;
+      }
+    }
     setSaving(true);
     try {
+      const contaSel = mostrarContaContabil ? planoContas.find((c) => c.id === contaContabilId) : null;
       await financeiroTipoLancamentoService.salvar({
         id: editId ?? undefined, descricao, tipoMovimento, tipoConta, categoria,
         exigeCentroCusto, exigePlanoContas, apareceNaPesquisa, ativo,
+        contaContabilId: contaSel?.id ?? null,
+        contaContabilNome: contaSel ? `${contaSel.codigo} - ${contaSel.descricao}` : null,
       }, { grupoId, empresaId, filialId });
       toast({ title: "Tipo de lançamento salvo" });
       setModalOpen(false); carregar();
@@ -224,6 +258,26 @@ export default function TiposLancamentoPage() {
               <Switch checked={exigePlanoContas} onCheckedChange={setExigePlanoContas} />
               <Label>Exige Plano de Contas</Label>
             </div>
+          </div>
+          {mostrarContaContabil && (
+            <div className="space-y-1.5">
+              <Label>Qual Conta Contábil <span className="text-destructive">*</span></Label>
+              <Select value={contaContabilId ?? ""} onValueChange={(v) => setContaContabilId(v || null)}>
+                <SelectTrigger><SelectValue placeholder="Selecione uma conta..." /></SelectTrigger>
+                <SelectContent>
+                  {contasFiltradas.length === 0 ? (
+                    <div className="px-2 py-1.5 text-sm text-muted-foreground">Nenhuma conta {tipoContaEsperado === "RECEITA" ? "de receita" : "de despesa"} cadastrada.</div>
+                  ) : contasFiltradas.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.codigo} - {c.descricao}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          {exigePlanoContas && tipoMovimento === "TRANSFERENCIA" && (
+            <p className="text-xs text-muted-foreground">Conta contábil não se aplica a Transferências.</p>
+          )}
+          <div className="grid grid-cols-2 gap-4 pt-2">
             <div className="flex items-center gap-3">
               <Switch checked={apareceNaPesquisa} onCheckedChange={setApareceNaPesquisa} />
               <Label>Aparece na Pesquisa</Label>
