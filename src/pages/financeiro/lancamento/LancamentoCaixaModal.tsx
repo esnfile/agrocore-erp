@@ -11,6 +11,8 @@ import type {
   Pessoa, FinanceiroContaFinanceira, FinanceiroTipoLancamento,
   FinanceiroCentroCusto, FinanceiroFormaPagto,
 } from "@/lib/mock-data";
+import { financeiroTipoContas } from "@/lib/mock-data";
+import { categoriasImplementadas } from "./types";
 import { REQUER_AUTORIZACAO_ADIANT_CLIENTE } from "@/lib/constants";
 import { DadosBaseSection } from "./DadosBaseSection";
 import { DetalhesProlabore } from "./DetalhesProlabore";
@@ -54,30 +56,53 @@ export function LancamentoCaixaModal({
     }
   }, [open, empresaAtual, filialAtual]);
 
+  const resetDetalhes = (s: LancamentoFormState): LancamentoFormState => ({
+    ...s,
+    tipoLancamentoId: "",
+    socioId: "",
+    pessoaId: "",
+    solicitacaoAdiantamentoId: "",
+    referenciaMotivo: "",
+    valorDetalhe: 0,
+    multa: 0,
+    juros: 0,
+    descontos: 0,
+    totalGeral: 0,
+    parcelasSelecionadas: [],
+    adiantamentosSelecionados: [],
+    formas: { dinheiro: 0, cheque: 0, cartao: 0, adiantamento: 0 },
+  });
+
   const update = (patch: Partial<LancamentoFormState>) =>
     setState((s) => {
-      // Limpeza ao trocar de Tipo de Lançamento: zera campos específicos das categorias.
+      // Trocou a Conta Financeira: limpa tipo + todos os detalhes (mantém empresa/filial/data/centro/histórico)
+      if (patch.contaFinanceiraId !== undefined && patch.contaFinanceiraId !== s.contaFinanceiraId) {
+        return resetDetalhes({ ...s, ...patch });
+      }
+      // Trocou o Tipo de Lançamento: zera campos específicos das categorias.
       if (patch.tipoLancamentoId !== undefined && patch.tipoLancamentoId !== s.tipoLancamentoId) {
-        return {
-          ...s,
-          ...patch,
-          socioId: "",
-          pessoaId: "",
-          solicitacaoAdiantamentoId: "",
-          referenciaMotivo: "",
-          valorDetalhe: 0,
-          multa: 0,
-          juros: 0,
-          descontos: 0,
-          totalGeral: 0,
-          parcelasSelecionadas: [],
-          adiantamentosSelecionados: [],
-          formas: { dinheiro: 0, cheque: 0, cartao: 0, adiantamento: 0 },
-        };
+        return { ...resetDetalhes(s), ...patch };
       }
       return { ...s, ...patch };
     });
 
+
+  const contaSel = contasFinanceiras.find((c) => c.id === state.contaFinanceiraId);
+  const tipoContaConta = contaSel
+    ? financeiroTipoContas.find((tc) => tc.id === contaSel.tipoContaId)?.descricao ?? null
+    : null;
+
+  const tiposFiltrados = useMemo(
+    () =>
+      tiposLancamento.filter(
+        (t) =>
+          t.ativo &&
+          t.apareceNaPesquisa &&
+          categoriasImplementadas.includes(t.categoria) &&
+          (!tipoContaConta || t.tipoConta.includes(tipoContaConta)),
+      ),
+    [tiposLancamento, tipoContaConta],
+  );
 
   const tipoSel = tiposLancamento.find((t) => t.id === state.tipoLancamentoId);
 
@@ -91,6 +116,14 @@ export function LancamentoCaixaModal({
     if (!tipoSel) { toast({ title: "Selecione o tipo de lançamento", variant: "destructive" }); return false; }
     if (!state.empresaId || !state.filialId || !state.contaFinanceiraId) {
       toast({ title: "Preencha empresa, filial e conta financeira", variant: "destructive" }); return false;
+    }
+    if (tipoContaConta && !tipoSel.tipoConta.includes(tipoContaConta)) {
+      toast({
+        title: "Tipo incompatível com a conta",
+        description: `"${tipoSel.descricao}" não é permitido para ${tipoContaConta}. Aceitos: ${tipoSel.tipoConta.join(", ")}.`,
+        variant: "destructive",
+      });
+      return false;
     }
     if (new Date(state.dataMovimento) > new Date(new Date().toISOString().slice(0, 10))) {
       toast({ title: "Data não pode ser futura", variant: "destructive" }); return false;
@@ -420,7 +453,8 @@ export function LancamentoCaixaModal({
             empresas={empresas}
             filiais={filiais}
             contasFinanceiras={contasFinanceiras}
-            tiposLancamento={tiposLancamento}
+            tiposLancamento={tiposFiltrados}
+            tipoDisabled={!state.contaFinanceiraId}
           />
 
           <div className="border-t" />
