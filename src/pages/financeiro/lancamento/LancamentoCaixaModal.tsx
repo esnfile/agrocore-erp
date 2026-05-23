@@ -453,7 +453,8 @@ export function LancamentoCaixaModal({
             empresas={empresas}
             filiais={filiais}
             contasFinanceiras={contasFinanceiras}
-            tiposLancamento={tiposLancamento}
+            tiposLancamento={tiposFiltrados}
+            tipoDisabled={!state.contaFinanceiraId}
           />
 
           <div className="border-t" />
