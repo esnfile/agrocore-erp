@@ -258,6 +258,27 @@ export default function TiposLancamentoPage() {
               <Switch checked={exigePlanoContas} onCheckedChange={setExigePlanoContas} />
               <Label>Exige Plano de Contas</Label>
             </div>
+          </div>
+          {mostrarContaContabil && (
+            <div className="space-y-1.5">
+              <Label>Qual Conta Contábil <span className="text-destructive">*</span></Label>
+              <Select value={contaContabilId ?? ""} onValueChange={(v) => setContaContabilId(v || null)}>
+                <SelectTrigger><SelectValue placeholder="Selecione uma conta..." /></SelectTrigger>
+                <SelectContent>
+                  {contasFiltradas.length === 0 ? (
+                    <div className="px-2 py-1.5 text-sm text-muted-foreground">Nenhuma conta {tipoContaEsperado === "RECEITA" ? "de receita" : "de despesa"} cadastrada.</div>
+                  ) : contasFiltradas.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.codigo} - {c.descricao}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          {exigePlanoContas && tipoMovimento === "TRANSFERENCIA" && (
+            <p className="text-xs text-muted-foreground">Conta contábil não se aplica a Transferências.</p>
+          )}
+          <div className="grid grid-cols-2 gap-4 pt-2">
+            <div className="flex items-center gap-3">
             <div className="flex items-center gap-3">
               <Switch checked={apareceNaPesquisa} onCheckedChange={setApareceNaPesquisa} />
               <Label>Aparece na Pesquisa</Label>
