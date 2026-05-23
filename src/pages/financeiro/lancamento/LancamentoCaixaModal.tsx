@@ -385,6 +385,9 @@ export function LancamentoCaixaModal({
     if (tipoSel.categoria === "PAG_DUPLICATA") {
       return <DetalhesDuplicatas state={state} update={update} pessoas={pessoas} centrosCusto={centrosCusto} tipoConta="PAGAR" />;
     }
+    if (tipoSel.categoria === "GERAL") {
+      return <DetalhesGeral state={state} update={update} centrosCusto={centrosCusto} tipo={tipoSel} />;
+    }
     return (
       <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
         Detalhes para <strong>{tipoSel.descricao}</strong> ({tipoSel.categoria}) em desenvolvimento.
@@ -398,7 +401,9 @@ export function LancamentoCaixaModal({
     || tipoSel.categoria === "ADIANT_CLIENTE"
     || tipoSel.categoria === "REC_DUPLICATA"
     || tipoSel.categoria === "PAG_DUPLICATA"
-  ) ? state.valorDetalhe : undefined;
+    || tipoSel.categoria === "GERAL"
+  ) ? (tipoSel.categoria === "GERAL" ? state.totalGeral : state.valorDetalhe) : undefined;
+
 
   const adiantamentoReadOnly = tipoSel?.categoria === "REC_DUPLICATA" || tipoSel?.categoria === "PAG_DUPLICATA";
   const permitirParcial = tipoSel?.categoria === "REC_DUPLICATA" || tipoSel?.categoria === "PAG_DUPLICATA";
