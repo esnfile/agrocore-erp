@@ -5,7 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertCircle, Wallet } from "lucide-react";
+import { AlertCircle, Wallet, CreditCard } from "lucide-react";
 import type {
   Pessoa, FinanceiroCentroCusto, FinanceiroParcela, FinanceiroConta,
   TipoBeneficiarioAdiantamento, FinanceiroAdiantamento,
