@@ -54,7 +54,30 @@ export function LancamentoCaixaModal({
     }
   }, [open, empresaAtual, filialAtual]);
 
-  const update = (patch: Partial<LancamentoFormState>) => setState((s) => ({ ...s, ...patch }));
+  const update = (patch: Partial<LancamentoFormState>) =>
+    setState((s) => {
+      // Limpeza ao trocar de Tipo de Lançamento: zera campos específicos das categorias.
+      if (patch.tipoLancamentoId !== undefined && patch.tipoLancamentoId !== s.tipoLancamentoId) {
+        return {
+          ...s,
+          ...patch,
+          socioId: "",
+          pessoaId: "",
+          solicitacaoAdiantamentoId: "",
+          referenciaMotivo: "",
+          valorDetalhe: 0,
+          multa: 0,
+          juros: 0,
+          descontos: 0,
+          totalGeral: 0,
+          parcelasSelecionadas: [],
+          adiantamentosSelecionados: [],
+          formas: { dinheiro: 0, cheque: 0, cartao: 0, adiantamento: 0 },
+        };
+      }
+      return { ...s, ...patch };
+    });
+
 
   const tipoSel = tiposLancamento.find((t) => t.id === state.tipoLancamentoId);
 
