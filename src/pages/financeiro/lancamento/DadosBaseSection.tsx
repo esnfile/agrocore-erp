@@ -57,8 +57,10 @@ export function DadosBaseSection({ state, update, empresas, filiais, contasFinan
         </div>
         <div className="space-y-1.5">
           <Label>Tipo de Lançamento <span className="text-destructive">*</span></Label>
-          <Select value={state.tipoLancamentoId} onValueChange={(v) => update({ tipoLancamentoId: v })}>
-            <SelectTrigger><SelectValue placeholder="Selecione o tipo..." /></SelectTrigger>
+          <Select value={state.tipoLancamentoId} onValueChange={(v) => update({ tipoLancamentoId: v })} disabled={tipoDisabled}>
+            <SelectTrigger>
+              <SelectValue placeholder={tipoDisabled ? "Selecione a conta financeira primeiro" : "Selecione o tipo..."} />
+            </SelectTrigger>
             <SelectContent>
               {tiposVisiveis.map((t) => (
                 <SelectItem key={t.id} value={t.id}>{t.descricao}</SelectItem>
