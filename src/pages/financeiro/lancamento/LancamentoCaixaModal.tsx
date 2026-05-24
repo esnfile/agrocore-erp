@@ -205,12 +205,7 @@ export function LancamentoCaixaModal({
       toast({ title: "Valor deve ser maior que zero", variant: "destructive" }); return;
     }
     const origem = contasFinanceiras.find((c) => c.id === state.contaFinanceiraId);
-    if (origem && state.valorDetalhe > origem.saldoAtual && !origem.permiteSaldoNegativo) {
-      const ok = window.confirm(
-        `Saldo insuficiente em "${origem.descricao}" (saldo: ${origem.saldoAtual.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}). Deseja continuar mesmo assim?`,
-      );
-      if (!ok) return;
-    }
+    if (!validarSaldoSaida(state.valorDetalhe)) return;
     const forma = findForma("Transfer") ?? formasPagto.find((f) => f.ativo);
     if (!forma) {
       toast({ title: "Forma de pagamento não cadastrada", variant: "destructive" }); return;
