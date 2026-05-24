@@ -520,8 +520,12 @@ export function LancamentoCaixaModal({
           <div className="border-t" />
           {renderDetalhes()}
 
-          <div className="border-t" />
-          <FormasPagamentoSection state={state} update={update} valorEsperado={valorEsperado} adiantamentoReadOnly={adiantamentoReadOnly} permitirParcial={permitirParcial} />
+          {tipoSel?.categoria !== "TRANSFERENCIA" && (
+            <>
+              <div className="border-t" />
+              <FormasPagamentoSection state={state} update={update} valorEsperado={valorEsperado} adiantamentoReadOnly={adiantamentoReadOnly} permitirParcial={permitirParcial} />
+            </>
+          )}
 
           <div className="border-t" />
           <div className="space-y-1.5">
