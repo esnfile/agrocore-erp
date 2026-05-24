@@ -185,6 +185,12 @@ export default function ContasFinanceirasPage() {
             </>
           )}
           {mostrarBanco && (
+            <div className="flex items-center gap-3">
+              <Switch checked={permiteSaldoNegativo} onCheckedChange={setPermiteSaldoNegativo} />
+              <Label>Permite utilizar limite de crédito</Label>
+            </div>
+          )}
+          {mostrarBanco && permiteSaldoNegativo && (
             <div className="space-y-1.5">
               <Label>Limite de Crédito Bancário</Label>
               <Input
@@ -196,14 +202,10 @@ export default function ContasFinanceirasPage() {
                 onChange={(e) => setLimiteCreditoBancario(parseFloat(e.target.value) || 0)}
               />
               <p className="text-xs text-muted-foreground">
-                0 = sem limite. Acima desse valor a operação é bloqueada.
+                Valor máximo de descoberto permitido. Acima disso, a operação é bloqueada.
               </p>
             </div>
           )}
-          <div className="flex items-center gap-3">
-            <Switch checked={permiteSaldoNegativo} onCheckedChange={setPermiteSaldoNegativo} />
-            <Label>Permite Saldo Negativo (legado)</Label>
-          </div>
           <div className="flex items-center gap-3">
             <Switch checked={ativo} onCheckedChange={setAtivo} />
             <Label>Ativo</Label>
