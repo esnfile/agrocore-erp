@@ -478,6 +478,9 @@ export function LancamentoCaixaModal({
     if (tipoSel.categoria === "GERAL") {
       return <DetalhesGeral state={state} update={update} centrosCusto={centrosCusto} tipo={tipoSel} />;
     }
+    if (tipoSel.categoria === "TRANSFERENCIA") {
+      return <DetalhesTransferencia state={state} update={update} contasFinanceiras={contasFinanceiras} centrosCusto={centrosCusto} />;
+    }
     return (
       <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
         Detalhes para <strong>{tipoSel.descricao}</strong> ({tipoSel.categoria}) em desenvolvimento.
