@@ -2741,6 +2741,7 @@ export const financeiroContaFinanceiraService = {
       existing.descricao = (data.descricao ?? existing.descricao).trim();
       existing.tipoContaId = data.tipoContaId ?? existing.tipoContaId;
       existing.permiteSaldoNegativo = data.permiteSaldoNegativo ?? existing.permiteSaldoNegativo;
+      existing.limiteCreditoBancario = data.limiteCreditoBancario ?? existing.limiteCreditoBancario;
       existing.ativo = data.ativo ?? existing.ativo;
       existing.bancoId = data.bancoId !== undefined ? data.bancoId : existing.bancoId;
       existing.agencia = data.agencia ?? existing.agencia;
@@ -2756,6 +2757,7 @@ export const financeiroContaFinanceiraService = {
       tipoContaId: data.tipoContaId ?? "",
       saldoAtual: data.saldoAtual ?? 0,
       permiteSaldoNegativo: data.permiteSaldoNegativo ?? false,
+      limiteCreditoBancario: data.limiteCreditoBancario ?? 0,
       ativo: data.ativo ?? true,
       bancoId: data.bancoId ?? null,
       agencia: data.agencia ?? "",
@@ -2874,6 +2876,24 @@ export const financeiroCentroCustoService = createCorporateCrudService<Financeir
 // ============================================================
 // Financeiro — Movimentações
 // ============================================================
+function validarSaldoBackend(conta: FinanceiroContaFinanceira, valor: number): string | null {
+  if (!valor || valor <= 0) return null;
+  const tipo = mockFinanceiroTipoContas.find((t) => t.id === conta.tipoContaId)?.descricao?.toUpperCase();
+  const saldoResultante = +(conta.saldoAtual - valor).toFixed(2);
+  if (tipo === "BANCO") {
+    const limite = conta.limiteCreditoBancario ?? 0;
+    if (saldoResultante >= -limite) return null;
+    return limite > 0
+      ? `Limite de crédito de R$ ${limite.toFixed(2)} ultrapassado. Operação não permitida.`
+      : `Saldo insuficiente em "${conta.descricao}". Operação não permitida.`;
+  }
+  // CAIXA, CARTEIRA ou desconhecido
+  if (saldoResultante < 0) {
+    return `Saldo insuficiente em "${conta.descricao}". Operação não permitida.`;
+  }
+  return null;
+}
+
 export const financeiroMovimentacaoService = {
   async listar(empresaId: string, filialId: string): Promise<FinanceiroMovimentacao[]> {
     await delay();
@@ -2923,9 +2943,8 @@ export const financeiroMovimentacaoService = {
       const contaOrigem = mockFinanceiroContasFinanceiras.find((c) => c.id === data.contaOrigemId && c.deletadoEm === null);
       const contaDestino = mockFinanceiroContasFinanceiras.find((c) => c.id === data.contaDestinoId && c.deletadoEm === null);
       if (!contaOrigem || !contaDestino) return { sucesso: false, mensagem: "Conta origem ou destino não encontrada." };
-      if (!contaOrigem.permiteSaldoNegativo && contaOrigem.saldoAtual - data.valor < 0) {
-        return { sucesso: false, mensagem: "Saldo insuficiente na conta origem." };
-      }
+      const blq = validarSaldoBackend(contaOrigem, data.valor);
+      if (blq) return { sucesso: false, mensagem: blq };
       contaOrigem.saldoAtual -= data.valor;
       contaDestino.saldoAtual += data.valor;
     } else {
@@ -2934,9 +2953,8 @@ export const financeiroMovimentacaoService = {
       if (tipoMovimento === "ENTRADA") {
         contaFin.saldoAtual += data.valor;
       } else {
-        if (!contaFin.permiteSaldoNegativo && contaFin.saldoAtual - data.valor < 0) {
-          return { sucesso: false, mensagem: "Saldo insuficiente. Conta não permite saldo negativo." };
-        }
+        const blq = validarSaldoBackend(contaFin, data.valor);
+        if (blq) return { sucesso: false, mensagem: blq };
         contaFin.saldoAtual -= data.valor;
       }
     }
@@ -3103,9 +3121,8 @@ export const financeiroMovimentacaoService = {
     if (tipoLanc.tipoMovimento === "ENTRADA") {
       contaFin.saldoAtual += data.valorTotal;
     } else {
-      if (!contaFin.permiteSaldoNegativo && contaFin.saldoAtual - data.valorTotal < 0) {
-        return { sucesso: false, mensagem: "Saldo insuficiente. Conta não permite saldo negativo." };
-      }
+      const blq = validarSaldoBackend(contaFin, data.valorTotal);
+      if (blq) return { sucesso: false, mensagem: blq };
       contaFin.saldoAtual -= data.valorTotal;
     }
 

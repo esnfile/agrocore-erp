@@ -2759,7 +2759,10 @@ export interface FinanceiroContaFinanceira {
   descricao: string;
   tipoContaId: string;
   saldoAtual: number;
+  /** @deprecated Use `limiteCreditoBancario` + tipo da conta. CAIXA/CARTEIRA nunca permitem negativo. */
   permiteSaldoNegativo: boolean;
+  /** Limite de crédito (apenas BANCO). 0 = sem limite. */
+  limiteCreditoBancario: number;
   ativo: boolean;
   bancoId: string | null;
   agencia: string;
@@ -2782,6 +2785,7 @@ export const financeiroContasFinanceiras: FinanceiroContaFinanceira[] = [
     tipoContaId: "ftc1",
     saldoAtual: 15000,
     permiteSaldoNegativo: false,
+    limiteCreditoBancario: 0,
     ativo: true,
     bancoId: null,
     agencia: "",
@@ -2802,6 +2806,7 @@ export const financeiroContasFinanceiras: FinanceiroContaFinanceira[] = [
     tipoContaId: "ftc2",
     saldoAtual: 250000,
     permiteSaldoNegativo: false,
+    limiteCreditoBancario: 10000,
     ativo: true,
     bancoId: "fb_banco1",
     agencia: "1234-5",
@@ -2821,7 +2826,8 @@ export const financeiroContasFinanceiras: FinanceiroContaFinanceira[] = [
     descricao: "Sicredi - CC",
     tipoContaId: "ftc2",
     saldoAtual: 180000,
-    permiteSaldoNegativo: true,
+    permiteSaldoNegativo: false,
+    limiteCreditoBancario: 50000,
     ativo: true,
     bancoId: "fb_banco3",
     agencia: "0001",
@@ -2842,6 +2848,7 @@ export const financeiroContasFinanceiras: FinanceiroContaFinanceira[] = [
     tipoContaId: "ftc3",
     saldoAtual: 5000,
     permiteSaldoNegativo: false,
+    limiteCreditoBancario: 0,
     ativo: true,
     bancoId: null,
     agencia: "",
@@ -2862,6 +2869,7 @@ export const financeiroContasFinanceiras: FinanceiroContaFinanceira[] = [
     tipoContaId: "ftc1",
     saldoAtual: 20000,
     permiteSaldoNegativo: false,
+    limiteCreditoBancario: 0,
     ativo: true,
     bancoId: null,
     agencia: "",
@@ -2882,6 +2890,7 @@ export const financeiroContasFinanceiras: FinanceiroContaFinanceira[] = [
     tipoContaId: "ftc2",
     saldoAtual: 0,
     permiteSaldoNegativo: false,
+    limiteCreditoBancario: 0,
     ativo: false,
     bancoId: null,
     agencia: "",

@@ -2,8 +2,10 @@ import { useEffect, useMemo } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { FinanceiroCentroCusto, FinanceiroTipoLancamento } from "@/lib/mock-data";
+import type { FinanceiroCentroCusto, FinanceiroContaFinanceira, FinanceiroTipoLancamento } from "@/lib/mock-data";
+import { financeiroTipoContas } from "@/lib/mock-data";
 import { formatMoeda } from "@/lib/format";
+import { avaliarSaldo } from "./saldo-utils";
 import type { LancamentoFormState } from "./types";
 
 interface Props {
@@ -11,9 +13,10 @@ interface Props {
   update: (patch: Partial<LancamentoFormState>) => void;
   centrosCusto: FinanceiroCentroCusto[];
   tipo: FinanceiroTipoLancamento;
+  contaOrigem?: FinanceiroContaFinanceira;
 }
 
-export function DetalhesGeral({ state, update, centrosCusto, tipo }: Props) {
+export function DetalhesGeral({ state, update, centrosCusto, tipo, contaOrigem }: Props) {
   const { valorDetalhe: valor, multa, juros, descontos } = state;
 
   const totalCalculado = useMemo(
@@ -77,6 +80,16 @@ export function DetalhesGeral({ state, update, centrosCusto, tipo }: Props) {
           )}
         </div>
       </div>
+
+      {tipo.tipoMovimento === "SAIDA" && contaOrigem && totalGeral > 0 && (() => {
+        const a = avaliarSaldo(contaOrigem, financeiroTipoContas, totalGeral);
+        if (!a.mensagem) return null;
+        return (
+          <p className={`text-xs ${a.status === "bloqueado" ? "text-destructive" : "text-orange-600 dark:text-orange-400"}`}>
+            {a.mensagem}
+          </p>
+        );
+      })()}
 
       {mostrarContaContabil && (
         <div className="space-y-1.5">

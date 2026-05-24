@@ -13,6 +13,7 @@ import type {
 } from "@/lib/mock-data";
 import { financeiroTipoContas } from "@/lib/mock-data";
 import { categoriasImplementadas } from "./types";
+import { avaliarSaldo } from "./saldo-utils";
 import { REQUER_AUTORIZACAO_ADIANT_CLIENTE } from "@/lib/constants";
 import { DadosBaseSection } from "./DadosBaseSection";
 import { DetalhesProlabore } from "./DetalhesProlabore";
@@ -158,6 +159,20 @@ export function LancamentoCaixaModal({
     }
     return { ok: true, forma };
   };
+  /** Valida saldo da conta origem para saídas. Retorna true se pode prosseguir. */
+  const validarSaldoSaida = (valor: number): boolean => {
+    if (!contaSel || valor <= 0) return true;
+    const a = avaliarSaldo(contaSel, financeiroTipoContas, valor);
+    if (a.status === "bloqueado") {
+      toast({ title: "Operação bloqueada", description: a.mensagem ?? "", variant: "destructive" });
+      return false;
+    }
+    if (a.status === "aviso") {
+      toast({ title: "Atenção", description: a.mensagem ?? "" });
+    }
+    return true;
+  };
+
 
   // ------ Salvar (despacha por categoria) ------
   const handleSave = async () => {
@@ -190,12 +205,7 @@ export function LancamentoCaixaModal({
       toast({ title: "Valor deve ser maior que zero", variant: "destructive" }); return;
     }
     const origem = contasFinanceiras.find((c) => c.id === state.contaFinanceiraId);
-    if (origem && state.valorDetalhe > origem.saldoAtual && !origem.permiteSaldoNegativo) {
-      const ok = window.confirm(
-        `Saldo insuficiente em "${origem.descricao}" (saldo: ${origem.saldoAtual.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}). Deseja continuar mesmo assim?`,
-      );
-      if (!ok) return;
-    }
+    if (!validarSaldoSaida(state.valorDetalhe)) return;
     const forma = findForma("Transfer") ?? formasPagto.find((f) => f.ativo);
     if (!forma) {
       toast({ title: "Forma de pagamento não cadastrada", variant: "destructive" }); return;
@@ -246,6 +256,7 @@ export function LancamentoCaixaModal({
       toast({ title: "Centro de Custo é obrigatório para este tipo", variant: "destructive" }); return;
     }
     const total = +totalCalc.toFixed(2);
+    if (tipoSel.tipoMovimento === "SAIDA" && !validarSaldoSaida(total)) return;
     const v = validarTotalFormas(total);
     if (!v.ok || !v.forma) return;
 
@@ -288,6 +299,7 @@ export function LancamentoCaixaModal({
     if (totalFormas > totalParcelas + 0.01) {
       toast({ title: "TOTAL não pode ser maior que o valor das parcelas", variant: "destructive" }); return;
     }
+    if (tipoSel.tipoMovimento === "SAIDA" && !validarSaldoSaida(+totalFormas.toFixed(2))) return;
 
     // Resolve forma de pagamento a partir dos campos preenchidos
     const candidatos: [number, FinanceiroFormaPagto | undefined, string][] = [
@@ -346,6 +358,7 @@ export function LancamentoCaixaModal({
     if (tipoSel.exigeCentroCusto && !state.centroCustoId) {
       toast({ title: "Centro de custo obrigatório", variant: "destructive" }); return;
     }
+    if (!validarSaldoSaida(state.valorDetalhe)) return;
     const v = validarTotalFormas(state.valorDetalhe);
     if (!v.ok || !v.forma) return;
 
@@ -381,6 +394,7 @@ export function LancamentoCaixaModal({
     if (!state.solicitacaoAdiantamentoId) { toast({ title: "Selecione a solicitação aprovada", variant: "destructive" }); return; }
     if (state.valorDetalhe <= 0) { toast({ title: "Informe o valor a liberar", variant: "destructive" }); return; }
     // valor ≤ solicitação: validado no componente via prop, mas reforçamos aqui
+    if (!validarSaldoSaida(state.valorDetalhe)) return;
     const v = validarTotalFormas(state.valorDetalhe);
     if (!v.ok || !v.forma) return;
 
@@ -476,7 +490,7 @@ export function LancamentoCaixaModal({
       return <DetalhesDuplicatas state={state} update={update} pessoas={pessoas} centrosCusto={centrosCusto} tipoConta="PAGAR" />;
     }
     if (tipoSel.categoria === "GERAL") {
-      return <DetalhesGeral state={state} update={update} centrosCusto={centrosCusto} tipo={tipoSel} />;
+      return <DetalhesGeral state={state} update={update} centrosCusto={centrosCusto} tipo={tipoSel} contaOrigem={contaSel} />;
     }
     if (tipoSel.categoria === "TRANSFERENCIA") {
       return <DetalhesTransferencia state={state} update={update} contasFinanceiras={contasFinanceiras} centrosCusto={centrosCusto} />;

@@ -39,6 +39,7 @@ export default function ContasFinanceirasPage() {
   const [agencia, setAgencia] = useState("");
   const [contaCorrente, setContaCorrente] = useState("");
   const [permiteSaldoNegativo, setPermiteSaldoNegativo] = useState(false);
+  const [limiteCreditoBancario, setLimiteCreditoBancario] = useState(0);
   const [ativo, setAtivo] = useState(true);
 
   const carregar = useCallback(async () => {
@@ -61,14 +62,16 @@ export default function ContasFinanceirasPage() {
 
   const reset = () => {
     setDescricao(""); setTipoContaId(""); setBancoId(""); setAgencia(""); setContaCorrente("");
-    setPermiteSaldoNegativo(false); setAtivo(true); setEditId(null);
+    setPermiteSaldoNegativo(false); setLimiteCreditoBancario(0); setAtivo(true); setEditId(null);
   };
 
   const openNew = () => { reset(); setModalOpen(true); };
   const openEdit = (row: FinanceiroContaFinanceira) => {
     setEditId(row.id); setDescricao(row.descricao); setTipoContaId(row.tipoContaId);
     setBancoId(row.bancoId ?? ""); setAgencia(row.agencia); setContaCorrente(row.contaCorrente);
-    setPermiteSaldoNegativo(row.permiteSaldoNegativo); setAtivo(row.ativo);
+    setPermiteSaldoNegativo(row.permiteSaldoNegativo);
+    setLimiteCreditoBancario(row.limiteCreditoBancario ?? 0);
+    setAtivo(row.ativo);
     setModalOpen(true);
   };
 
@@ -80,7 +83,9 @@ export default function ContasFinanceirasPage() {
         id: editId ?? undefined, descricao, tipoContaId,
         bancoId: mostrarBanco ? (bancoId || null) : null,
         agencia: mostrarBanco ? agencia : "", contaCorrente: mostrarBanco ? contaCorrente : "",
-        permiteSaldoNegativo, ativo,
+        permiteSaldoNegativo,
+        limiteCreditoBancario: mostrarBanco ? limiteCreditoBancario : 0,
+        ativo,
       }, { grupoId, empresaId, filialId });
       toast({ title: "Conta financeira salva" });
       setModalOpen(false); carregar();
@@ -178,9 +183,25 @@ export default function ContasFinanceirasPage() {
               </div>
             </>
           )}
+          {mostrarBanco && (
+            <div className="space-y-1.5">
+              <Label>Limite de Crédito Bancário</Label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={limiteCreditoBancario || ""}
+                placeholder="0,00"
+                onChange={(e) => setLimiteCreditoBancario(parseFloat(e.target.value) || 0)}
+              />
+              <p className="text-xs text-muted-foreground">
+                0 = sem limite. Acima desse valor a operação é bloqueada.
+              </p>
+            </div>
+          )}
           <div className="flex items-center gap-3">
             <Switch checked={permiteSaldoNegativo} onCheckedChange={setPermiteSaldoNegativo} />
-            <Label>Permite Saldo Negativo</Label>
+            <Label>Permite Saldo Negativo (legado)</Label>
           </div>
           <div className="flex items-center gap-3">
             <Switch checked={ativo} onCheckedChange={setAtivo} />
