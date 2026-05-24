@@ -1,81 +1,66 @@
-# Caixa — Transferência Entre Contas (DetalhesTransferencia)
+## Validação inteligente de saldo (Caixa, Carteira, Banco com limite)
 
-Escopo aprovado: PARTES 2, 3, 4, 5 e 7 do prompt.  
-Descartado (já entregue): DetalhesGeral, filtro Tipo↔Conta (já existe), Conta Contábil pré-definida.
+### Objetivo
+Substituir a flag genérica `permiteSaldoNegativo` + `window.confirm` por uma regra baseada no **tipo da conta**:
+- **CAIXA / CARTEIRA** → nunca permite negativo. Bloqueia sempre.
+- **BANCO** → permite negativo até `limiteCreditoBancario`. Acima disso, bloqueia.
 
-## Análise da estratégia do Caixa até aqui
+### 1. Modelo de dados (`src/lib/mock-data.ts`)
+- Adicionar campo `limiteCreditoBancario: number` (default `0`) em `FinanceiroContaFinanceira`.
+- Manter `permiteSaldoNegativo` no tipo por compatibilidade, mas marcar como deprecated em comentário e parar de usá-lo.
+- Atualizar mocks `financeiroContasFinanceiras`:
+  - Caixa Matriz (CAIXA): `limiteCreditoBancario: 0`.
+  - Banco do Brasil (BANCO): `limiteCreditoBancario: 10000`.
+  - Sicredi (BANCO): `limiteCreditoBancario: 50000` (remover `permiteSaldoNegativo: true`).
+  - Carteira (CARTEIRA): `0`.
+  - Caixa Filial (CAIXA): `0`.
+  - Banco Inativo (BANCO): `0` (para cenário "sem limite").
 
-A arquitetura do `LancamentoCaixaModal` está bem desenhada para escalar:
+### 2. Helper de validação
+Novo arquivo `src/pages/financeiro/lancamento/saldo-utils.ts` com:
+- `getTipoContaDescricao(conta, tiposContas): "CAIXA" | "BANCO" | "CARTEIRA" | null`
+- `avaliarSaldo(conta, tiposContas, valor) → { status: "ok" | "aviso" | "bloqueado", saldoResultante, mensagem }`
+  - CAIXA/CARTEIRA: `valor > saldo` → `bloqueado` ("Saldo insuficiente em {conta}. Operação não permitida.")
+  - BANCO: calcula `saldoResultante`; classifica em `ok`, `aviso` (dentro do limite — "Saldo entrará em limite de crédito. Resultante: R$ X") ou `bloqueado` ("Limite de crédito de R$ Y ultrapassado. Operação não permitida.")
 
-- **Dispatcher por categoria** em `handleSave` + `renderDetalhes` mantém cada categoria isolada.
-- **`resetDetalhes`** já cobre limpeza ao trocar tipo/conta — fácil estender.
-- **`tiposFiltrados`** (memo por `tipoContaConta`) + `validarDadosBase` (fallback) garantem compatibilidade Tipo↔Conta. Está implementado e funcionando.
-- **Service `financeiroMovimentacaoService.registrar`** já trata `tipoMovimento === "TRANSFERENCIA"` (debita origem, credita destino, valida saldo). Não precisa mudar.
-- **Tipo `ftl3` "TRANSFERENCIA ENTRE CONTAS"** já existe no mock (`apareceNaPesquisa: true`, `categoria: "TRANSFERENCIA"`, `tipoConta: [CAIXA, BANCO, CARTEIRA]`).
+### 3. `LancamentoCaixaModal.tsx`
+- Remover `window.confirm` de `salvarTransferencia`.
+- Antes de chamar `service.registrar` em **todas** as funções de salvar (`salvarTransferencia`, `salvarGeral`, `salvarProlabore`, `salvarAdiantFornecedor`, `executarSalvarAdiantCliente`, `salvarBaixaDuplicatas`), chamar `avaliarSaldo(origem, tiposContas, valor)`:
+  - `bloqueado` → toast destructive + return.
+  - `aviso` → toast informativo (variant default) e prossegue.
+  - `ok` → segue normal.
+- Valor avaliado por categoria:
+  - GERAL → `totalGeral`
+  - DUPLICATAS → `totalFormas` (apenas se categoria PAG_DUPLICATA, pois RECEBIMENTO entra dinheiro). Aplicar bloqueio só para saídas.
+  - Transferência/Prolabore/Adiantamentos → `valorDetalhe`.
+- Critério de "saída": tipo de lançamento tem `natureza === "SAIDA"` ou categoria pertence ao conjunto `{ PROLABORE, ADIANT_FORNECEDOR, PAG_DUPLICATA, GERAL (apenas despesa), TRANSFERENCIA }`. Para GERAL e ADIANT_CLIENTE usar `tipoSel.natureza` (já existe no mock — confirmar; se não houver, usar a categoria).
+- Passar `tiposContas` (já disponível via `financeiroTipoContas` importado).
 
-Único débito técnico relevante: o `LancamentoFormState` virou union ampla (PROLABORE/ADIANT/DUPLICATA/GERAL); adicionar `contaDestinoId` segue o padrão atual — migração para `detalhes` discriminado fica para quando passarmos de ~6 categorias.
+### 4. Aviso inline nos componentes de detalhe
+- `DetalhesTransferencia.tsx`: substituir aviso atual por bloco dinâmico usando `avaliarSaldo`:
+  - `aviso` → texto laranja (`text-warning` ou classe inline `text-orange-600`).
+  - `bloqueado` → texto vermelho (`text-destructive`).
+- `DetalhesGeral.tsx`: receber `contaOrigem` + `tiposContas` via props (passados pelo modal) e exibir aviso pré-salvar com base no `totalGeral`.
+- (Opcional, fora do checklist do prompt) Não adicionar em Prolabore/Adiantamentos/Duplicatas neste ciclo — validação ocorre no salvar. Mantém escopo enxuto, conforme o prompt foca em Transferência/Geral.
 
-## O que vai ser feito
+### 5. Cadastro de Contas Financeiras (`ContasFinanceirasPage.tsx`)
+- Adicionar input **"Limite de Crédito Bancário"** (numérico, BRL) visível apenas quando `mostrarBanco` for true.
+- Estado `limiteCreditoBancario`, default `0`. Persistir via `financeiroContaFinanceiraService.salvar` (verificar e estender o service para aceitar o campo).
+- Manter o Switch `permiteSaldoNegativo` por enquanto (apenas exibe — não influencia mais), ou remover. **Decisão proposta: remover o switch da tela** e do payload de salvar; o campo no banco fica como legado.
 
-### 1. `src/pages/financeiro/lancamento/types.ts`
-- Adicionar `contaDestinoId: string` em `LancamentoFormState` e `initialFormState`.
-- Adicionar `"TRANSFERENCIA"` em `categoriasImplementadas`.
+### 6. Service
+- `src/lib/services.ts` / `mock-store.ts`: ajustar `financeiroContaFinanceiraService.salvar` para aceitar e persistir `limiteCreditoBancario`. Default `0` quando não enviado.
 
-### 2. `src/pages/financeiro/lancamento/DetalhesTransferencia.tsx` (novo)
-Layout responsivo (grid md:12 cols, stack em mobile):
+### 7. Mensagens (toast)
+- Sucesso transferência: continuar como está.
+- Erro CAIXA/CARTEIRA: `"Saldo insuficiente em {conta}. Operação não permitida."`
+- Erro BANCO acima do limite: `"Limite de crédito de R$ {limite} ultrapassado. Operação não permitida."`
+- Aviso BANCO dentro do limite: toast default "Saldo entrará em limite de crédito. Resultante: R$ {x}".
 
-- **Conta Origem** (read-only): "{descrição} — {tipo} — Saldo: {formatMoeda(saldoAtual)}". Vem de `contaFinanceiraId` do header.
-- **Conta Destino** (Select obrigatório): lista `contasFinanceiras.filter(c => c.ativo && c.id !== contaFinanceiraId)`. Mostra "{descrição} ({tipoConta})". Limpa ao trocar origem (já garantido por `resetDetalhes`).
-- **Valor** (numérico, > 0).
-- **Centro de Custo** (Select opcional — sem `*`).
-- Aviso inline `text-destructive` quando `valor > origem.saldoAtual && !origem.permiteSaldoNegativo`: "Saldo insuficiente. Será solicitada confirmação ao salvar."
+### 8. Casos de teste manuais
+Validar os 10 cenários da tabela do prompt (CAIXA OK/insuf, BANCO dentro/fora/sem limite, CARTEIRA insuf, e avisos inline correspondentes em Transferência).
 
-### 3. `src/pages/financeiro/lancamento/LancamentoCaixaModal.tsx`
-- Importar `DetalhesTransferencia`.
-- `resetDetalhes`: incluir `contaDestinoId: ""`.
-- `renderDetalhes`: rota `TRANSFERENCIA` → `<DetalhesTransferencia state={state} update={update} contasFinanceiras={contasFinanceiras} centrosCusto={centrosCusto} />`.
-- `valorEsperado`: incluir `TRANSFERENCIA` → `state.valorDetalhe`. **Mas** Transferência não usa Formas de Pagamento — esconder `<FormasPagamentoSection />` quando `tipoSel?.categoria === "TRANSFERENCIA"`.
-- `handleSave` dispatcher: `if (tipoSel.categoria === "TRANSFERENCIA") return salvarTransferencia();`.
-- Novo `salvarTransferencia()`:
-  1. Origem (`contaFinanceiraId`) selecionada — já validado em `validarDadosBase`.
-  2. `contaDestinoId` selecionado → senão toast "Selecione a conta destino".
-  3. `contaDestinoId !== contaFinanceiraId` → senão toast "Conta origem e destino devem ser diferentes".
-  4. Conta destino existe e está ativa.
-  5. `valorDetalhe > 0`.
-  6. Se `valor > saldoAtual && !permiteSaldoNegativo` → `window.confirm("Saldo insuficiente em {origem}. Deseja continuar mesmo assim?")`; se cancelar, aborta. (Política flexível conforme prompt; o service ainda bloqueia se a origem não permitir negativo — nesse caso o toast de erro do service será exibido, comportamento consistente com regra atual de contas).
-  7. Chamar `financeiroMovimentacaoService.registrar` com `contaOrigemId: contaFinanceiraId`, `contaDestinoId: state.contaDestinoId`, `pessoaId: null`, `planoContaId: null`, `formaPagamentoId: forma "Transferência"` (resolver via `findForma("Transfer")` com fallback para qualquer forma ativa do grupo) — service usa `tipoMovimento` para mover saldos, a forma é só registro.
-  8. Toast sucesso: "Transferência registrada: {origem} → {destino}".
-
-### 4. `src/lib/mock-data.ts`
-Adicionar contas para enriquecer o teste de Transferência (mantém as 3 existentes):
-
-- `fcf4` "Carteira" — `tipoContaId: ftc3` (CARTEIRA), saldo 5000, ativo true, empresa/filial e1/f1.
-- `fcf5` "Caixa Filial" — `tipoContaId: ftc1` (CAIXA), saldo 20000, ativo true, empresa/filial e1/f1.
-- `fcf6` "Banco Inativo" — `tipoContaId: ftc2` (BANCO), saldo 0, **ativo false**, empresa/filial e1/f1.
-
-(Não duplicar tipos — `ftl3` já cobre Transferência.)
-
-### 5. Validações já cobertas (não mexer)
-- Filtro `tiposFiltrados` por `tipoContaConta`.
-- `validarDadosBase` rejeita tipo incompatível.
-- `resetDetalhes` ao trocar conta/tipo.
-
-## Casos de teste a validar manualmente
-
-1. Origem Caixa → Destino lista todas as ativas exceto Caixa, sem Banco Inativo.
-2. Selecionar mesma conta como destino → bloqueado por validação.
-3. Valor=0 → erro.
-4. Valor > saldo, conta permite negativo → confirma, registra, saldos atualizam.
-5. Valor > saldo, conta NÃO permite negativo → service retorna erro, toast exibido.
-6. Trocar Origem após selecionar Destino → Destino zera (via resetDetalhes).
-7. Trocar Tipo de TRANSFERENCIA para GERAL → contaDestinoId zera, Formas reaparecem.
-8. Sem Formas de Pagamento renderizadas no fluxo de Transferência.
-9. Mobile <768px → campos em stack.
-
-## Arquivos tocados
-
-- `src/pages/financeiro/lancamento/types.ts` (edit)
-- `src/pages/financeiro/lancamento/DetalhesTransferencia.tsx` (new)
-- `src/pages/financeiro/lancamento/LancamentoCaixaModal.tsx` (edit)
-- `src/lib/mock-data.ts` (edit — 3 contas novas)
-- `.lovable/memory/features/lancamento-caixa.md` (update — registrar TRANSFERENCIA implementada)
+### Fora de escopo
+- Validação backend ACID (apenas frontend/mock por enquanto).
+- Avisos inline em Prolabore/Adiantamentos/Duplicatas (validação só no salvar).
+- Migration de dados existentes (mock).
