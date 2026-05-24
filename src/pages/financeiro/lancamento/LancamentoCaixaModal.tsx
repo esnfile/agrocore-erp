@@ -13,6 +13,7 @@ import type {
 } from "@/lib/mock-data";
 import { financeiroTipoContas } from "@/lib/mock-data";
 import { categoriasImplementadas } from "./types";
+import { avaliarSaldo } from "./saldo-utils";
 import { REQUER_AUTORIZACAO_ADIANT_CLIENTE } from "@/lib/constants";
 import { DadosBaseSection } from "./DadosBaseSection";
 import { DetalhesProlabore } from "./DetalhesProlabore";
