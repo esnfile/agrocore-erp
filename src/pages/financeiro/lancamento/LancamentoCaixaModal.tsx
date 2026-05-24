@@ -20,6 +20,7 @@ import { DetalhesAdiantFornecedor } from "./DetalhesAdiantFornecedor";
 import { DetalhesAdiantCliente } from "./DetalhesAdiantCliente";
 import { DetalhesDuplicatas } from "./DetalhesDuplicatas";
 import { DetalhesGeral } from "./DetalhesGeral";
+import { DetalhesTransferencia } from "./DetalhesTransferencia";
 import { FormasPagamentoSection } from "./FormasPagamentoSection";
 import { AutorizacaoSupervisorModal } from "./AutorizacaoSupervisorModal";
 import { initialFormState, sumFormas, type LancamentoFormState } from "./types";
