@@ -2759,7 +2759,10 @@ export interface FinanceiroContaFinanceira {
   descricao: string;
   tipoContaId: string;
   saldoAtual: number;
+  /** @deprecated Use `limiteCreditoBancario` + tipo da conta. CAIXA/CARTEIRA nunca permitem negativo. */
   permiteSaldoNegativo: boolean;
+  /** Limite de crédito (apenas BANCO). 0 = sem limite. */
+  limiteCreditoBancario: number;
   ativo: boolean;
   bancoId: string | null;
   agencia: string;
