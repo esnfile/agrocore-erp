@@ -490,7 +490,7 @@ export function LancamentoCaixaModal({
       return <DetalhesDuplicatas state={state} update={update} pessoas={pessoas} centrosCusto={centrosCusto} tipoConta="PAGAR" />;
     }
     if (tipoSel.categoria === "GERAL") {
-      return <DetalhesGeral state={state} update={update} centrosCusto={centrosCusto} tipo={tipoSel} />;
+      return <DetalhesGeral state={state} update={update} centrosCusto={centrosCusto} tipo={tipoSel} contaOrigem={contaSel} />;
     }
     if (tipoSel.categoria === "TRANSFERENCIA") {
       return <DetalhesTransferencia state={state} update={update} contasFinanceiras={contasFinanceiras} centrosCusto={centrosCusto} />;
