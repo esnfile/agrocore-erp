@@ -4,6 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { FinanceiroCentroCusto, FinanceiroContaFinanceira } from "@/lib/mock-data";
 import { financeiroTipoContas } from "@/lib/mock-data";
 import { formatMoeda } from "@/lib/format";
+import { avaliarSaldo } from "./saldo-utils";
 import type { LancamentoFormState } from "./types";
 
 interface Props {
@@ -22,9 +23,7 @@ export function DetalhesTransferencia({ state, update, contasFinanceiras, centro
     (c) => c.ativo && c.id !== state.contaFinanceiraId,
   );
   const centrosAtivos = centrosCusto.filter((c) => c.ativo);
-  const valor = state.valorDetalhe || 0;
-  const saldoInsuficiente =
-    !!origem && valor > origem.saldoAtual && !origem.permiteSaldoNegativo;
+  const avaliacao = avaliarSaldo(origem, financeiroTipoContas, state.valorDetalhe || 0);
 
   return (
     <div className="space-y-4">
