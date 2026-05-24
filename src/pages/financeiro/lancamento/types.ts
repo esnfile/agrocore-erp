@@ -45,6 +45,7 @@ export const initialFormState = (empresaId: string, filialId: string): Lancament
   empresaId,
   filialId,
   contaFinanceiraId: "",
+  contaDestinoId: "",
   dataMovimento: new Date().toISOString().slice(0, 10),
   tipoLancamentoId: "",
   socioId: "",
