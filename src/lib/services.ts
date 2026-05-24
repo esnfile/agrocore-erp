@@ -2876,6 +2876,24 @@ export const financeiroCentroCustoService = createCorporateCrudService<Financeir
 // ============================================================
 // Financeiro — Movimentações
 // ============================================================
+function validarSaldoBackend(conta: FinanceiroContaFinanceira, valor: number): string | null {
+  if (!valor || valor <= 0) return null;
+  const tipo = mockFinanceiroTipoContas.find((t) => t.id === conta.tipoContaId)?.descricao?.toUpperCase();
+  const saldoResultante = +(conta.saldoAtual - valor).toFixed(2);
+  if (tipo === "BANCO") {
+    const limite = conta.limiteCreditoBancario ?? 0;
+    if (saldoResultante >= -limite) return null;
+    return limite > 0
+      ? `Limite de crédito de R$ ${limite.toFixed(2)} ultrapassado. Operação não permitida.`
+      : `Saldo insuficiente em "${conta.descricao}". Operação não permitida.`;
+  }
+  // CAIXA, CARTEIRA ou desconhecido
+  if (saldoResultante < 0) {
+    return `Saldo insuficiente em "${conta.descricao}". Operação não permitida.`;
+  }
+  return null;
+}
+
 export const financeiroMovimentacaoService = {
   async listar(empresaId: string, filialId: string): Promise<FinanceiroMovimentacao[]> {
     await delay();
