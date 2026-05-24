@@ -2741,6 +2741,7 @@ export const financeiroContaFinanceiraService = {
       existing.descricao = (data.descricao ?? existing.descricao).trim();
       existing.tipoContaId = data.tipoContaId ?? existing.tipoContaId;
       existing.permiteSaldoNegativo = data.permiteSaldoNegativo ?? existing.permiteSaldoNegativo;
+      existing.limiteCreditoBancario = data.limiteCreditoBancario ?? existing.limiteCreditoBancario;
       existing.ativo = data.ativo ?? existing.ativo;
       existing.bancoId = data.bancoId !== undefined ? data.bancoId : existing.bancoId;
       existing.agencia = data.agencia ?? existing.agencia;
@@ -2756,6 +2757,7 @@ export const financeiroContaFinanceiraService = {
       tipoContaId: data.tipoContaId ?? "",
       saldoAtual: data.saldoAtual ?? 0,
       permiteSaldoNegativo: data.permiteSaldoNegativo ?? false,
+      limiteCreditoBancario: data.limiteCreditoBancario ?? 0,
       ativo: data.ativo ?? true,
       bancoId: data.bancoId ?? null,
       agencia: data.agencia ?? "",
