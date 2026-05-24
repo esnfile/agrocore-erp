@@ -69,8 +69,9 @@ export default function ContasFinanceirasPage() {
   const openEdit = (row: FinanceiroContaFinanceira) => {
     setEditId(row.id); setDescricao(row.descricao); setTipoContaId(row.tipoContaId);
     setBancoId(row.bancoId ?? ""); setAgencia(row.agencia); setContaCorrente(row.contaCorrente);
-    setPermiteSaldoNegativo(row.permiteSaldoNegativo);
-    setLimiteCreditoBancario(row.limiteCreditoBancario ?? 0);
+    const limite = row.limiteCreditoBancario ?? 0;
+    setPermiteSaldoNegativo(row.permiteSaldoNegativo || limite > 0);
+    setLimiteCreditoBancario(limite);
     setAtivo(row.ativo);
     setModalOpen(true);
   };
