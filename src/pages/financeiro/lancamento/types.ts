@@ -74,5 +74,6 @@ export const categoriasImplementadas: CategoriaTipoLancamento[] = [
   "REC_DUPLICATA",
   "PAG_DUPLICATA",
   "GERAL",
+  "TRANSFERENCIA",
 ];
 
