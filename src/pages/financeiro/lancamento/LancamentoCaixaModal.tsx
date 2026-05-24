@@ -69,6 +69,7 @@ export function LancamentoCaixaModal({
     juros: 0,
     descontos: 0,
     totalGeral: 0,
+    contaDestinoId: "",
     parcelasSelecionadas: [],
     adiantamentosSelecionados: [],
     formas: { dinheiro: 0, cheque: 0, cartao: 0, adiantamento: 0 },
