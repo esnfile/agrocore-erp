@@ -17,6 +17,7 @@ export interface LancamentoFormState {
   empresaId: string;
   filialId: string;
   contaFinanceiraId: string;
+  contaDestinoId: string; // Transferência
   dataMovimento: string;
   tipoLancamentoId: string;
   // Detalhes (varia por categoria)
@@ -44,6 +45,7 @@ export const initialFormState = (empresaId: string, filialId: string): Lancament
   empresaId,
   filialId,
   contaFinanceiraId: "",
+  contaDestinoId: "",
   dataMovimento: new Date().toISOString().slice(0, 10),
   tipoLancamentoId: "",
   socioId: "",
@@ -72,5 +74,6 @@ export const categoriasImplementadas: CategoriaTipoLancamento[] = [
   "REC_DUPLICATA",
   "PAG_DUPLICATA",
   "GERAL",
+  "TRANSFERENCIA",
 ];
 

@@ -20,6 +20,7 @@ import { DetalhesAdiantFornecedor } from "./DetalhesAdiantFornecedor";
 import { DetalhesAdiantCliente } from "./DetalhesAdiantCliente";
 import { DetalhesDuplicatas } from "./DetalhesDuplicatas";
 import { DetalhesGeral } from "./DetalhesGeral";
+import { DetalhesTransferencia } from "./DetalhesTransferencia";
 import { FormasPagamentoSection } from "./FormasPagamentoSection";
 import { AutorizacaoSupervisorModal } from "./AutorizacaoSupervisorModal";
 import { initialFormState, sumFormas, type LancamentoFormState } from "./types";
@@ -68,6 +69,7 @@ export function LancamentoCaixaModal({
     juros: 0,
     descontos: 0,
     totalGeral: 0,
+    contaDestinoId: "",
     parcelasSelecionadas: [],
     adiantamentosSelecionados: [],
     formas: { dinheiro: 0, cheque: 0, cartao: 0, adiantamento: 0 },
@@ -166,8 +168,63 @@ export function LancamentoCaixaModal({
     if (tipoSel.categoria === "ADIANT_CLIENTE") return iniciarSalvarAdiantCliente();
     if (tipoSel.categoria === "REC_DUPLICATA" || tipoSel.categoria === "PAG_DUPLICATA") return salvarBaixaDuplicatas();
     if (tipoSel.categoria === "GERAL") return salvarGeral();
+    if (tipoSel.categoria === "TRANSFERENCIA") return salvarTransferencia();
 
     toast({ title: "Tipo ainda não implementado", description: "Em breve.", variant: "destructive" });
+  };
+
+  // ------ Transferência Entre Contas ------
+  const salvarTransferencia = async () => {
+    if (!tipoSel) return;
+    if (!state.contaDestinoId) {
+      toast({ title: "Selecione a conta destino", variant: "destructive" }); return;
+    }
+    if (state.contaDestinoId === state.contaFinanceiraId) {
+      toast({ title: "Conta origem e destino devem ser diferentes", variant: "destructive" }); return;
+    }
+    const destino = contasFinanceiras.find((c) => c.id === state.contaDestinoId);
+    if (!destino || !destino.ativo) {
+      toast({ title: "Conta destino inválida ou inativa", variant: "destructive" }); return;
+    }
+    if (state.valorDetalhe <= 0) {
+      toast({ title: "Valor deve ser maior que zero", variant: "destructive" }); return;
+    }
+    const origem = contasFinanceiras.find((c) => c.id === state.contaFinanceiraId);
+    if (origem && state.valorDetalhe > origem.saldoAtual && !origem.permiteSaldoNegativo) {
+      const ok = window.confirm(
+        `Saldo insuficiente em "${origem.descricao}" (saldo: ${origem.saldoAtual.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}). Deseja continuar mesmo assim?`,
+      );
+      if (!ok) return;
+    }
+    const forma = findForma("Transfer") ?? formasPagto.find((f) => f.ativo);
+    if (!forma) {
+      toast({ title: "Forma de pagamento não cadastrada", variant: "destructive" }); return;
+    }
+
+    setSaving(true);
+    try {
+      const numeroDocumento = `TRF-${Date.now()}`;
+      const result = await financeiroMovimentacaoService.registrar({
+        contaFinanceiraId: state.contaFinanceiraId,
+        tipoLancamentoId: tipoSel.id,
+        formaPagamentoId: forma.id,
+        planoContaId: null,
+        centroCustoId: state.centroCustoId || null,
+        dataMovimento: state.dataMovimento,
+        valor: state.valorDetalhe,
+        numeroDocumento,
+        historico: state.historico || `Transferência: ${origem?.descricao ?? ""} → ${destino.descricao}`,
+        contaOrigemId: state.contaFinanceiraId,
+        contaDestinoId: state.contaDestinoId,
+        pessoaId: null,
+      }, { grupoId: grupoAtual?.id ?? "", empresaId: state.empresaId, filialId: state.filialId });
+      if (!result.sucesso) { toast({ title: "Erro", description: result.mensagem, variant: "destructive" }); return; }
+      toast({
+        title: "Transferência registrada",
+        description: `${origem?.descricao ?? ""} → ${destino.descricao}`,
+      });
+      onSaved(); onClose();
+    } finally { setSaving(false); }
   };
 
   // ------ Despesa/Receita Geral ------
@@ -421,6 +478,9 @@ export function LancamentoCaixaModal({
     if (tipoSel.categoria === "GERAL") {
       return <DetalhesGeral state={state} update={update} centrosCusto={centrosCusto} tipo={tipoSel} />;
     }
+    if (tipoSel.categoria === "TRANSFERENCIA") {
+      return <DetalhesTransferencia state={state} update={update} contasFinanceiras={contasFinanceiras} centrosCusto={centrosCusto} />;
+    }
     return (
       <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
         Detalhes para <strong>{tipoSel.descricao}</strong> ({tipoSel.categoria}) em desenvolvimento.
@@ -460,8 +520,12 @@ export function LancamentoCaixaModal({
           <div className="border-t" />
           {renderDetalhes()}
 
-          <div className="border-t" />
-          <FormasPagamentoSection state={state} update={update} valorEsperado={valorEsperado} adiantamentoReadOnly={adiantamentoReadOnly} permitirParcial={permitirParcial} />
+          {tipoSel?.categoria !== "TRANSFERENCIA" && (
+            <>
+              <div className="border-t" />
+              <FormasPagamentoSection state={state} update={update} valorEsperado={valorEsperado} adiantamentoReadOnly={adiantamentoReadOnly} permitirParcial={permitirParcial} />
+            </>
+          )}
 
           <div className="border-t" />
           <div className="space-y-1.5">
