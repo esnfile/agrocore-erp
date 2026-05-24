@@ -256,6 +256,7 @@ export function LancamentoCaixaModal({
       toast({ title: "Centro de Custo é obrigatório para este tipo", variant: "destructive" }); return;
     }
     const total = +totalCalc.toFixed(2);
+    if (tipoSel.tipoMovimento === "SAIDA" && !validarSaldoSaida(total)) return;
     const v = validarTotalFormas(total);
     if (!v.ok || !v.forma) return;
 
