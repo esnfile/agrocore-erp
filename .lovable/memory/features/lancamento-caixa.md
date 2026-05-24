@@ -16,6 +16,8 @@ O modal tem 4 seções: Dados Base, Detalhes (varia por `tipo.categoria`), Forma
 - **ADIANT_FORNECEDOR** — `DetalhesAdiantFornecedor.tsx`, consome `AdiantamentoSolicitacao` aprovada e cria `FinanceiroAdiantamento` (SAIDA).
 - **ADIANT_CLIENTE** — `DetalhesAdiantCliente.tsx`, cria `FinanceiroAdiantamento` (ENTRADA) com motivo obrigatório + autorização supervisor (`REQUER_AUTORIZACAO_ADIANT_CLIENTE`).
 - **REC_DUPLICATA / PAG_DUPLICATA** — `DetalhesDuplicatas.tsx` (componente único parametrizado por `tipoConta: RECEBER|PAGAR`) + `SelecionarAdiantamentoModal.tsx`.
+- **GERAL** — `DetalhesGeral.tsx`, Valor+Multa+Juros-Descontos=Total; Conta Contábil read-only do tipo; Centro de Custo dinâmico (`*` se `exigeCentroCusto`).
+- **TRANSFERENCIA** — `DetalhesTransferencia.tsx`, Origem = `contaFinanceiraId` (read-only), Destino filtra ativas≠origem; sem Formas de Pagamento (seção oculta); service move saldos via `tipoMovimento=TRANSFERENCIA`. Saldo insuficiente em conta que não permite negativo: `window.confirm` (política flexível) — service ainda bloqueia se `!permiteSaldoNegativo`.
 
 ## REC/PAG_DUPLICATA — Baixa multi-parcela
 
