@@ -299,6 +299,7 @@ export function LancamentoCaixaModal({
     if (totalFormas > totalParcelas + 0.01) {
       toast({ title: "TOTAL não pode ser maior que o valor das parcelas", variant: "destructive" }); return;
     }
+    if (tipoSel.tipoMovimento === "SAIDA" && !validarSaldoSaida(+totalFormas.toFixed(2))) return;
 
     // Resolve forma de pagamento a partir dos campos preenchidos
     const candidatos: [number, FinanceiroFormaPagto | undefined, string][] = [
@@ -357,6 +358,7 @@ export function LancamentoCaixaModal({
     if (tipoSel.exigeCentroCusto && !state.centroCustoId) {
       toast({ title: "Centro de custo obrigatório", variant: "destructive" }); return;
     }
+    if (!validarSaldoSaida(state.valorDetalhe)) return;
     const v = validarTotalFormas(state.valorDetalhe);
     if (!v.ok || !v.forma) return;
 
@@ -392,6 +394,7 @@ export function LancamentoCaixaModal({
     if (!state.solicitacaoAdiantamentoId) { toast({ title: "Selecione a solicitação aprovada", variant: "destructive" }); return; }
     if (state.valorDetalhe <= 0) { toast({ title: "Informe o valor a liberar", variant: "destructive" }); return; }
     // valor ≤ solicitação: validado no componente via prop, mas reforçamos aqui
+    if (!validarSaldoSaida(state.valorDetalhe)) return;
     const v = validarTotalFormas(state.valorDetalhe);
     if (!v.ok || !v.forma) return;
 
