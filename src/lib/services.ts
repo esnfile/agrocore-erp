@@ -2925,9 +2925,8 @@ export const financeiroMovimentacaoService = {
       const contaOrigem = mockFinanceiroContasFinanceiras.find((c) => c.id === data.contaOrigemId && c.deletadoEm === null);
       const contaDestino = mockFinanceiroContasFinanceiras.find((c) => c.id === data.contaDestinoId && c.deletadoEm === null);
       if (!contaOrigem || !contaDestino) return { sucesso: false, mensagem: "Conta origem ou destino não encontrada." };
-      if (!contaOrigem.permiteSaldoNegativo && contaOrigem.saldoAtual - data.valor < 0) {
-        return { sucesso: false, mensagem: "Saldo insuficiente na conta origem." };
-      }
+      const blq = validarSaldoBackend(contaOrigem, data.valor);
+      if (blq) return { sucesso: false, mensagem: blq };
       contaOrigem.saldoAtual -= data.valor;
       contaDestino.saldoAtual += data.valor;
     } else {
@@ -2936,9 +2935,8 @@ export const financeiroMovimentacaoService = {
       if (tipoMovimento === "ENTRADA") {
         contaFin.saldoAtual += data.valor;
       } else {
-        if (!contaFin.permiteSaldoNegativo && contaFin.saldoAtual - data.valor < 0) {
-          return { sucesso: false, mensagem: "Saldo insuficiente. Conta não permite saldo negativo." };
-        }
+        const blq = validarSaldoBackend(contaFin, data.valor);
+        if (blq) return { sucesso: false, mensagem: blq };
         contaFin.saldoAtual -= data.valor;
       }
     }
@@ -3105,9 +3103,8 @@ export const financeiroMovimentacaoService = {
     if (tipoLanc.tipoMovimento === "ENTRADA") {
       contaFin.saldoAtual += data.valorTotal;
     } else {
-      if (!contaFin.permiteSaldoNegativo && contaFin.saldoAtual - data.valorTotal < 0) {
-        return { sucesso: false, mensagem: "Saldo insuficiente. Conta não permite saldo negativo." };
-      }
+      const blq = validarSaldoBackend(contaFin, data.valorTotal);
+      if (blq) return { sucesso: false, mensagem: blq };
       contaFin.saldoAtual -= data.valorTotal;
     }
 
