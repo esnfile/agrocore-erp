@@ -17,6 +17,7 @@ export interface LancamentoFormState {
   empresaId: string;
   filialId: string;
   contaFinanceiraId: string;
+  contaDestinoId: string; // Transferência
   dataMovimento: string;
   tipoLancamentoId: string;
   // Detalhes (varia por categoria)
