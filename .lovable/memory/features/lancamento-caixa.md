@@ -1,6 +1,6 @@
 ---
 name: Lançamento de Caixa
-description: Tela multi-tipo de movimentação. Categorias implementadas: PROLABORE, ADIANT_FORNECEDOR, ADIANT_CLIENTE, REC_DUPLICATA, PAG_DUPLICATA. Baixa multi-parcela com distribuição sequencial por vencimento.
+description: Tela multi-tipo de movimentação. Categorias implementadas: PROLABORE, ADIANT_FORNECEDOR, ADIANT_CLIENTE, REC_DUPLICATA, PAG_DUPLICATA, GERAL, TRANSFERENCIA. Filtro Tipo↔Conta por compatibilidade. Baixa multi-parcela com distribuição sequencial por vencimento.
 type: feature
 ---
 
