@@ -84,8 +84,8 @@ export default function ContasFinanceirasPage() {
         id: editId ?? undefined, descricao, tipoContaId,
         bancoId: mostrarBanco ? (bancoId || null) : null,
         agencia: mostrarBanco ? agencia : "", contaCorrente: mostrarBanco ? contaCorrente : "",
-        permiteSaldoNegativo,
-        limiteCreditoBancario: mostrarBanco ? limiteCreditoBancario : 0,
+        permiteSaldoNegativo: mostrarBanco ? permiteSaldoNegativo : false,
+        limiteCreditoBancario: mostrarBanco && permiteSaldoNegativo ? limiteCreditoBancario : 0,
         ativo,
       }, { grupoId, empresaId, filialId });
       toast({ title: "Conta financeira salva" });
