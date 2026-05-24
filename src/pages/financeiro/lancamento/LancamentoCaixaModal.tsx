@@ -159,6 +159,20 @@ export function LancamentoCaixaModal({
     }
     return { ok: true, forma };
   };
+  /** Valida saldo da conta origem para saídas. Retorna true se pode prosseguir. */
+  const validarSaldoSaida = (valor: number): boolean => {
+    if (!contaSel || valor <= 0) return true;
+    const a = avaliarSaldo(contaSel, financeiroTipoContas, valor);
+    if (a.status === "bloqueado") {
+      toast({ title: "Operação bloqueada", description: a.mensagem ?? "", variant: "destructive" });
+      return false;
+    }
+    if (a.status === "aviso") {
+      toast({ title: "Atenção", description: a.mensagem ?? "" });
+    }
+    return true;
+  };
+
 
   // ------ Salvar (despacha por categoria) ------
   const handleSave = async () => {
