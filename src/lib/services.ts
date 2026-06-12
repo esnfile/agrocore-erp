@@ -2978,6 +2978,7 @@ export const financeiroMovimentacaoService = {
       parcelaId: data.parcelaId ?? null,
       pessoaId: data.pessoaId ?? null,
       formasPagamentoDetalhe: data.formasPagamentoDetalhe ?? null,
+      composicaoDinheiro: data.composicaoDinheiro && data.composicaoDinheiro.length > 0 ? data.composicaoDinheiro.map((c) => ({ ...c })) : null,
       criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
       deletadoEm: null, deletadoPor: null,
     };
