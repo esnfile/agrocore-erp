@@ -551,7 +551,16 @@ export function LancamentoCaixaModal({
           {tipoSel?.categoria !== "TRANSFERENCIA" && (
             <>
               <div className="border-t" />
-              <FormasPagamentoSection state={state} update={update} valorEsperado={valorEsperado} adiantamentoReadOnly={adiantamentoReadOnly} permitirParcial={permitirParcial} formasPagto={formasPagto} />
+              <FormasPagamentoSection
+                state={state} update={update}
+                valorEsperado={valorEsperado}
+                adiantamentoReadOnly={adiantamentoReadOnly}
+                permitirParcial={permitirParcial}
+                formasPagto={formasPagto}
+                cheques={cheques}
+                cartoes={cartoes}
+                modo={tipoSel?.tipoMovimento === "ENTRADA" ? "RECEBIMENTO" : "PAGAMENTO"}
+              />
             </>
           )}
 
