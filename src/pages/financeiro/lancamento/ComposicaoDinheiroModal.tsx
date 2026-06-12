@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Plus, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { FinanceiroFormaPagto } from "@/lib/mock-data";
-import { SearchableSelect, type SearchableOption } from "@/components/SearchableSelect";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import type { FinanceiroFormaPagto } from "@/lib/mock-data";
 import type { ComposicaoDinheiroItem } from "./types";
 import { sumComposicao } from "./types";
 
@@ -26,18 +27,13 @@ export function ComposicaoDinheiroModal({ open, onClose, onConfirm, formasPagto,
   const { toast } = useToast();
   const [itens, setItens] = useState<ComposicaoDinheiroItem[]>([]);
 
-  // Formas elegíveis para compor "Dinheiro": tudo que não for Cheque/Cartão/Adiantamento.
-  const formasDisponiveis = useMemo(() => {
-    const bloqueadas = ["cheque", "cartão", "cartao", "adiantamento"];
-    return formasPagto
-      .filter((f) => f.ativo && f.deletadoEm === null)
-      .filter((f) => !bloqueadas.some((b) => f.descricao.toLowerCase().includes(b)))
-      .sort((a, b) => a.descricao.localeCompare(b.descricao));
-  }, [formasPagto]);
-
-  const options: SearchableOption[] = useMemo(
-    () => formasDisponiveis.map((f) => ({ id: f.id, label: f.descricao, sublabel: f.tipo })),
-    [formasDisponiveis],
+  // Apenas formas com categoria contábil DINHEIRO entram no popup do campo Dinheiro.
+  const formasDisponiveis = useMemo(
+    () =>
+      formasPagto
+        .filter((f) => f.ativo && f.deletadoEm === null && f.categoriaContabil === "DINHEIRO")
+        .sort((a, b) => a.descricao.localeCompare(b.descricao)),
+    [formasPagto],
   );
 
   useEffect(() => {
