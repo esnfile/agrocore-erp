@@ -6,9 +6,11 @@ interface RomaneioStepperProps {
   currentStep: number;
   status: StatusRomaneioNew;
   onStepClick: (step: number) => void;
+  /** When true, step 3 (Vínculo) is rendered as pending even if status >= AGUARDANDO_CLASSIFICACAO. */
+  vinculoPendente?: boolean;
 }
 
-export function RomaneioStepper({ currentStep, status, onStepClick }: RomaneioStepperProps) {
+export function RomaneioStepper({ currentStep, status, onStepClick, vinculoPendente = false }: RomaneioStepperProps) {
   const maxStep = getMaxStepForStatus(status);
 
   return (
