@@ -3194,6 +3194,8 @@ export const financeiroTiposLancamento: FinanceiroTipoLancamento[] = [
 
 // ---- Forma de Pagamento (tabela) ----
 export type TipoFormaPagamento = "DINHEIRO" | "BANCARIO" | "ELETRONICO";
+/** Categoria contábil — define em qual "balde" do Caixa a forma se enquadra. */
+export type CategoriaContabilFormaPagto = "DINHEIRO" | "CHEQUE" | "CARTAO" | "ADIANTAMENTO";
 
 export interface FinanceiroFormaPagto {
   id: string;
@@ -3202,6 +3204,7 @@ export interface FinanceiroFormaPagto {
   filialId: string | null;
   descricao: string;
   tipo: TipoFormaPagamento;
+  categoriaContabil: CategoriaContabilFormaPagto;
   ativo: boolean;
   criadoEm: string;
   criadoPor: string;
@@ -3219,6 +3222,7 @@ export const financeiroFormasPagto: FinanceiroFormaPagto[] = [
     filialId: null,
     descricao: "Dinheiro",
     tipo: "DINHEIRO",
+    categoriaContabil: "DINHEIRO",
     ativo: true,
     criadoEm: "2025-01-01T08:00:00Z",
     criadoPor: "u1",
@@ -3234,6 +3238,7 @@ export const financeiroFormasPagto: FinanceiroFormaPagto[] = [
     filialId: null,
     descricao: "PIX",
     tipo: "ELETRONICO",
+    categoriaContabil: "DINHEIRO",
     ativo: true,
     criadoEm: "2025-01-01T08:00:00Z",
     criadoPor: "u1",
@@ -3249,6 +3254,7 @@ export const financeiroFormasPagto: FinanceiroFormaPagto[] = [
     filialId: null,
     descricao: "Transferência",
     tipo: "BANCARIO",
+    categoriaContabil: "DINHEIRO",
     ativo: true,
     criadoEm: "2025-01-01T08:00:00Z",
     criadoPor: "u1",
@@ -3264,6 +3270,7 @@ export const financeiroFormasPagto: FinanceiroFormaPagto[] = [
     filialId: null,
     descricao: "TED",
     tipo: "BANCARIO",
+    categoriaContabil: "DINHEIRO",
     ativo: true,
     criadoEm: "2025-01-01T08:00:00Z",
     criadoPor: "u1",
@@ -3279,6 +3286,7 @@ export const financeiroFormasPagto: FinanceiroFormaPagto[] = [
     filialId: null,
     descricao: "DOC",
     tipo: "BANCARIO",
+    categoriaContabil: "DINHEIRO",
     ativo: true,
     criadoEm: "2025-01-01T08:00:00Z",
     criadoPor: "u1",
@@ -3294,6 +3302,7 @@ export const financeiroFormasPagto: FinanceiroFormaPagto[] = [
     filialId: null,
     descricao: "Cheque",
     tipo: "BANCARIO",
+    categoriaContabil: "CHEQUE",
     ativo: true,
     criadoEm: "2025-01-01T08:00:00Z",
     criadoPor: "u1",
@@ -3309,6 +3318,7 @@ export const financeiroFormasPagto: FinanceiroFormaPagto[] = [
     filialId: null,
     descricao: "Boleto",
     tipo: "BANCARIO",
+    categoriaContabil: "DINHEIRO",
     ativo: true,
     criadoEm: "2025-01-01T08:00:00Z",
     criadoPor: "u1",
@@ -3324,6 +3334,7 @@ export const financeiroFormasPagto: FinanceiroFormaPagto[] = [
     filialId: null,
     descricao: "Cartão Débito",
     tipo: "ELETRONICO",
+    categoriaContabil: "CARTAO",
     ativo: true,
     criadoEm: "2025-01-01T08:00:00Z",
     criadoPor: "u1",
@@ -3339,6 +3350,7 @@ export const financeiroFormasPagto: FinanceiroFormaPagto[] = [
     filialId: null,
     descricao: "Cartão Crédito",
     tipo: "ELETRONICO",
+    categoriaContabil: "CARTAO",
     ativo: true,
     criadoEm: "2025-01-01T08:00:00Z",
     criadoPor: "u1",
@@ -3354,6 +3366,7 @@ export const financeiroFormasPagto: FinanceiroFormaPagto[] = [
     filialId: null,
     descricao: "Adiantamento",
     tipo: "DINHEIRO",
+    categoriaContabil: "ADIANTAMENTO",
     ativo: true,
     criadoEm: "2025-01-01T08:00:00Z",
     criadoPor: "u1",
