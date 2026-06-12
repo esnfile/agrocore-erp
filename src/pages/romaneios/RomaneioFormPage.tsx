@@ -6,6 +6,7 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { romaneioService, romaneioPesagemService } from "@/lib/services";
 import type { Romaneio, RomaneioPesagem } from "@/lib/mock-data";
 import { RomaneioStepper } from "./components/RomaneioStepper";
+import { RomaneioStatusBadge } from "./components/RomaneioStatusBadge";
 import { StepIdentificacao } from "./steps/StepIdentificacao";
 import { StepPesagens } from "./steps/StepPesagens";
 import { StepVinculo } from "./steps/StepVinculo";
