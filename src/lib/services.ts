@@ -47,6 +47,8 @@ import {
   financeiroContasFinanceiras as mockFinanceiroContasFinanceiras,
   financeiroTiposLancamento as mockFinanceiroTiposLancamento,
   financeiroFormasPagto as mockFinanceiroFormasPagto,
+  financeiroCheques as mockFinanceiroCheques,
+  financeiroCartoes as mockFinanceiroCartoes,
   financeiroPlanoContas as mockFinanceiroPlanoContas,
   financeiroCentrosCusto as mockFinanceiroCentrosCusto,
   financeiroMovimentacoes as mockFinanceiroMovimentacoes,
@@ -71,6 +73,7 @@ import type {
   FinanceiroConta, FinanceiroParcela, FinanceiroBaixa, TipoConta, StatusConta, OrigemConta, StatusParcela, FormaPagamento,
   FinanceiroBanco, FinanceiroTipoConta, FinanceiroContaFinanceira, FinanceiroTipoLancamento,
   FinanceiroFormaPagto, TipoFormaPagamento, FinanceiroPlanoConta, TipoPlanoConta,
+  FinanceiroCheque, StatusCheque, FinanceiroCartao, StatusCartao,
   FinanceiroCentroCusto, FinanceiroMovimentacao, TipoMovimentoFinanceiro,
   FinanceiroAdiantamento, StatusAdiantamento, TipoBeneficiarioAdiantamento,
   AdiantamentoSolicitacao, StatusSolicitacaoAdiantamento,
@@ -2864,6 +2867,32 @@ export const financeiroTipoLancamentoService = {
 export const financeiroFormaPagtoService = createCorporateCrudService<FinanceiroFormaPagto>(mockFinanceiroFormasPagto as any, "ffp");
 
 // ============================================================
+// Financeiro — Cheques (cofre / disponíveis para pagamento)
+// ============================================================
+export const financeiroChequeService = {
+  ...createCorporateCrudService<FinanceiroCheque>(mockFinanceiroCheques as any, "chq"),
+  async listarDisponiveis(empresaId: string, filialId: string): Promise<FinanceiroCheque[]> {
+    await delay();
+    return mockFinanceiroCheques.filter(
+      (c) => c.deletadoEm === null && c.ativo && c.status === "DISPONIVEL"
+    );
+  },
+};
+
+// ============================================================
+// Financeiro — Cartões (disponíveis para pagamento)
+// ============================================================
+export const financeiroCartaoService = {
+  ...createCorporateCrudService<FinanceiroCartao>(mockFinanceiroCartoes as any, "crt"),
+  async listarDisponiveis(empresaId: string, filialId: string): Promise<FinanceiroCartao[]> {
+    await delay();
+    return mockFinanceiroCartoes.filter(
+      (c) => c.deletadoEm === null && c.ativo && c.status === "DISPONIVEL"
+    );
+  },
+};
+
+// ============================================================
 // Financeiro — Plano de Contas
 // ============================================================
 export const financeiroPlanoContaService = createCorporateCrudService<FinanceiroPlanoConta>(mockFinanceiroPlanoContas as any, "fpc");
@@ -2927,6 +2956,9 @@ export const financeiroMovimentacaoService = {
       pessoaId?: string | null;
       formasPagamentoDetalhe?: { dinheiro: number; cheque: number; cartao: number; adiantamento: number } | null;
       composicaoDinheiro?: Array<{ formaId: string; valor: number }> | null;
+      composicaoCheque?: Array<{ chequeId?: string | null; numero?: string | null; banco?: string | null; valor: number }> | null;
+      composicaoCartao?: Array<{ cartaoId?: string | null; numero?: string | null; bandeira?: string | null; valor: number }> | null;
+      composicaoAdiantamento?: Array<{ adiantamentoId: string; valor: number }> | null;
       solicitacaoAdiantamentoId?: string | null;
     },
     ctx: { grupoId: string; empresaId: string; filialId: string }
@@ -2979,6 +3011,9 @@ export const financeiroMovimentacaoService = {
       pessoaId: data.pessoaId ?? null,
       formasPagamentoDetalhe: data.formasPagamentoDetalhe ?? null,
       composicaoDinheiro: data.composicaoDinheiro && data.composicaoDinheiro.length > 0 ? data.composicaoDinheiro.map((c) => ({ ...c })) : null,
+      composicaoCheque: data.composicaoCheque && data.composicaoCheque.length > 0 ? data.composicaoCheque.map((c) => ({ ...c })) : null,
+      composicaoCartao: data.composicaoCartao && data.composicaoCartao.length > 0 ? data.composicaoCartao.map((c) => ({ ...c })) : null,
+      composicaoAdiantamento: data.composicaoAdiantamento && data.composicaoAdiantamento.length > 0 ? data.composicaoAdiantamento.map((c) => ({ ...c })) : null,
       criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
       deletadoEm: null, deletadoPor: null,
     };
@@ -3075,6 +3110,8 @@ export const financeiroMovimentacaoService = {
       historico: string;
       formasPagamentoDetalhe: { dinheiro: number; cheque: number; cartao: number; adiantamento: number };
       composicaoDinheiro?: Array<{ formaId: string; valor: number }> | null;
+      composicaoCheque?: Array<{ chequeId?: string | null; numero?: string | null; banco?: string | null; valor: number }> | null;
+      composicaoCartao?: Array<{ cartaoId?: string | null; numero?: string | null; bandeira?: string | null; valor: number }> | null;
       adiantamentosUsados: Array<{ adiantamentoId: string; valor: number }>;
     },
     ctx: { grupoId: string; empresaId: string; filialId: string }
@@ -3184,6 +3221,9 @@ export const financeiroMovimentacaoService = {
       pessoaId: data.pessoaId,
       formasPagamentoDetalhe: { ...data.formasPagamentoDetalhe },
       composicaoDinheiro: data.composicaoDinheiro && data.composicaoDinheiro.length > 0 ? data.composicaoDinheiro.map((c) => ({ ...c })) : null,
+      composicaoCheque: data.composicaoCheque && data.composicaoCheque.length > 0 ? data.composicaoCheque.map((c) => ({ ...c })) : null,
+      composicaoCartao: data.composicaoCartao && data.composicaoCartao.length > 0 ? data.composicaoCartao.map((c) => ({ ...c })) : null,
+      composicaoAdiantamento: data.adiantamentosUsados && data.adiantamentosUsados.filter((a) => a.valor > 0).length > 0 ? data.adiantamentosUsados.filter((a) => a.valor > 0).map((a) => ({ ...a })) : null,
       parcelasLiquidadas,
       adiantamentosUsados: data.adiantamentosUsados.filter((a) => a.valor > 0),
       criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",

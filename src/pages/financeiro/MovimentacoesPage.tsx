@@ -152,16 +152,38 @@ export default function MovimentacoesPage() {
                         )}
                         {m.composicaoDinheiro && m.composicaoDinheiro.length > 0 && (
                           <div>
-                            <p className="text-xs font-semibold text-muted-foreground mb-1">Composição do "Dinheiro"</p>
+                            <p className="text-xs font-semibold text-muted-foreground mb-1">Composição "Dinheiro"</p>
                             <ul className="text-xs space-y-0.5">
                               {m.composicaoDinheiro.map((c, i) => {
                                 const fp = formasPagto.find((f) => f.id === c.formaId);
                                 return (
-                                  <li key={i} className="font-mono">
-                                    {fp?.descricao ?? c.formaId} — {fmt(c.valor)}
-                                  </li>
+                                  <li key={i} className="font-mono">{fp?.descricao ?? c.formaId} — {fmt(c.valor)}</li>
                                 );
                               })}
+                            </ul>
+                          </div>
+                        )}
+                        {m.composicaoCheque && m.composicaoCheque.length > 0 && (
+                          <div>
+                            <p className="text-xs font-semibold text-muted-foreground mb-1">Composição "Cheque"</p>
+                            <ul className="text-xs space-y-0.5">
+                              {m.composicaoCheque.map((c, i) => (
+                                <li key={i} className="font-mono">
+                                  {c.numero ? `#${c.numero}` : c.chequeId} {c.banco ? `(${c.banco})` : ""} — {fmt(c.valor)}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {m.composicaoCartao && m.composicaoCartao.length > 0 && (
+                          <div>
+                            <p className="text-xs font-semibold text-muted-foreground mb-1">Composição "Cartão"</p>
+                            <ul className="text-xs space-y-0.5">
+                              {m.composicaoCartao.map((c, i) => (
+                                <li key={i} className="font-mono">
+                                  {c.bandeira ?? ""} {c.numero ? `****${c.numero}` : c.cartaoId} — {fmt(c.valor)}
+                                </li>
+                              ))}
                             </ul>
                           </div>
                         )}

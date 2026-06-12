@@ -17,6 +17,22 @@ export interface ComposicaoDinheiroItem {
   valor: number;
 }
 
+export interface ComposicaoChequeItem {
+  // PAGAMENTO: aponta para cheque cadastrado; RECEBIMENTO: dados digitados.
+  chequeId?: string | null;
+  numero?: string | null;
+  banco?: string | null;
+  valor: number;
+}
+
+export interface ComposicaoCartaoItem {
+  // PAGAMENTO: aponta para cartão cadastrado; RECEBIMENTO: dados digitados.
+  cartaoId?: string | null;
+  numero?: string | null;
+  bandeira?: string | null;
+  valor: number;
+}
+
 
 export interface LancamentoFormState {
   // Dados base
@@ -45,6 +61,10 @@ export interface LancamentoFormState {
   formas: FormasPagamentoState;
   // Composição detalhada do campo "Dinheiro" (Dinheiro Físico, PIX, Transferência, etc.)
   composicaoDinheiro: ComposicaoDinheiroItem[];
+  // Composição do campo "Cheque" — itens cadastrados (PAGAMENTO) ou digitados (RECEBIMENTO).
+  composicaoCheque: ComposicaoChequeItem[];
+  // Composição do campo "Cartão" — itens cadastrados (PAGAMENTO) ou digitados (RECEBIMENTO).
+  composicaoCartao: ComposicaoCartaoItem[];
   // Histórico
   historico: string;
 }
@@ -71,13 +91,15 @@ export const initialFormState = (empresaId: string, filialId: string): Lancament
   totalGeral: 0,
   formas: { dinheiro: 0, cheque: 0, cartao: 0, adiantamento: 0 },
   composicaoDinheiro: [],
+  composicaoCheque: [],
+  composicaoCartao: [],
   historico: "",
 });
 
 export const sumFormas = (f: FormasPagamentoState) =>
   (f.dinheiro || 0) + (f.cheque || 0) + (f.cartao || 0) + (f.adiantamento || 0);
 
-export const sumComposicao = (itens: ComposicaoDinheiroItem[]) =>
+export const sumComposicao = (itens: Array<{ valor: number }>) =>
   itens.reduce((s, i) => s + (i.valor || 0), 0);
 
 

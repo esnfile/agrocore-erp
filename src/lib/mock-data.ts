@@ -3377,6 +3377,120 @@ export const financeiroFormasPagto: FinanceiroFormaPagto[] = [
   },
 ];
 
+// ---- Cheques (cofre / disponíveis para pagamento) ----
+export type StatusCheque = "DISPONIVEL" | "UTILIZADO" | "COMPENSADO" | "DEVOLVIDO";
+
+export interface FinanceiroCheque {
+  id: string;
+  grupoId: string;
+  empresaId: string | null;
+  filialId: string | null;
+  descricao: string;           // label exibido (ex: "Cheque 12345 - Itaú")
+  numero: string;
+  banco: string;
+  agencia: string;
+  conta: string;
+  titular: string;
+  valor: number;
+  dataEmissao: string;         // YYYY-MM-DD
+  dataVencimento: string;      // YYYY-MM-DD
+  status: StatusCheque;
+  ativo: boolean;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export const financeiroCheques: FinanceiroCheque[] = [
+  {
+    id: "chq1", grupoId: "g1", empresaId: null, filialId: null,
+    descricao: "Cheque 100123 - Itaú", numero: "100123", banco: "Itaú",
+    agencia: "0001", conta: "12345-6", titular: "Cliente Exemplo Ltda",
+    valor: 5000, dataEmissao: "2025-01-10", dataVencimento: "2025-02-10",
+    status: "DISPONIVEL", ativo: true,
+    criadoEm: "2025-01-10T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-01-10T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "chq2", grupoId: "g1", empresaId: null, filialId: null,
+    descricao: "Cheque 100124 - Bradesco", numero: "100124", banco: "Bradesco",
+    agencia: "0234", conta: "98765-4", titular: "Fornecedor ABC",
+    valor: 3500, dataEmissao: "2025-01-15", dataVencimento: "2025-02-15",
+    status: "DISPONIVEL", ativo: true,
+    criadoEm: "2025-01-15T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-01-15T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "chq3", grupoId: "g1", empresaId: null, filialId: null,
+    descricao: "Cheque 100125 - Santander", numero: "100125", banco: "Santander",
+    agencia: "1234", conta: "55555-0", titular: "Diversos",
+    valor: 1200, dataEmissao: "2025-01-20", dataVencimento: "2025-02-20",
+    status: "DISPONIVEL", ativo: true,
+    criadoEm: "2025-01-20T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-01-20T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+];
+
+// ---- Cartões (cadastrados disponíveis para pagamento) ----
+export type StatusCartao = "DISPONIVEL" | "UTILIZADO";
+
+export interface FinanceiroCartao {
+  id: string;
+  grupoId: string;
+  empresaId: string | null;
+  filialId: string | null;
+  descricao: string;          // label exibido (ex: "Visa ****1234")
+  bandeira: string;
+  ultimos4: string;
+  titular: string;
+  valorLimite: number;
+  valorDisponivel: number;
+  status: StatusCartao;
+  ativo: boolean;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
+export const financeiroCartoes: FinanceiroCartao[] = [
+  {
+    id: "crt1", grupoId: "g1", empresaId: null, filialId: null,
+    descricao: "Visa ****1234", bandeira: "Visa", ultimos4: "1234",
+    titular: "Empresa Exemplo", valorLimite: 20000, valorDisponivel: 18000,
+    status: "DISPONIVEL", ativo: true,
+    criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "crt2", grupoId: "g1", empresaId: null, filialId: null,
+    descricao: "Mastercard ****5678", bandeira: "Mastercard", ultimos4: "5678",
+    titular: "Empresa Exemplo", valorLimite: 15000, valorDisponivel: 15000,
+    status: "DISPONIVEL", ativo: true,
+    criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+  {
+    id: "crt3", grupoId: "g1", empresaId: null, filialId: null,
+    descricao: "Elo ****9012", bandeira: "Elo", ultimos4: "9012",
+    titular: "Empresa Exemplo", valorLimite: 8000, valorDisponivel: 7500,
+    status: "DISPONIVEL", ativo: true,
+    criadoEm: "2025-01-01T08:00:00Z", criadoPor: "u1",
+    atualizadoEm: "2025-01-01T08:00:00Z", atualizadoPor: "u1",
+    deletadoEm: null, deletadoPor: null,
+  },
+];
+
 // ---- Plano de Contas ----
 export type TipoPlanoConta = "RECEITA" | "DESPESA";
 
@@ -3622,6 +3736,12 @@ export interface FinanceiroMovimentacao {
   formasPagamentoDetalhe: { dinheiro: number; cheque: number; cartao: number; adiantamento: number } | null;
   // Composição detalhada do total de "Dinheiro" por forma de pagamento (PIX, Transferência, Espécie, etc.)
   composicaoDinheiro?: Array<{ formaId: string; valor: number }> | null;
+  // Composição do total de "Cheque" — RECEBIMENTO grava numero/banco; PAGAMENTO grava chequeId
+  composicaoCheque?: Array<{ chequeId?: string | null; numero?: string | null; banco?: string | null; valor: number }> | null;
+  // Composição do total de "Cartão" — RECEBIMENTO grava numero/bandeira; PAGAMENTO grava cartaoId
+  composicaoCartao?: Array<{ cartaoId?: string | null; numero?: string | null; bandeira?: string | null; valor: number }> | null;
+  // Composição do total de "Adiantamento" — espelha adiantamentosUsados quando há baixa de duplicatas
+  composicaoAdiantamento?: Array<{ adiantamentoId: string; valor: number }> | null;
   // Rastreabilidade de baixa multi-parcela (REC_DUPLICATA / PAG_DUPLICATA)
   parcelasLiquidadas?: Array<{
     parcelaId: string;
