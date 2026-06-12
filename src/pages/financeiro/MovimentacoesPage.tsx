@@ -30,21 +30,23 @@ export default function MovimentacoesPage() {
   const [contasFinanceiras, setContasFinanceiras] = useState<FinanceiroContaFinanceira[]>([]);
   const [centrosCusto, setCentrosCusto] = useState<FinanceiroCentroCusto[]>([]);
   const [pessoas, setPessoas] = useState<Pessoa[]>([]);
+  const [formasPagto, setFormasPagto] = useState<FinanceiroFormaPagto[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   const carregar = useCallback(async () => {
     setLoading(true);
-    const [m, tl, cf, cc, pess] = await Promise.all([
+    const [m, tl, cf, cc, pess, fp] = await Promise.all([
       financeiroMovimentacaoService.listar(empresaId, filialId),
       financeiroTipoLancamentoService.listar(empresaId, filialId),
       financeiroContaFinanceiraService.listar(empresaId, filialId),
       financeiroCentroCustoService.listar(empresaId, filialId),
       pessoaService.listar(empresaId, filialId),
+      financeiroFormaPagtoService.listar(empresaId, filialId),
     ]);
     setMovimentacoes(m); setTiposLancamento(tl); setContasFinanceiras(cf);
-    setCentrosCusto(cc); setPessoas(pess);
+    setCentrosCusto(cc); setPessoas(pess); setFormasPagto(fp);
     setLoading(false);
   }, [empresaId, filialId]);
 
