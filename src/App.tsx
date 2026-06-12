@@ -39,6 +39,8 @@ import TipoContasPage from "@/pages/financeiro/TipoContasPage";
 import ContasFinanceirasPage from "@/pages/financeiro/ContasFinanceirasPage";
 import TiposLancamentoPage from "@/pages/financeiro/TiposLancamentoPage";
 import FormasPagamentoPage from "@/pages/financeiro/FormasPagamentoPage";
+import ChequesPage from "@/pages/financeiro/ChequesPage";
+import CartoesPage from "@/pages/financeiro/CartoesPage";
 import PlanoContasPage from "@/pages/financeiro/PlanoContasPage";
 import CentrosCustoPage from "@/pages/financeiro/CentrosCustoPage";
 import MovimentacoesPage from "@/pages/financeiro/MovimentacoesPage";
