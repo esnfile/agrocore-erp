@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
 import { PageHeader } from "@/components/PageHeader";
+import { ContratosDashboard } from "./components/ContratosDashboard";
 import { CrudModal } from "@/components/CrudModal";
 import { FormRow } from "@/components/FormRow";
 import { toast } from "@/hooks/use-toast";
