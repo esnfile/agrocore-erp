@@ -180,7 +180,7 @@ export function DetalhesDuplicatas({ state, update, pessoas, centrosCusto, tipoC
 
 
       {state.pessoaId && (
-        <div className="rounded-md border bg-muted/30 p-3 space-y-3">
+        <div className="rounded-md border bg-muted/30 p-3 space-y-2">
           {saldoAdiantTotal > 0 ? (
             <div className="flex items-center gap-2 text-sm">
               <CreditCard className="h-4 w-4 text-primary shrink-0" />
@@ -196,40 +196,12 @@ export function DetalhesDuplicatas({ state, update, pessoas, centrosCusto, tipoC
             </div>
           )}
 
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setModalAdiantOpen(true)}
-              disabled={saldoAdiantTotal <= 0}
-            >
-              <Wallet className={`h-4 w-4 mr-1 ${saldoAdiantTotal > 0 ? "text-primary" : ""}`} /> Selecionar Adiantamento
-            </Button>
-            <div className="text-sm">
-              <span className="text-muted-foreground">Adiantamento Selecionado: </span>
-              <span className="font-mono font-medium">{fmt(adiantUsado)}</span>
-              <span className="text-muted-foreground ml-3">Saldo Restante: </span>
-              <span className="font-mono">{fmt(saldoAdiantTotal - adiantUsado)}</span>
+          {saldoAdiantTotal > 0 && (
+            <div className="text-xs text-muted-foreground flex flex-wrap gap-x-4">
+              <span>Selecionado: <span className="font-mono font-medium text-foreground">{fmt(adiantUsado)}</span></span>
+              <span>Saldo Restante: <span className="font-mono text-foreground">{fmt(saldoAdiantTotal - adiantUsado)}</span></span>
+              <span className="italic">Use o botão <strong>…</strong> ao lado de <strong>Adiantamento</strong> abaixo para selecionar.</span>
             </div>
-          </div>
+          )}
         </div>
       )}
-
-      <SelecionarAdiantamentoModal
-        open={modalAdiantOpen}
-        onClose={() => setModalAdiantOpen(false)}
-        pessoaId={state.pessoaId}
-        tipoBeneficiario={tipoBeneficiario}
-        selecionadosAtuais={state.adiantamentosSelecionados}
-        onConfirm={(sel) => {
-          const total = sel.reduce((s, a) => s + a.valor, 0);
-          update({
-            adiantamentosSelecionados: sel,
-            formas: { ...state.formas, adiantamento: +total.toFixed(2) },
-          });
-        }}
-      />
-    </div>
-  );
-}
