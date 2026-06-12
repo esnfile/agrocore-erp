@@ -12,6 +12,12 @@ export interface AdiantamentoUso {
   valor: number;
 }
 
+export interface ComposicaoDinheiroItem {
+  formaId: string;
+  valor: number;
+}
+
+
 export interface LancamentoFormState {
   // Dados base
   empresaId: string;
