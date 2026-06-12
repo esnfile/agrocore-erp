@@ -94,6 +94,8 @@ const App = () => (
               <Route path="/financeiro/contas-financeiras" element={<ContasFinanceirasPage />} />
               <Route path="/financeiro/tipos-lancamento" element={<TiposLancamentoPage />} />
               <Route path="/financeiro/formas-pagamento" element={<FormasPagamentoPage />} />
+              <Route path="/financeiro/cheques" element={<ChequesPage />} />
+              <Route path="/financeiro/cartoes" element={<CartoesPage />} />
               <Route path="/financeiro/plano-contas" element={<PlanoContasPage />} />
               <Route path="/financeiro/centros-custo" element={<CentrosCustoPage />} />
               <Route path="/financeiro/movimentacoes" element={<MovimentacoesPage />} />
