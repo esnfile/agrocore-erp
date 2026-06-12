@@ -50,6 +50,10 @@ import RomaneiosPage from "@/pages/romaneios/RomaneiosPage";
 import RomaneioFormPage from "@/pages/romaneios/RomaneioFormPage";
 import MotoristasPage from "@/pages/romaneios/MotoristasPage";
 import VeiculosPage from "@/pages/romaneios/VeiculosPage";
+import PesagemPage from "@/pages/balanca/PesagemPage";
+import PesagemDetalhePage from "@/pages/balanca/PesagemDetalhePage";
+import ClassificacaoListaPage from "@/pages/balanca/ClassificacaoListaPage";
+import ClassificacaoDetalhePage from "@/pages/balanca/ClassificacaoDetalhePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -107,6 +111,11 @@ const App = () => (
               <Route path="/romaneios/:id" element={<RomaneioFormPage />} />
               <Route path="/romaneios/motoristas" element={<MotoristasPage />} />
               <Route path="/romaneios/veiculos" element={<VeiculosPage />} />
+              {/* Balança — operador */}
+              <Route path="/balanca/pesagem" element={<PesagemPage />} />
+              <Route path="/balanca/pesagem/:id" element={<PesagemDetalhePage />} />
+              <Route path="/balanca/classificacao" element={<ClassificacaoListaPage />} />
+              <Route path="/balanca/classificacao/:id" element={<ClassificacaoDetalhePage />} />
               {/* Produtos e Estoque — Tabelas */}
               <Route path="/produtos-estoque/tipo-produto" element={<TipoProdutoPage />} />
               <Route path="/produtos-estoque/marca-produto" element={<MarcaProdutoPage />} />
