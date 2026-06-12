@@ -2840,8 +2840,8 @@ export default function ContratosPage() {
                 </>
               )}
 
-              {/* Cenário 2: FINALIZADO */}
-              {editingContrato && editingContrato.status === "FINALIZADO" && (
+              {/* Cenário 2: FINALIZADO (exceto A_FIXAR com fixações já com contas geradas — cai em cenário 3) */}
+              {editingContrato && editingContrato.status === "FINALIZADO" && !(editingContrato.tipoPreco === "A_FIXAR" && fixacoes.some((f) => f.contasGeradas)) && (
                 <div className="space-y-4">
                   {/* Se tem duplicatas PREVISTO → oferecer efetivação */}
                   {editingContrato.duplicatasGeradas && editingContrato.tipoPreco !== "A_FIXAR" && finParcelas.some(p => p.status === "PREVISTO" || p.status === "PENDENTE") ? (
@@ -2934,8 +2934,8 @@ export default function ContratosPage() {
                 </div>
               )}
 
-              {/* Cenário 3: FATURADO, LIQUIDADO ou CANCELADO — exibe parcelas */}
-              {editingContrato && (editingContrato.status === "FATURADO" || editingContrato.status === "LIQUIDADO" || editingContrato.status === "CANCELADO") && (
+              {/* Cenário 3: FATURADO, LIQUIDADO, CANCELADO ou FINALIZADO+A_FIXAR com contas geradas — exibe parcelas */}
+              {editingContrato && (editingContrato.status === "FATURADO" || editingContrato.status === "LIQUIDADO" || editingContrato.status === "CANCELADO" || (editingContrato.status === "FINALIZADO" && editingContrato.tipoPreco === "A_FIXAR" && fixacoes.some((f) => f.contasGeradas))) && (
                 <>
                   {/* Resumo */}
                   <div className="rounded-md bg-muted p-4 space-y-3">
