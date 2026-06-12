@@ -3,9 +3,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertCircle, Wallet, CreditCard } from "lucide-react";
+import { AlertCircle, CreditCard } from "lucide-react";
 import type {
   Pessoa, FinanceiroCentroCusto, FinanceiroParcela, FinanceiroConta,
   TipoBeneficiarioAdiantamento, FinanceiroAdiantamento,
@@ -15,7 +14,6 @@ import {
 } from "@/lib/services";
 import type { LancamentoFormState } from "./types";
 import { sumFormas } from "./types";
-import { SelecionarAdiantamentoModal } from "./SelecionarAdiantamentoModal";
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -36,7 +34,6 @@ export function DetalhesDuplicatas({ state, update, pessoas, centrosCusto, tipoC
 
   const [parcelas, setParcelas] = useState<Array<FinanceiroParcela & { conta?: FinanceiroConta; vencida?: boolean }>>([]);
   const [adiantamentos, setAdiantamentos] = useState<FinanceiroAdiantamento[]>([]);
-  const [modalAdiantOpen, setModalAdiantOpen] = useState(false);
 
   useEffect(() => {
     if (!state.pessoaId) { setParcelas([]); setAdiantamentos([]); return; }
@@ -180,7 +177,7 @@ export function DetalhesDuplicatas({ state, update, pessoas, centrosCusto, tipoC
 
 
       {state.pessoaId && (
-        <div className="rounded-md border bg-muted/30 p-3 space-y-3">
+        <div className="rounded-md border bg-muted/30 p-3 space-y-2">
           {saldoAdiantTotal > 0 ? (
             <div className="flex items-center gap-2 text-sm">
               <CreditCard className="h-4 w-4 text-primary shrink-0" />
@@ -196,40 +193,15 @@ export function DetalhesDuplicatas({ state, update, pessoas, centrosCusto, tipoC
             </div>
           )}
 
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setModalAdiantOpen(true)}
-              disabled={saldoAdiantTotal <= 0}
-            >
-              <Wallet className={`h-4 w-4 mr-1 ${saldoAdiantTotal > 0 ? "text-primary" : ""}`} /> Selecionar Adiantamento
-            </Button>
-            <div className="text-sm">
-              <span className="text-muted-foreground">Adiantamento Selecionado: </span>
-              <span className="font-mono font-medium">{fmt(adiantUsado)}</span>
-              <span className="text-muted-foreground ml-3">Saldo Restante: </span>
-              <span className="font-mono">{fmt(saldoAdiantTotal - adiantUsado)}</span>
+          {saldoAdiantTotal > 0 && (
+            <div className="text-xs text-muted-foreground flex flex-wrap gap-x-4">
+              <span>Selecionado: <span className="font-mono font-medium text-foreground">{fmt(adiantUsado)}</span></span>
+              <span>Saldo Restante: <span className="font-mono text-foreground">{fmt(saldoAdiantTotal - adiantUsado)}</span></span>
+              <span className="italic">Use o botão <strong>…</strong> ao lado de <strong>Adiantamento</strong> abaixo para selecionar.</span>
             </div>
-          </div>
+          )}
         </div>
       )}
-
-      <SelecionarAdiantamentoModal
-        open={modalAdiantOpen}
-        onClose={() => setModalAdiantOpen(false)}
-        pessoaId={state.pessoaId}
-        tipoBeneficiario={tipoBeneficiario}
-        selecionadosAtuais={state.adiantamentosSelecionados}
-        onConfirm={(sel) => {
-          const total = sel.reduce((s, a) => s + a.valor, 0);
-          update({
-            adiantamentosSelecionados: sel,
-            formas: { ...state.formas, adiantamento: +total.toFixed(2) },
-          });
-        }}
-      />
     </div>
   );
 }

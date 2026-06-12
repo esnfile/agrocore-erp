@@ -540,7 +540,8 @@ export function LancamentoCaixaModal({
   ) ? (tipoSel.categoria === "GERAL" ? state.totalGeral : state.valorDetalhe) : undefined;
 
 
-  const adiantamentoReadOnly = tipoSel?.categoria === "REC_DUPLICATA" || tipoSel?.categoria === "PAG_DUPLICATA";
+  // Adiantamento agora é sempre selecionado pelo botão [...] na seção Formas de Pagamento.
+  const adiantamentoReadOnly = false;
   const permitirParcial = tipoSel?.categoria === "REC_DUPLICATA" || tipoSel?.categoria === "PAG_DUPLICATA";
 
   const clienteSel = pessoas.find((p) => p.id === state.pessoaId);
