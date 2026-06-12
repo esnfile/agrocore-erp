@@ -23,7 +23,7 @@ const CATEGORIA_META: Record<CategoriaContabil, { label: string; icon: LucideIco
   CARTAO: {
     label: "Cartão",
     icon: CreditCard,
-    className: "border-primary/30 bg-primary/10 text-primary hover:bg-primary/15",
+    className: "border-muted-foreground/30 bg-muted text-muted-foreground hover:bg-muted/80",
   },
   ADIANTAMENTO: {
     label: "Adiantamento",
