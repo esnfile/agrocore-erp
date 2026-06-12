@@ -8,6 +8,7 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { romaneioService } from "@/lib/services";
 import { produtos as mockProdutos, type Romaneio } from "@/lib/mock-data";
 import { StepClassificacao } from "@/pages/romaneios/steps/StepClassificacao";
+import { RomaneioStatusBadge } from "@/pages/romaneios/components/RomaneioStatusBadge";
 import { ArrowLeft } from "lucide-react";
 
 export default function ClassificacaoDetalhePage() {
@@ -62,8 +63,9 @@ export default function ClassificacaoDetalhePage() {
         </Button>
         <PageHeader
           title={`Classificação — Romaneio ${romaneio.id.substring(0, 10)}`}
-          description={`Status: ${romaneio.status}`}
+          description="Classifique a qualidade do romaneio"
         />
+        <RomaneioStatusBadge status={romaneio.status} className="text-xs" />
       </div>
 
       <Card>

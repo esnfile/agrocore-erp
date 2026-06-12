@@ -6,6 +6,7 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { romaneioService, romaneioPesagemService } from "@/lib/services";
 import type { Romaneio, RomaneioPesagem } from "@/lib/mock-data";
 import { RomaneioStepper } from "./components/RomaneioStepper";
+import { RomaneioStatusBadge } from "./components/RomaneioStatusBadge";
 import { StepIdentificacao } from "./steps/StepIdentificacao";
 import { StepPesagens } from "./steps/StepPesagens";
 import { StepVinculo } from "./steps/StepVinculo";
@@ -88,11 +89,18 @@ export default function RomaneioFormPage() {
         </Button>
         <PageHeader
           title={romaneio ? `Romaneio ${romaneio.id.substring(0, 8)}` : "Novo Romaneio"}
-          description={romaneio ? `Status: ${status}` : "Criação de novo romaneio operacional"}
+          description={romaneio ? "Criação/edição de romaneio operacional" : "Criação de novo romaneio operacional"}
         />
+        {romaneio && <RomaneioStatusBadge status={status} className="text-xs" />}
       </div>
 
-      <RomaneioStepper currentStep={currentStep} status={status} onStepClick={handleStepClick} vinculoPendente={!!romaneio && romaneio.origem === "AVULSO" && !romaneio.contratoId && !romaneio.safraId} />
+      <RomaneioStepper
+        currentStep={currentStep}
+        status={status}
+        onStepClick={handleStepClick}
+        vinculoPendente={!!romaneio && romaneio.origem === "AVULSO" && !romaneio.contratoId && !romaneio.safraId}
+        classificacaoCompleta={!!romaneio && (romaneio.pesoClassificado ?? 0) > 0}
+      />
 
       {currentStep === 1 && (
         <StepIdentificacao romaneio={romaneio} pesagensCount={pesagens.length} onSaved={handleSaved} ctx={ctx} />

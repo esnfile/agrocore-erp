@@ -12,6 +12,7 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { romaneioService } from "@/lib/services";
 import { produtos as mockProdutos, empresas, filiais, type Romaneio } from "@/lib/mock-data";
 import { Plus, Scale } from "lucide-react";
+import { RomaneioStatusBadge } from "@/pages/romaneios/components/RomaneioStatusBadge";
 
 export default function PesagemPage() {
   const navigate = useNavigate();
@@ -152,9 +153,7 @@ export default function PesagemPage() {
                   <TableCell className="font-mono">{r.placaVeiculo || "—"}</TableCell>
                   <TableCell className="text-xs">{format(new Date(r.criadoEm), "dd/MM/yyyy HH:mm")}</TableCell>
                   <TableCell>
-                    <Badge variant={r.status === "PESAGEM_PARCIAL" ? "secondary" : "outline"} className="text-[10px]">
-                      {r.status === "PESAGEM_PARCIAL" ? "Pesagem Parcial" : "Aguard. Pesagem"}
-                    </Badge>
+                    <RomaneioStatusBadge status={r.status} />
                   </TableCell>
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     <Button size="sm" variant="default" className="gap-1" onClick={() => navigate(`/balanca/pesagem/${r.id}`)}>

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { RomaneioStatusBadge } from "@/pages/romaneios/components/RomaneioStatusBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -308,12 +309,9 @@ export default function PesagemDetalhePage() {
         </Button>
         <PageHeader
           title={isNovo ? "Novo Romaneio — Pesagem" : `Pesagem — Romaneio ${romaneio?.id.substring(0, 10)}`}
-          description={
-            isNovo
-              ? "Preencha o cabeçalho e inicie a pesagem"
-              : `Status: ${romaneio?.status}`
-          }
+          description={isNovo ? "Preencha o cabeçalho e inicie a pesagem" : "Registre as pesagens do romaneio"}
         />
+        {!isNovo && romaneio && <RomaneioStatusBadge status={romaneio.status} className="text-xs" />}
       </div>
 
       <Card>
