@@ -12,7 +12,6 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { romaneioService } from "@/lib/services";
 import { produtos as mockProdutos, empresas, filiais, type Romaneio } from "@/lib/mock-data";
 import { Plus, Scale } from "lucide-react";
-import { NovoRomaneioAvulsoModal } from "./NovoRomaneioAvulsoModal";
 
 export default function PesagemPage() {
   const navigate = useNavigate();
@@ -20,7 +19,6 @@ export default function PesagemPage() {
 
   const [items, setItems] = useState<Romaneio[]>([]);
   const [loading, setLoading] = useState(true);
-  const [modalOpen, setModalOpen] = useState(false);
   const [filterProduto, setFilterProduto] = useState<string>("TODOS");
   const [filterEmpresa, setFilterEmpresa] = useState<string>(empresaAtual?.id || "TODAS");
   const [filterFilial, setFilterFilial] = useState<string>(filialAtual?.id || "TODAS");
@@ -120,7 +118,7 @@ export default function PesagemPage() {
         <p className="text-sm text-muted-foreground">
           {filtered.length} romaneio{filtered.length !== 1 && "s"} aguardando pesagem
         </p>
-        <Button onClick={() => setModalOpen(true)} disabled={!ctx} className="gap-1">
+        <Button onClick={() => navigate("/balanca/pesagem/novo")} disabled={!ctx} className="gap-1">
           <Plus className="h-4 w-4" /> Novo Romaneio
         </Button>
       </div>
@@ -169,8 +167,6 @@ export default function PesagemPage() {
           </Table>
         )}
       </div>
-
-      {ctx && <NovoRomaneioAvulsoModal open={modalOpen} onClose={() => { setModalOpen(false); load(); }} ctx={ctx} />}
     </div>
   );
 }
