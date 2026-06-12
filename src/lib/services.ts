@@ -3110,6 +3110,8 @@ export const financeiroMovimentacaoService = {
       historico: string;
       formasPagamentoDetalhe: { dinheiro: number; cheque: number; cartao: number; adiantamento: number };
       composicaoDinheiro?: Array<{ formaId: string; valor: number }> | null;
+      composicaoCheque?: Array<{ chequeId?: string | null; numero?: string | null; banco?: string | null; valor: number }> | null;
+      composicaoCartao?: Array<{ cartaoId?: string | null; numero?: string | null; bandeira?: string | null; valor: number }> | null;
       adiantamentosUsados: Array<{ adiantamentoId: string; valor: number }>;
     },
     ctx: { grupoId: string; empresaId: string; filialId: string }
