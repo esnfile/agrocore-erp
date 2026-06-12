@@ -43,7 +43,7 @@ export default function DashboardPage() {
           <Card key={c.title}>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">{c.title}</CardTitle>
-              <c.icon className="h-4 w-4 text-muted-foreground" />
+              <c.icon className={`h-4 w-4 ${c.iconClass}`} />
             </CardHeader>
             <CardContent>
               <p className="text-xl font-bold">{c.value}</p>
