@@ -57,7 +57,7 @@ export function RomaneioStepper({ currentStep, status, onStepClick, vinculoPende
               {!isLast && (
                 <div className={cn(
                   "hidden sm:block flex-1 h-px mx-2",
-                  step.id < maxStep ? "bg-primary" : "bg-muted-foreground/20"
+                  (step.id === 3 && vinculoPendente) ? "bg-muted-foreground/20" : (step.id < maxStep ? "bg-primary" : "bg-muted-foreground/20")
                 )} />
               )}
             </li>
