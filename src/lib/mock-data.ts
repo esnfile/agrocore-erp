@@ -3194,6 +3194,8 @@ export const financeiroTiposLancamento: FinanceiroTipoLancamento[] = [
 
 // ---- Forma de Pagamento (tabela) ----
 export type TipoFormaPagamento = "DINHEIRO" | "BANCARIO" | "ELETRONICO";
+/** Categoria contábil — define em qual "balde" do Caixa a forma se enquadra. */
+export type CategoriaContabilFormaPagto = "DINHEIRO" | "CHEQUE" | "CARTAO" | "ADIANTAMENTO";
 
 export interface FinanceiroFormaPagto {
   id: string;
@@ -3202,6 +3204,7 @@ export interface FinanceiroFormaPagto {
   filialId: string | null;
   descricao: string;
   tipo: TipoFormaPagamento;
+  categoriaContabil: CategoriaContabilFormaPagto;
   ativo: boolean;
   criadoEm: string;
   criadoPor: string;
