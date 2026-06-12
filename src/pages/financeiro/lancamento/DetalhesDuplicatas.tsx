@@ -34,7 +34,7 @@ export function DetalhesDuplicatas({ state, update, pessoas, centrosCusto, tipoC
 
   const [parcelas, setParcelas] = useState<Array<FinanceiroParcela & { conta?: FinanceiroConta; vencida?: boolean }>>([]);
   const [adiantamentos, setAdiantamentos] = useState<FinanceiroAdiantamento[]>([]);
-  const [modalAdiantOpen, setModalAdiantOpen] = useState(false);
+  const [adiantamentos, setAdiantamentos] = useState<FinanceiroAdiantamento[]>([]);
 
   useEffect(() => {
     if (!state.pessoaId) { setParcelas([]); setAdiantamentos([]); return; }
