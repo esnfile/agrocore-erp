@@ -73,6 +73,7 @@ import type {
   FinanceiroConta, FinanceiroParcela, FinanceiroBaixa, TipoConta, StatusConta, OrigemConta, StatusParcela, FormaPagamento,
   FinanceiroBanco, FinanceiroTipoConta, FinanceiroContaFinanceira, FinanceiroTipoLancamento,
   FinanceiroFormaPagto, TipoFormaPagamento, FinanceiroPlanoConta, TipoPlanoConta,
+  FinanceiroCheque, StatusCheque, FinanceiroCartao, StatusCartao,
   FinanceiroCentroCusto, FinanceiroMovimentacao, TipoMovimentoFinanceiro,
   FinanceiroAdiantamento, StatusAdiantamento, TipoBeneficiarioAdiantamento,
   AdiantamentoSolicitacao, StatusSolicitacaoAdiantamento,
