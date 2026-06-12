@@ -13,7 +13,7 @@ const CATEGORIA_META: Record<CategoriaContabil, { label: string; icon: LucideIco
   DINHEIRO: {
     label: "Dinheiro",
     icon: Banknote,
-    className: "border-success/30 bg-success/10 text-success hover:bg-success/15",
+    className: "border-success/50 bg-success/15 text-[hsl(142_72%_22%)] dark:text-success hover:bg-success/20",
   },
   CHEQUE: {
     label: "Cheque",
@@ -33,9 +33,9 @@ const CATEGORIA_META: Record<CategoriaContabil, { label: string; icon: LucideIco
 };
 
 const TIPO_META: Record<string, string> = {
-  DINHEIRO: "border-success/30 text-success",
-  BANCARIO: "border-info/30 text-info",
-  ELETRONICO: "border-primary/30 text-primary",
+  DINHEIRO: "border-success/40 text-foreground",
+  BANCARIO: "border-info/40 text-foreground",
+  ELETRONICO: "border-primary/40 text-foreground",
 };
 
 const extraSchema = z.object({
