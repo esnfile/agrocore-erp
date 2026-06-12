@@ -276,6 +276,7 @@ export function LancamentoCaixaModal({
         historico: state.historico || tipoSel.descricao,
         pessoaId: null,
         formasPagamentoDetalhe: { ...state.formas },
+        composicaoDinheiro: state.composicaoDinheiro,
       }, { grupoId: grupoAtual?.id ?? "", empresaId: state.empresaId, filialId: state.filialId });
       if (!result.sucesso) { toast({ title: "Erro", description: result.mensagem, variant: "destructive" }); return; }
       toast({ title: "Lançamento registrado com sucesso" });
@@ -334,6 +335,7 @@ export function LancamentoCaixaModal({
         numeroDocumento,
         historico: state.historico || (tipoSel.categoria === "REC_DUPLICATA" ? "Recebimento de duplicata" : "Pagamento de duplicata"),
         formasPagamentoDetalhe: { ...state.formas },
+        composicaoDinheiro: state.composicaoDinheiro,
         adiantamentosUsados: state.adiantamentosSelecionados,
       }, { grupoId: grupoAtual?.id ?? "", empresaId: state.empresaId, filialId: state.filialId });
       if (!result.sucesso) { toast({ title: "Erro", description: result.mensagem, variant: "destructive" }); return; }
@@ -381,6 +383,7 @@ export function LancamentoCaixaModal({
         parcelaId: null,
         pessoaId: state.socioId,
         formasPagamentoDetalhe: { ...state.formas },
+        composicaoDinheiro: state.composicaoDinheiro,
       }, { grupoId: grupoAtual?.id ?? "", empresaId: state.empresaId, filialId: state.filialId });
       if (!result.sucesso) { toast({ title: "Erro", description: result.mensagem, variant: "destructive" }); return; }
       toast({ title: "Prolabore registrado com sucesso" });
@@ -414,6 +417,7 @@ export function LancamentoCaixaModal({
         historico: state.historico || "Adiantamento a Fornecedor",
         pessoaId: state.pessoaId,
         formasPagamentoDetalhe: { ...state.formas },
+        composicaoDinheiro: state.composicaoDinheiro,
         solicitacaoAdiantamentoId: state.solicitacaoAdiantamentoId,
       }, { grupoId: grupoAtual?.id ?? "", empresaId: state.empresaId, filialId: state.filialId });
       if (!result.sucesso) { toast({ title: "Erro", description: result.mensagem, variant: "destructive" }); return; }
@@ -463,6 +467,7 @@ export function LancamentoCaixaModal({
         historico,
         pessoaId: state.pessoaId,
         formasPagamentoDetalhe: { ...state.formas },
+        composicaoDinheiro: state.composicaoDinheiro,
       }, { grupoId: grupoAtual?.id ?? "", empresaId: state.empresaId, filialId: state.filialId });
       if (!result.sucesso) { toast({ title: "Erro", description: result.mensagem, variant: "destructive" }); return; }
       toast({
