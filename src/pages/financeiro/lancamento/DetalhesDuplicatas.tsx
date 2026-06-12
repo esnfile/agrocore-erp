@@ -205,3 +205,6 @@ export function DetalhesDuplicatas({ state, update, pessoas, centrosCusto, tipoC
           )}
         </div>
       )}
+    </div>
+  );
+}
