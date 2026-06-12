@@ -1,131 +1,73 @@
-## Análise do prompt — o que está OK e o que precisa ajustar
+# Dashboards Colapsáveis — 5 Módulos
 
-O conceito (telas dedicadas, simples, foco em produtividade do operador) está correto e cabe perfeitamente no sistema. Porém o prompt, como está escrito, **conflita com o modelo já implementado** em vários pontos. Se eu implementar literalmente, vou duplicar/quebrar regras existentes. Abaixo o que precisa ser ajustado **antes** de codar.
+Concordo com a proposta. Ela está alinhada à paleta moderna que acabamos de aplicar (verde/azul/âmbar via tokens semânticos) e ao padrão visual do projeto. Abaixo o plano de execução, com pequenos ajustes para manter consistência com o que já existe.
 
-### 1. Modelo de pesagem (DIVERGÊNCIA importante)
+## Ajustes em relação ao seu prompt
 
-O prompt descreve cada pesagem com `Peso Bruto + Peso Tara → Peso Líquido = Bruto − Tara`.
-O sistema atual (`StepPesagens`, `RomaneioPesagem`) usa **duas pesagens distintas**: `ENTRADA` e `SAIDA`, e calcula:
+1. **Cores via tokens** — não usaremos hex direto nos componentes. Tudo via `hsl(var(--success))`, `--info`, `--warning`, `--destructive`, `--primary` (já configurados em `index.css`). Isso garante dark mode e padrão do projeto.
+2. **Componente Collapse** — usaremos o `Collapsible` do Radix (já instalado em `src/components/ui/collapsible.tsx`), com animação `accordion-down/up` já disponível em `tailwind.config.ts`.
+3. **Trends (↑ +12%)** — os mocks atuais não têm histórico para calcular variação percentual real. Vou **omitir os trends** nesta entrega (deixaria valores fake). Mantemos apenas valor + ícone de alerta quando aplicável. Se quiser trends de verdade, depois calculamos comparando com período anterior.
+4. **Dashboard "Caixas e Bancos"** — não temos hoje uma tela única "Caixas e Bancos"; o equivalente é `ContasFinanceirasPage.tsx`. Vou aplicar o dashboard lá. "Limite Disponível" só existe para Cartões, não para contas bancárias — vou substituir esse card por **"Qtd. Contas Ativas"** (informação real disponível).
+5. **Fluxo de Caixa** — manter como está (já reestilizado). Não vou adicionar o card opcional "Previsão vs Realizado" para não ampliar o escopo; podemos fazer numa próxima rodada.
 
-- `pesoCarregado` = maior das duas
-- `pesoTara` = menor das duas
-- `pesoLiquidoFisico` = `pesoCarregado − pesoTara`
+## Componente reutilizável
 
-Isso é o padrão real de balança rodoviária (1ª pesagem entrando, 2ª saindo). Trocar para "Bruto/Tara por pesagem" quebra o contrato com Classificação, Vínculo e Fluxo Financeiro.
+Criar `src/components/CollapsibleDashboard.tsx`:
 
-**Proposta:** manter o modelo atual. A "tela de pesagem do operador" registra Pesagem 1 (ENTRADA) e Pesagem 2 (SAÍDA), com a UI mostrando ao final Bruto, Tara e Líquido Físico calculados — exatamente como hoje, só que com layout simplificado.
+- Wrap em `Collapsible` (recolhido por padrão).
+- Header com título + chevron animado + botão "Expandir/Recolher".
+- Lazy-load: `onOpenChange` dispara `onExpand()` apenas na primeira abertura.
+- Skeleton enquanto carrega; cache via estado do componente pai.
+- Animação suave (`data-[state=open]:animate-accordion-down`).
 
-### 2. Classificação (DIVERGÊNCIA importante)
+Criar `src/components/DashboardCard.tsx`:
 
-O prompt sugere campos fixos (Umidade, Impureza, PLSL simples).
-O sistema já tem **engine paramétrico de classificação por produto** (`produtoClassificacoes`, `classificacaoDescontos`, cálculo progressivo sequencial — ver memória `qualidade`). É o padrão "Core" e está em produção no Step 4.
+- Props: `title`, `value`, `icon`, `accent` ('success' | 'info' | 'warning' | 'destructive' | 'primary').
+- Border-left colorida conforme `accent` (mesmo padrão dos cards de Fluxo de Caixa).
+- Sem trend nesta versão.
 
-**Proposta:** a tela do operador **reusa** esse engine (mesmos campos, mesmo cálculo do `StepClassificacao`). Só muda o invólucro (listagem + página dedicada simples). Nada de duplicar lógica.
+## Telas que recebem dashboard
 
-### 3. Motorista e Veículo (DIVERGÊNCIA)
 
-O prompt pede texto livre + "Tipo Veículo dropdown fixo".
-O projeto tem cadastros próprios: `MotoristasPage`, `VeiculosPage` (já em produção, com CPF e placa validados, vínculo a Tipo de Veículo).
+| #   | Página           | Arquivo                                                               |
+| --- | ---------------- | --------------------------------------------------------------------- |
+| 1   | Contratos        | `src/pages/comercial/` (verificar/criar conforme estrutura existente) |
+| 2   | Gestão de Safras | `src/pages/fazenda/SafrasPage.tsx`                                    |
+| 3   | Contas           | `src/pages/financeiro/ContasPage.tsx`                                 |
+| 4   | Caixas e Bancos  | `src/pages/financeiro/ContasFinanceirasPage.tsx`                      |
+| 5   | Fluxo de Caixa   | já feito (sem mudança)                                                |
 
-**Proposta:** dropdown buscável de Motorista e Veículo cadastrados, com botão **"+ Cadastrar"** inline (modal rápido) para não tirar o operador do fluxo. Mantém integridade referencial.
 
-### 4. Status / Fluxo (AJUSTE)
+Para cada uma:
 
-O prompt pula `AGUARDANDO_VINCULO`. Para **AVULSO**, isso já é correto: o sistema hoje vai direto `AGUARDANDO_PESAGEM → AGUARDANDO_CLASSIFICACAO` quando não há vínculo. Confirmado, sem mudança.
+- Adicionar `<CollapsibleDashboard>` acima dos filtros/listagem.
+- 4 cards KPI + 1 gráfico de barras (Recharts, padrão do projeto).
+- Cálculos rodam só ao expandir; resultado fica em `useState`.
 
-### 5. Validação de unicidade (NOVO — bom)
+## KPIs e gráficos por tela
 
-A chave proposta (Empresa+Filial+Origem+Tipo+Produto+Estoque+Motorista+Veículo+Data) é adequada. Vou implementar no `romaneioService.salvar` (camada única), valendo para **as 3 telas** (Romaneios, Pesagem, Classificação não cria).
+**Contratos**: Ativos (count), Volume em Trânsito (ton), Valor em Aberto (R$), Vencidos (count). Gráfico: barras horizontais por status.
 
-### 6. Auditoria `origemCriacao` (NOVO — bom)
+**Safras**: Área Plantada (ha), Área Colhida (ha), % Colheita, Custos Acumulados (R$). Gráfico: barras agrupadas Plantado vs Colhido por cultura.
 
-Adicionar campo `origemCriacao: "TELA_ROMANEIOS" | "TELA_PESAGEM"` no tipo `Romaneio` e default conforme tela. Já temos `criadoEm`/`criadoPor` (auditoria global).
+**Contas**: A Pagar (R$), A Receber (R$), Vencido (R$), A Vencer (R$). Gráfico: barras agrupadas A Pagar vs A Receber por mês (próximos 6 meses).
 
-### 7. Tipo de romaneio em AVULSO (AJUSTE)
+**Caixas e Bancos**: Saldo Total, Saldo Caixa, Saldo Bancos, Qtd. Contas Ativas. Gráfico: barras horizontais — saldo por conta.
 
-Hoje romaneio principal aceita ENTRADA/SAÍDA. Confirma-se: tela de Pesagem permite ambos.
+## Detalhes técnicos
 
-### 8. Responsividade tablet
+- Recharts já em uso (`DashboardPage.tsx`) — mesma config: `CartesianGrid stroke-muted`, tooltip com `hsl(var(--card))`, eixos `text-xs`.
+- Cores do gráfico via `hsl(var(--chart-1..5))` já definidas.
+- Responsividade: `grid-cols-1 sm:grid-cols-2 lg:grid-cols-4` nos cards; `ResponsiveContainer` no gráfico (altura 256px desktop, reduz no mobile via classes).
+- Filtros de empresa/filial seguem o `OrganizationContext` (igual ao resto do app).
+- Mock services existentes (`contratoService`, `safraService`, `financeiroContaService`, `financeiroContaFinanceiraService`) — sem mudanças no backend mock; agregações feitas no cliente ao expandir.
 
-OK como descrito. Vou usar Cards em ≤1024px e tabela densa em desktop.
+## Fora de escopo
 
----
-
-## Plano de implementação
-
-### A. Modelo / dados
-
-1. `mock-data.ts`: adicionar `origemCriacao` ao tipo `Romaneio` (default `"TELA_ROMANEIOS"` nos seeds existentes).
-2. `services.ts → romaneioService.salvar`: adicionar **validação de unicidade** (retorna `{ erro }` se duplicar conforme regra do item 5).
-
-### B. Rota e menu
-
-3. Novas rotas em `App.tsx`:
-  - `/balanca/pesagem` → `PesagemPage`
-  - `/balanca/pesagem/:id` → `PesagemDetalhePage` (tela 1.3)
-  - `/balanca/classificacao` → `ClassificacaoListaPage`
-  - `/balanca/classificacao/:id` → `ClassificacaoDetalhePage`
-4. `modules.ts`: novo módulo **"Balança"** com 2 itens: Pesagem e Classificação (ícones `Scale` e `ClipboardCheck`).
-
-### C. Tela de Pesagem — Listagem (`src/pages/balanca/PesagemPage.tsx`)
-
-- Filtros: Empresa, Filial, Produto (status fixo = AGUARDANDO_PESAGEM/PESAGEM_PARCIAL).
-- Tabela: Romaneio, Produto, Motorista, Veículo, Data, ações ("Pesar").
-- Botão "+ Novo Romaneio" → modal simplificado (campos do item 1.2 do prompt, **com Motorista/Veículo via dropdown cadastrado** + quick-add).
-- Ao salvar: chama `romaneioService.salvar({ origem: "AVULSO", origemCriacao: "TELA_PESAGEM", status: "AGUARDANDO_PESAGEM" })`; se duplicar, mostra erro do serviço.
-- Após criar, navega para `/balanca/pesagem/:id`.
-
-### D. Tela de Pesagem — Detalhe (`PesagemDetalhePage`)
-
-- Header read-only: Romaneio, Produto, Estoque, Motorista, Veículo.
-- Reaproveita **o componente `StepPesagens` existente** (ou um wrapper enxuto) — mesma lógica ENTRADA/SAÍDA, mesmo cálculo automático.
-- Botão "Confirmar Pesagem" no rodapé: exige ≥1 pesagem (idealmente as 2); muda status para `AGUARDANDO_CLASSIFICACAO`; volta à listagem com toast.
-
-### E. Tela de Classificação — Listagem (`ClassificacaoListaPage`)
-
-- Filtros: Empresa, Filial, Produto (status fixo = AGUARDANDO_CLASSIFICACAO).
-- Tabela igual à de Pesagem, sem botão "+ Novo".
-- Linha clicável → `/balanca/classificacao/:id`.
-
-### F. Tela de Classificação — Detalhe (`ClassificacaoDetalhePage`)
-
-- Header read-only.
-- Reaproveita **o componente `StepClassificacao` existente** (mesmo engine paramétrico — Umidade/Impureza/etc são derivados do cadastro do produto, exatamente como hoje).
-- Botão "Confirmar Classificação" muda status para `CLASSIFICADO`.
-
-### G. Casos de teste
-
-Cobrir os 13 cenários do prompt + unicidade + tablet (snap 1024 e 800px).
-
----
-
-## Arquivos a criar
-
-```
-src/pages/balanca/PesagemPage.tsx
-src/pages/balanca/PesagemDetalhePage.tsx
-src/pages/balanca/NovoRomaneioAvulsoModal.tsx
-src/pages/balanca/ClassificacaoListaPage.tsx
-src/pages/balanca/ClassificacaoDetalhePage.tsx
-```
-
-## Arquivos a editar
-
-```
-src/lib/mock-data.ts       (campo origemCriacao)
-src/lib/services.ts        (validação de unicidade no salvar)
-src/App.tsx                (4 rotas novas)
-src/lib/modules.ts         (menu "Balança")
-```
-
----
-
-## Pontos a confirmar antes de implementar
-
-1. **Pesagem ENTRADA/SAÍDA vs Bruto/Tara**: confirma que mantemos o modelo atual (ENTRADA + SAÍDA, sistema deduz Bruto/Tara/Líquido)? Recomendo fortemente sim.
-2. **Motorista/Veículo**: usar dropdown dos cadastros existentes (com quick-add inline) em vez de texto livre? Recomendo sim.
-3. **Classificação**: reusar o engine paramétrico atual (campos vêm do cadastro do produto) em vez de Umidade/Impureza fixos? Recomendo sim.
-4. **Menu**: criar módulo novo "Balança" (com Pesagem + Classificação) ou colocar como submenu dentro de "Romaneios"?  
-Vamos colocar como submenu dentro de Romaneios  
+- Trends percentuais reais (precisa histórico).
+- Drill-down ao clicar nos cards.
+- Exportar dashboard.
+- Mudanças em `mock-data.ts` ou `services.ts`.  
   
-O restante pode seguir com o pdrão que já veio, e seguie sua sugestão
+4. **Dashboard "Caixas e Bancos"** — Ficou errado, não é caixas e bancos, essa é a Tela Caixas, ficou caixas e banco, mas é a tela de lançamentos de Caixa... E não nas contas financeiras...   
+Pode readaptar para ela 
