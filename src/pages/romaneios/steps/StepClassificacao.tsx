@@ -119,6 +119,9 @@ export function StepClassificacao({ romaneio, onRefresh, ctx }: StepClassificaca
       return;
     }
 
+    const temVinculo = !!(romaneio.contratoId || romaneio.safraId);
+    const novoStatus = temVinculo ? "CLASSIFICADO" : "AGUARDANDO_VINCULO";
+
     await romaneioService.salvar({
       id: romaneio.id,
       pesoClassificado: resultado.pesoClassificado,
@@ -126,10 +129,13 @@ export function StepClassificacao({ romaneio, onRefresh, ctx }: StepClassificaca
       totalPesoDescontado: resultado.totalPesoDescontado,
       dataClassificacao: new Date().toISOString(),
       pesoLiquidoSecoLimpo: resultado.pesoClassificado,
-      status: "CLASSIFICADO",
+      status: novoStatus,
     }, ctx);
 
-    toast({ title: `Classificação salva. Peso classificado: ${resultado.pesoClassificado.toFixed(0)} kg` });
+    toast({
+      title: `Classificação salva. Peso classificado: ${resultado.pesoClassificado.toFixed(0)} kg`,
+      description: temVinculo ? undefined : "Romaneio aguardando vínculo de contrato ou colheita para finalização.",
+    });
     onRefresh();
   };
 
