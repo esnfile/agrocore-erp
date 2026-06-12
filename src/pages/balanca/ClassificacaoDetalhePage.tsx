@@ -34,8 +34,7 @@ export default function ClassificacaoDetalhePage() {
     const updated = await romaneioService.obterPorId(romaneio.id);
     if (updated) {
       setRomaneio(updated);
-      if (updated.status === "CLASSIFICADO") {
-        // Volta para listagem após classificação
+      if (updated.status === "CLASSIFICADO" || updated.status === "AGUARDANDO_VINCULO") {
         setTimeout(() => navigate("/balanca/classificacao"), 800);
       }
     }
