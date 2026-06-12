@@ -3722,13 +3722,15 @@ export const romaneioService = {
     await delay();
     const r = mockRomaneios.find((x) => x.id === romaneioId && x.deletadoEm === null);
     if (!r) return { sucesso: false, mensagem: "Romaneio não encontrado." };
-    if (r.status !== "AGUARDANDO_VINCULO" && r.status !== "AGUARDANDO_CLASSIFICACAO") return { sucesso: false, mensagem: "Romaneio não permite mais vínculo neste status." };
+    if (r.status !== "AGUARDANDO_VINCULO" && r.status !== "AGUARDANDO_CLASSIFICACAO" && r.status !== "CLASSIFICADO") return { sucesso: false, mensagem: "Romaneio não permite mais vínculo neste status." };
 
     const now = new Date().toISOString();
     r.safraId = safraId;
     r.cultivoId = cultivoId;
     r.origem = "COLHEITA";
-    if (r.status === "AGUARDANDO_VINCULO") r.status = "AGUARDANDO_CLASSIFICACAO";
+    if (r.status === "AGUARDANDO_VINCULO") {
+      r.status = r.pesoClassificado > 0 ? "CLASSIFICADO" : "AGUARDANDO_CLASSIFICACAO";
+    }
     r.atualizadoEm = now;
     r.atualizadoPor = "u1";
     return { sucesso: true, mensagem: "Colheita vinculada ao romaneio." };
