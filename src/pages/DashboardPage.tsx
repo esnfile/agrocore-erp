@@ -23,10 +23,10 @@ export default function DashboardPage() {
   }, [grupoAtual?.id]);
 
   const cards = [
-    { title: "Empresa", value: empresaAtual?.nome ?? "—", icon: Building2 },
-    { title: "Filial", value: filialAtual?.nomeRazao ?? "—", icon: GitBranch },
-    { title: "Contratos", value: "0", icon: Package },
-    { title: "Financeiro", value: "R$ 0,00", icon: DollarSign },
+    { title: "Empresa", value: empresaAtual?.nome ?? "—", icon: Building2, iconClass: "text-primary" },
+    { title: "Filial", value: filialAtual?.nomeRazao ?? "—", icon: GitBranch, iconClass: "text-primary" },
+    { title: "Contratos", value: "0", icon: Package, iconClass: "text-info" },
+    { title: "Financeiro", value: "R$ 0,00", icon: DollarSign, iconClass: "text-success" },
   ];
 
   const formatMes = (mes: string) => {
