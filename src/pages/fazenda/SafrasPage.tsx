@@ -17,6 +17,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { empresas, filiais } from "@/lib/mock-data";
+import { SafrasDashboard } from "./components/SafrasDashboard";
 
 // ---- Interfaces & Mock ----
 export interface Safra {
@@ -213,6 +214,10 @@ export default function SafrasPage() {
   return (
     <>
       <PageHeader title="Gestão de Safras" description="Cadastro e acompanhamento das safras agrícolas" />
+
+      <SafrasDashboard safras={data} />
+
+
 
       {/* Filters */}
       <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">

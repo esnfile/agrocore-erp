@@ -23,6 +23,7 @@ import { formatDateBR } from "@/lib/format";
 import type { FinanceiroConta, FinanceiroParcela, FinanceiroMovimentacao, FinanceiroBaixa, TipoConta, StatusConta, StatusParcela, Pessoa } from "@/lib/mock-data";
 import { financeiroFormasPagto as mockFormasPagto } from "@/lib/mock-data";
 import { StatusBadge } from "@/components/StatusBadge";
+import { ContasDashboard } from "./components/ContasDashboard";
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -412,6 +413,9 @@ export default function ContasPage() {
   return (
     <div>
       <PageHeader title="Contas a Pagar / Receber" description="Visão por parcelas — verdade absoluta do financeiro" />
+
+      <ContasDashboard parcelas={todasParcelas} />
+
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">

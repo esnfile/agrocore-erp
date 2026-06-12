@@ -15,6 +15,7 @@ import type {
   FinanceiroCentroCusto, Pessoa, FinanceiroFormaPagto,
 } from "@/lib/mock-data";
 import { LancamentoCaixaModal } from "./lancamento/LancamentoCaixaModal";
+import { CaixaDashboard } from "./components/CaixaDashboard";
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const fmtOrDash = (v: number) =>
@@ -66,6 +67,10 @@ export default function MovimentacoesPage() {
   return (
     <div>
       <PageHeader title="Caixa e Bancos" description="Movimentações financeiras — recebimentos, pagamentos e transferências" />
+
+      <CaixaDashboard />
+
+
       <div className="flex justify-end mb-4">
         <Button onClick={() => setModalOpen(true)}><Plus className="h-4 w-4 mr-1" />Novo Lançamento</Button>
       </div>
