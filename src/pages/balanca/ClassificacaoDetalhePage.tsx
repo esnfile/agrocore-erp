@@ -63,8 +63,9 @@ export default function ClassificacaoDetalhePage() {
         </Button>
         <PageHeader
           title={`Classificação — Romaneio ${romaneio.id.substring(0, 10)}`}
-          description={`Status: ${romaneio.status}`}
+          description="Classifique a qualidade do romaneio"
         />
+        <RomaneioStatusBadge status={romaneio.status} className="text-xs" />
       </div>
 
       <Card>
