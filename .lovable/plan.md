@@ -1,67 +1,158 @@
-## Objetivo
+# Formas de Pagamento Expandidas — Cheque, Cartão, Adiantamento
 
-Transformar o campo **Dinheiro** do Caixa em um valor READ-ONLY composto por múltiplas formas (Dinheiro Físico, PIX, Transferência, Depósito, Cheque Compensado etc.), especificadas em um popup. Cheque, Cartão e Adiantamento permanecem como hoje.
+Mesmo padrão visual e arquitetural já entregue para "Dinheiro": campo principal READ-ONLY com botão `...`, popup com grid dinâmico, total recalculado em tempo real, validações e persistência. Nada do que já existe é quebrado — `formas.dinheiro/cheque/cartao/adiantamento` continuam sendo a fonte da soma exibida no campo principal, agora alimentados também pelas novas composições.
 
-## Viabilidade
+---
 
-Sim — é viável e não quebra nada relevante:
+## 1. Novos cadastros mínimos
 
-- A tabela `financeiroFormasPagto` (com `tipo: DINHEIRO | BANCARIO | ELETRONICO` e flag `ativo`) já existe e tem service.
-- O campo `formas.dinheiro` já existe em `LancamentoFormState` e é persistido em `formasPagamentoDetalhe.dinheiro` na movimentação — vamos manter esse campo como **soma agregada**, então toda a lógica downstream (validação de saldo, salvar movimentação, exibição em `MovimentacoesPage`) continua funcionando sem alteração.
-- A composição detalhada é UI-only nesta entrega (não persiste no backend mock para não quebrar contrato da movimentação). Caso queira persistir depois, adicionamos campo opcional em outra rodada.
+### Tabela mock `financeiroCheques` (`FinanceiroCheque`)
+Campos: `id, empresaId, filialId, numero, banco, agencia, conta, titular, valor, dataEmissao, dataVencimento, status: 'DISPONIVEL' | 'UTILIZADO' | 'COMPENSADO' | 'DEVOLVIDO', ativo, deletadoEm + auditoria padrão`.
 
-## Mudanças
+- Página `src/pages/financeiro/ChequesPage.tsx` (CRUD via `SimpleCrudPage`, listando apenas `deletadoEm=null`).
+- Serviço `financeiroChequeService` com `listar`, `listarDisponiveis(empresa,filial)` (filtra `status='DISPONIVEL'` e `ativo`).
+- Entrada no menu "Financeiro" (mesmo bloco de Formas de Pagamento).
+- Seeds: 3-4 cheques de exemplo.
 
-### 1. `src/pages/financeiro/lancamento/types.ts`
+### Tabela mock `financeiroCartoes` (`FinanceiroCartao`)
+Campos: `id, empresaId, filialId, bandeira, ultimos4, titular, valorLimite, valorDisponivel, status: 'DISPONIVEL' | 'UTILIZADO', ativo, deletadoEm + auditoria`.
 
-- Adicionar tipo `ComposicaoDinheiroItem = { formaId: string; valor: number }`.
-- Adicionar `composicaoDinheiro: ComposicaoDinheiroItem[]` ao `LancamentoFormState` (default `[]`).
-- Helper `sumComposicao(itens)`.
+- Página `src/pages/financeiro/CartoesPage.tsx` análoga.
+- Serviço `financeiroCartaoService` com `listar` e `listarDisponiveis`.
+- Seeds: 2-3 cartões.
 
-### 2. Novo: `src/pages/financeiro/lancamento/ComposicaoDinheiroModal.tsx`
+Esses cadastros são **estáticos** nesta entrega: o popup de PAGAMENTO consome a lista, mas baixar/atualizar status do cheque/cartão após uso fica fora desta entrega (ficam como TODO comentado no `services.ts` para entrega futura, mantendo regra alinhada com o padrão atual de mocks).
 
-- Dialog (mesmo padrão dos outros modais do Caixa) com título "Composição de Formas de Pagamento".
-- Carrega formas via `financeiroFormaPagtoService.listar(...)` filtrando `ativo === true && deletadoEm === null`, ordenado por descrição.
-- Se lista vazia: mensagem "Nenhuma forma de pagamento disponível. Cadastre formas antes de continuar."
-- Grid com colunas: **Forma** (SearchableSelect com formas), **Valor** (input BRL), botão **X** para remover linha.
-- Botão **+ Adicionar Forma** abaixo da grid.
-- Rodapé fixo: total READ-ONLY (recalculado em tempo real) + botões **Cancelar** / **Confirmar**.
-- Estado interno (rascunho) que só é propagado ao confirmar; cancelar descarta.
-- Validações no Confirmar:
-  - Toda linha precisa ter `formaId` selecionada.
-  - Toda linha precisa ter `valor > 0`.
-  - Erros via toast (padrão do app).
-- Ao confirmar: chama `onConfirm(itens, total)` e fecha. O parent atualiza `composicaoDinheiro` e `formas.dinheiro = total`.
+---
 
-### 3. `src/pages/financeiro/lancamento/FormasPagamentoSection.tsx`
+## 2. Tipos e estado do form
 
-- O campo **Dinheiro** vira READ-ONLY (input bloqueado, classes `bg-muted`) com um botão `...` (ícone `MoreHorizontal`) à direita, dentro do mesmo agrupamento, abrindo o `ComposicaoDinheiroModal`.
-- Demais campos (Cheque, Cartão, Adiantamento) inalterados.
-- Recebe via props: `composicaoDinheiro`, `onChangeComposicao`.
-- Reabrir o modal mostra os itens anteriores (persistência em state do form).
+`src/pages/financeiro/lancamento/types.ts`:
 
-### 4. `src/pages/financeiro/lancamento/LancamentoCaixaModal.tsx`
+```ts
+export interface ComposicaoChequeItem {
+  chequeId?: string;   // PAGAMENTO
+  numero?: string;     // RECEBIMENTO
+  banco?: string;      // RECEBIMENTO (opcional)
+  valor: number;
+}
+export interface ComposicaoCartaoItem {
+  cartaoId?: string;   // PAGAMENTO
+  numero?: string;     // RECEBIMENTO
+  bandeira?: string;   // RECEBIMENTO
+  valor: number;
+}
+export interface ComposicaoAdiantamentoItem {
+  adiantamentoId: string;
+  valor: number;
+}
+```
 
-- Passar `state.composicaoDinheiro` e handler para `FormasPagamentoSection` (que repassa ao popup).
-- Handler atualiza `composicaoDinheiro` e seta `formas.dinheiro = soma` no mesmo `update`.
-- Ao trocar de categoria/limpar formulário, resetar `composicaoDinheiro` junto (já coberto por `initialFormState`).
-- **Nenhuma mudança** em `salvarGeral/Transferencia/Prolabore/Adiantamento/Duplicatas`: continuam usando `formas.dinheiro` (que agora reflete a soma da composição). Validação de total existente em `FormasPagamentoSection` (soma das 4 formas vs valor esperado) continua valendo.
+Adicionar em `LancamentoFormState`: `composicaoCheque`, `composicaoCartao`, `composicaoAdiantamento` (defaults `[]`). Helpers `sumComposicaoCheque/Cartao/Adiantamento`.
 
-### 5. Sem mudanças
+---
 
-- `services.ts`, `mock-data.ts` (estrutura de movimentação), `MovimentacoesPage.tsx`, `saldo-utils.ts`: intocados.
+## 3. Persistência (`FinanceiroMovimentacao`)
 
-## Regras preservadas (sem regressão)
+Adicionar 3 colunas opcionais na entidade e no service `registrar` / `registrarBaixaDuplicatas`:
 
-- Cheque / Cartão / Adiantamento: comportamento atual mantido.
-- Validação "soma das formas = valor esperado": mantida.
-- Validação de saldo (CAIXA/BANCO + limite): mantida — usa `formas.dinheiro` agregado.
-- Persistência da movimentação: mantida (campo `formasPagamentoDetalhe.dinheiro`).
+```ts
+composicaoCheque?: Array<{ chequeId?: string; numero?: string; banco?: string; valor: number }> | null;
+composicaoCartao?: Array<{ cartaoId?: string; numero?: string; bandeira?: string; valor: number }> | null;
+composicaoAdiantamento?: Array<{ adiantamentoId: string; valor: number }> | null;
+```
 
-## Trade-off explícito
+`MovimentacoesPage` expande cada composição em sua própria lista (mesma UI já usada para Dinheiro).
 
-A composição detalhada (qual parte foi PIX, qual foi espécie etc.) **vive apenas no estado do formulário** durante o preenchimento. Quando a movimentação é gravada, persiste apenas o total em "Dinheiro" — exatamente como hoje. Se quiser persistir a quebra por forma na movimentação (para relatórios), é uma segunda etapa que envolve alterar o contrato do `financeiroMovimentacaoService` e o tipo `FinanceiroMovimentacao`. **Pergunta:** seguimos só com UI agora ou já incluo a persistência da quebra?  
-  
-Se quiser implementar essa parte por agora e deixar para implementarmos a separação depois, mas eu quero que haja o detalhamento quebrado, tipo 10k em dinheiro (5k em pix e 5k em transferência) Isso precisa ter rastreio, senão não tem sentido não acha?  
-  
-  
+---
+
+## 4. Popups novos (em `src/pages/financeiro/lancamento/`)
+
+### `ComposicaoChequeModal.tsx`
+- Prop `modo: 'RECEBIMENTO' | 'PAGAMENTO'` derivada de `tipoMovimento` (ENTRADA → RECEBIMENTO, SAIDA → PAGAMENTO).
+- **RECEBIMENTO**: grid editável com `Número` (text obrigatório), `Banco` (text opcional), `Valor` (number > 0), botão X, "+ Adicionar Cheque".
+- **PAGAMENTO**: dropdown `Cheque` (shadcn `Select` portalizado, mesmo padrão da `ComposicaoDinheiroModal` para evitar clipping) listando `chequeService.listarDisponiveis`. Ao selecionar, `valor` autopreenche e fica READ-ONLY.
+- Total READ-ONLY em tempo real, Confirmar/Cancelar, validações com toast.
+
+### `ComposicaoCartaoModal.tsx`
+Mesma estrutura, dropdown lista `cartaoService.listarDisponiveis` e exibe `Bandeira #ultimos4`.
+
+### `ComposicaoAdiantamentoModal.tsx`
+**Reutiliza** o `SelecionarAdiantamentoModal` existente (já consome saldos, filtra por `pessoaId` e respeita `tipoMovimento`). Apenas exposto via botão `...` em `FormasPagamentoSection`. Para categorias onde o campo já é alimentado por outro fluxo (REC/PAG_DUPLICATA já abre o seletor próprio), o botão `...` apenas reabre o mesmo modal — sem duplicar lógica nem alterar o débito em `saldoRestante`.
+
+---
+
+## 5. `FormasPagamentoSection.tsx`
+
+Os 4 campos viram READ-ONLY com botão `...` (já é assim em Dinheiro). Para cada um:
+
+- Recebe a composição atual + handler `onChangeComposicao*`.
+- Ao confirmar, atualiza `composicao*` E `formas.<canal> = sum(composicao)` no mesmo `update`.
+- Mostra `N item(s) detalhado(s)` abaixo do campo quando preenchido.
+
+`adiantamentoReadOnly` continua valendo para REC/PAG_DUPLICATA (botão `...` ainda abre, mas usa o seletor já vinculado às parcelas).
+
+---
+
+## 6. `LancamentoCaixaModal.tsx`
+
+- Recebe `tipoMovimento` do tipo selecionado (já tem) e propaga aos popups via `modo`.
+- Carrega `cheques` e `cartoes` via novos services (junto do `useEffect` que já carrega `formasPagto`).
+- Passa `composicao*` aos `salvarGeral / salvarBaixaDuplicatas / salvarProlabore / salvarAdiantCliente / salvarAdiantFornecedor`.
+- Transferência continua sem Formas de Pagamento (regra atual preservada).
+
+---
+
+## 7. Validação global (preservada e ampliada)
+
+`sumFormas(state.formas)` já é a soma dos 4 canais. Validação adicional ao salvar: para cada canal preenchido, `sum(composicao) === formas.<canal>` (proteção contra divergência manual). Mantém validação de saldo CAIXA/BANCO existente.
+
+---
+
+## 8. Detalhes técnicos
+
+| Item | Decisão |
+|---|---|
+| Dropdown clipping | Usar `Select` shadcn portalizado (mesmo fix já aplicado em Dinheiro). |
+| Detecção de modo | `tipoLancamento.tipoMovimento === 'ENTRADA' ? 'RECEBIMENTO' : 'PAGAMENTO'`. |
+| Sem `tipoMovimento` selecionado | Botão `...` desabilitado com tooltip "Selecione o tipo de lançamento". |
+| Reabrir popup | Sempre repopula com `composicao*` atual do form. |
+| Cancelar | Descarta draft, não toca em `formas.*`. |
+| Reset do form | Limpa as 3 novas composições. |
+| Mocks de Cheque/Cartão | Status NÃO é atualizado ao usar (TODO documentado). |
+
+---
+
+## 9. Arquivos
+
+**Criar:**
+- `src/pages/financeiro/ChequesPage.tsx`
+- `src/pages/financeiro/CartoesPage.tsx`
+- `src/pages/financeiro/lancamento/ComposicaoChequeModal.tsx`
+- `src/pages/financeiro/lancamento/ComposicaoCartaoModal.tsx`
+- `src/pages/financeiro/lancamento/ComposicaoAdiantamentoModal.tsx` (wrapper fino sobre o existente)
+
+**Editar:**
+- `src/lib/mock-data.ts` — tipos `FinanceiroCheque`, `FinanceiroCartao`, seeds, novos campos em `FinanceiroMovimentacao`.
+- `src/lib/services.ts` — `financeiroChequeService`, `financeiroCartaoService`, persistência das composições.
+- `src/lib/modules.ts` + `AppSidebar.tsx` — entradas de menu.
+- `src/App.tsx` — rotas.
+- `src/pages/financeiro/lancamento/types.ts` — novos tipos e helpers.
+- `src/pages/financeiro/lancamento/FormasPagamentoSection.tsx` — 3 novos botões `...`.
+- `src/pages/financeiro/lancamento/LancamentoCaixaModal.tsx` — wiring.
+- `src/pages/financeiro/MovimentacoesPage.tsx` — exibição expandida.
+- `.lovable/memory/features/lancamento-caixa.md` — atualizar nota das 4 composições.
+
+---
+
+## 10. O que NÃO entra nesta entrega
+
+- Baixa automática de status do cheque/cartão ao consumir (vai para próxima iteração junto com fluxo de compensação).
+- Edição cruzada (ex: remover um cheque já usado em outra movimentação).
+- Relatórios consolidados por composição.
+
+## 11. Riscos / impactos
+
+- `formas.*` continua sendo a fonte exibida em `MovimentacoesPage`; nenhum cálculo existente quebra.
+- `SelecionarAdiantamentoModal` é apenas embrulhado — comportamento de débito em `saldoRestante` permanece idêntico.
+- Validação extra `sum(composicao) === formas.<canal>` pode pegar lançamentos antigos editados manualmente; tratamento: se composição vazia, validação é ignorada (compatibilidade retroativa).
