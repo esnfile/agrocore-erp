@@ -88,8 +88,9 @@ export default function RomaneioFormPage() {
         </Button>
         <PageHeader
           title={romaneio ? `Romaneio ${romaneio.id.substring(0, 8)}` : "Novo Romaneio"}
-          description={romaneio ? `Status: ${status}` : "Criação de novo romaneio operacional"}
+          description={romaneio ? "Criação/edição de romaneio operacional" : "Criação de novo romaneio operacional"}
         />
+        {romaneio && <RomaneioStatusBadge status={status} className="text-xs" />}
       </div>
 
       <RomaneioStepper
