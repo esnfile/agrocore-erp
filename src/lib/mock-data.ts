@@ -3736,6 +3736,12 @@ export interface FinanceiroMovimentacao {
   formasPagamentoDetalhe: { dinheiro: number; cheque: number; cartao: number; adiantamento: number } | null;
   // Composição detalhada do total de "Dinheiro" por forma de pagamento (PIX, Transferência, Espécie, etc.)
   composicaoDinheiro?: Array<{ formaId: string; valor: number }> | null;
+  // Composição do total de "Cheque" — RECEBIMENTO grava numero/banco; PAGAMENTO grava chequeId
+  composicaoCheque?: Array<{ chequeId?: string | null; numero?: string | null; banco?: string | null; valor: number }> | null;
+  // Composição do total de "Cartão" — RECEBIMENTO grava numero/bandeira; PAGAMENTO grava cartaoId
+  composicaoCartao?: Array<{ cartaoId?: string | null; numero?: string | null; bandeira?: string | null; valor: number }> | null;
+  // Composição do total de "Adiantamento" — espelha adiantamentosUsados quando há baixa de duplicatas
+  composicaoAdiantamento?: Array<{ adiantamentoId: string; valor: number }> | null;
   // Rastreabilidade de baixa multi-parcela (REC_DUPLICATA / PAG_DUPLICATA)
   parcelasLiquidadas?: Array<{
     parcelaId: string;
