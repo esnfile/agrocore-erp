@@ -167,8 +167,6 @@ export default function PesagemPage() {
           </Table>
         )}
       </div>
-
-      {ctx && <NovoRomaneioAvulsoModal open={modalOpen} onClose={() => { setModalOpen(false); load(); }} ctx={ctx} />}
     </div>
   );
 }
