@@ -3655,7 +3655,7 @@ export const romaneioService = {
     await delay();
     const r = mockRomaneios.find((x) => x.id === romaneioId && x.deletadoEm === null);
     if (!r) return { sucesso: false, mensagem: "Romaneio não encontrado." };
-    if (r.status !== "AGUARDANDO_CONTRATO" && r.status !== "AGUARDANDO_VINCULO" && r.status !== "AGUARDANDO_CLASSIFICACAO") return { sucesso: false, mensagem: "Romaneio não permite mais vínculo neste status." };
+    if (r.status !== "AGUARDANDO_CONTRATO" && r.status !== "AGUARDANDO_VINCULO" && r.status !== "AGUARDANDO_CLASSIFICACAO" && r.status !== "CLASSIFICADO") return { sucesso: false, mensagem: "Romaneio não permite mais vínculo neste status." };
     const contrato = mockContratos.find((c) => c.id === contratoId && c.deletadoEm === null);
     if (!contrato) return { sucesso: false, mensagem: "Contrato não encontrado." };
 
@@ -3663,7 +3663,9 @@ export const romaneioService = {
     r.contratoId = contratoId;
     r.origem = "CONTRATO";
     if (r.status === "AGUARDANDO_CONTRATO" || r.status === "AGUARDANDO_VINCULO") {
-      r.status = r.pesoLiquidoFisico > 0 ? "AGUARDANDO_CLASSIFICACAO" : "ABERTO";
+      if (r.pesoClassificado > 0) r.status = "CLASSIFICADO";
+      else if (r.pesoLiquidoFisico > 0) r.status = "AGUARDANDO_CLASSIFICACAO";
+      else r.status = "ABERTO";
     }
     r.atualizadoEm = now; r.atualizadoPor = "u1";
     return { sucesso: true, mensagem: "Contrato vinculado ao romaneio." };
