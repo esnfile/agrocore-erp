@@ -12,6 +12,7 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { romaneioService } from "@/lib/services";
 import { produtos as mockProdutos, empresas, filiais, type Romaneio } from "@/lib/mock-data";
 import { Plus, Scale } from "lucide-react";
+import { RomaneioStatusBadge } from "@/pages/romaneios/components/RomaneioStatusBadge";
 
 export default function PesagemPage() {
   const navigate = useNavigate();
