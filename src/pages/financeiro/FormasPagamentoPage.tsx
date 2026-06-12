@@ -38,6 +38,7 @@ const TIPO_META: Record<string, string> = {
   ELETRONICO: "border-primary/30 text-primary",
 };
 
+const extraSchema = z.object({
   tipo: z.enum(["DINHEIRO", "BANCARIO", "ELETRONICO"]),
   categoriaContabil: z.enum(["DINHEIRO", "CHEQUE", "CARTAO", "ADIANTAMENTO"]),
 });
