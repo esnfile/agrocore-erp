@@ -61,6 +61,10 @@ export interface LancamentoFormState {
   formas: FormasPagamentoState;
   // Composição detalhada do campo "Dinheiro" (Dinheiro Físico, PIX, Transferência, etc.)
   composicaoDinheiro: ComposicaoDinheiroItem[];
+  // Composição do campo "Cheque" — itens cadastrados (PAGAMENTO) ou digitados (RECEBIMENTO).
+  composicaoCheque: ComposicaoChequeItem[];
+  // Composição do campo "Cartão" — itens cadastrados (PAGAMENTO) ou digitados (RECEBIMENTO).
+  composicaoCartao: ComposicaoCartaoItem[];
   // Histórico
   historico: string;
 }
