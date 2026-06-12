@@ -19,7 +19,6 @@ export default function PesagemPage() {
 
   const [items, setItems] = useState<Romaneio[]>([]);
   const [loading, setLoading] = useState(true);
-  const [modalOpen, setModalOpen] = useState(false);
   const [filterProduto, setFilterProduto] = useState<string>("TODOS");
   const [filterEmpresa, setFilterEmpresa] = useState<string>(empresaAtual?.id || "TODAS");
   const [filterFilial, setFilterFilial] = useState<string>(filialAtual?.id || "TODAS");
