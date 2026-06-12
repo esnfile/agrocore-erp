@@ -56,12 +56,26 @@ export default function FormasPagamentoPage() {
         {
           key: "tipo" as any,
           header: "Tipo",
-          render: (row) => <Badge variant="outline">{row.tipo}</Badge>,
+          render: (row) => (
+            <Badge variant="outline" className={TIPO_META[row.tipo] ?? ""}>
+              {row.tipo}
+            </Badge>
+          ),
         },
         {
           key: "categoriaContabil" as any,
           header: "Categoria Contábil",
-          render: (row) => <Badge>{row.categoriaContabil}</Badge>,
+          render: (row) => {
+            const meta = CATEGORIA_META[row.categoriaContabil as CategoriaContabil];
+            if (!meta) return <Badge>{row.categoriaContabil}</Badge>;
+            const Icon = meta.icon;
+            return (
+              <Badge variant="outline" className={`gap-1 ${meta.className}`}>
+                <Icon className="h-3 w-3" />
+                {meta.label}
+              </Badge>
+            );
+          },
         },
       ]}
       getExtraData={(row) => ({ tipo: row.tipo, categoriaContabil: row.categoriaContabil })}
