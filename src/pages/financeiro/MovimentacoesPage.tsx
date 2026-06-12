@@ -8,11 +8,11 @@ import { Plus, ChevronRight, ChevronDown } from "lucide-react";
 import {
   financeiroMovimentacaoService, financeiroTipoLancamentoService,
   financeiroContaFinanceiraService, financeiroCentroCustoService,
-  pessoaService,
+  pessoaService, financeiroFormaPagtoService,
 } from "@/lib/services";
 import type {
   FinanceiroMovimentacao, FinanceiroTipoLancamento, FinanceiroContaFinanceira,
-  FinanceiroCentroCusto, Pessoa,
+  FinanceiroCentroCusto, Pessoa, FinanceiroFormaPagto,
 } from "@/lib/mock-data";
 import { LancamentoCaixaModal } from "./lancamento/LancamentoCaixaModal";
 
