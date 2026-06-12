@@ -3662,7 +3662,9 @@ export const romaneioService = {
     const now = new Date().toISOString();
     r.contratoId = contratoId;
     r.origem = "CONTRATO";
-    r.status = r.pesoLiquidoFisico > 0 ? "AGUARDANDO_CLASSIFICACAO" : "ABERTO";
+    if (r.status === "AGUARDANDO_CONTRATO" || r.status === "AGUARDANDO_VINCULO") {
+      r.status = r.pesoLiquidoFisico > 0 ? "AGUARDANDO_CLASSIFICACAO" : "ABERTO";
+    }
     r.atualizadoEm = now; r.atualizadoPor = "u1";
     return { sucesso: true, mensagem: "Contrato vinculado ao romaneio." };
   },
