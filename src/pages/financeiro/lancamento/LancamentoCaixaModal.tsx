@@ -81,6 +81,8 @@ export function LancamentoCaixaModal({
     adiantamentosSelecionados: [],
     formas: { dinheiro: 0, cheque: 0, cartao: 0, adiantamento: 0 },
     composicaoDinheiro: [],
+    composicaoCheque: [],
+    composicaoCartao: [],
   });
 
   const update = (patch: Partial<LancamentoFormState>) =>
