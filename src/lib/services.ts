@@ -3183,6 +3183,7 @@ export const financeiroMovimentacaoService = {
       parcelaId: null,
       pessoaId: data.pessoaId,
       formasPagamentoDetalhe: { ...data.formasPagamentoDetalhe },
+      composicaoDinheiro: data.composicaoDinheiro && data.composicaoDinheiro.length > 0 ? data.composicaoDinheiro.map((c) => ({ ...c })) : null,
       parcelasLiquidadas,
       adiantamentosUsados: data.adiantamentosUsados.filter((a) => a.valor > 0),
       criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
