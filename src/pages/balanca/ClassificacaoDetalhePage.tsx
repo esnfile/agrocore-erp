@@ -8,6 +8,7 @@ import { useOrganization } from "@/contexts/OrganizationContext";
 import { romaneioService } from "@/lib/services";
 import { produtos as mockProdutos, type Romaneio } from "@/lib/mock-data";
 import { StepClassificacao } from "@/pages/romaneios/steps/StepClassificacao";
+import { RomaneioStatusBadge } from "@/pages/romaneios/components/RomaneioStatusBadge";
 import { ArrowLeft } from "lucide-react";
 
 export default function ClassificacaoDetalhePage() {
