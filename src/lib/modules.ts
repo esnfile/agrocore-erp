@@ -212,6 +212,8 @@ export const modules: Module[] = [
     icon: ClipboardList,
     items: [
       { title: "Romaneios", url: "/romaneios", icon: Scale },
+      { title: "Pesagem (Balança)", url: "/balanca/pesagem", icon: Scale },
+      { title: "Classificação", url: "/balanca/classificacao", icon: ClipboardList },
       {
         title: "Cadastros",
         icon: Layers,

@@ -3342,7 +3342,7 @@ import {
   romaneioPesagens as mockRomaneioPesagens,
   contratoLiquidacoes as mockContratoLiquidacoes,
 } from "./mock-data";
-import type { Motorista, Veiculo, Romaneio, StatusRomaneio, RomaneioPesagem, TipoPesagem, ContratoLiquidacao, StatusLiquidacao } from "./mock-data";
+import type { Motorista, Veiculo, Romaneio, StatusRomaneio, RomaneioPesagem, TipoPesagem, OrigemRomaneio, TipoRomaneio, ContratoLiquidacao, StatusLiquidacao } from "./mock-data";
 
 export const motoristaService = {
   async listar(empresaId: string, filialId: string): Promise<Motorista[]> {
@@ -3437,6 +3437,34 @@ export const romaneioService = {
     await delay();
     return mockRomaneios.find((r) => r.id === id && r.deletadoEm === null);
   },
+  async verificarDuplicado(criterio: {
+    empresaId: string;
+    filialId: string;
+    origem: OrigemRomaneio;
+    tipoRomaneio: TipoRomaneio;
+    produtoId: string;
+    pontoEstoqueId: string | null;
+    motoristaId: string | null;
+    veiculoId: string | null;
+    data?: Date;
+    excludeId?: string;
+  }): Promise<boolean> {
+    await delay(50);
+    const day = (criterio.data ?? new Date()).toISOString().slice(0, 10);
+    return mockRomaneios.some((r) =>
+      r.deletadoEm === null &&
+      r.id !== criterio.excludeId &&
+      r.empresaId === criterio.empresaId &&
+      r.filialId === criterio.filialId &&
+      r.origem === criterio.origem &&
+      r.tipoRomaneio === criterio.tipoRomaneio &&
+      r.produtoId === criterio.produtoId &&
+      (r.pontoEstoqueId ?? null) === (criterio.pontoEstoqueId ?? null) &&
+      (r.motoristaId ?? null) === (criterio.motoristaId ?? null) &&
+      (r.veiculoId ?? null) === (criterio.veiculoId ?? null) &&
+      r.criadoEm.slice(0, 10) === day
+    );
+  },
   async salvar(data: Partial<Romaneio>, ctx: { grupoId: string; empresaId: string; filialId: string }): Promise<Romaneio> {
     await delay();
     const now = new Date().toISOString();
@@ -3475,6 +3503,7 @@ export const romaneioService = {
       classificacaoUmidade: 0, classificacaoImpureza: 0, classificacaoArdidos: 0, classificacaoAvariados: 0,
       pesoLiquidoSecoLimpo: 0,
       observacao: data.observacao || "",
+      origemCriacao: data.origemCriacao || "TELA_ROMANEIOS",
       criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
       deletadoEm: null, deletadoPor: null,
     };

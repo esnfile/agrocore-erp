@@ -4029,6 +4029,7 @@ export type StatusRomaneio =
 
 export type OrigemRomaneio = "CONTRATO" | "COLHEITA" | "AVULSO";
 export type TipoRomaneio = "ENTRADA" | "SAIDA";
+export type OrigemCriacaoRomaneio = "TELA_ROMANEIOS" | "TELA_PESAGEM";
 
 export interface RomaneioClassificacaoItem {
   tipo: string;
@@ -4081,6 +4082,7 @@ export interface Romaneio {
   pesoLiquidoSecoLimpo: number;
   //
   observacao: string;
+  origemCriacao: OrigemCriacaoRomaneio;
   criadoEm: string;
   criadoPor: string;
   atualizadoEm: string;
