@@ -23,10 +23,10 @@ export default function DashboardPage() {
   }, [grupoAtual?.id]);
 
   const cards = [
-    { title: "Empresa", value: empresaAtual?.nome ?? "—", icon: Building2 },
-    { title: "Filial", value: filialAtual?.nomeRazao ?? "—", icon: GitBranch },
-    { title: "Contratos", value: "0", icon: Package },
-    { title: "Financeiro", value: "R$ 0,00", icon: DollarSign },
+    { title: "Empresa", value: empresaAtual?.nome ?? "—", icon: Building2, iconClass: "text-primary" },
+    { title: "Filial", value: filialAtual?.nomeRazao ?? "—", icon: GitBranch, iconClass: "text-primary" },
+    { title: "Contratos", value: "0", icon: Package, iconClass: "text-info" },
+    { title: "Financeiro", value: "R$ 0,00", icon: DollarSign, iconClass: "text-success" },
   ];
 
   const formatMes = (mes: string) => {
@@ -43,7 +43,7 @@ export default function DashboardPage() {
           <Card key={c.title}>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">{c.title}</CardTitle>
-              <c.icon className="h-4 w-4 text-muted-foreground" />
+              <c.icon className={`h-4 w-4 ${c.iconClass}`} />
             </CardHeader>
             <CardContent>
               <p className="text-xl font-bold">{c.value}</p>
@@ -56,10 +56,10 @@ export default function DashboardPage() {
       <div className="mt-8 space-y-4">
         <h2 className="text-lg font-semibold text-foreground">Previsão de Fluxo de Caixa</h2>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Card className="border-l-4" style={{ borderLeftColor: "hsl(var(--chart-4))" }}>
+          <Card className="border-l-2 border-l-info">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Previsões (Pendentes)</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
+              <Clock className="h-4 w-4 text-info" />
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-bold text-foreground">
@@ -68,13 +68,13 @@ export default function DashboardPage() {
               <p className="text-xs text-muted-foreground mt-1">Parcelas pendentes com vencimento futuro</p>
             </CardContent>
           </Card>
-          <Card className="border-l-4" style={{ borderLeftColor: "hsl(var(--destructive))" }}>
+          <Card className="border-l-4 border-l-warning">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">A Pagar / Vencidas</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-destructive" />
+              <AlertTriangle className="h-4 w-4 text-warning" />
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold text-destructive">
+              <p className="text-2xl font-bold text-foreground">
                 {totalAPagar.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
               </p>
               <p className="text-xs text-muted-foreground mt-1">Parcelas vencidas ou com pagamento parcial</p>
@@ -98,9 +98,9 @@ export default function DashboardPage() {
                     contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }}
                   />
                   <Legend />
-                  <Bar dataKey="previsoes" name="Previsões" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="aPagar" name="A Pagar" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="pago" name="Pago" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="previsoes" name="Previsões" fill="hsl(var(--info))" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="aPagar" name="A Pagar" fill="hsl(var(--warning))" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="pago" name="Pago" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>

@@ -47,12 +47,19 @@
     --sidebar-indicator: 125 46% 33%;
     --sidebar-indicator-hover: 30 90% 50%;
 
-    --success: 125 50% 38%;
+    --success: 160 84% 39%;
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
-    --info: 210 80% 52%;
+    --info: 217 91% 60%;
     --info-foreground: 0 0% 100%;
+
+    /* Chart palette (dashboards/gráficos) — paleta agro moderna */
+    --chart-1: 217 91% 60%;   /* azul suave  — pendente/previsto */
+    --chart-2: 160 84% 39%;   /* verde claro — pago/positivo */
+    --chart-3: 38 92% 50%;    /* âmbar       — atenção/vencido */
+    --chart-4: 217 91% 60%;   /* azul suave  — neutro */
+    --chart-5: 125 56% 24%;   /* verde escuro — primária agro */
   }
 
   .dark {
@@ -95,12 +102,18 @@
     --sidebar-indicator: 125 46% 38%;
     --sidebar-indicator-hover: 30 90% 50%;
 
-    --success: 125 50% 38%;
+    --success: 160 70% 42%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;
+    --warning: 38 92% 55%;
     --warning-foreground: 0 0% 100%;
-    --info: 210 80% 52%;
+    --info: 217 91% 65%;
     --info-foreground: 0 0% 100%;
+
+    --chart-1: 217 91% 65%;
+    --chart-2: 160 70% 42%;
+    --chart-3: 38 92% 55%;
+    --chart-4: 217 91% 65%;
+    --chart-5: 125 46% 38%;
   }
 }
 
