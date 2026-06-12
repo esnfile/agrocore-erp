@@ -91,13 +91,15 @@ export const initialFormState = (empresaId: string, filialId: string): Lancament
   totalGeral: 0,
   formas: { dinheiro: 0, cheque: 0, cartao: 0, adiantamento: 0 },
   composicaoDinheiro: [],
+  composicaoCheque: [],
+  composicaoCartao: [],
   historico: "",
 });
 
 export const sumFormas = (f: FormasPagamentoState) =>
   (f.dinheiro || 0) + (f.cheque || 0) + (f.cartao || 0) + (f.adiantamento || 0);
 
-export const sumComposicao = (itens: ComposicaoDinheiroItem[]) =>
+export const sumComposicao = (itens: Array<{ valor: number }>) =>
   itens.reduce((s, i) => s + (i.valor || 0), 0);
 
 
