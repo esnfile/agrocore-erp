@@ -570,6 +570,9 @@ export function LancamentoCaixaModal({
                 cheques={cheques}
                 cartoes={cartoes}
                 modo={tipoSel?.tipoMovimento === "ENTRADA" ? "RECEBIMENTO" : "PAGAMENTO"}
+                pessoaIdAdiantamento={
+                  tipoSel?.categoria === "PROLABORE" ? state.socioId : state.pessoaId
+                }
               />
             </>
           )}
