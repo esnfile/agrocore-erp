@@ -308,12 +308,9 @@ export default function PesagemDetalhePage() {
         </Button>
         <PageHeader
           title={isNovo ? "Novo Romaneio — Pesagem" : `Pesagem — Romaneio ${romaneio?.id.substring(0, 10)}`}
-          description={
-            isNovo
-              ? "Preencha o cabeçalho e inicie a pesagem"
-              : `Status: ${romaneio?.status}`
-          }
+          description={isNovo ? "Preencha o cabeçalho e inicie a pesagem" : "Registre as pesagens do romaneio"}
         />
+        {!isNovo && romaneio && <RomaneioStatusBadge status={romaneio.status} className="text-xs" />}
       </div>
 
       <Card>
