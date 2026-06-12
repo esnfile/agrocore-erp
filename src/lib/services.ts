@@ -47,6 +47,8 @@ import {
   financeiroContasFinanceiras as mockFinanceiroContasFinanceiras,
   financeiroTiposLancamento as mockFinanceiroTiposLancamento,
   financeiroFormasPagto as mockFinanceiroFormasPagto,
+  financeiroCheques as mockFinanceiroCheques,
+  financeiroCartoes as mockFinanceiroCartoes,
   financeiroPlanoContas as mockFinanceiroPlanoContas,
   financeiroCentrosCusto as mockFinanceiroCentrosCusto,
   financeiroMovimentacoes as mockFinanceiroMovimentacoes,
