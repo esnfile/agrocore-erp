@@ -2864,6 +2864,32 @@ export const financeiroTipoLancamentoService = {
 export const financeiroFormaPagtoService = createCorporateCrudService<FinanceiroFormaPagto>(mockFinanceiroFormasPagto as any, "ffp");
 
 // ============================================================
+// Financeiro — Cheques (cofre / disponíveis para pagamento)
+// ============================================================
+export const financeiroChequeService = {
+  ...createCorporateCrudService<FinanceiroCheque>(mockFinanceiroCheques as any, "chq"),
+  async listarDisponiveis(empresaId: string, filialId: string): Promise<FinanceiroCheque[]> {
+    await delay();
+    return mockFinanceiroCheques.filter(
+      (c) => c.deletadoEm === null && c.ativo && c.status === "DISPONIVEL"
+    );
+  },
+};
+
+// ============================================================
+// Financeiro — Cartões (disponíveis para pagamento)
+// ============================================================
+export const financeiroCartaoService = {
+  ...createCorporateCrudService<FinanceiroCartao>(mockFinanceiroCartoes as any, "crt"),
+  async listarDisponiveis(empresaId: string, filialId: string): Promise<FinanceiroCartao[]> {
+    await delay();
+    return mockFinanceiroCartoes.filter(
+      (c) => c.deletadoEm === null && c.ativo && c.status === "DISPONIVEL"
+    );
+  },
+};
+
+// ============================================================
 // Financeiro — Plano de Contas
 // ============================================================
 export const financeiroPlanoContaService = createCorporateCrudService<FinanceiroPlanoConta>(mockFinanceiroPlanoContas as any, "fpc");
