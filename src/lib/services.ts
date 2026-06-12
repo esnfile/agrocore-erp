@@ -3011,6 +3011,9 @@ export const financeiroMovimentacaoService = {
       pessoaId: data.pessoaId ?? null,
       formasPagamentoDetalhe: data.formasPagamentoDetalhe ?? null,
       composicaoDinheiro: data.composicaoDinheiro && data.composicaoDinheiro.length > 0 ? data.composicaoDinheiro.map((c) => ({ ...c })) : null,
+      composicaoCheque: data.composicaoCheque && data.composicaoCheque.length > 0 ? data.composicaoCheque.map((c) => ({ ...c })) : null,
+      composicaoCartao: data.composicaoCartao && data.composicaoCartao.length > 0 ? data.composicaoCartao.map((c) => ({ ...c })) : null,
+      composicaoAdiantamento: data.composicaoAdiantamento && data.composicaoAdiantamento.length > 0 ? data.composicaoAdiantamento.map((c) => ({ ...c })) : null,
       criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
       deletadoEm: null, deletadoPor: null,
     };
