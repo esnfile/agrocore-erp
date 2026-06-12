@@ -287,6 +287,7 @@ export function LancamentoCaixaModal({
         composicaoDinheiro: state.composicaoDinheiro,
         composicaoCheque: state.composicaoCheque,
         composicaoCartao: state.composicaoCartao,
+        composicaoAdiantamento: state.adiantamentosSelecionados.length > 0 ? state.adiantamentosSelecionados : null,
       }, { grupoId: grupoAtual?.id ?? "", empresaId: state.empresaId, filialId: state.filialId });
       if (!result.sucesso) { toast({ title: "Erro", description: result.mensagem, variant: "destructive" }); return; }
       toast({ title: "Lançamento registrado com sucesso" });
@@ -398,6 +399,7 @@ export function LancamentoCaixaModal({
         composicaoDinheiro: state.composicaoDinheiro,
         composicaoCheque: state.composicaoCheque,
         composicaoCartao: state.composicaoCartao,
+        composicaoAdiantamento: state.adiantamentosSelecionados.length > 0 ? state.adiantamentosSelecionados : null,
       }, { grupoId: grupoAtual?.id ?? "", empresaId: state.empresaId, filialId: state.filialId });
       if (!result.sucesso) { toast({ title: "Erro", description: result.mensagem, variant: "destructive" }); return; }
       toast({ title: "Prolabore registrado com sucesso" });
@@ -434,6 +436,7 @@ export function LancamentoCaixaModal({
         composicaoDinheiro: state.composicaoDinheiro,
         composicaoCheque: state.composicaoCheque,
         composicaoCartao: state.composicaoCartao,
+        composicaoAdiantamento: state.adiantamentosSelecionados.length > 0 ? state.adiantamentosSelecionados : null,
         solicitacaoAdiantamentoId: state.solicitacaoAdiantamentoId,
       }, { grupoId: grupoAtual?.id ?? "", empresaId: state.empresaId, filialId: state.filialId });
       if (!result.sucesso) { toast({ title: "Erro", description: result.mensagem, variant: "destructive" }); return; }
@@ -486,6 +489,7 @@ export function LancamentoCaixaModal({
         composicaoDinheiro: state.composicaoDinheiro,
         composicaoCheque: state.composicaoCheque,
         composicaoCartao: state.composicaoCartao,
+        composicaoAdiantamento: state.adiantamentosSelecionados.length > 0 ? state.adiantamentosSelecionados : null,
       }, { grupoId: grupoAtual?.id ?? "", empresaId: state.empresaId, filialId: state.filialId });
       if (!result.sucesso) { toast({ title: "Erro", description: result.mensagem, variant: "destructive" }); return; }
       toast({
@@ -570,6 +574,9 @@ export function LancamentoCaixaModal({
                 cheques={cheques}
                 cartoes={cartoes}
                 modo={tipoSel?.tipoMovimento === "ENTRADA" ? "RECEBIMENTO" : "PAGAMENTO"}
+                pessoaIdAdiantamento={
+                  tipoSel?.categoria === "PROLABORE" ? state.socioId : state.pessoaId
+                }
               />
             </>
           )}
