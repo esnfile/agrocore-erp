@@ -98,9 +98,9 @@ export default function DashboardPage() {
                     contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }}
                   />
                   <Legend />
-                  <Bar dataKey="previsoes" name="Previsões" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="aPagar" name="A Pagar" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="pago" name="Pago" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="previsoes" name="Previsões" fill="hsl(var(--info))" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="aPagar" name="A Pagar" fill="hsl(var(--warning))" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="pago" name="Pago" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
