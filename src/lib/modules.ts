@@ -239,6 +239,8 @@ export const modules: Module[] = [
           { title: "Contas Financeiras", url: "/financeiro/contas-financeiras", icon: DollarSign },
           { title: "Tipos de Lançamento", url: "/financeiro/tipos-lancamento", icon: Tags },
           { title: "Formas de Pagamento", url: "/financeiro/formas-pagamento", icon: Tags },
+          { title: "Cheques", url: "/financeiro/cheques", icon: FileText },
+          { title: "Cartões", url: "/financeiro/cartoes", icon: Tags },
           { title: "Plano de Contas", url: "/financeiro/plano-contas", icon: Layers },
           { title: "Centros de Custo", url: "/financeiro/centros-custo", icon: Tags },
         ],

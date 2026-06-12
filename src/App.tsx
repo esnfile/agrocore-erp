@@ -39,6 +39,8 @@ import TipoContasPage from "@/pages/financeiro/TipoContasPage";
 import ContasFinanceirasPage from "@/pages/financeiro/ContasFinanceirasPage";
 import TiposLancamentoPage from "@/pages/financeiro/TiposLancamentoPage";
 import FormasPagamentoPage from "@/pages/financeiro/FormasPagamentoPage";
+import ChequesPage from "@/pages/financeiro/ChequesPage";
+import CartoesPage from "@/pages/financeiro/CartoesPage";
 import PlanoContasPage from "@/pages/financeiro/PlanoContasPage";
 import CentrosCustoPage from "@/pages/financeiro/CentrosCustoPage";
 import MovimentacoesPage from "@/pages/financeiro/MovimentacoesPage";
@@ -92,6 +94,8 @@ const App = () => (
               <Route path="/financeiro/contas-financeiras" element={<ContasFinanceirasPage />} />
               <Route path="/financeiro/tipos-lancamento" element={<TiposLancamentoPage />} />
               <Route path="/financeiro/formas-pagamento" element={<FormasPagamentoPage />} />
+              <Route path="/financeiro/cheques" element={<ChequesPage />} />
+              <Route path="/financeiro/cartoes" element={<CartoesPage />} />
               <Route path="/financeiro/plano-contas" element={<PlanoContasPage />} />
               <Route path="/financeiro/centros-custo" element={<CentrosCustoPage />} />
               <Route path="/financeiro/movimentacoes" element={<MovimentacoesPage />} />
