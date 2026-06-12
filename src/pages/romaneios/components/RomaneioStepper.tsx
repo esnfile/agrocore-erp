@@ -18,7 +18,8 @@ export function RomaneioStepper({ currentStep, status, onStepClick, vinculoPende
       <ol className="flex items-center w-full">
         {STEPPER_STEPS.map((step, idx) => {
           const isActive = step.id === currentStep;
-          const isCompleted = step.id < maxStep || status === "FINALIZADO";
+          const completedByStatus = step.id < maxStep || status === "FINALIZADO";
+          const isCompleted = step.id === 3 && vinculoPendente ? false : completedByStatus;
           const isAccessible = isStepAccessible(step.id, status);
           const isLast = idx === STEPPER_STEPS.length - 1;
 
