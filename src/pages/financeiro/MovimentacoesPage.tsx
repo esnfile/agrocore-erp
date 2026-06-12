@@ -150,6 +150,21 @@ export default function MovimentacoesPage() {
                             </div>
                           </div>
                         )}
+                        {m.composicaoDinheiro && m.composicaoDinheiro.length > 0 && (
+                          <div>
+                            <p className="text-xs font-semibold text-muted-foreground mb-1">Composição do "Dinheiro"</p>
+                            <ul className="text-xs space-y-0.5">
+                              {m.composicaoDinheiro.map((c, i) => {
+                                const fp = formasPagto.find((f) => f.id === c.formaId);
+                                return (
+                                  <li key={i} className="font-mono">
+                                    {fp?.descricao ?? c.formaId} — {fmt(c.valor)}
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          </div>
+                        )}
                         {m.adiantamentosUsados && m.adiantamentosUsados.length > 0 && (
                           <div>
                             <p className="text-xs font-semibold text-muted-foreground mb-1">Adiantamentos utilizados</p>
