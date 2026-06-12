@@ -118,7 +118,7 @@ export default function PesagemPage() {
         <p className="text-sm text-muted-foreground">
           {filtered.length} romaneio{filtered.length !== 1 && "s"} aguardando pesagem
         </p>
-        <Button onClick={() => setModalOpen(true)} disabled={!ctx} className="gap-1">
+        <Button onClick={() => navigate("/balanca/pesagem/novo")} disabled={!ctx} className="gap-1">
           <Plus className="h-4 w-4" /> Novo Romaneio
         </Button>
       </div>
