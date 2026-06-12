@@ -3,9 +3,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertCircle, Wallet, CreditCard } from "lucide-react";
+import { AlertCircle, CreditCard } from "lucide-react";
 import type {
   Pessoa, FinanceiroCentroCusto, FinanceiroParcela, FinanceiroConta,
   TipoBeneficiarioAdiantamento, FinanceiroAdiantamento,
@@ -15,7 +14,6 @@ import {
 } from "@/lib/services";
 import type { LancamentoFormState } from "./types";
 import { sumFormas } from "./types";
-import { SelecionarAdiantamentoModal } from "./SelecionarAdiantamentoModal";
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
