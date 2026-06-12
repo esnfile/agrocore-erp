@@ -2926,6 +2926,7 @@ export const financeiroMovimentacaoService = {
       parcelaId?: string | null;
       pessoaId?: string | null;
       formasPagamentoDetalhe?: { dinheiro: number; cheque: number; cartao: number; adiantamento: number } | null;
+      composicaoDinheiro?: Array<{ formaId: string; valor: number }> | null;
       solicitacaoAdiantamentoId?: string | null;
     },
     ctx: { grupoId: string; empresaId: string; filialId: string }
