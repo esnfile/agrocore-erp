@@ -6,10 +6,11 @@ import { useToast } from "@/hooks/use-toast";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import {
   financeiroMovimentacaoService, financeiroFormaPagtoService,
+  financeiroChequeService, financeiroCartaoService,
 } from "@/lib/services";
 import type {
   Pessoa, FinanceiroContaFinanceira, FinanceiroTipoLancamento,
-  FinanceiroCentroCusto, FinanceiroFormaPagto,
+  FinanceiroCentroCusto, FinanceiroFormaPagto, FinanceiroCheque, FinanceiroCartao,
 } from "@/lib/mock-data";
 import { financeiroTipoContas } from "@/lib/mock-data";
 import { categoriasImplementadas } from "./types";
