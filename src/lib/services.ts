@@ -3700,19 +3700,12 @@ export const romaneioService = {
       rom.totalPesoDescontado = 0;
       rom.pesoLiquidoSecoLimpo = 0;
       rom.dataClassificacao = null;
-      if (rom.origem === "AVULSO" && !rom.contratoId && !rom.safraId) {
-        rom.status = "AGUARDANDO_VINCULO";
-      } else {
-        rom.status = "AGUARDANDO_CLASSIFICACAO";
-      }
+      rom.status = "AGUARDANDO_CLASSIFICACAO";
     } else if (rom.status !== "FINALIZADO" && rom.status !== "CANCELADO" && rom.status !== "AGUARDANDO_CLASSIFICACAO") {
-      // Update status based on pesagens
+      // Avulso ou vinculado: ambos vão direto para classificação após pesagem completa.
+      // O vínculo (contrato/colheita) é opcional e pode ser feito antes da finalização.
       if (entrada && saida && rom.pesoLiquidoFisico > 0) {
-        if (rom.origem === "AVULSO" && !rom.contratoId && !rom.safraId) {
-          rom.status = "AGUARDANDO_VINCULO";
-        } else {
-          rom.status = "AGUARDANDO_CLASSIFICACAO";
-        }
+        rom.status = "AGUARDANDO_CLASSIFICACAO";
       } else if (entrada || saida) {
         rom.status = "PESAGEM_PARCIAL";
       }
