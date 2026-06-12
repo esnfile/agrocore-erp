@@ -50,12 +50,17 @@ export function LancamentoCaixaModal({
   );
   const [saving, setSaving] = useState(false);
   const [formasPagto, setFormasPagto] = useState<FinanceiroFormaPagto[]>([]);
+  const [cheques, setCheques] = useState<FinanceiroCheque[]>([]);
+  const [cartoes, setCartoes] = useState<FinanceiroCartao[]>([]);
   const [autorizacaoOpen, setAutorizacaoOpen] = useState(false);
 
   useEffect(() => {
     if (open) {
       setState(initialFormState(empresaAtual?.id ?? "", filialAtual?.id ?? ""));
-      financeiroFormaPagtoService.listar(empresaAtual?.id ?? "", filialAtual?.id ?? "").then(setFormasPagto);
+      const eId = empresaAtual?.id ?? ""; const fId = filialAtual?.id ?? "";
+      financeiroFormaPagtoService.listar(eId, fId).then(setFormasPagto);
+      financeiroChequeService.listar(eId, fId).then(setCheques);
+      financeiroCartaoService.listar(eId, fId).then(setCartoes);
     }
   }, [open, empresaAtual, filialAtual]);
 
