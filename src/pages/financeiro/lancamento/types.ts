@@ -43,9 +43,12 @@ export interface LancamentoFormState {
   totalGeral: number;
   // Formas de pagamento
   formas: FormasPagamentoState;
+  // Composição detalhada do campo "Dinheiro" (Dinheiro Físico, PIX, Transferência, etc.)
+  composicaoDinheiro: ComposicaoDinheiroItem[];
   // Histórico
   historico: string;
 }
+
 
 export const initialFormState = (empresaId: string, filialId: string): LancamentoFormState => ({
   empresaId,
