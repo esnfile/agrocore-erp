@@ -413,6 +413,9 @@ export default function ContasPage() {
     <div>
       <PageHeader title="Contas a Pagar / Receber" description="Visão por parcelas — verdade absoluta do financeiro" />
 
+      <ContasDashboard parcelas={todasParcelas} />
+
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
         <Card>
