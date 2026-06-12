@@ -3607,6 +3607,8 @@ export interface FinanceiroMovimentacao {
   parcelaId: string | null;
   pessoaId: string | null;
   formasPagamentoDetalhe: { dinheiro: number; cheque: number; cartao: number; adiantamento: number } | null;
+  // Composição detalhada do total de "Dinheiro" por forma de pagamento (PIX, Transferência, Espécie, etc.)
+  composicaoDinheiro?: Array<{ formaId: string; valor: number }> | null;
   // Rastreabilidade de baixa multi-parcela (REC_DUPLICATA / PAG_DUPLICATA)
   parcelasLiquidadas?: Array<{
     parcelaId: string;
