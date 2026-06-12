@@ -3,14 +3,17 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal } from "lucide-react";
-import type { FinanceiroFormaPagto, FinanceiroCheque, FinanceiroCartao } from "@/lib/mock-data";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import type { FinanceiroFormaPagto, FinanceiroCheque, FinanceiroCartao, TipoBeneficiarioAdiantamento } from "@/lib/mock-data";
 import type {
   LancamentoFormState, ComposicaoDinheiroItem, ComposicaoChequeItem, ComposicaoCartaoItem,
+  AdiantamentoUso,
 } from "./types";
 import { sumFormas, sumComposicao } from "./types";
 import { ComposicaoDinheiroModal } from "./ComposicaoDinheiroModal";
 import { ComposicaoChequeModal } from "./ComposicaoChequeModal";
 import { ComposicaoCartaoModal } from "./ComposicaoCartaoModal";
+import { SelecionarAdiantamentoModal } from "./SelecionarAdiantamentoModal";
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -26,15 +29,18 @@ interface Props {
   cartoes: FinanceiroCartao[];
   /** "RECEBIMENTO" para ENTRADA; "PAGAMENTO" para SAIDA. */
   modo: "RECEBIMENTO" | "PAGAMENTO";
+  /** Pessoa usada para filtrar adiantamentos. Em Prolabore = sócio; demais = pessoaId. */
+  pessoaIdAdiantamento?: string;
 }
 
 export function FormasPagamentoSection({
   state, update, valorEsperado, adiantamentoReadOnly, permitirParcial,
-  formasPagto, cheques, cartoes, modo,
+  formasPagto, cheques, cartoes, modo, pessoaIdAdiantamento,
 }: Props) {
   const [dinheiroOpen, setDinheiroOpen] = useState(false);
   const [chequeOpen, setChequeOpen] = useState(false);
   const [cartaoOpen, setCartaoOpen] = useState(false);
+  const [adiantOpen, setAdiantOpen] = useState(false);
 
   const total = sumFormas(state.formas);
   const dif = valorEsperado !== undefined ? +(total - valorEsperado).toFixed(2) : 0;
@@ -51,6 +57,28 @@ export function FormasPagamentoSection({
     const soma = +sumComposicao(itens).toFixed(2);
     update({ composicaoCartao: itens, formas: { ...state.formas, cartao: soma } });
   };
+  const onConfirmAdiantamento = (sel: AdiantamentoUso[]) => {
+    const soma = +sel.reduce((s, a) => s + a.valor, 0).toFixed(2);
+    update({ adiantamentosSelecionados: sel, formas: { ...state.formas, adiantamento: soma } });
+  };
+
+  // Cartão só pode ser usado em RECEBIMENTO (você não paga despesa com cartão recebido).
+  const cartaoDisabled = modo === "PAGAMENTO";
+  const cartaoHint = cartaoDisabled
+    ? "Cartão é apenas para recebimentos"
+    : "Cadastrar cartões recebidos";
+
+  // Adiantamento: bloqueado quando vinculado às duplicatas (gerenciado em DetalhesDuplicatas)
+  // ou quando não há pessoa selecionada.
+  const adiantDisabled = !!adiantamentoReadOnly || !pessoaIdAdiantamento;
+  const adiantHint = adiantamentoReadOnly
+    ? "Vinculado às duplicatas (selecione adiantamentos no detalhe acima)"
+    : !pessoaIdAdiantamento
+      ? "Selecione a pessoa primeiro"
+      : modo === "RECEBIMENTO"
+        ? "Selecionar adiantamentos do cliente"
+        : "Selecionar adiantamentos do fornecedor";
+  const tipoBeneficiario: TipoBeneficiarioAdiantamento = modo === "RECEBIMENTO" ? "CLIENTE" : "FORNECEDOR";
 
   const renderComposField = (
     label: string,
@@ -58,40 +86,50 @@ export function FormasPagamentoSection({
     qtd: number,
     onOpen: () => void,
     hint: string,
-  ) => (
-    <div className="space-y-1.5">
-      <Label>
-        {label}<span className="ml-1 text-xs text-muted-foreground">(composição)</span>
-      </Label>
-      <div className="flex gap-1">
-        <Input
-          type="text"
-          value={fmt(valor || 0)}
-          readOnly
-          className="bg-muted cursor-not-allowed font-mono"
-        />
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          onClick={onOpen}
-          aria-label={`Detalhar ${label}`}
-          title={qtd > 0 ? `${qtd} item(ns) detalhado(s)` : hint}
-          className="shrink-0"
-        >
-          <MoreHorizontal className="h-4 w-4" />
-        </Button>
+    disabled: boolean = false,
+    autoTag: string = "composição",
+  ) => {
+    const button = (
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        onClick={disabled ? undefined : onOpen}
+        disabled={disabled}
+        aria-label={`Detalhar ${label}`}
+        className="shrink-0"
+      >
+        <MoreHorizontal className="h-4 w-4" />
+      </Button>
+    );
+    return (
+      <div className="space-y-1.5">
+        <Label>
+          {label}<span className="ml-1 text-xs text-muted-foreground">({autoTag})</span>
+        </Label>
+        <div className="flex gap-1">
+          <Input
+            type="text"
+            value={fmt(valor || 0)}
+            readOnly
+            className="bg-muted cursor-not-allowed font-mono"
+          />
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                {/* span wrapper para tooltip funcionar em disabled */}
+                <span>{button}</span>
+              </TooltipTrigger>
+              <TooltipContent>{hint}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+        {qtd > 0 && (
+          <p className="text-xs text-muted-foreground">{qtd} item(ns) detalhado(s)</p>
+        )}
       </div>
-      {qtd > 0 && (
-        <p className="text-xs text-muted-foreground">{qtd} item(ns) detalhado(s)</p>
-      )}
-    </div>
-  );
-
-  // Adiantamento: mantido como input simples (read-only em REC/PAG_DUPLICATA, alimentado pelo
-  // SelecionarAdiantamentoModal dentro de DetalhesDuplicatas). Para demais categorias, permanece editável.
-  const setAdiantamento = (e: React.ChangeEvent<HTMLInputElement>) =>
-    update({ formas: { ...state.formas, adiantamento: parseFloat(e.target.value) || 0 } });
+    );
+  };
 
   const mostrarAviso = valorEsperado !== undefined && dif !== 0 && (permitirParcial ? dif > 0 : true);
 
@@ -117,27 +155,18 @@ export function FormasPagamentoSection({
           state.formas.cartao,
           state.composicaoCartao.length,
           () => setCartaoOpen(true),
-          modo === "PAGAMENTO" ? "Selecionar cartões cadastrados" : "Cadastrar cartões recebidos",
+          cartaoHint,
+          cartaoDisabled,
         )}
-
-        {/* Adiantamento: mantém comportamento existente */}
-        <div className="space-y-1.5">
-          <Label>
-            Adiantamento{adiantamentoReadOnly && <span className="ml-1 text-xs text-muted-foreground">(auto)</span>}
-          </Label>
-          <Input
-            type="number" step="0.01" min="0"
-            value={state.formas.adiantamento || ""}
-            onChange={adiantamentoReadOnly ? undefined : setAdiantamento}
-            readOnly={adiantamentoReadOnly}
-            className={adiantamentoReadOnly ? "bg-muted cursor-not-allowed" : ""}
-          />
-          {adiantamentoReadOnly && (
-            <p className="text-xs text-muted-foreground">
-              Vinculado às duplicatas (selecione adiantamentos no detalhe acima).
-            </p>
-          )}
-        </div>
+        {renderComposField(
+          "Adiantamento",
+          state.formas.adiantamento,
+          state.adiantamentosSelecionados.length,
+          () => setAdiantOpen(true),
+          adiantHint,
+          adiantDisabled,
+          adiantamentoReadOnly ? "auto" : "composição",
+        )}
       </div>
 
       <div className="flex items-center justify-between border-t pt-3">
@@ -176,6 +205,16 @@ export function FormasPagamentoSection({
         cartoes={cartoes}
         valorAtual={state.composicaoCartao}
       />
+      {pessoaIdAdiantamento && (
+        <SelecionarAdiantamentoModal
+          open={adiantOpen}
+          onClose={() => setAdiantOpen(false)}
+          pessoaId={pessoaIdAdiantamento}
+          tipoBeneficiario={tipoBeneficiario}
+          selecionadosAtuais={state.adiantamentosSelecionados}
+          onConfirm={onConfirmAdiantamento}
+        />
+      )}
     </div>
   );
 }
