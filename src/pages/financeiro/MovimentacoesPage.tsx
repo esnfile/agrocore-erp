@@ -8,11 +8,11 @@ import { Plus, ChevronRight, ChevronDown } from "lucide-react";
 import {
   financeiroMovimentacaoService, financeiroTipoLancamentoService,
   financeiroContaFinanceiraService, financeiroCentroCustoService,
-  pessoaService,
+  pessoaService, financeiroFormaPagtoService,
 } from "@/lib/services";
 import type {
   FinanceiroMovimentacao, FinanceiroTipoLancamento, FinanceiroContaFinanceira,
-  FinanceiroCentroCusto, Pessoa,
+  FinanceiroCentroCusto, Pessoa, FinanceiroFormaPagto,
 } from "@/lib/mock-data";
 import { LancamentoCaixaModal } from "./lancamento/LancamentoCaixaModal";
 
@@ -30,21 +30,23 @@ export default function MovimentacoesPage() {
   const [contasFinanceiras, setContasFinanceiras] = useState<FinanceiroContaFinanceira[]>([]);
   const [centrosCusto, setCentrosCusto] = useState<FinanceiroCentroCusto[]>([]);
   const [pessoas, setPessoas] = useState<Pessoa[]>([]);
+  const [formasPagto, setFormasPagto] = useState<FinanceiroFormaPagto[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   const carregar = useCallback(async () => {
     setLoading(true);
-    const [m, tl, cf, cc, pess] = await Promise.all([
+    const [m, tl, cf, cc, pess, fp] = await Promise.all([
       financeiroMovimentacaoService.listar(empresaId, filialId),
       financeiroTipoLancamentoService.listar(empresaId, filialId),
       financeiroContaFinanceiraService.listar(empresaId, filialId),
       financeiroCentroCustoService.listar(empresaId, filialId),
       pessoaService.listar(empresaId, filialId),
+      financeiroFormaPagtoService.listar(empresaId, filialId),
     ]);
     setMovimentacoes(m); setTiposLancamento(tl); setContasFinanceiras(cf);
-    setCentrosCusto(cc); setPessoas(pess);
+    setCentrosCusto(cc); setPessoas(pess); setFormasPagto(fp);
     setLoading(false);
   }, [empresaId, filialId]);
 
@@ -146,6 +148,21 @@ export default function MovimentacoesPage() {
                                 </tbody>
                               </table>
                             </div>
+                          </div>
+                        )}
+                        {m.composicaoDinheiro && m.composicaoDinheiro.length > 0 && (
+                          <div>
+                            <p className="text-xs font-semibold text-muted-foreground mb-1">Composição do "Dinheiro"</p>
+                            <ul className="text-xs space-y-0.5">
+                              {m.composicaoDinheiro.map((c, i) => {
+                                const fp = formasPagto.find((f) => f.id === c.formaId);
+                                return (
+                                  <li key={i} className="font-mono">
+                                    {fp?.descricao ?? c.formaId} — {fmt(c.valor)}
+                                  </li>
+                                );
+                              })}
+                            </ul>
                           </div>
                         )}
                         {m.adiantamentosUsados && m.adiantamentosUsados.length > 0 && (

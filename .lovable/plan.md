@@ -1,66 +1,67 @@
-## Validação inteligente de saldo (Caixa, Carteira, Banco com limite)
+## Objetivo
 
-### Objetivo
-Substituir a flag genérica `permiteSaldoNegativo` + `window.confirm` por uma regra baseada no **tipo da conta**:
-- **CAIXA / CARTEIRA** → nunca permite negativo. Bloqueia sempre.
-- **BANCO** → permite negativo até `limiteCreditoBancario`. Acima disso, bloqueia.
+Transformar o campo **Dinheiro** do Caixa em um valor READ-ONLY composto por múltiplas formas (Dinheiro Físico, PIX, Transferência, Depósito, Cheque Compensado etc.), especificadas em um popup. Cheque, Cartão e Adiantamento permanecem como hoje.
 
-### 1. Modelo de dados (`src/lib/mock-data.ts`)
-- Adicionar campo `limiteCreditoBancario: number` (default `0`) em `FinanceiroContaFinanceira`.
-- Manter `permiteSaldoNegativo` no tipo por compatibilidade, mas marcar como deprecated em comentário e parar de usá-lo.
-- Atualizar mocks `financeiroContasFinanceiras`:
-  - Caixa Matriz (CAIXA): `limiteCreditoBancario: 0`.
-  - Banco do Brasil (BANCO): `limiteCreditoBancario: 10000`.
-  - Sicredi (BANCO): `limiteCreditoBancario: 50000` (remover `permiteSaldoNegativo: true`).
-  - Carteira (CARTEIRA): `0`.
-  - Caixa Filial (CAIXA): `0`.
-  - Banco Inativo (BANCO): `0` (para cenário "sem limite").
+## Viabilidade
 
-### 2. Helper de validação
-Novo arquivo `src/pages/financeiro/lancamento/saldo-utils.ts` com:
-- `getTipoContaDescricao(conta, tiposContas): "CAIXA" | "BANCO" | "CARTEIRA" | null`
-- `avaliarSaldo(conta, tiposContas, valor) → { status: "ok" | "aviso" | "bloqueado", saldoResultante, mensagem }`
-  - CAIXA/CARTEIRA: `valor > saldo` → `bloqueado` ("Saldo insuficiente em {conta}. Operação não permitida.")
-  - BANCO: calcula `saldoResultante`; classifica em `ok`, `aviso` (dentro do limite — "Saldo entrará em limite de crédito. Resultante: R$ X") ou `bloqueado` ("Limite de crédito de R$ Y ultrapassado. Operação não permitida.")
+Sim — é viável e não quebra nada relevante:
 
-### 3. `LancamentoCaixaModal.tsx`
-- Remover `window.confirm` de `salvarTransferencia`.
-- Antes de chamar `service.registrar` em **todas** as funções de salvar (`salvarTransferencia`, `salvarGeral`, `salvarProlabore`, `salvarAdiantFornecedor`, `executarSalvarAdiantCliente`, `salvarBaixaDuplicatas`), chamar `avaliarSaldo(origem, tiposContas, valor)`:
-  - `bloqueado` → toast destructive + return.
-  - `aviso` → toast informativo (variant default) e prossegue.
-  - `ok` → segue normal.
-- Valor avaliado por categoria:
-  - GERAL → `totalGeral`
-  - DUPLICATAS → `totalFormas` (apenas se categoria PAG_DUPLICATA, pois RECEBIMENTO entra dinheiro). Aplicar bloqueio só para saídas.
-  - Transferência/Prolabore/Adiantamentos → `valorDetalhe`.
-- Critério de "saída": tipo de lançamento tem `natureza === "SAIDA"` ou categoria pertence ao conjunto `{ PROLABORE, ADIANT_FORNECEDOR, PAG_DUPLICATA, GERAL (apenas despesa), TRANSFERENCIA }`. Para GERAL e ADIANT_CLIENTE usar `tipoSel.natureza` (já existe no mock — confirmar; se não houver, usar a categoria).
-- Passar `tiposContas` (já disponível via `financeiroTipoContas` importado).
+- A tabela `financeiroFormasPagto` (com `tipo: DINHEIRO | BANCARIO | ELETRONICO` e flag `ativo`) já existe e tem service.
+- O campo `formas.dinheiro` já existe em `LancamentoFormState` e é persistido em `formasPagamentoDetalhe.dinheiro` na movimentação — vamos manter esse campo como **soma agregada**, então toda a lógica downstream (validação de saldo, salvar movimentação, exibição em `MovimentacoesPage`) continua funcionando sem alteração.
+- A composição detalhada é UI-only nesta entrega (não persiste no backend mock para não quebrar contrato da movimentação). Caso queira persistir depois, adicionamos campo opcional em outra rodada.
 
-### 4. Aviso inline nos componentes de detalhe
-- `DetalhesTransferencia.tsx`: substituir aviso atual por bloco dinâmico usando `avaliarSaldo`:
-  - `aviso` → texto laranja (`text-warning` ou classe inline `text-orange-600`).
-  - `bloqueado` → texto vermelho (`text-destructive`).
-- `DetalhesGeral.tsx`: receber `contaOrigem` + `tiposContas` via props (passados pelo modal) e exibir aviso pré-salvar com base no `totalGeral`.
-- (Opcional, fora do checklist do prompt) Não adicionar em Prolabore/Adiantamentos/Duplicatas neste ciclo — validação ocorre no salvar. Mantém escopo enxuto, conforme o prompt foca em Transferência/Geral.
+## Mudanças
 
-### 5. Cadastro de Contas Financeiras (`ContasFinanceirasPage.tsx`)
-- Adicionar input **"Limite de Crédito Bancário"** (numérico, BRL) visível apenas quando `mostrarBanco` for true.
-- Estado `limiteCreditoBancario`, default `0`. Persistir via `financeiroContaFinanceiraService.salvar` (verificar e estender o service para aceitar o campo).
-- Manter o Switch `permiteSaldoNegativo` por enquanto (apenas exibe — não influencia mais), ou remover. **Decisão proposta: remover o switch da tela** e do payload de salvar; o campo no banco fica como legado.
+### 1. `src/pages/financeiro/lancamento/types.ts`
 
-### 6. Service
-- `src/lib/services.ts` / `mock-store.ts`: ajustar `financeiroContaFinanceiraService.salvar` para aceitar e persistir `limiteCreditoBancario`. Default `0` quando não enviado.
+- Adicionar tipo `ComposicaoDinheiroItem = { formaId: string; valor: number }`.
+- Adicionar `composicaoDinheiro: ComposicaoDinheiroItem[]` ao `LancamentoFormState` (default `[]`).
+- Helper `sumComposicao(itens)`.
 
-### 7. Mensagens (toast)
-- Sucesso transferência: continuar como está.
-- Erro CAIXA/CARTEIRA: `"Saldo insuficiente em {conta}. Operação não permitida."`
-- Erro BANCO acima do limite: `"Limite de crédito de R$ {limite} ultrapassado. Operação não permitida."`
-- Aviso BANCO dentro do limite: toast default "Saldo entrará em limite de crédito. Resultante: R$ {x}".
+### 2. Novo: `src/pages/financeiro/lancamento/ComposicaoDinheiroModal.tsx`
 
-### 8. Casos de teste manuais
-Validar os 10 cenários da tabela do prompt (CAIXA OK/insuf, BANCO dentro/fora/sem limite, CARTEIRA insuf, e avisos inline correspondentes em Transferência).
+- Dialog (mesmo padrão dos outros modais do Caixa) com título "Composição de Formas de Pagamento".
+- Carrega formas via `financeiroFormaPagtoService.listar(...)` filtrando `ativo === true && deletadoEm === null`, ordenado por descrição.
+- Se lista vazia: mensagem "Nenhuma forma de pagamento disponível. Cadastre formas antes de continuar."
+- Grid com colunas: **Forma** (SearchableSelect com formas), **Valor** (input BRL), botão **X** para remover linha.
+- Botão **+ Adicionar Forma** abaixo da grid.
+- Rodapé fixo: total READ-ONLY (recalculado em tempo real) + botões **Cancelar** / **Confirmar**.
+- Estado interno (rascunho) que só é propagado ao confirmar; cancelar descarta.
+- Validações no Confirmar:
+  - Toda linha precisa ter `formaId` selecionada.
+  - Toda linha precisa ter `valor > 0`.
+  - Erros via toast (padrão do app).
+- Ao confirmar: chama `onConfirm(itens, total)` e fecha. O parent atualiza `composicaoDinheiro` e `formas.dinheiro = total`.
 
-### Fora de escopo
-- Validação backend ACID (apenas frontend/mock por enquanto).
-- Avisos inline em Prolabore/Adiantamentos/Duplicatas (validação só no salvar).
-- Migration de dados existentes (mock).
+### 3. `src/pages/financeiro/lancamento/FormasPagamentoSection.tsx`
+
+- O campo **Dinheiro** vira READ-ONLY (input bloqueado, classes `bg-muted`) com um botão `...` (ícone `MoreHorizontal`) à direita, dentro do mesmo agrupamento, abrindo o `ComposicaoDinheiroModal`.
+- Demais campos (Cheque, Cartão, Adiantamento) inalterados.
+- Recebe via props: `composicaoDinheiro`, `onChangeComposicao`.
+- Reabrir o modal mostra os itens anteriores (persistência em state do form).
+
+### 4. `src/pages/financeiro/lancamento/LancamentoCaixaModal.tsx`
+
+- Passar `state.composicaoDinheiro` e handler para `FormasPagamentoSection` (que repassa ao popup).
+- Handler atualiza `composicaoDinheiro` e seta `formas.dinheiro = soma` no mesmo `update`.
+- Ao trocar de categoria/limpar formulário, resetar `composicaoDinheiro` junto (já coberto por `initialFormState`).
+- **Nenhuma mudança** em `salvarGeral/Transferencia/Prolabore/Adiantamento/Duplicatas`: continuam usando `formas.dinheiro` (que agora reflete a soma da composição). Validação de total existente em `FormasPagamentoSection` (soma das 4 formas vs valor esperado) continua valendo.
+
+### 5. Sem mudanças
+
+- `services.ts`, `mock-data.ts` (estrutura de movimentação), `MovimentacoesPage.tsx`, `saldo-utils.ts`: intocados.
+
+## Regras preservadas (sem regressão)
+
+- Cheque / Cartão / Adiantamento: comportamento atual mantido.
+- Validação "soma das formas = valor esperado": mantida.
+- Validação de saldo (CAIXA/BANCO + limite): mantida — usa `formas.dinheiro` agregado.
+- Persistência da movimentação: mantida (campo `formasPagamentoDetalhe.dinheiro`).
+
+## Trade-off explícito
+
+A composição detalhada (qual parte foi PIX, qual foi espécie etc.) **vive apenas no estado do formulário** durante o preenchimento. Quando a movimentação é gravada, persiste apenas o total em "Dinheiro" — exatamente como hoje. Se quiser persistir a quebra por forma na movimentação (para relatórios), é uma segunda etapa que envolve alterar o contrato do `financeiroMovimentacaoService` e o tipo `FinanceiroMovimentacao`. **Pergunta:** seguimos só com UI agora ou já incluo a persistência da quebra?  
+  
+Se quiser implementar essa parte por agora e deixar para implementarmos a separação depois, mas eu quero que haja o detalhamento quebrado, tipo 10k em dinheiro (5k em pix e 5k em transferência) Isso precisa ter rastreio, senão não tem sentido não acha?  
+  
+  

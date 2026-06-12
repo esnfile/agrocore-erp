@@ -12,6 +12,12 @@ export interface AdiantamentoUso {
   valor: number;
 }
 
+export interface ComposicaoDinheiroItem {
+  formaId: string;
+  valor: number;
+}
+
+
 export interface LancamentoFormState {
   // Dados base
   empresaId: string;
@@ -37,9 +43,12 @@ export interface LancamentoFormState {
   totalGeral: number;
   // Formas de pagamento
   formas: FormasPagamentoState;
+  // Composição detalhada do campo "Dinheiro" (Dinheiro Físico, PIX, Transferência, etc.)
+  composicaoDinheiro: ComposicaoDinheiroItem[];
   // Histórico
   historico: string;
 }
+
 
 export const initialFormState = (empresaId: string, filialId: string): LancamentoFormState => ({
   empresaId,
@@ -61,11 +70,16 @@ export const initialFormState = (empresaId: string, filialId: string): Lancament
   descontos: 0,
   totalGeral: 0,
   formas: { dinheiro: 0, cheque: 0, cartao: 0, adiantamento: 0 },
+  composicaoDinheiro: [],
   historico: "",
 });
 
 export const sumFormas = (f: FormasPagamentoState) =>
   (f.dinheiro || 0) + (f.cheque || 0) + (f.cartao || 0) + (f.adiantamento || 0);
+
+export const sumComposicao = (itens: ComposicaoDinheiroItem[]) =>
+  itens.reduce((s, i) => s + (i.valor || 0), 0);
+
 
 export const categoriasImplementadas: CategoriaTipoLancamento[] = [
   "PROLABORE",

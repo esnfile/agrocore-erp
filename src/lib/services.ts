@@ -2926,6 +2926,7 @@ export const financeiroMovimentacaoService = {
       parcelaId?: string | null;
       pessoaId?: string | null;
       formasPagamentoDetalhe?: { dinheiro: number; cheque: number; cartao: number; adiantamento: number } | null;
+      composicaoDinheiro?: Array<{ formaId: string; valor: number }> | null;
       solicitacaoAdiantamentoId?: string | null;
     },
     ctx: { grupoId: string; empresaId: string; filialId: string }
@@ -2977,6 +2978,7 @@ export const financeiroMovimentacaoService = {
       parcelaId: data.parcelaId ?? null,
       pessoaId: data.pessoaId ?? null,
       formasPagamentoDetalhe: data.formasPagamentoDetalhe ?? null,
+      composicaoDinheiro: data.composicaoDinheiro && data.composicaoDinheiro.length > 0 ? data.composicaoDinheiro.map((c) => ({ ...c })) : null,
       criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
       deletadoEm: null, deletadoPor: null,
     };
@@ -3072,6 +3074,7 @@ export const financeiroMovimentacaoService = {
       numeroDocumento: string;
       historico: string;
       formasPagamentoDetalhe: { dinheiro: number; cheque: number; cartao: number; adiantamento: number };
+      composicaoDinheiro?: Array<{ formaId: string; valor: number }> | null;
       adiantamentosUsados: Array<{ adiantamentoId: string; valor: number }>;
     },
     ctx: { grupoId: string; empresaId: string; filialId: string }
@@ -3180,6 +3183,7 @@ export const financeiroMovimentacaoService = {
       parcelaId: null,
       pessoaId: data.pessoaId,
       formasPagamentoDetalhe: { ...data.formasPagamentoDetalhe },
+      composicaoDinheiro: data.composicaoDinheiro && data.composicaoDinheiro.length > 0 ? data.composicaoDinheiro.map((c) => ({ ...c })) : null,
       parcelasLiquidadas,
       adiantamentosUsados: data.adiantamentosUsados.filter((a) => a.valor > 0),
       criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
