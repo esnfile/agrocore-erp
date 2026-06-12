@@ -1367,6 +1367,10 @@ export default function ContratosPage() {
     <>
       <PageHeader title="Contratos" description="Gestão de contratos comerciais de compra e venda" />
 
+      <ContratosDashboard />
+
+
+
       {/* PARTE 1 — Faixa de contexto organizacional */}
       <div className="mb-4 rounded-lg border bg-card p-4 space-y-3">
         <div className="flex flex-wrap items-end gap-4">

@@ -23,6 +23,7 @@ import { formatDateBR } from "@/lib/format";
 import type { FinanceiroConta, FinanceiroParcela, FinanceiroMovimentacao, FinanceiroBaixa, TipoConta, StatusConta, StatusParcela, Pessoa } from "@/lib/mock-data";
 import { financeiroFormasPagto as mockFormasPagto } from "@/lib/mock-data";
 import { StatusBadge } from "@/components/StatusBadge";
+import { ContasDashboard } from "./components/ContasDashboard";
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
