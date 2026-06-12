@@ -8,9 +8,11 @@ interface RomaneioStepperProps {
   onStepClick: (step: number) => void;
   /** When true, step 3 (Vínculo) is rendered as pending even if status >= AGUARDANDO_CLASSIFICACAO. */
   vinculoPendente?: boolean;
+  /** When true, step 4 (Classificação) is rendered as completed even if status is AGUARDANDO_VINCULO. */
+  classificacaoCompleta?: boolean;
 }
 
-export function RomaneioStepper({ currentStep, status, onStepClick, vinculoPendente = false }: RomaneioStepperProps) {
+export function RomaneioStepper({ currentStep, status, onStepClick, vinculoPendente = false, classificacaoCompleta = false }: RomaneioStepperProps) {
   const maxStep = getMaxStepForStatus(status);
 
   return (
@@ -19,8 +21,10 @@ export function RomaneioStepper({ currentStep, status, onStepClick, vinculoPende
         {STEPPER_STEPS.map((step, idx) => {
           const isActive = step.id === currentStep;
           const completedByStatus = step.id < maxStep || status === "FINALIZADO";
-          const isCompleted = step.id === 3 && vinculoPendente ? false : completedByStatus;
-          const isAccessible = isStepAccessible(step.id, status);
+          let isCompleted = completedByStatus;
+          if (step.id === 3 && vinculoPendente) isCompleted = false;
+          if (step.id === 4 && classificacaoCompleta) isCompleted = true;
+          const isAccessible = isStepAccessible(step.id, status) || (step.id === 4 && classificacaoCompleta);
           const isLast = idx === STEPPER_STEPS.length - 1;
 
           return (
