@@ -4,9 +4,40 @@ import type { FinanceiroFormaPagto } from "@/lib/mock-data";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Banknote, FileCheck2, CreditCard, Wallet, type LucideIcon } from "lucide-react";
 import { z } from "zod";
 
-const extraSchema = z.object({
+type CategoriaContabil = "DINHEIRO" | "CHEQUE" | "CARTAO" | "ADIANTAMENTO";
+
+const CATEGORIA_META: Record<CategoriaContabil, { label: string; icon: LucideIcon; className: string }> = {
+  DINHEIRO: {
+    label: "Dinheiro",
+    icon: Banknote,
+    className: "border-success/30 bg-success/10 text-success hover:bg-success/15",
+  },
+  CHEQUE: {
+    label: "Cheque",
+    icon: FileCheck2,
+    className: "border-info/30 bg-info/10 text-info hover:bg-info/15",
+  },
+  CARTAO: {
+    label: "Cartão",
+    icon: CreditCard,
+    className: "border-primary/30 bg-primary/10 text-primary hover:bg-primary/15",
+  },
+  ADIANTAMENTO: {
+    label: "Adiantamento",
+    icon: Wallet,
+    className: "border-warning/30 bg-warning/10 text-warning hover:bg-warning/15",
+  },
+};
+
+const TIPO_META: Record<string, string> = {
+  DINHEIRO: "border-success/30 text-success",
+  BANCARIO: "border-info/30 text-info",
+  ELETRONICO: "border-primary/30 text-primary",
+};
+
   tipo: z.enum(["DINHEIRO", "BANCARIO", "ELETRONICO"]),
   categoriaContabil: z.enum(["DINHEIRO", "CHEQUE", "CARTAO", "ADIANTAMENTO"]),
 });
