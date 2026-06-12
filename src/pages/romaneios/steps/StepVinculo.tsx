@@ -26,8 +26,9 @@ export function StepVinculo({ romaneio, onRefresh, ctx }: StepVinculoProps) {
   const [contratos, setContratos] = useState<Contrato[]>([]);
   const [contratosLoaded, setContratosLoaded] = useState(false);
 
-  const vinculoResolvido = romaneio.origem !== "AVULSO" || romaneio.status !== "AGUARDANDO_VINCULO";
-  const isAvulsoSemVinculo = romaneio.origem === "AVULSO" && romaneio.status === "AGUARDANDO_VINCULO";
+  const vinculoResolvido = romaneio.origem !== "AVULSO" || !!romaneio.contratoId || !!romaneio.safraId;
+  const isAvulsoSemVinculo = romaneio.origem === "AVULSO" && !romaneio.contratoId && !romaneio.safraId
+    && romaneio.status !== "FINALIZADO" && romaneio.status !== "CANCELADO";
   const isEditable = romaneio.status !== "FINALIZADO" && romaneio.status !== "CANCELADO";
 
   const produtoNome = mockProdutos.find((p) => p.id === romaneio.produtoId)?.descricao || romaneio.produtoId;

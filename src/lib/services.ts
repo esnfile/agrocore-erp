@@ -3655,14 +3655,16 @@ export const romaneioService = {
     await delay();
     const r = mockRomaneios.find((x) => x.id === romaneioId && x.deletadoEm === null);
     if (!r) return { sucesso: false, mensagem: "Romaneio não encontrado." };
-    if (r.status !== "AGUARDANDO_CONTRATO" && r.status !== "AGUARDANDO_VINCULO") return { sucesso: false, mensagem: "Apenas romaneios aguardando vínculo podem ser vinculados." };
+    if (r.status !== "AGUARDANDO_CONTRATO" && r.status !== "AGUARDANDO_VINCULO" && r.status !== "AGUARDANDO_CLASSIFICACAO") return { sucesso: false, mensagem: "Romaneio não permite mais vínculo neste status." };
     const contrato = mockContratos.find((c) => c.id === contratoId && c.deletadoEm === null);
     if (!contrato) return { sucesso: false, mensagem: "Contrato não encontrado." };
 
     const now = new Date().toISOString();
     r.contratoId = contratoId;
     r.origem = "CONTRATO";
-    r.status = r.pesoLiquidoFisico > 0 ? "AGUARDANDO_CLASSIFICACAO" : "ABERTO";
+    if (r.status === "AGUARDANDO_CONTRATO" || r.status === "AGUARDANDO_VINCULO") {
+      r.status = r.pesoLiquidoFisico > 0 ? "AGUARDANDO_CLASSIFICACAO" : "ABERTO";
+    }
     r.atualizadoEm = now; r.atualizadoPor = "u1";
     return { sucesso: true, mensagem: "Contrato vinculado ao romaneio." };
   },
@@ -3700,19 +3702,12 @@ export const romaneioService = {
       rom.totalPesoDescontado = 0;
       rom.pesoLiquidoSecoLimpo = 0;
       rom.dataClassificacao = null;
-      if (rom.origem === "AVULSO" && !rom.contratoId && !rom.safraId) {
-        rom.status = "AGUARDANDO_VINCULO";
-      } else {
-        rom.status = "AGUARDANDO_CLASSIFICACAO";
-      }
+      rom.status = "AGUARDANDO_CLASSIFICACAO";
     } else if (rom.status !== "FINALIZADO" && rom.status !== "CANCELADO" && rom.status !== "AGUARDANDO_CLASSIFICACAO") {
-      // Update status based on pesagens
+      // Avulso ou vinculado: ambos vão direto para classificação após pesagem completa.
+      // O vínculo (contrato/colheita) é opcional e pode ser feito antes da finalização.
       if (entrada && saida && rom.pesoLiquidoFisico > 0) {
-        if (rom.origem === "AVULSO" && !rom.contratoId && !rom.safraId) {
-          rom.status = "AGUARDANDO_VINCULO";
-        } else {
-          rom.status = "AGUARDANDO_CLASSIFICACAO";
-        }
+        rom.status = "AGUARDANDO_CLASSIFICACAO";
       } else if (entrada || saida) {
         rom.status = "PESAGEM_PARCIAL";
       }
@@ -3725,13 +3720,13 @@ export const romaneioService = {
     await delay();
     const r = mockRomaneios.find((x) => x.id === romaneioId && x.deletadoEm === null);
     if (!r) return { sucesso: false, mensagem: "Romaneio não encontrado." };
-    if (r.status !== "AGUARDANDO_VINCULO") return { sucesso: false, mensagem: "Apenas romaneios aguardando vínculo podem ser vinculados." };
+    if (r.status !== "AGUARDANDO_VINCULO" && r.status !== "AGUARDANDO_CLASSIFICACAO") return { sucesso: false, mensagem: "Romaneio não permite mais vínculo neste status." };
 
     const now = new Date().toISOString();
     r.safraId = safraId;
     r.cultivoId = cultivoId;
     r.origem = "COLHEITA";
-    r.status = "AGUARDANDO_CLASSIFICACAO";
+    if (r.status === "AGUARDANDO_VINCULO") r.status = "AGUARDANDO_CLASSIFICACAO";
     r.atualizadoEm = now;
     r.atualizadoPor = "u1";
     return { sucesso: true, mensagem: "Colheita vinculada ao romaneio." };
