@@ -3655,7 +3655,7 @@ export const romaneioService = {
     await delay();
     const r = mockRomaneios.find((x) => x.id === romaneioId && x.deletadoEm === null);
     if (!r) return { sucesso: false, mensagem: "Romaneio não encontrado." };
-    if (r.status !== "AGUARDANDO_CONTRATO" && r.status !== "AGUARDANDO_VINCULO") return { sucesso: false, mensagem: "Apenas romaneios aguardando vínculo podem ser vinculados." };
+    if (r.status !== "AGUARDANDO_CONTRATO" && r.status !== "AGUARDANDO_VINCULO" && r.status !== "AGUARDANDO_CLASSIFICACAO") return { sucesso: false, mensagem: "Romaneio não permite mais vínculo neste status." };
     const contrato = mockContratos.find((c) => c.id === contratoId && c.deletadoEm === null);
     if (!contrato) return { sucesso: false, mensagem: "Contrato não encontrado." };
 
