@@ -92,7 +92,13 @@ export default function RomaneioFormPage() {
         />
       </div>
 
-      <RomaneioStepper currentStep={currentStep} status={status} onStepClick={handleStepClick} vinculoPendente={!!romaneio && romaneio.origem === "AVULSO" && !romaneio.contratoId && !romaneio.safraId} />
+      <RomaneioStepper
+        currentStep={currentStep}
+        status={status}
+        onStepClick={handleStepClick}
+        vinculoPendente={!!romaneio && romaneio.origem === "AVULSO" && !romaneio.contratoId && !romaneio.safraId}
+        classificacaoCompleta={!!romaneio && (romaneio.pesoClassificado ?? 0) > 0}
+      />
 
       {currentStep === 1 && (
         <StepIdentificacao romaneio={romaneio} pesagensCount={pesagens.length} onSaved={handleSaved} ctx={ctx} />
