@@ -287,6 +287,7 @@ export function LancamentoCaixaModal({
         composicaoDinheiro: state.composicaoDinheiro,
         composicaoCheque: state.composicaoCheque,
         composicaoCartao: state.composicaoCartao,
+        composicaoAdiantamento: state.adiantamentosSelecionados.length > 0 ? state.adiantamentosSelecionados : null,
       }, { grupoId: grupoAtual?.id ?? "", empresaId: state.empresaId, filialId: state.filialId });
       if (!result.sucesso) { toast({ title: "Erro", description: result.mensagem, variant: "destructive" }); return; }
       toast({ title: "Lançamento registrado com sucesso" });
