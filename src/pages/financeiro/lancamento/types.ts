@@ -17,6 +17,22 @@ export interface ComposicaoDinheiroItem {
   valor: number;
 }
 
+export interface ComposicaoChequeItem {
+  // PAGAMENTO: aponta para cheque cadastrado; RECEBIMENTO: dados digitados.
+  chequeId?: string | null;
+  numero?: string | null;
+  banco?: string | null;
+  valor: number;
+}
+
+export interface ComposicaoCartaoItem {
+  // PAGAMENTO: aponta para cartão cadastrado; RECEBIMENTO: dados digitados.
+  cartaoId?: string | null;
+  numero?: string | null;
+  bandeira?: string | null;
+  valor: number;
+}
+
 
 export interface LancamentoFormState {
   // Dados base
