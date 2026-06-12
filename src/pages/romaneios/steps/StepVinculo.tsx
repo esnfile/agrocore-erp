@@ -145,10 +145,10 @@ export function StepVinculo({ romaneio, onRefresh, ctx }: StepVinculoProps) {
             <div className="rounded-md bg-amber-50 border border-amber-200 p-4">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5 text-amber-600" />
-                <p className="text-sm font-medium text-amber-800">Pendente de vínculo definitivo</p>
+                <p className="text-sm font-medium text-amber-800">Vínculo definitivo pendente (opcional)</p>
               </div>
               <p className="mt-2 text-sm text-amber-700">
-                Este romaneio já possui pesagens registradas, mas não pode seguir para classificação, estoque ou finalização sem vínculo definitivo.
+                Este romaneio é <strong>Avulso</strong>. A classificação pode ser feita normalmente, mas o vínculo a um contrato ou colheita ainda pode ser realizado até a finalização.
               </p>
               {/* CORREÇÃO 3: Only show vincular buttons if editable */}
               {isEditable && (

@@ -6,9 +6,11 @@ interface RomaneioStepperProps {
   currentStep: number;
   status: StatusRomaneioNew;
   onStepClick: (step: number) => void;
+  /** When true, step 3 (Vínculo) is rendered as pending even if status >= AGUARDANDO_CLASSIFICACAO. */
+  vinculoPendente?: boolean;
 }
 
-export function RomaneioStepper({ currentStep, status, onStepClick }: RomaneioStepperProps) {
+export function RomaneioStepper({ currentStep, status, onStepClick, vinculoPendente = false }: RomaneioStepperProps) {
   const maxStep = getMaxStepForStatus(status);
 
   return (
@@ -16,7 +18,8 @@ export function RomaneioStepper({ currentStep, status, onStepClick }: RomaneioSt
       <ol className="flex items-center w-full">
         {STEPPER_STEPS.map((step, idx) => {
           const isActive = step.id === currentStep;
-          const isCompleted = step.id < maxStep || status === "FINALIZADO";
+          const completedByStatus = step.id < maxStep || status === "FINALIZADO";
+          const isCompleted = step.id === 3 && vinculoPendente ? false : completedByStatus;
           const isAccessible = isStepAccessible(step.id, status);
           const isLast = idx === STEPPER_STEPS.length - 1;
 
@@ -54,7 +57,7 @@ export function RomaneioStepper({ currentStep, status, onStepClick }: RomaneioSt
               {!isLast && (
                 <div className={cn(
                   "hidden sm:block flex-1 h-px mx-2",
-                  step.id < maxStep ? "bg-primary" : "bg-muted-foreground/20"
+                  (step.id === 3 && vinculoPendente) ? "bg-muted-foreground/20" : (step.id < maxStep ? "bg-primary" : "bg-muted-foreground/20")
                 )} />
               )}
             </li>
