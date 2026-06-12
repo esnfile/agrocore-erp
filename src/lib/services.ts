@@ -3342,7 +3342,7 @@ import {
   romaneioPesagens as mockRomaneioPesagens,
   contratoLiquidacoes as mockContratoLiquidacoes,
 } from "./mock-data";
-import type { Motorista, Veiculo, Romaneio, StatusRomaneio, RomaneioPesagem, TipoPesagem, ContratoLiquidacao, StatusLiquidacao } from "./mock-data";
+import type { Motorista, Veiculo, Romaneio, StatusRomaneio, RomaneioPesagem, TipoPesagem, OrigemRomaneio, TipoRomaneio, ContratoLiquidacao, StatusLiquidacao } from "./mock-data";
 
 export const motoristaService = {
   async listar(empresaId: string, filialId: string): Promise<Motorista[]> {
