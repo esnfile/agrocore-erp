@@ -98,12 +98,19 @@ export function ComposicaoDinheiroModal({ open, onClose, onConfirm, formasPagto,
                 <div key={idx} className="grid grid-cols-1 md:grid-cols-[1fr_180px_40px] gap-2 items-start">
                   <div>
                     <Label className="md:hidden text-xs">Forma</Label>
-                    <SearchableSelect
-                      options={options}
-                      value={it.formaId}
-                      onChange={(id) => updateLinha(idx, { formaId: id })}
-                      placeholder="Selecione a forma..."
-                    />
+                    <Select
+                      value={it.formaId || undefined}
+                      onValueChange={(id) => updateLinha(idx, { formaId: id })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a forma..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {formasDisponiveis.map((f) => (
+                          <SelectItem key={f.id} value={f.id}>{f.descricao}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
                     <Label className="md:hidden text-xs">Valor</Label>
