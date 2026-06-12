@@ -56,10 +56,10 @@ export default function DashboardPage() {
       <div className="mt-8 space-y-4">
         <h2 className="text-lg font-semibold text-foreground">Previsão de Fluxo de Caixa</h2>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Card className="border-l-4" style={{ borderLeftColor: "hsl(var(--chart-4))" }}>
+          <Card className="border-l-2 border-l-info">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Previsões (Pendentes)</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
+              <Clock className="h-4 w-4 text-info" />
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-bold text-foreground">
@@ -68,13 +68,13 @@ export default function DashboardPage() {
               <p className="text-xs text-muted-foreground mt-1">Parcelas pendentes com vencimento futuro</p>
             </CardContent>
           </Card>
-          <Card className="border-l-4" style={{ borderLeftColor: "hsl(var(--destructive))" }}>
+          <Card className="border-l-4 border-l-warning">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">A Pagar / Vencidas</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-destructive" />
+              <AlertTriangle className="h-4 w-4 text-warning" />
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold text-destructive">
+              <p className="text-2xl font-bold text-foreground">
                 {totalAPagar.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
               </p>
               <p className="text-xs text-muted-foreground mt-1">Parcelas vencidas ou com pagamento parcial</p>
