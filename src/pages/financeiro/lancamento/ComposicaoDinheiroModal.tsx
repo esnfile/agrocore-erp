@@ -9,7 +9,6 @@ import { Plus, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { FinanceiroFormaPagto } from "@/lib/mock-data";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { FinanceiroFormaPagto } from "@/lib/mock-data";
 import type { ComposicaoDinheiroItem } from "./types";
 import { sumComposicao } from "./types";
 
