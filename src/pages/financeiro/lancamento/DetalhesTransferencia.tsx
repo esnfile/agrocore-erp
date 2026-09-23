@@ -2,10 +2,10 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { FinanceiroCentroCusto, FinanceiroContaFinanceira } from "@/lib/mock-data";
-import { financeiroTipoContas } from "@/lib/mock-data";
 import { formatMoeda } from "@/lib/format";
 import { avaliarSaldo } from "./saldo-utils";
 import type { LancamentoFormState } from "./types";
+import { catalogo } from "@/lib/services";
 
 interface Props {
   state: LancamentoFormState;
@@ -15,7 +15,7 @@ interface Props {
 }
 
 const tipoDescricao = (c: FinanceiroContaFinanceira) =>
-  financeiroTipoContas.find((t) => t.id === c.tipoContaId)?.descricao ?? "";
+  catalogo.tipoContas().find((t) => t.id === c.tipoContaId)?.descricao ?? "";
 
 export function DetalhesTransferencia({ state, update, contasFinanceiras, centrosCusto }: Props) {
   const origem = contasFinanceiras.find((c) => c.id === state.contaFinanceiraId);
@@ -23,7 +23,7 @@ export function DetalhesTransferencia({ state, update, contasFinanceiras, centro
     (c) => c.ativo && c.id !== state.contaFinanceiraId,
   );
   const centrosAtivos = centrosCusto.filter((c) => c.ativo);
-  const avaliacao = avaliarSaldo(origem, financeiroTipoContas, state.valorDetalhe || 0);
+  const avaliacao = avaliarSaldo(origem, catalogo.tipoContas(), state.valorDetalhe || 0);
 
   return (
     <div className="space-y-4">

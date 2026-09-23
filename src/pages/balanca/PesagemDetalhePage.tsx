@@ -1,3 +1,4 @@
+import { catalogo } from "@/lib/services";
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/PageHeader";
@@ -18,15 +19,7 @@ import {
   motoristaService,
   veiculoService,
 } from "@/lib/services";
-import {
-  produtos as mockProdutos,
-  type Romaneio,
-  type RomaneioPesagem,
-  type PontoEstoque,
-  type Motorista,
-  type Veiculo,
-  type TipoRomaneio,
-} from "@/lib/mock-data";
+import { type Romaneio, type RomaneioPesagem, type PontoEstoque, type Motorista, type Veiculo, type TipoRomaneio } from "@/lib/mock-data";
 import { StepPesagens } from "@/pages/romaneios/steps/StepPesagens";
 import { ArrowLeft, Check, Save } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
@@ -80,7 +73,7 @@ export default function PesagemDetalhePage() {
   );
 
   const produtosAtivos = useMemo(
-    () => mockProdutos.filter((p) => p.deletadoEm === null && p.ativo),
+    () => catalogo.produtos().filter((p) => p.deletadoEm === null && p.ativo),
     []
   );
 
@@ -298,7 +291,7 @@ export default function PesagemDetalhePage() {
     );
   }
 
-  const produtoNome = mockProdutos.find((p) => p.id === produtoId)?.descricao || "—";
+  const produtoNome = catalogo.produtos().find((p) => p.id === produtoId)?.descricao || "—";
   const pontoNome = pontos.find((p) => p.id === pontoEstoqueId)?.descricao || "—";
 
   return (

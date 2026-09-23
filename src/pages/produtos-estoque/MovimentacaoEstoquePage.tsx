@@ -1,3 +1,4 @@
+import { catalogo, getUnidadeBaseParaTipo } from "@/lib/services";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,11 +20,6 @@ import {
 } from "@/components/ui/table";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { pontoEstoqueService, movimentacaoEstoqueService, empresaService, filialService } from "@/lib/services";
-import {
-  produtos as mockProdutos,
-  unidadesMedida as mockUnidades,
-  getUnidadeBaseParaTipo,
-} from "@/lib/mock-data";
 import type { PontoEstoque, MovimentacaoEstoque, Produto, UnidadeMedida, Empresa, Filial } from "@/lib/mock-data";
 
 const schema = z.object({
@@ -97,7 +93,7 @@ export default function MovimentacaoEstoquePage() {
 
   // Produtos ativos filtrados
   const produtosAtivos = useMemo(
-    () => mockProdutos.filter((p) => p.deletadoEm === null && p.ativo && p.empresaId === selectedEmpresa),
+    () => catalogo.produtos().filter((p) => p.deletadoEm === null && p.ativo && p.empresaId === selectedEmpresa),
     [selectedEmpresa]
   );
 
@@ -110,14 +106,14 @@ export default function MovimentacaoEstoquePage() {
   // Unidades compatíveis com a unidade base do produto
   const unidadesCompativeis = useMemo(() => {
     if (!produtoSelecionado) return [];
-    return mockUnidades.filter((u) => u.deletadoEm === null && u.ativo && u.tipo === produtoSelecionado.tipoUnidade);
+    return catalogo.unidadesMedida().filter((u) => u.deletadoEm === null && u.ativo && u.tipo === produtoSelecionado.tipoUnidade);
   }, [produtoSelecionado]);
 
   // Unidade base do produto
   const unidadeBase = useMemo(() => {
     if (!produtoSelecionado) return null;
     const baseId = getUnidadeBaseParaTipo(produtoSelecionado.tipoUnidade);
-    return mockUnidades.find((u) => u.id === baseId && u.deletadoEm === null) ?? null;
+    return catalogo.unidadesMedida().find((u) => u.id === baseId && u.deletadoEm === null) ?? null;
   }, [produtoSelecionado]);
 
   // Conversão em tempo real
@@ -184,9 +180,9 @@ export default function MovimentacaoEstoquePage() {
     } finally { setSaving(false); }
   });
 
-  const getNomeProduto = (id: string) => mockProdutos.find((p) => p.id === id)?.descricao ?? id;
+  const getNomeProduto = (id: string) => catalogo.produtos().find((p) => p.id === id)?.descricao ?? id;
   const getNomePonto = (id: string) => pontos.find((p) => p.id === id)?.descricao ?? id;
-  const getCodigoUnidade = (id: string) => mockUnidades.find((u) => u.id === id)?.codigo ?? id;
+  const getCodigoUnidade = (id: string) => catalogo.unidadesMedida().find((u) => u.id === id)?.codigo ?? id;
 
   if (!selectedGrupo) {
     return (

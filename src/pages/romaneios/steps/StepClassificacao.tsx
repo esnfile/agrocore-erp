@@ -8,11 +8,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Check, Info } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { romaneioService } from "@/lib/services";
-import { produtoClassificacoes, classificacaoDescontos, classificacaoTipos } from "@/lib/mock-data";
 import type { Romaneio } from "@/lib/mock-data";
 import { ORIGEM_LABELS, SAFRAS_REF } from "../romaneio-types";
 import { FormRow } from "@/components/FormRow";
-import { produtos as mockProdutos } from "@/lib/mock-data";
+import { catalogo } from "@/lib/services";
 
 interface StepClassificacaoProps {
   romaneio: Romaneio;
@@ -37,7 +36,7 @@ interface ClassificacaoLinha {
 export function StepClassificacao({ romaneio, onRefresh, ctx }: StepClassificacaoProps) {
   // Load product classifications
   const classificacoesAtivas = useMemo(() => {
-    return produtoClassificacoes.filter(
+    return catalogo.produtoClassificacoes().filter(
       (pc) => pc.deletadoEm === null && pc.produtoId === romaneio.produtoId && pc.ativo
     );
   }, [romaneio.produtoId]);
@@ -50,7 +49,7 @@ export function StepClassificacao({ romaneio, onRefresh, ctx }: StepClassificaca
   });
 
   const isEditable = romaneio.status === "AGUARDANDO_CLASSIFICACAO";
-  const produtoNome = mockProdutos.find((p) => p.id === romaneio.produtoId)?.descricao || romaneio.produtoId;
+  const produtoNome = catalogo.produtos().find((p) => p.id === romaneio.produtoId)?.descricao || romaneio.produtoId;
 
   // Calculation
   const resultado = useMemo(() => {
@@ -59,8 +58,8 @@ export function StepClassificacao({ romaneio, onRefresh, ctx }: StepClassificaca
 
     // Sort by classificação tipo ordem
     const sortedClassifs = [...classificacoesAtivas].sort((a, b) => {
-      const tipoA = classificacaoTipos.find((ct) => ct.id === a.classificacaoTipoId);
-      const tipoB = classificacaoTipos.find((ct) => ct.id === b.classificacaoTipoId);
+      const tipoA = catalogo.classificacaoTipos().find((ct) => ct.id === a.classificacaoTipoId);
+      const tipoB = catalogo.classificacaoTipos().find((ct) => ct.id === b.classificacaoTipoId);
       return (tipoA?.descricao || "").localeCompare(tipoB?.descricao || "");
     });
 
@@ -68,7 +67,7 @@ export function StepClassificacao({ romaneio, onRefresh, ctx }: StepClassificaca
     let totalPesoDescontado = 0;
 
     for (const pc of sortedClassifs) {
-      const tipo = classificacaoTipos.find((ct) => ct.id === pc.classificacaoTipoId);
+      const tipo = catalogo.classificacaoTipos().find((ct) => ct.id === pc.classificacaoTipoId);
       if (!tipo) continue;
 
       const valorMedido = valoresMedidos[pc.classificacaoTipoId] || 0;
@@ -79,7 +78,7 @@ export function StepClassificacao({ romaneio, onRefresh, ctx }: StepClassificaca
       // Find applicable discount tier
       let percentualFaixa = 0;
       if (diferenca > 0) {
-        const faixa = classificacaoDescontos.find(
+        const faixa = catalogo.classificacaoDescontos().find(
           (cd) => cd.deletadoEm === null && cd.produtoId === romaneio.produtoId &&
             cd.classificacaoTipoId === pc.classificacaoTipoId &&
             valorMedido >= cd.valorMinimo && valorMedido < cd.valorMaximo

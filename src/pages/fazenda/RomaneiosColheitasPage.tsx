@@ -6,8 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { empresas, filiais } from "@/lib/mock-data";
 import { Wheat, ClipboardList, TrendingUp, Scale } from "lucide-react";
+import { catalogo } from "@/lib/services";
 
 // ---- Interfaces & Mock ----
 interface RomaneioColheita {
@@ -209,14 +209,14 @@ export default function RomaneiosColheitasPage() {
           <SelectTrigger><SelectValue placeholder="Empresa" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas</SelectItem>
-            {empresas.map((e) => <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>)}
+            {catalogo.empresas().map((e) => <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={filtroFilial} onValueChange={setFiltroFilial}>
           <SelectTrigger><SelectValue placeholder="Filial" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas</SelectItem>
-            {filiais.filter((f) => filtroEmpresa === "all" || f.empresaId === filtroEmpresa).map((f) => (
+            {catalogo.filiais().filter((f) => filtroEmpresa === "all" || f.empresaId === filtroEmpresa).map((f) => (
               <SelectItem key={f.id} value={f.id}>{f.nomeRazao}</SelectItem>
             ))}
           </SelectContent>

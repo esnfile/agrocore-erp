@@ -10,8 +10,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { FormRow } from "@/components/FormRow";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { romaneioService } from "@/lib/services";
-import { produtos as mockProdutos, empresas, filiais, type Romaneio } from "@/lib/mock-data";
+import { type Romaneio } from "@/lib/mock-data";
 import { ClipboardCheck } from "lucide-react";
+import { catalogo } from "@/lib/services";
 
 export default function ClassificacaoListaPage() {
   const navigate = useNavigate();
@@ -32,14 +33,14 @@ export default function ClassificacaoListaPage() {
     setLoading(true);
     let data: Romaneio[] = [];
     if (filterEmpresa === "TODAS") {
-      for (const emp of empresas.filter((e) => e.deletadoEm === null && e.grupoId === grupoAtual?.id)) {
-        for (const fil of filiais.filter((f) => f.empresaId === emp.id && f.deletadoEm === null)) {
+      for (const emp of catalogo.empresas().filter((e) => e.deletadoEm === null && e.grupoId === grupoAtual?.id)) {
+        for (const fil of catalogo.filiais().filter((f) => f.empresaId === emp.id && f.deletadoEm === null)) {
           const r = await romaneioService.listar(emp.id, fil.id);
           data = data.concat(r);
         }
       }
     } else if (filterFilial === "TODAS") {
-      for (const fil of filiais.filter((f) => f.empresaId === filterEmpresa && f.deletadoEm === null)) {
+      for (const fil of catalogo.filiais().filter((f) => f.empresaId === filterEmpresa && f.deletadoEm === null)) {
         const r = await romaneioService.listar(filterEmpresa, fil.id);
         data = data.concat(r);
       }
@@ -54,7 +55,7 @@ export default function ClassificacaoListaPage() {
 
   const produtoMap = useMemo(() => {
     const m: Record<string, string> = {};
-    mockProdutos.forEach((p) => { m[p.id] = p.descricao; });
+    catalogo.produtos().forEach((p) => { m[p.id] = p.descricao; });
     return m;
   }, []);
 
@@ -64,7 +65,7 @@ export default function ClassificacaoListaPage() {
   }, [items, filterProduto]);
 
   const filiaisFiltradas = filterEmpresa !== "TODAS"
-    ? filiais.filter((f) => f.empresaId === filterEmpresa && f.deletadoEm === null)
+    ? catalogo.filiais().filter((f) => f.empresaId === filterEmpresa && f.deletadoEm === null)
     : [];
 
   return (
@@ -79,7 +80,7 @@ export default function ClassificacaoListaPage() {
               <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="TODAS">Todas as empresas</SelectItem>
-                {empresas.filter((e) => e.deletadoEm === null && e.grupoId === grupoAtual?.id).map((e) => (
+                {catalogo.empresas().filter((e) => e.deletadoEm === null && e.grupoId === grupoAtual?.id).map((e) => (
                   <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
                 ))}
               </SelectContent>
@@ -101,7 +102,7 @@ export default function ClassificacaoListaPage() {
               <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="TODOS">Todos os produtos</SelectItem>
-                {mockProdutos.filter((p) => p.deletadoEm === null && p.ativo).map((p) => (
+                {catalogo.produtos().filter((p) => p.deletadoEm === null && p.ativo).map((p) => (
                   <SelectItem key={p.id} value={p.id}>{p.descricao}</SelectItem>
                 ))}
               </SelectContent>

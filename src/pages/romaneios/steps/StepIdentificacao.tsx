@@ -11,11 +11,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { toast } from "@/hooks/use-toast";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { romaneioService, motoristaService, veiculoService, contratoService, pontoEstoqueService } from "@/lib/services";
-import { produtos as mockProdutos, empresas, filiais } from "@/lib/mock-data";
 import type { Romaneio, Contrato, Motorista, Veiculo, PontoEstoque } from "@/lib/mock-data";
 import type { OrigemRomaneio, TipoRomaneio } from "../romaneio-types";
 import { SAFRAS_REF, CULTIVOS_REF, ORIGEM_LABELS, TIPO_LABELS, resolveContratoUnidadeInfo, fmtDualUnit, fmtContratoSaldo } from "../romaneio-types";
 import { FormRow } from "@/components/FormRow";
+import { catalogo } from "@/lib/services";
 
 interface StepIdentificacaoProps {
   romaneio: Romaneio | null;
@@ -64,8 +64,8 @@ export function StepIdentificacao({ romaneio, pesagensCount, onSaved, ctx }: Ste
   const [pontosEstoque, setPontosEstoque] = useState<PontoEstoque[]>([]);
   const [contratosLoaded, setContratosLoaded] = useState(false);
 
-  const produtos = mockProdutos.filter((p) => p.deletadoEm === null);
-  const filiaisFiltradas = filiais.filter((f) => f.empresaId === empresaId && f.deletadoEm === null);
+  const produtos = catalogo.produtos().filter((p) => p.deletadoEm === null);
+  const filiaisFiltradas = catalogo.filiais().filter((f) => f.empresaId === empresaId && f.deletadoEm === null);
   const cultivosFiltrados = CULTIVOS_REF.filter((c) => c.safraId === safraId);
 
   // CORREÇÃO 1: Lock structural fields ONLY after first pesagem is persisted
@@ -344,7 +344,7 @@ export function StepIdentificacao({ romaneio, pesagensCount, onSaved, ctx }: Ste
               <Select value={empresaId} onValueChange={handleEmpresaChange} disabled={!canEditStructural}>
                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
-                  {empresas.filter((e) => e.deletadoEm === null).map((e) => <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>)}
+                  {catalogo.empresas().filter((e) => e.deletadoEm === null).map((e) => <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

@@ -1,3 +1,4 @@
+import { catalogo } from "@/lib/services";
 import { useEffect, useMemo, useState } from "react";
 import { CrudModal } from "@/components/CrudModal";
 import { Label } from "@/components/ui/label";
@@ -12,7 +13,6 @@ import type {
   Pessoa, FinanceiroContaFinanceira, FinanceiroTipoLancamento,
   FinanceiroCentroCusto, FinanceiroFormaPagto, FinanceiroCheque, FinanceiroCartao,
 } from "@/lib/mock-data";
-import { financeiroTipoContas } from "@/lib/mock-data";
 import { categoriasImplementadas } from "./types";
 import { avaliarSaldo } from "./saldo-utils";
 import { REQUER_AUTORIZACAO_ADIANT_CLIENTE } from "@/lib/constants";
@@ -101,7 +101,7 @@ export function LancamentoCaixaModal({
 
   const contaSel = contasFinanceiras.find((c) => c.id === state.contaFinanceiraId);
   const tipoContaConta = contaSel
-    ? financeiroTipoContas.find((tc) => tc.id === contaSel.tipoContaId)?.descricao ?? null
+    ? catalogo.tipoContas().find((tc) => tc.id === contaSel.tipoContaId)?.descricao ?? null
     : null;
 
   const tiposFiltrados = useMemo(
@@ -171,7 +171,7 @@ export function LancamentoCaixaModal({
   /** Valida saldo da conta origem para saídas. Retorna true se pode prosseguir. */
   const validarSaldoSaida = (valor: number): boolean => {
     if (!contaSel || valor <= 0) return true;
-    const a = avaliarSaldo(contaSel, financeiroTipoContas, valor);
+    const a = avaliarSaldo(contaSel, catalogo.tipoContas(), valor);
     if (a.status === "bloqueado") {
       toast({ title: "Operação bloqueada", description: a.mensagem ?? "", variant: "destructive" });
       return false;

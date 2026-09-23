@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertTriangle } from "lucide-react";
-import { SENHA_SUPERVISOR_MOCK } from "@/lib/constants";
+import { autorizacaoService } from "@/lib/services";
 
 interface Props {
   open: boolean;
@@ -22,8 +22,8 @@ export function AutorizacaoSupervisorModal({ open, onClose, onAuthorized, resumo
   const reset = () => { setSenha(""); setErro(""); };
   const handleClose = () => { reset(); onClose(); };
 
-  const handleAutorizar = () => {
-    if (senha === SENHA_SUPERVISOR_MOCK) {
+  const handleAutorizar = async () => {
+    if (await autorizacaoService.validarSupervisor(senha)) {
       reset();
       onAuthorized();
     } else {

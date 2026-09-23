@@ -3,10 +3,10 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { FinanceiroCentroCusto, FinanceiroContaFinanceira, FinanceiroTipoLancamento } from "@/lib/mock-data";
-import { financeiroTipoContas } from "@/lib/mock-data";
 import { formatMoeda } from "@/lib/format";
 import { avaliarSaldo } from "./saldo-utils";
 import type { LancamentoFormState } from "./types";
+import { catalogo } from "@/lib/services";
 
 interface Props {
   state: LancamentoFormState;
@@ -82,7 +82,7 @@ export function DetalhesGeral({ state, update, centrosCusto, tipo, contaOrigem }
       </div>
 
       {tipo.tipoMovimento === "SAIDA" && contaOrigem && totalGeral > 0 && (() => {
-        const a = avaliarSaldo(contaOrigem, financeiroTipoContas, totalGeral);
+        const a = avaliarSaldo(contaOrigem, catalogo.tipoContas(), totalGeral);
         if (!a.mensagem) return null;
         return (
           <p className={`text-xs ${a.status === "bloqueado" ? "text-destructive" : "text-orange-600 dark:text-orange-400"}`}>

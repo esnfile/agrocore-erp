@@ -21,9 +21,9 @@ import { Plus, Pencil, Trash2, Eye, Search, AlertTriangle, ArrowDownCircle, Arro
 import { financeiroContaService, financeiroParcelaService, financeiroMovimentacaoService, financeiroContaFinanceiraService, financeiroFormaPagtoService, financeiroTipoLancamentoService, pessoaService, financeiroBaixaService } from "@/lib/services";
 import { formatDateBR } from "@/lib/format";
 import type { FinanceiroConta, FinanceiroParcela, FinanceiroMovimentacao, FinanceiroBaixa, TipoConta, StatusConta, StatusParcela, Pessoa } from "@/lib/mock-data";
-import { financeiroFormasPagto as mockFormasPagto } from "@/lib/mock-data";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ContasDashboard } from "./components/ContasDashboard";
+import { catalogo } from "@/lib/services";
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -786,7 +786,7 @@ export default function ContasPage() {
                                     </TableHeader>
                                     <TableBody>
                                       {parcelaMovs.map((m) => {
-                                        const formaLabel = mockFormasPagto.find((f) => f.id === m.formaPagamentoId)?.descricao ?? "—";
+                                        const formaLabel = catalogo.formasPagto().find((f) => f.id === m.formaPagamentoId)?.descricao ?? "—";
                                         return (
                                           <TableRow key={m.id}>
                                             <TableCell className="text-xs">{new Date(m.dataMovimento).toLocaleDateString("pt-BR")}</TableCell>

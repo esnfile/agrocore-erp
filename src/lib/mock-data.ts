@@ -1575,33 +1575,6 @@ export interface Contrato {
   deletadoPor: string | null;
 }
 
-export interface ContratoEntrega {
-  id: string;
-  grupoId: string;
-  empresaId: string;
-  filialId: string;
-  contratoId: string;
-  dataEntrega: string;
-  quantidadeInformada: number;
-  unidadeInformadaId: string;
-  quantidadeConvertidaBase: number;
-  pontoEstoqueId: string;
-  pesoBruto: number | null;
-  pesoLiquido: number | null;
-  pesoClassificado: number | null;
-  descontoTotalPercentual: number | null;
-  pesoComercial: number | null;
-  placaVeiculo: string;
-  nomeMotorista: string;
-  documentoMotorista: string;
-  observacoes: string;
-  criadoEm: string;
-  criadoPor: string;
-  atualizadoEm: string;
-  atualizadoPor: string;
-  deletadoEm: string | null;
-  deletadoPor: string | null;
-}
 
 export interface ContratoFixacao {
   id: string;
@@ -1636,8 +1609,8 @@ export const contratos: Contrato[] = [
     produtoId: "prod1",
     unidadeNegociacaoId: "um1",
     quantidadeTotal: 100000,
-    quantidadeEntregue: 25000,
-    quantidadeSaldo: 75000,
+    quantidadeEntregue: 0, // cache — entrega fictícia (ContratoEntrega) removida na Fase 0
+    quantidadeSaldo: 100000,
     quantidadeBaseTotal: 100000,
     moedaId: "moeda1",
     precoUnitario: 120.5,
@@ -1693,35 +1666,8 @@ export const contratos: Contrato[] = [
   },
 ];
 
-export const contratoEntregas: ContratoEntrega[] = [
-  {
-    id: "ctre1",
-    grupoId: "g1",
-    empresaId: "e1",
-    filialId: "f1",
-    contratoId: "ctr1",
-    dataEntrega: "2025-03-10T14:00:00Z",
-    quantidadeInformada: 25000,
-    unidadeInformadaId: "um1",
-    quantidadeConvertidaBase: 25000,
-    pontoEstoqueId: "pe_est1",
-    pesoBruto: 25500,
-    pesoLiquido: 25000,
-    pesoClassificado: null,
-    descontoTotalPercentual: null,
-    pesoComercial: null,
-    placaVeiculo: "ABC-1234",
-    nomeMotorista: "José da Silva",
-    documentoMotorista: "123.456.789-00",
-    observacoes: "Primeira entrega",
-    criadoEm: "2025-03-10T14:00:00Z",
-    criadoPor: "u1",
-    atualizadoEm: "2025-03-10T14:00:00Z",
-    atualizadoPor: "u1",
-    deletadoEm: null,
-    deletadoPor: null,
-  },
-];
+// ContratoEntrega foi eliminado (Fase 0): o ROMANEIO é o único fato físico de entrega
+// e a única entidade autorizada a movimentar estoque.
 
 export const contratoFixacoes: ContratoFixacao[] = [
   {

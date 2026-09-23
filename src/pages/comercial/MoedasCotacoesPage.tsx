@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/PageHeader";
 import { DataTable } from "@/components/DataTable";
@@ -9,13 +9,23 @@ import { Label } from "@/components/ui/label";
 import { CrudModal } from "@/components/CrudModal";
 import { Switch } from "@/components/ui/switch";
 import { Plus, Pencil, Trash2, RefreshCw, X } from "lucide-react";
-import { moedas as mockMoedasData, cotacoesMoeda as mockCotacoesData, type Moeda, type CotacaoMoeda } from "@/lib/mock-data";
+import type { Moeda, CotacaoMoeda } from "@/lib/mock-data";
+import { moedaService, cotacaoMoedaService } from "@/lib/services";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { toast } from "sonner";
 
 export default function MoedasCotacoesPage() {
   const [tab, setTab] = useState("moedas");
-  const [moedasList, setMoedasList] = useState<Moeda[]>(mockMoedasData);
-  const [cotacoesList] = useState<CotacaoMoeda[]>(mockCotacoesData);
+  const { grupoAtual, empresaAtual, filialAtual } = useOrganization();
+  const [moedasList, setMoedasList] = useState<Moeda[]>([]);
+  const [cotacoesList, setCotacoesList] = useState<CotacaoMoeda[]>([]);
+
+  const recarregar = async () => {
+    const [m, c] = await Promise.all([moedaService.listar(), cotacaoMoedaService.listar()]);
+    setMoedasList(m);
+    setCotacoesList(c);
+  };
+  useEffect(() => { recarregar(); }, []);
 
   // Modal
   const [modalOpen, setModalOpen] = useState(false);
@@ -61,35 +71,24 @@ export default function MoedasCotacoesPage() {
     setModalOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.codigo.trim()) { toast.error("Código é obrigatório"); return; }
     if (!form.descricao.trim()) { toast.error("Descrição é obrigatória"); return; }
-    const now = new Date().toISOString();
+    const ctx = { grupoId: grupoAtual?.id ?? "", empresaId: empresaAtual?.id ?? "", filialId: filialAtual?.id ?? "" };
     if (editingMoeda) {
-      setMoedasList(prev => prev.map(m => m.id === editingMoeda.id ? { ...m, ...form, atualizadoEm: now, atualizadoPor: "u1" } : m));
+      await moedaService.salvar({ ...form, id: editingMoeda.id }, ctx);
       toast.success("Moeda atualizada");
     } else {
-      const newMoeda: Moeda = {
-        id: `moeda${Date.now()}`,
-        grupoId: "g1",
-        empresaId: null,
-        filialId: null,
-        codigo: form.codigo.toUpperCase(),
-        descricao: form.descricao,
-        simbolo: form.simbolo,
-        ativo: form.ativo,
-        criadoEm: now, criadoPor: "u1",
-        atualizadoEm: now, atualizadoPor: "u1",
-        deletadoEm: null, deletadoPor: null,
-      };
-      setMoedasList(prev => [...prev, newMoeda]);
+      await moedaService.salvar({ ...form, codigo: form.codigo.toUpperCase() }, ctx);
       toast.success("Moeda criada");
     }
+    await recarregar();
     setModalOpen(false);
   };
 
-  const handleDelete = (id: string) => {
-    setMoedasList(prev => prev.map(m => m.id === id ? { ...m, deletadoEm: new Date().toISOString(), deletadoPor: "u1" } : m));
+  const handleDelete = async (id: string) => {
+    await moedaService.excluir(id);
+    await recarregar();
     toast.success("Moeda removida");
   };
 
