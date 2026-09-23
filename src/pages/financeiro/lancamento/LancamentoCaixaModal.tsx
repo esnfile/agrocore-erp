@@ -1,3 +1,4 @@
+import { catalogo } from "@/lib/services";
 import { useEffect, useMemo, useState } from "react";
 import { CrudModal } from "@/components/CrudModal";
 import { Label } from "@/components/ui/label";
@@ -5,7 +6,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import {
-import { catalogo } from "@/lib/services";
   financeiroMovimentacaoService, financeiroFormaPagtoService,
   financeiroChequeService, financeiroCartaoService,
 } from "@/lib/services";
@@ -171,7 +171,7 @@ export function LancamentoCaixaModal({
   /** Valida saldo da conta origem para saídas. Retorna true se pode prosseguir. */
   const validarSaldoSaida = (valor: number): boolean => {
     if (!contaSel || valor <= 0) return true;
-    const a = avaliarSaldo(contaSel, financeiroTipoContas, valor);
+    const a = avaliarSaldo(contaSel, catalogo.tipoContas(), valor);
     if (a.status === "bloqueado") {
       toast({ title: "Operação bloqueada", description: a.mensagem ?? "", variant: "destructive" });
       return false;

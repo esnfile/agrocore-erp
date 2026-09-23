@@ -1,3 +1,4 @@
+import { catalogo, getUnidadeBaseParaTipo, getCodigoUnidadeBase } from "@/lib/services";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,7 +16,6 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
-import { catalogo, getUnidadeBaseParaTipo, getCodigoUnidadeBase } from "@/lib/services";
   Select,
   SelectContent,
   SelectItem,

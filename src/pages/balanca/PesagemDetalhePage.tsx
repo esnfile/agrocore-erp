@@ -1,3 +1,4 @@
+import { catalogo } from "@/lib/services";
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/PageHeader";
@@ -12,7 +13,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { FormRow } from "@/components/FormRow";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import {
-import { catalogo } from "@/lib/services";
   romaneioService,
   romaneioPesagemService,
   pontoEstoqueService,

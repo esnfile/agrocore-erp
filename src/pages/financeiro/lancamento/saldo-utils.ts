@@ -7,7 +7,7 @@ const fmtBRL = (v: number) =>
 
 export function getTipoContaDescricao(
   conta: FinanceiroContaFinanceira | undefined,
-  tiposContas: FinanceiroTipoConta[],
+  tiposContas: ReadonlyArray<FinanceiroTipoConta>,
 ): TipoContaDescricao {
   if (!conta) return null;
   const d = tiposContas.find((t) => t.id === conta.tipoContaId)?.descricao?.toUpperCase();
@@ -23,7 +23,7 @@ export type AvaliacaoSaldo = {
 
 export function avaliarSaldo(
   conta: FinanceiroContaFinanceira | undefined,
-  tiposContas: FinanceiroTipoConta[],
+  tiposContas: ReadonlyArray<FinanceiroTipoConta>,
   valor: number,
 ): AvaliacaoSaldo {
   if (!conta || !valor || valor <= 0) {

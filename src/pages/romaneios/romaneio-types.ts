@@ -1,3 +1,4 @@
+import { catalogo, getUnidadeBaseParaTipo, getCodigoUnidadeBase } from "@/lib/services";
 // ============================================================
 // Romaneio Module — Shared Types, Constants & Helpers
 // ============================================================
@@ -41,7 +42,6 @@ export const STATUS_BADGE_CLASSES: Record<StatusRomaneioNew, string> = {
 // Icon for each status — paired with STATUS_BADGE_CLASSES (kept colors).
 // Imported lazily to avoid circular deps with consumers.
 import {
-import { catalogo, getUnidadeBaseParaTipo, getCodigoUnidadeBase } from "@/lib/services";
   FileEdit,
   Truck,
   FileText,

@@ -1,3 +1,4 @@
+import { catalogo, getUnidadeBaseParaTipo } from "@/lib/services";
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,7 +20,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
-import { catalogo, getUnidadeBaseParaTipo } from "@/lib/services";
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,

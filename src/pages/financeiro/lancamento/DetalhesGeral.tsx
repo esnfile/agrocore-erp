@@ -82,7 +82,7 @@ export function DetalhesGeral({ state, update, centrosCusto, tipo, contaOrigem }
       </div>
 
       {tipo.tipoMovimento === "SAIDA" && contaOrigem && totalGeral > 0 && (() => {
-        const a = avaliarSaldo(contaOrigem, financeiroTipoContas, totalGeral);
+        const a = avaliarSaldo(contaOrigem, catalogo.tipoContas(), totalGeral);
         if (!a.mensagem) return null;
         return (
           <p className={`text-xs ${a.status === "bloqueado" ? "text-destructive" : "text-orange-600 dark:text-orange-400"}`}>

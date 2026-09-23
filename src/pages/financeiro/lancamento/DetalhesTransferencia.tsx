@@ -23,7 +23,7 @@ export function DetalhesTransferencia({ state, update, contasFinanceiras, centro
     (c) => c.ativo && c.id !== state.contaFinanceiraId,
   );
   const centrosAtivos = centrosCusto.filter((c) => c.ativo);
-  const avaliacao = avaliarSaldo(origem, financeiroTipoContas, state.valorDetalhe || 0);
+  const avaliacao = avaliarSaldo(origem, catalogo.tipoContas(), state.valorDetalhe || 0);
 
   return (
     <div className="space-y-4">
