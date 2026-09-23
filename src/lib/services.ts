@@ -95,7 +95,7 @@ export const grupoService = {
   async salvar(data: Partial<Grupo>): Promise<Grupo> {
     await delay(400);
     const now = new Date().toISOString();
-    const userId = "u1";
+    const userId = usuarioAtualId();
     const existing = data.id ? mockGrupos.find((g) => g.id === data.id && g.deletadoEm === null) : undefined;
     if (existing) {
       existing.nome = (data.nome ?? existing.nome).trim();
@@ -159,7 +159,7 @@ export const empresaService = {
   async salvar(data: Partial<Empresa>): Promise<Empresa> {
     await delay(400);
     const now = new Date().toISOString();
-    const userId = "u1";
+    const userId = usuarioAtualId();
     const existing = data.id ? mockEmpresas.find((e) => e.id === data.id && e.deletadoEm === null) : undefined;
     if (existing) {
       existing.nome = (data.nome ?? existing.nome).trim();
@@ -231,7 +231,7 @@ export const filialService = {
   async salvar(data: Partial<Filial>): Promise<Filial> {
     await delay(400);
     const now = new Date().toISOString();
-    const userId = "u1";
+    const userId = usuarioAtualId();
     const existing = data.id ? mockFiliais.find((f) => f.id === data.id && f.deletadoEm === null) : undefined;
     if (existing) {
       Object.assign(existing, data, { atualizadoEm: now, atualizadoPor: userId });
@@ -307,7 +307,7 @@ export const grupoPessoaService = {
   ): Promise<GrupoPessoa> {
     await delay(400);
     const now = new Date().toISOString();
-    const userId = "u1";
+    const userId = usuarioAtualId();
     const existing = data.id
       ? mockGruposPessoa.find((gp) => gp.id === data.id && gp.deletadoEm === null)
       : undefined;
@@ -402,7 +402,7 @@ export const pessoaService = {
   ): Promise<Pessoa> {
     await delay(400);
     const now = new Date().toISOString();
-    const userId = "u1";
+    const userId = usuarioAtualId();
     const existing = data.id
       ? mockPessoas.find((p) => p.id === data.id && p.deletadoEm === null)
       : undefined;
@@ -502,7 +502,7 @@ function createSimpleCrudService<T extends SimpleEntity>(store: T[], prefix: str
     ): Promise<T> {
       await delay(400);
       const now = new Date().toISOString();
-      const userId = "u1";
+      const userId = usuarioAtualId();
       const existing = data.id ? store.find((i) => i.id === data.id && i.deletadoEm === null) : undefined;
       if (existing) {
         existing.descricao = (data.descricao ?? existing.descricao).trim();
@@ -598,7 +598,7 @@ function createCorporateCrudService<T extends CorporateEntity>(store: T[], prefi
     ): Promise<T> {
       await delay(400);
       const now = new Date().toISOString();
-      const userId = "u1";
+      const userId = usuarioAtualId();
       const existing = data.id ? store.find((i) => i.id === data.id && i.deletadoEm === null) : undefined;
       if (existing) {
         existing.descricao = (data.descricao ?? existing.descricao).trim();
@@ -1178,7 +1178,7 @@ export const pontoEstoqueService = {
   ): Promise<PontoEstoque> {
     await delay(400);
     const now = new Date().toISOString();
-    const userId = "u1";
+    const userId = usuarioAtualId();
 
     // Se marcando como principal, desmarcar outros
     if (data.principal) {
@@ -3759,7 +3759,7 @@ export const romaneioPesagemService = {
       peso: data.peso,
       dataHora: now,
       origemLeitura: (data.origemLeitura as any) || "MANUAL",
-      operador: data.operador || "u1",
+      operador: data.operador || usuarioAtualId(),
       observacao: data.observacao || "",
       criadoEm: now, criadoPor: usuarioAtualId(),
       editadoEm: null, editadoPor: null,
@@ -3782,7 +3782,7 @@ export const romaneioPesagemService = {
     const now = new Date().toISOString();
     pesagem.peso = novoPeso;
     pesagem.editadoEm = now;
-    pesagem.editadoPor = "u1";
+    pesagem.editadoPor = usuarioAtualId();
     romaneioService.recalcularPesos(pesagem.romaneioId);
     return { sucesso: true, mensagem: "Pesagem atualizada com sucesso" };
   },
