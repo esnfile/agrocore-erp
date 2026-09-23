@@ -137,9 +137,9 @@ export const grupoService = {
     const g = mockGrupos.find((g) => g.id === id && g.deletadoEm === null);
     if (g) {
       g.deletadoEm = now;
-      g.deletadoPor = "u1";
+      g.deletadoPor = usuarioAtualId();
       g.atualizadoEm = now;
-      g.atualizadoPor = "u1";
+      g.atualizadoPor = usuarioAtualId();
     }
   },
 };
@@ -196,9 +196,9 @@ export const empresaService = {
     const emp = mockEmpresas.find((e) => e.id === id && e.deletadoEm === null);
     if (emp) {
       emp.deletadoEm = now;
-      emp.deletadoPor = "u1";
+      emp.deletadoPor = usuarioAtualId();
       emp.atualizadoEm = now;
-      emp.atualizadoPor = "u1";
+      emp.atualizadoPor = usuarioAtualId();
     }
   },
 };
@@ -270,9 +270,9 @@ export const filialService = {
     const f = mockFiliais.find((f) => f.id === id && f.deletadoEm === null);
     if (f) {
       f.deletadoEm = now;
-      f.deletadoPor = "u1";
+      f.deletadoPor = usuarioAtualId();
       f.atualizadoEm = now;
-      f.atualizadoPor = "u1";
+      f.atualizadoPor = usuarioAtualId();
     }
   },
 };
@@ -341,9 +341,9 @@ export const grupoPessoaService = {
     const gp = mockGruposPessoa.find((gp) => gp.id === id && gp.deletadoEm === null);
     if (gp) {
       gp.deletadoEm = now;
-      gp.deletadoPor = "u1";
+      gp.deletadoPor = usuarioAtualId();
       gp.atualizadoEm = now;
-      gp.atualizadoPor = "u1";
+      gp.atualizadoPor = usuarioAtualId();
     }
   },
   async possuiPessoas(id: string): Promise<boolean> {
@@ -453,9 +453,9 @@ export const pessoaService = {
     const p = mockPessoas.find((p) => p.id === id && p.deletadoEm === null);
     if (p) {
       p.deletadoEm = now;
-      p.deletadoPor = "u1";
+      p.deletadoPor = usuarioAtualId();
       p.atualizadoEm = now;
-      p.atualizadoPor = "u1";
+      p.atualizadoPor = usuarioAtualId();
     }
   },
 };
@@ -542,9 +542,9 @@ function createSimpleCrudService<T extends SimpleEntity>(store: T[], prefix: str
       const item = store.find((i) => i.id === id && i.deletadoEm === null);
       if (item) {
         item.deletadoEm = now;
-        item.deletadoPor = "u1";
+        item.deletadoPor = usuarioAtualId();
         item.atualizadoEm = now;
-        item.atualizadoPor = "u1";
+        item.atualizadoPor = usuarioAtualId();
       }
     },
   };
@@ -638,9 +638,9 @@ function createCorporateCrudService<T extends CorporateEntity>(store: T[], prefi
       const item = store.find((i) => i.id === id && i.deletadoEm === null);
       if (item) {
         item.deletadoEm = now;
-        item.deletadoPor = "u1";
+        item.deletadoPor = usuarioAtualId();
         item.atualizadoEm = now;
-        item.atualizadoPor = "u1";
+        item.atualizadoPor = usuarioAtualId();
       }
     },
   };
@@ -676,13 +676,13 @@ export const coeficienteService = {
       existing.descricao = (data.descricao ?? existing.descricao).trim();
       existing.ativo = data.ativo ?? existing.ativo;
       existing.atualizadoEm = now;
-      existing.atualizadoPor = "u1";
+      existing.atualizadoPor = usuarioAtualId();
       return existing;
     }
     const novo: Coeficiente = {
       id: `coef${Date.now()}`, grupoId, empresaId: null, filialId: null,
       descricao: (data.descricao ?? "").trim(), ativo: data.ativo ?? true,
-      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       deletadoEm: null, deletadoPor: null,
     };
     mockCoeficientes.push(novo);
@@ -692,7 +692,7 @@ export const coeficienteService = {
     await delay();
     const now = new Date().toISOString();
     const c = mockCoeficientes.find((c) => c.id === id && c.deletadoEm === null);
-    if (c) { c.deletadoEm = now; c.deletadoPor = "u1"; c.atualizadoEm = now; c.atualizadoPor = "u1"; }
+    if (c) { c.deletadoEm = now; c.deletadoPor = usuarioAtualId(); c.atualizadoEm = now; c.atualizadoPor = usuarioAtualId(); }
   },
 };
 
@@ -711,7 +711,7 @@ export const coeficienteEmpresaService = {
       existing.percentualImpostos = data.percentualImpostos ?? existing.percentualImpostos;
       existing.aplicaSobre = data.aplicaSobre ?? existing.aplicaSobre;
       existing.atualizadoEm = now;
-      existing.atualizadoPor = "u1";
+      existing.atualizadoPor = usuarioAtualId();
       return existing;
     }
     // check duplicate
@@ -725,7 +725,7 @@ export const coeficienteEmpresaService = {
       percentualCustoFixo: data.percentualCustoFixo ?? 0,
       percentualImpostos: data.percentualImpostos ?? 0,
       aplicaSobre: data.aplicaSobre ?? "CUSTO_BASE",
-      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       deletadoEm: null, deletadoPor: null,
     };
     mockCoeficienteEmpresas.push(novo);
@@ -735,7 +735,7 @@ export const coeficienteEmpresaService = {
     await delay();
     const now = new Date().toISOString();
     const ce = mockCoeficienteEmpresas.find((ce) => ce.id === id && ce.deletadoEm === null);
-    if (ce) { ce.deletadoEm = now; ce.deletadoPor = "u1"; ce.atualizadoEm = now; ce.atualizadoPor = "u1"; }
+    if (ce) { ce.deletadoEm = now; ce.deletadoPor = usuarioAtualId(); ce.atualizadoEm = now; ce.atualizadoPor = usuarioAtualId(); }
   },
 };
 
@@ -762,13 +762,13 @@ export const tabelaPrecoService = {
       existing.descricao = (data.descricao ?? existing.descricao).trim();
       existing.ativo = data.ativo ?? existing.ativo;
       existing.atualizadoEm = now;
-      existing.atualizadoPor = "u1";
+      existing.atualizadoPor = usuarioAtualId();
       return existing;
     }
     const novo: TabelaPreco = {
       id: `tpreco${Date.now()}`, grupoId, empresaId: null, filialId: null,
       descricao: (data.descricao ?? "").trim(), ativo: data.ativo ?? true,
-      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       deletadoEm: null, deletadoPor: null,
     };
     mockTabelasPreco.push(novo);
@@ -778,7 +778,7 @@ export const tabelaPrecoService = {
     await delay();
     const now = new Date().toISOString();
     const t = mockTabelasPreco.find((t) => t.id === id && t.deletadoEm === null);
-    if (t) { t.deletadoEm = now; t.deletadoPor = "u1"; t.atualizadoEm = now; t.atualizadoPor = "u1"; }
+    if (t) { t.deletadoEm = now; t.deletadoPor = usuarioAtualId(); t.atualizadoEm = now; t.atualizadoPor = usuarioAtualId(); }
   },
 };
 
@@ -794,7 +794,7 @@ export const tabelaPrecoEmpresaService = {
     if (existing) {
       existing.margemLucroPercentual = data.margemLucroPercentual ?? existing.margemLucroPercentual;
       existing.atualizadoEm = now;
-      existing.atualizadoPor = "u1";
+      existing.atualizadoPor = usuarioAtualId();
       return existing;
     }
     const dup = mockTabelaPrecoEmpresas.find(
@@ -804,7 +804,7 @@ export const tabelaPrecoEmpresaService = {
     const novo: TabelaPrecoEmpresa = {
       id: `tpe${Date.now()}`, tabelaPrecoId, empresaId: data.empresaId!,
       margemLucroPercentual: data.margemLucroPercentual ?? 0,
-      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       deletadoEm: null, deletadoPor: null,
     };
     mockTabelaPrecoEmpresas.push(novo);
@@ -814,7 +814,7 @@ export const tabelaPrecoEmpresaService = {
     await delay();
     const now = new Date().toISOString();
     const t = mockTabelaPrecoEmpresas.find((t) => t.id === id && t.deletadoEm === null);
-    if (t) { t.deletadoEm = now; t.deletadoPor = "u1"; t.atualizadoEm = now; t.atualizadoPor = "u1"; }
+    if (t) { t.deletadoEm = now; t.deletadoPor = usuarioAtualId(); t.atualizadoEm = now; t.atualizadoPor = usuarioAtualId(); }
   },
 };
 
@@ -851,7 +851,7 @@ export const produtoService = {
       Object.assign(existing, data, {
         grupoId: existing.grupoId, empresaId: existing.empresaId, filialId: existing.filialId,
         criadoEm: existing.criadoEm, criadoPor: existing.criadoPor,
-        atualizadoEm: now, atualizadoPor: "u1", deletadoEm: null, deletadoPor: null,
+        atualizadoEm: now, atualizadoPor: usuarioAtualId(), deletadoEm: null, deletadoPor: null,
       });
       return existing;
     }
@@ -874,7 +874,7 @@ export const produtoService = {
       unidadeEntradaId: data.unidadeEntradaId ?? "",
       unidadeSaidaId: data.unidadeSaidaId ?? "",
       ativo: data.ativo ?? true,
-      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       deletadoEm: null, deletadoPor: null,
     };
     mockProdutos.push(novo);
@@ -884,7 +884,7 @@ export const produtoService = {
     await delay();
     const now = new Date().toISOString();
     const p = mockProdutos.find((p) => p.id === id && p.deletadoEm === null);
-    if (p) { p.deletadoEm = now; p.deletadoPor = "u1"; p.atualizadoEm = now; p.atualizadoPor = "u1"; }
+    if (p) { p.deletadoEm = now; p.deletadoPor = usuarioAtualId(); p.atualizadoEm = now; p.atualizadoPor = usuarioAtualId(); }
   },
   /**
    * Retorna preço sugerido para um produto com base no tipo de contrato e empresa.
@@ -976,7 +976,7 @@ export const produtoEmpresaService = {
       existing.custoCalculado = data.custoCalculado ?? existing.custoCalculado;
       existing.ativo = data.ativo ?? existing.ativo;
       existing.atualizadoEm = now;
-      existing.atualizadoPor = "u1";
+      existing.atualizadoPor = usuarioAtualId();
       return existing;
     }
     const dup = mockProdutoEmpresas.find(
@@ -988,7 +988,7 @@ export const produtoEmpresaService = {
       coeficienteEmpresaId: data.coeficienteEmpresaId ?? "",
       custoBase: data.custoBase ?? 0, custoCalculado: data.custoCalculado ?? 0,
       ativo: data.ativo ?? true,
-      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       deletadoEm: null, deletadoPor: null,
     };
     mockProdutoEmpresas.push(novo);
@@ -997,7 +997,7 @@ export const produtoEmpresaService = {
   async excluirPorProduto(produtoId: string): Promise<void> {
     const now = new Date().toISOString();
     mockProdutoEmpresas.filter((pe) => pe.produtoId === produtoId && pe.deletadoEm === null).forEach((pe) => {
-      pe.deletadoEm = now; pe.deletadoPor = "u1";
+      pe.deletadoEm = now; pe.deletadoPor = usuarioAtualId();
     });
   },
 };
@@ -1015,7 +1015,7 @@ export const produtoEmpresaTabelaPrecoService = {
       existing.precoCalculado = data.precoCalculado ?? existing.precoCalculado;
       existing.ativo = data.ativo ?? existing.ativo;
       existing.atualizadoEm = now;
-      existing.atualizadoPor = "u1";
+      existing.atualizadoPor = usuarioAtualId();
       return existing;
     }
     const novo: ProdutoEmpresaTabelaPreco = {
@@ -1023,7 +1023,7 @@ export const produtoEmpresaTabelaPrecoService = {
       tabelaPrecoEmpresaId: data.tabelaPrecoEmpresaId ?? "",
       precoCalculado: data.precoCalculado ?? 0,
       ativo: data.ativo ?? true,
-      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       deletadoEm: null, deletadoPor: null,
     };
     mockProdutoEmpresaTabelasPreco.push(novo);
@@ -1121,7 +1121,7 @@ export const unidadeMedidaService = {
       
       existing.ativo = data.ativo ?? existing.ativo;
       existing.atualizadoEm = now;
-      existing.atualizadoPor = "u1";
+      existing.atualizadoPor = usuarioAtualId();
       return existing;
     }
     const novo: UnidadeMedida = {
@@ -1134,7 +1134,7 @@ export const unidadeMedidaService = {
       tipo: data.tipo ?? "UNIDADE",
       
       ativo: data.ativo ?? true,
-      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       deletadoEm: null, deletadoPor: null,
     };
     mockUnidadesMedida.push(novo);
@@ -1144,7 +1144,7 @@ export const unidadeMedidaService = {
     await delay();
     const now = new Date().toISOString();
     const u = mockUnidadesMedida.find((u) => u.id === id && u.deletadoEm === null);
-    if (u) { u.deletadoEm = now; u.deletadoPor = "u1"; u.atualizadoEm = now; u.atualizadoPor = "u1"; }
+    if (u) { u.deletadoEm = now; u.deletadoPor = usuarioAtualId(); u.atualizadoEm = now; u.atualizadoPor = usuarioAtualId(); }
   },
 };
 
@@ -1214,7 +1214,7 @@ export const pontoEstoqueService = {
     await delay();
     const now = new Date().toISOString();
     const p = mockPontosEstoque.find((p) => p.id === id && p.deletadoEm === null);
-    if (p) { p.deletadoEm = now; p.deletadoPor = "u1"; p.atualizadoEm = now; p.atualizadoPor = "u1"; }
+    if (p) { p.deletadoEm = now; p.deletadoPor = usuarioAtualId(); p.atualizadoEm = now; p.atualizadoPor = usuarioAtualId(); }
   },
 };
 
@@ -1241,7 +1241,7 @@ export const estoqueService = {
     if (registro) {
       registro.quantidadeAtual = novaQuantidade;
       registro.atualizadoEm = now;
-      registro.atualizadoPor = "u1";
+      registro.atualizadoPor = usuarioAtualId();
       return registro;
     }
     registro = {
@@ -1250,7 +1250,7 @@ export const estoqueService = {
       produtoId, pontoEstoqueId,
       quantidadeAtual: novaQuantidade,
       custoMedioAtual: null, valorTotalEstoque: null,
-      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       deletadoEm: null, deletadoPor: null,
     };
     mockEstoques.push(registro);
@@ -1348,7 +1348,7 @@ export const movimentacaoEstoqueService = {
       dataMovimentacao: data.dataMovimentacao,
       observacao: data.observacao,
       contratoId: null, romaneioId: null,
-      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       deletadoEm: null, deletadoPor: null,
     };
     mockMovimentacoesEstoque.push(mov);
@@ -1375,14 +1375,14 @@ export const moedaService = {
       existing.simbolo = data.simbolo ?? existing.simbolo;
       existing.ativo = data.ativo ?? existing.ativo;
       existing.atualizadoEm = now;
-      existing.atualizadoPor = "u1";
+      existing.atualizadoPor = usuarioAtualId();
       return existing;
     }
     const novo: Moeda = {
       id: `moeda${Date.now()}`, grupoId: ctx.grupoId, empresaId: null, filialId: null,
       codigo: (data.codigo ?? "").trim(), descricao: (data.descricao ?? "").trim(),
       simbolo: data.simbolo ?? "", ativo: data.ativo ?? true,
-      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       deletadoEm: null, deletadoPor: null,
     };
     mockMoedas.push(novo);
@@ -1392,7 +1392,7 @@ export const moedaService = {
     await delay();
     const now = new Date().toISOString();
     const m = mockMoedas.find((m) => m.id === id && m.deletadoEm === null);
-    if (m) { m.deletadoEm = now; m.deletadoPor = "u1"; m.atualizadoEm = now; m.atualizadoPor = "u1"; }
+    if (m) { m.deletadoEm = now; m.deletadoPor = usuarioAtualId(); m.atualizadoEm = now; m.atualizadoPor = usuarioAtualId(); }
   },
 };
 
@@ -1435,7 +1435,7 @@ export const cotacaoMoedaService = {
       valorMaximo: Math.max(newUsdCompra, lastUsd?.valorMaximo ?? 0),
       valorMinimo: Math.min(newUsdCompra, lastUsd?.valorMinimo ?? Infinity),
       dataHoraCotacao: now, fonte: "Mock",
-      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       deletadoEm: null, deletadoPor: null,
     };
 
@@ -1448,7 +1448,7 @@ export const cotacaoMoedaService = {
       valorMaximo: Math.max(newEurCompra, lastEur?.valorMaximo ?? 0),
       valorMinimo: Math.min(newEurCompra, lastEur?.valorMinimo ?? Infinity),
       dataHoraCotacao: now, fonte: "Mock",
-      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       deletadoEm: null, deletadoPor: null,
     };
 
@@ -1482,7 +1482,7 @@ export const pontoEstoqueTipoProdutoService = {
       id: `petp${Date.now()}${Math.random().toString(36).slice(2, 5)}`,
       grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
       pontoEstoqueId: data.pontoEstoqueId, tipoProdutoId: data.tipoProdutoId,
-      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       deletadoEm: null, deletadoPor: null,
     };
     mockPontoEstoqueTiposProduto.push(novo);
@@ -1492,7 +1492,7 @@ export const pontoEstoqueTipoProdutoService = {
     await delay();
     const now = new Date().toISOString();
     const p = mockPontoEstoqueTiposProduto.find((p) => p.id === id && p.deletadoEm === null);
-    if (p) { p.deletadoEm = now; p.deletadoPor = "u1"; p.atualizadoEm = now; p.atualizadoPor = "u1"; }
+    if (p) { p.deletadoEm = now; p.deletadoPor = usuarioAtualId(); p.atualizadoEm = now; p.atualizadoPor = usuarioAtualId(); }
   },
   async sincronizar(
     pontoEstoqueId: string,
@@ -1503,14 +1503,14 @@ export const pontoEstoqueTipoProdutoService = {
     // Remove existing
     mockPontoEstoqueTiposProduto
       .filter((p) => p.deletadoEm === null && p.pontoEstoqueId === pontoEstoqueId)
-      .forEach((p) => { p.deletadoEm = now; p.deletadoPor = "u1"; });
+      .forEach((p) => { p.deletadoEm = now; p.deletadoPor = usuarioAtualId(); });
     // Add new
     for (const tpId of tipoProdutoIds) {
       const novo: PontoEstoqueTipoProduto = {
         id: `petp${Date.now()}${Math.random().toString(36).slice(2, 5)}`,
         grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
         pontoEstoqueId, tipoProdutoId: tpId,
-        criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+        criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
         deletadoEm: null, deletadoPor: null,
       };
       mockPontoEstoqueTiposProduto.push(novo);
@@ -1574,7 +1574,7 @@ export const contratoService = {
       Object.assign(existing, data, {
         grupoId: existing.grupoId, empresaId: existing.empresaId, filialId: existing.filialId,
         criadoEm: existing.criadoEm, criadoPor: existing.criadoPor,
-        atualizadoEm: now, atualizadoPor: "u1", deletadoEm: null, deletadoPor: null,
+        atualizadoEm: now, atualizadoPor: usuarioAtualId(), deletadoEm: null, deletadoPor: null,
       });
       return existing;
     }
@@ -1624,7 +1624,7 @@ export const contratoService = {
       status: "ABERTO",
       duplicatasGeradas: false,
       observacoes: data.observacoes ?? "",
-      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       deletadoEm: null, deletadoPor: null,
     };
     mockContratos.push(novo);
@@ -1641,7 +1641,7 @@ export const contratoService = {
     const hasEntregas = mockContratoEntregas.some((e) => e.contratoId === id && e.deletadoEm === null);
     if (hasEntregas) return { sucesso: false, mensagem: "Não é possível excluir contrato com entregas vinculadas." };
     const c = mockContratos.find((c) => c.id === id && c.deletadoEm === null);
-    if (c) { c.deletadoEm = now; c.deletadoPor = "u1"; c.atualizadoEm = now; c.atualizadoPor = "u1"; }
+    if (c) { c.deletadoEm = now; c.deletadoPor = usuarioAtualId(); c.atualizadoEm = now; c.atualizadoPor = usuarioAtualId(); }
     return { sucesso: true, mensagem: "Contrato excluído com sucesso." };
   },
   async numeroExiste(numero: string, excludeId?: string): Promise<boolean> {
@@ -1695,7 +1695,7 @@ export const contratoEntregaService = {
         quantidadeConvertidaBase,
         grupoId: existing.grupoId, empresaId: existing.empresaId, filialId: existing.filialId,
         criadoEm: existing.criadoEm, criadoPor: existing.criadoPor,
-        atualizadoEm: now, atualizadoPor: "u1",
+        atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       });
 
       // Apply new quantities
@@ -1703,7 +1703,7 @@ export const contratoEntregaService = {
       contrato.quantidadeSaldo -= (data.quantidadeInformada ?? 0);
       contrato.status = contrato.quantidadeSaldo <= 0 ? "FINALIZADO" : contrato.quantidadeEntregue > 0 ? "PARCIAL" : "ABERTO";
       contrato.atualizadoEm = now;
-      contrato.atualizadoPor = "u1";
+      contrato.atualizadoPor = usuarioAtualId();
 
       return { sucesso: true, mensagem: "Romaneio atualizado.", entrega: existing };
     }
@@ -1731,7 +1731,7 @@ export const contratoEntregaService = {
       nomeMotorista: data.nomeMotorista ?? "",
       documentoMotorista: data.documentoMotorista ?? "",
       observacoes: data.observacoes ?? "",
-      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       deletadoEm: null, deletadoPor: null,
     };
     mockContratoEntregas.push(entrega);
@@ -1741,7 +1741,7 @@ export const contratoEntregaService = {
     contrato.quantidadeSaldo -= entrega.quantidadeInformada;
     contrato.status = contrato.quantidadeSaldo <= 0 ? "FINALIZADO" : "PARCIAL";
     contrato.atualizadoEm = now;
-    contrato.atualizadoPor = "u1";
+    contrato.atualizadoPor = usuarioAtualId();
 
     // Create stock movement
     const tipoMov = contrato.tipoContrato === "COMPRA" ? "ENTRADA" : "SAIDA";
@@ -1756,7 +1756,7 @@ export const contratoEntregaService = {
       dataMovimentacao: entrega.dataEntrega,
       observacao: `Romaneio ${entrega.id} — Contrato ${contrato.numeroContrato}`,
       contratoId: contrato.id, romaneioId: entrega.id,
-      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       deletadoEm: null, deletadoPor: null,
     };
     mockMovimentacoesEstoque.push(mov);
@@ -1784,10 +1784,10 @@ export const contratoEntregaService = {
       contrato.quantidadeSaldo += e.quantidadeInformada;
       contrato.status = contrato.quantidadeEntregue <= 0 ? "ABERTO" : "PARCIAL";
       contrato.atualizadoEm = now;
-      contrato.atualizadoPor = "u1";
+      contrato.atualizadoPor = usuarioAtualId();
     }
 
-    e.deletadoEm = now; e.deletadoPor = "u1"; e.atualizadoEm = now; e.atualizadoPor = "u1";
+    e.deletadoEm = now; e.deletadoPor = usuarioAtualId(); e.atualizadoEm = now; e.atualizadoPor = usuarioAtualId();
     return { sucesso: true, mensagem: "Romaneio excluído." };
   },
 };
@@ -1833,7 +1833,7 @@ export const contratoFixacaoService = {
       Object.assign(existing, data, {
         grupoId: existing.grupoId, empresaId: existing.empresaId, filialId: existing.filialId,
         criadoEm: existing.criadoEm, criadoPor: existing.criadoPor,
-        atualizadoEm: now, atualizadoPor: "u1",
+        atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       });
       return { sucesso: true, mensagem: "Fixação atualizada.", fixacao: existing };
     }
@@ -1849,7 +1849,7 @@ export const contratoFixacaoService = {
       moedaId: data.moedaId ?? "moeda1",
       observacoes: data.observacoes ?? "",
       contasGeradas: false,
-      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       deletadoEm: null, deletadoPor: null,
     };
     mockContratoFixacoes.push(fixacao);
@@ -1859,7 +1859,7 @@ export const contratoFixacaoService = {
     await delay();
     const now = new Date().toISOString();
     const f = mockContratoFixacoes.find((f) => f.id === id && f.deletadoEm === null);
-    if (f) { f.deletadoEm = now; f.deletadoPor = "u1"; f.atualizadoEm = now; f.atualizadoPor = "u1"; }
+    if (f) { f.deletadoEm = now; f.deletadoPor = usuarioAtualId(); f.atualizadoEm = now; f.atualizadoPor = usuarioAtualId(); }
   },
 };
 
@@ -1904,7 +1904,7 @@ export const condicaoDescontoModeloService = {
       existing.descricao = (data.descricao ?? existing.descricao).trim();
       existing.ativo = data.ativo ?? existing.ativo;
       existing.atualizadoEm = now;
-      existing.atualizadoPor = "u1";
+      existing.atualizadoPor = usuarioAtualId();
       return existing;
     }
     const novo: CondicaoDescontoModelo = {
@@ -1912,7 +1912,7 @@ export const condicaoDescontoModeloService = {
       grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: null,
       descricao: (data.descricao ?? "").trim(),
       ativo: data.ativo ?? true,
-      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       deletadoEm: null, deletadoPor: null,
     };
     mockCondicaoDescontoModelos.push(novo);
@@ -1922,7 +1922,7 @@ export const condicaoDescontoModeloService = {
     await delay();
     const now = new Date().toISOString();
     const m = mockCondicaoDescontoModelos.find((m) => m.id === id && m.deletadoEm === null);
-    if (m) { m.deletadoEm = now; m.deletadoPor = "u1"; m.atualizadoEm = now; m.atualizadoPor = "u1"; }
+    if (m) { m.deletadoEm = now; m.deletadoPor = usuarioAtualId(); m.atualizadoEm = now; m.atualizadoPor = usuarioAtualId(); }
   },
   async possuiItens(id: string): Promise<boolean> {
     await delay(100);
@@ -1954,7 +1954,7 @@ export const condicaoDescontoModeloItemService = {
       existing.ordemCalculo = data.ordemCalculo ?? existing.ordemCalculo;
       existing.automatico = data.automatico ?? existing.automatico;
       existing.atualizadoEm = now;
-      existing.atualizadoPor = "u1";
+      existing.atualizadoPor = usuarioAtualId();
       return existing;
     }
     const novo: CondicaoDescontoModeloItem = {
@@ -1966,7 +1966,7 @@ export const condicaoDescontoModeloItemService = {
       valor: data.valor ?? 0,
       ordemCalculo: data.ordemCalculo ?? 1,
       automatico: data.automatico ?? false,
-      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       deletadoEm: null, deletadoPor: null,
     };
     mockCondicaoDescontoModeloItens.push(novo);
@@ -1976,7 +1976,7 @@ export const condicaoDescontoModeloItemService = {
     await delay();
     const now = new Date().toISOString();
     const i = mockCondicaoDescontoModeloItens.find((i) => i.id === id && i.deletadoEm === null);
-    if (i) { i.deletadoEm = now; i.deletadoPor = "u1"; i.atualizadoEm = now; i.atualizadoPor = "u1"; }
+    if (i) { i.deletadoEm = now; i.deletadoPor = usuarioAtualId(); i.atualizadoEm = now; i.atualizadoPor = usuarioAtualId(); }
   },
 };
 
@@ -2000,7 +2000,7 @@ export const contratoCondicaoService = {
     // Remove existing conditions for this contract
     mockContratoCondicoes
       .filter((c) => c.contratoId === contratoId && c.deletadoEm === null)
-      .forEach((c) => { c.deletadoEm = now; c.deletadoPor = "u1"; });
+      .forEach((c) => { c.deletadoEm = now; c.deletadoPor = usuarioAtualId(); });
 
     // Copy items from modelo
     const itens = mockCondicaoDescontoModeloItens
@@ -2017,7 +2017,7 @@ export const contratoCondicaoService = {
       valor: item.valor,
       automatico: item.automatico,
       ordemCalculo: item.ordemCalculo,
-      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       deletadoEm: null, deletadoPor: null,
     }));
     mockContratoCondicoes.push(...novas);
@@ -2038,7 +2038,7 @@ export const contratoCondicaoService = {
         existing.ordemCalculo = data.ordemCalculo ?? existing.ordemCalculo;
       }
       existing.atualizadoEm = now;
-      existing.atualizadoPor = "u1";
+      existing.atualizadoPor = usuarioAtualId();
       return existing;
     }
     const novo: ContratoCondicao = {
@@ -2051,7 +2051,7 @@ export const contratoCondicaoService = {
       valor: data.valor ?? 0,
       automatico: data.automatico ?? false,
       ordemCalculo: data.ordemCalculo ?? 1,
-      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       deletadoEm: null, deletadoPor: null,
     };
     mockContratoCondicoes.push(novo);
@@ -2061,7 +2061,7 @@ export const contratoCondicaoService = {
     await delay();
     const now = new Date().toISOString();
     const c = mockContratoCondicoes.find((c) => c.id === id && c.deletadoEm === null);
-    if (c) { c.deletadoEm = now; c.deletadoPor = "u1"; c.atualizadoEm = now; c.atualizadoPor = "u1"; }
+    if (c) { c.deletadoEm = now; c.deletadoPor = usuarioAtualId(); c.atualizadoEm = now; c.atualizadoPor = usuarioAtualId(); }
   },
 };
 
@@ -2099,7 +2099,7 @@ export const classificacaoTipoService = {
       existing.valorBase = data.valorBase !== undefined ? data.valorBase : existing.valorBase;
       existing.ativo = data.ativo ?? existing.ativo;
       existing.atualizadoEm = now;
-      existing.atualizadoPor = "u1";
+      existing.atualizadoPor = usuarioAtualId();
       return existing;
     }
     const novo: ClassificacaoTipo = {
@@ -2109,7 +2109,7 @@ export const classificacaoTipoService = {
       unidade: data.unidade ?? "PERCENTUAL",
       valorBase: data.valorBase ?? null,
       ativo: data.ativo ?? true,
-      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       deletadoEm: null, deletadoPor: null,
     };
     mockClassificacaoTipos.push(novo);
@@ -2119,7 +2119,7 @@ export const classificacaoTipoService = {
     await delay();
     const now = new Date().toISOString();
     const t = mockClassificacaoTipos.find((t) => t.id === id && t.deletadoEm === null);
-    if (t) { t.deletadoEm = now; t.deletadoPor = "u1"; t.atualizadoEm = now; t.atualizadoPor = "u1"; }
+    if (t) { t.deletadoEm = now; t.deletadoPor = usuarioAtualId(); t.atualizadoEm = now; t.atualizadoPor = usuarioAtualId(); }
   },
 };
 
@@ -2150,7 +2150,7 @@ export const produtoClassificacaoService = {
       existing.limiteTolerancia = data.limiteTolerancia ?? existing.limiteTolerancia;
       existing.ativo = data.ativo ?? existing.ativo;
       existing.atualizadoEm = now;
-      existing.atualizadoPor = "u1";
+      existing.atualizadoPor = usuarioAtualId();
       return existing;
     }
     const novo: ProdutoClassificacao = {
@@ -2161,7 +2161,7 @@ export const produtoClassificacaoService = {
       valorPadrao: data.valorPadrao ?? 0,
       limiteTolerancia: data.limiteTolerancia ?? 0,
       ativo: data.ativo ?? true,
-      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       deletadoEm: null, deletadoPor: null,
     };
     mockProdutoClassificacoes.push(novo);
@@ -2171,7 +2171,7 @@ export const produtoClassificacaoService = {
     await delay();
     const now = new Date().toISOString();
     const p = mockProdutoClassificacoes.find((p) => p.id === id && p.deletadoEm === null);
-    if (p) { p.deletadoEm = now; p.deletadoPor = "u1"; p.atualizadoEm = now; p.atualizadoPor = "u1"; }
+    if (p) { p.deletadoEm = now; p.deletadoPor = usuarioAtualId(); p.atualizadoEm = now; p.atualizadoPor = usuarioAtualId(); }
   },
 };
 
@@ -2196,7 +2196,7 @@ export const classificacaoDescontoService = {
       existing.valorMaximo = data.valorMaximo ?? existing.valorMaximo;
       existing.percentualDesconto = data.percentualDesconto ?? existing.percentualDesconto;
       existing.atualizadoEm = now;
-      existing.atualizadoPor = "u1";
+      existing.atualizadoPor = usuarioAtualId();
       return existing;
     }
     const novo: ClassificacaoDesconto = {
@@ -2207,7 +2207,7 @@ export const classificacaoDescontoService = {
       valorMinimo: data.valorMinimo ?? 0,
       valorMaximo: data.valorMaximo ?? 0,
       percentualDesconto: data.percentualDesconto ?? 0,
-      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       deletadoEm: null, deletadoPor: null,
     };
     mockClassificacaoDescontos.push(novo);
@@ -2217,14 +2217,14 @@ export const classificacaoDescontoService = {
     await delay();
     const now = new Date().toISOString();
     const d = mockClassificacaoDescontos.find((d) => d.id === id && d.deletadoEm === null);
-    if (d) { d.deletadoEm = now; d.deletadoPor = "u1"; d.atualizadoEm = now; d.atualizadoPor = "u1"; }
+    if (d) { d.deletadoEm = now; d.deletadoPor = usuarioAtualId(); d.atualizadoEm = now; d.atualizadoPor = usuarioAtualId(); }
   },
   async excluirPorProdutoETipo(produtoId: string, classificacaoTipoId: string): Promise<void> {
     await delay();
     const now = new Date().toISOString();
     mockClassificacaoDescontos
       .filter((d) => d.deletadoEm === null && d.produtoId === produtoId && d.classificacaoTipoId === classificacaoTipoId)
-      .forEach((d) => { d.deletadoEm = now; d.deletadoPor = "u1"; d.atualizadoEm = now; d.atualizadoPor = "u1"; });
+      .forEach((d) => { d.deletadoEm = now; d.deletadoPor = usuarioAtualId(); d.atualizadoEm = now; d.atualizadoPor = usuarioAtualId(); });
   },
   buscarDescontoPorFaixa(produtoId: string, classificacaoTipoId: string, valor: number): number {
     const faixa = mockClassificacaoDescontos.find(
@@ -2254,7 +2254,7 @@ export const romaneioClassificacaoService = {
     // Remove old
     mockRomaneioClassificacoes
       .filter((r) => r.romaneioId === romaneioId && r.deletadoEm === null)
-      .forEach((r) => { r.deletadoEm = now; r.deletadoPor = "u1"; });
+      .forEach((r) => { r.deletadoEm = now; r.deletadoPor = usuarioAtualId(); });
     // Insert new
     const novas: RomaneioClassificacao[] = itens.map((item, idx) => ({
       id: `rc${Date.now()}${idx}`,
@@ -2263,7 +2263,7 @@ export const romaneioClassificacaoService = {
       classificacaoTipoId: item.classificacaoTipoId,
       valorApurado: item.valorApurado,
       percentualDesconto: item.percentualDesconto,
-      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       deletadoEm: null, deletadoPor: null,
     }));
     mockRomaneioClassificacoes.push(...novas);
@@ -2308,7 +2308,7 @@ export const financeiroContaService = {
     const now = new Date().toISOString();
     const existing = data.id ? mockFinanceiroContas.find((c) => c.id === data.id && c.deletadoEm === null) : undefined;
     if (existing) {
-      Object.assign(existing, data, { atualizadoEm: now, atualizadoPor: "u1" });
+      Object.assign(existing, data, { atualizadoEm: now, atualizadoPor: usuarioAtualId() });
       return existing;
     }
     const nova: FinanceiroConta = {
@@ -2327,7 +2327,7 @@ export const financeiroContaService = {
       dataFaturamento: data.dataFaturamento ?? null,
       dataLiquidacao: data.dataLiquidacao ?? null,
       observacoes: data.observacoes ?? "",
-      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       deletadoEm: null, deletadoPor: null,
     };
     mockFinanceiroContas.push(nova);
@@ -2337,7 +2337,7 @@ export const financeiroContaService = {
     await delay();
     const now = new Date().toISOString();
     const c = mockFinanceiroContas.find((c) => c.id === id && c.deletadoEm === null);
-    if (c) { c.deletadoEm = now; c.deletadoPor = "u1"; c.atualizadoEm = now; c.atualizadoPor = "u1"; }
+    if (c) { c.deletadoEm = now; c.deletadoPor = usuarioAtualId(); c.atualizadoEm = now; c.atualizadoPor = usuarioAtualId(); }
   },
   async atualizarStatus(contaId: string): Promise<void> {
     await delay(100);
@@ -2354,7 +2354,7 @@ export const financeiroContaService = {
     else if (algumaPaga) conta.status = "PARCIAL";
     else conta.status = "ABERTO";
     conta.atualizadoEm = new Date().toISOString();
-    conta.atualizadoPor = "u1";
+    conta.atualizadoPor = usuarioAtualId();
   },
   async gerarContasDeContrato(
     contratoId: string,
@@ -2420,9 +2420,9 @@ export const financeiroContaService = {
       // Soft delete das parcelas editáveis antigas
       editaveis.forEach((p) => {
         p.deletadoEm = now;
-        p.deletadoPor = "u1";
+        p.deletadoPor = usuarioAtualId();
         p.atualizadoEm = now;
-        p.atualizadoPor = "u1";
+        p.atualizadoPor = usuarioAtualId();
       });
 
       // Atualiza conta existente
@@ -2431,7 +2431,7 @@ export const financeiroContaService = {
       contaExistente.valorOriginalMoeda = valorOriginal;
       contaExistente.cotacaoUsada = cotacao;
       contaExistente.atualizadoEm = now;
-      contaExistente.atualizadoPor = "u1";
+      contaExistente.atualizadoPor = usuarioAtualId();
 
       const totalP2 = parcelasBRL.length;
       const novasParcelas: FinanceiroParcela[] = parcelasBRL.map((input, i) => ({
@@ -2449,9 +2449,9 @@ export const financeiroContaService = {
         saldoParcela: input.valorParcela,
         status: statusNovo,
         criadoEm: now,
-        criadoPor: "u1",
+        criadoPor: usuarioAtualId(),
         atualizadoEm: now,
-        atualizadoPor: "u1",
+        atualizadoPor: usuarioAtualId(),
         deletadoEm: null,
         deletadoPor: null,
       }));
@@ -2459,11 +2459,11 @@ export const financeiroContaService = {
 
       contrato.duplicatasGeradas = true;
       contrato.atualizadoEm = now;
-      contrato.atualizadoPor = "u1";
+      contrato.atualizadoPor = usuarioAtualId();
 
       if (fixacaoIdAtual) {
         const fix = mockContratoFixacoes.find((f) => f.id === fixacaoIdAtual && f.deletadoEm === null);
-        if (fix) { fix.contasGeradas = true; fix.atualizadoEm = now; fix.atualizadoPor = "u1"; }
+        if (fix) { fix.contasGeradas = true; fix.atualizadoEm = now; fix.atualizadoPor = usuarioAtualId(); }
       }
 
       return { conta: contaExistente, parcelas: novasParcelas };
@@ -2489,7 +2489,7 @@ export const financeiroContaService = {
       dataFaturamento: now.slice(0, 10),
       dataLiquidacao: null,
       observacoes: "",
-      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       deletadoEm: null, deletadoPor: null,
     };
     mockFinanceiroContas.push(conta);
@@ -2507,7 +2507,7 @@ export const financeiroContaService = {
       valorPago: 0,
       saldoParcela: input.valorParcela,
       status: (provisorio ? "PREVISTO" : "PENDENTE") as StatusParcela,
-      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       deletadoEm: null, deletadoPor: null,
     }));
     mockFinanceiroParcelas.push(...novasParcelas);
@@ -2518,11 +2518,11 @@ export const financeiroContaService = {
     // (gerar/reconfigurar parcelas) não devem mudar o status do contrato.
     contrato.duplicatasGeradas = true;
     contrato.atualizadoEm = now;
-    contrato.atualizadoPor = "u1";
+    contrato.atualizadoPor = usuarioAtualId();
 
     if (options?.fixacaoId) {
       const fix = mockContratoFixacoes.find((f) => f.id === options.fixacaoId && f.deletadoEm === null);
-      if (fix) { fix.contasGeradas = true; fix.atualizadoEm = now; fix.atualizadoPor = "u1"; }
+      if (fix) { fix.contasGeradas = true; fix.atualizadoEm = now; fix.atualizadoPor = usuarioAtualId(); }
     }
 
     return { conta, parcelas: novasParcelas };
@@ -2553,7 +2553,7 @@ export const financeiroParcelaService = {
     // Remove parcelas antigas pendentes
     mockFinanceiroParcelas
       .filter((p) => p.contaId === contaId && p.deletadoEm === null && p.status === "PENDENTE")
-      .forEach((p) => { p.deletadoEm = now; p.deletadoPor = "u1"; });
+      .forEach((p) => { p.deletadoEm = now; p.deletadoPor = usuarioAtualId(); });
     const valorParcela = Math.round((valorTotal / numParcelas) * 100) / 100;
     const novas: FinanceiroParcela[] = [];
     for (let i = 0; i < numParcelas; i++) {
@@ -2566,7 +2566,7 @@ export const financeiroParcelaService = {
         contaId, numeroParcela: i + 1, totalParcelas: numParcelas,
         dataVencimento: vencimento.toISOString().slice(0, 10),
         valorParcela: val, valorReal: val, valorPago: 0, saldoParcela: val, status: "PENDENTE",
-        criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+        criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
         deletadoEm: null, deletadoPor: null,
       };
       novas.push(parcela);
@@ -2584,7 +2584,7 @@ export const financeiroParcelaService = {
     // Remove parcelas antigas pendentes
     mockFinanceiroParcelas
       .filter((p) => p.contaId === contaId && p.deletadoEm === null && p.status === "PENDENTE")
-      .forEach((p) => { p.deletadoEm = now; p.deletadoPor = "u1"; });
+      .forEach((p) => { p.deletadoEm = now; p.deletadoPor = usuarioAtualId(); });
     const novas: FinanceiroParcela[] = [];
     for (const input of parcelasInput) {
       const parcela: FinanceiroParcela = {
@@ -2593,7 +2593,7 @@ export const financeiroParcelaService = {
         contaId, numeroParcela: input.numeroParcela, totalParcelas: parcelasInput.length,
         dataVencimento: input.dataVencimento,
         valorParcela: input.valorParcela, valorReal: input.valorParcela, valorPago: 0, saldoParcela: input.valorParcela, status: "PENDENTE",
-        criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+        criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
         deletadoEm: null, deletadoPor: null,
       };
       novas.push(parcela);
@@ -2606,7 +2606,7 @@ export const financeiroParcelaService = {
     const now = new Date().toISOString();
     mockFinanceiroParcelas
       .filter((p) => p.contaId === contaId && p.deletadoEm === null)
-      .forEach((p) => { p.deletadoEm = now; p.deletadoPor = "u1"; });
+      .forEach((p) => { p.deletadoEm = now; p.deletadoPor = usuarioAtualId(); });
   },
   async atualizarVencimento(parcelaId: string, novaData: string): Promise<FinanceiroParcela> {
     await delay();
@@ -2617,7 +2617,7 @@ export const financeiroParcelaService = {
     }
     p.dataVencimento = novaData;
     p.atualizadoEm = new Date().toISOString();
-    p.atualizadoPor = "u1";
+    p.atualizadoPor = usuarioAtualId();
     return p;
   },
   async listarTodas(empresaId: string, filialId: string): Promise<(FinanceiroParcela & { conta?: FinanceiroConta })[]> {
@@ -2679,7 +2679,7 @@ export const financeiroBaixaService = {
       valorPago: data.valorPago,
       formaPagamento: data.formaPagamento,
       observacoes: data.observacoes ?? "",
-      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       deletadoEm: null, deletadoPor: null,
     };
     mockFinanceiroBaixas.push(baixa);
@@ -2695,7 +2695,7 @@ export const financeiroBaixaService = {
         parcela.status = "PARCIAL";
       }
       parcela.atualizadoEm = now;
-      parcela.atualizadoPor = "u1";
+      parcela.atualizadoPor = usuarioAtualId();
       // Atualizar status da conta
       await financeiroContaService.atualizarStatus(parcela.contaId);
     }
@@ -2750,7 +2750,7 @@ export const financeiroContaFinanceiraService = {
       existing.agencia = data.agencia ?? existing.agencia;
       existing.contaCorrente = data.contaCorrente ?? existing.contaCorrente;
       existing.atualizadoEm = now;
-      existing.atualizadoPor = "u1";
+      existing.atualizadoPor = usuarioAtualId();
       return existing;
     }
     const novo: FinanceiroContaFinanceira = {
@@ -2765,7 +2765,7 @@ export const financeiroContaFinanceiraService = {
       bancoId: data.bancoId ?? null,
       agencia: data.agencia ?? "",
       contaCorrente: data.contaCorrente ?? "",
-      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       deletadoEm: null, deletadoPor: null,
     };
     mockFinanceiroContasFinanceiras.push(novo);
@@ -2775,14 +2775,14 @@ export const financeiroContaFinanceiraService = {
     await delay();
     const now = new Date().toISOString();
     const c = mockFinanceiroContasFinanceiras.find((c) => c.id === id && c.deletadoEm === null);
-    if (c) { c.deletadoEm = now; c.deletadoPor = "u1"; c.atualizadoEm = now; c.atualizadoPor = "u1"; }
+    if (c) { c.deletadoEm = now; c.deletadoPor = usuarioAtualId(); c.atualizadoEm = now; c.atualizadoPor = usuarioAtualId(); }
   },
   atualizarSaldo(id: string, delta: number): void {
     const c = mockFinanceiroContasFinanceiras.find((c) => c.id === id && c.deletadoEm === null);
     if (c) {
       c.saldoAtual += delta;
       c.atualizadoEm = new Date().toISOString();
-      c.atualizadoPor = "u1";
+      c.atualizadoPor = usuarioAtualId();
     }
   },
 };
@@ -2825,7 +2825,7 @@ export const financeiroTipoLancamentoService = {
       existing.contaContabilId = existing.exigePlanoContas ? (data.contaContabilId ?? null) : null;
       existing.contaContabilNome = existing.exigePlanoContas ? (data.contaContabilNome ?? null) : null;
       existing.atualizadoEm = now;
-      existing.atualizadoPor = "u1";
+      existing.atualizadoPor = usuarioAtualId();
       return existing;
     }
     const novo: FinanceiroTipoLancamento = {
@@ -2844,7 +2844,7 @@ export const financeiroTipoLancamentoService = {
       ativo: data.ativo ?? true,
       contaContabilId: (data.exigePlanoContas ?? false) ? (data.contaContabilId ?? null) : null,
       contaContabilNome: (data.exigePlanoContas ?? false) ? (data.contaContabilNome ?? null) : null,
-      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       deletadoEm: null, deletadoPor: null,
     };
     mockFinanceiroTiposLancamento.push(novo);
@@ -2856,7 +2856,7 @@ export const financeiroTipoLancamentoService = {
     if (!t) return { sucesso: false, mensagem: "Não encontrado." };
     if (!t.permiteExclusao) return { sucesso: false, mensagem: "Tipo de lançamento de sistema não pode ser excluído." };
     const now = new Date().toISOString();
-    t.deletadoEm = now; t.deletadoPor = "u1"; t.atualizadoEm = now; t.atualizadoPor = "u1";
+    t.deletadoEm = now; t.deletadoPor = usuarioAtualId(); t.atualizadoEm = now; t.atualizadoPor = usuarioAtualId();
     return { sucesso: true, mensagem: "Excluído com sucesso." };
   },
 };
@@ -3014,7 +3014,7 @@ export const financeiroMovimentacaoService = {
       composicaoCheque: data.composicaoCheque && data.composicaoCheque.length > 0 ? data.composicaoCheque.map((c) => ({ ...c })) : null,
       composicaoCartao: data.composicaoCartao && data.composicaoCartao.length > 0 ? data.composicaoCartao.map((c) => ({ ...c })) : null,
       composicaoAdiantamento: data.composicaoAdiantamento && data.composicaoAdiantamento.length > 0 ? data.composicaoAdiantamento.map((c) => ({ ...c })) : null,
-      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       deletadoEm: null, deletadoPor: null,
     };
     mockFinanceiroMovimentacoes.push(mov);
@@ -3032,7 +3032,7 @@ export const financeiroMovimentacaoService = {
         parcela.saldoParcela = parcela.valorParcela - parcela.valorPago;
         if (parcela.saldoParcela <= 0) { parcela.saldoParcela = 0; parcela.status = "PAGO"; }
         else { parcela.status = "PARCIAL"; }
-        parcela.atualizadoEm = now; parcela.atualizadoPor = "u1";
+        parcela.atualizadoEm = now; parcela.atualizadoPor = usuarioAtualId();
         await financeiroContaService.atualizarStatus(parcela.contaId);
       }
     }
@@ -3063,7 +3063,7 @@ export const financeiroMovimentacaoService = {
         origemTipo: origem,
         solicitacaoId: data.solicitacaoAdiantamentoId ?? null,
         observacao: data.historico || null,
-        criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+        criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
         deletadoEm: null, deletadoPor: null,
       };
       mockFinanceiroAdiantamentos.push(adiantamentoCriado);
@@ -3077,7 +3077,7 @@ export const financeiroMovimentacaoService = {
           sol.movimentacaoFinanceiraId = mov.id;
           sol.adiantamentoId = adiantamentoCriado.id;
           sol.atualizadoEm = now;
-          sol.atualizadoPor = "u1";
+          sol.atualizadoPor = usuarioAtualId();
         }
       }
     }
@@ -3181,7 +3181,7 @@ export const financeiroMovimentacaoService = {
       p.saldoParcela = +(p.valorParcela - p.valorPago).toFixed(2);
       if (p.saldoParcela <= 0.0001) { p.saldoParcela = 0; p.status = "PAGO"; }
       else { p.status = "PARCIAL"; }
-      p.atualizadoEm = now; p.atualizadoPor = "u1";
+      p.atualizadoEm = now; p.atualizadoPor = usuarioAtualId();
       parcelasLiquidadas.push({
         parcelaId: p.id,
         valorLiquidado: +aplicar.toFixed(2),
@@ -3199,7 +3199,7 @@ export const financeiroMovimentacaoService = {
       entity.saldoRestante = +(entity.valorAdiantamento - entity.saldoUtilizado).toFixed(2);
       if (entity.saldoRestante <= 0.0001) { entity.saldoRestante = 0; entity.status = "LIQUIDADO"; }
       else { entity.status = "PARCIAL"; }
-      entity.atualizadoEm = now; entity.atualizadoPor = "u1";
+      entity.atualizadoEm = now; entity.atualizadoPor = usuarioAtualId();
     }
 
     const mov: FinanceiroMovimentacao = {
@@ -3226,7 +3226,7 @@ export const financeiroMovimentacaoService = {
       composicaoAdiantamento: data.adiantamentosUsados && data.adiantamentosUsados.filter((a) => a.valor > 0).length > 0 ? data.adiantamentosUsados.filter((a) => a.valor > 0).map((a) => ({ ...a })) : null,
       parcelasLiquidadas,
       adiantamentosUsados: data.adiantamentosUsados.filter((a) => a.valor > 0),
-      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       deletadoEm: null, deletadoPor: null,
     };
     mockFinanceiroMovimentacoes.push(mov);
@@ -3321,13 +3321,13 @@ export const adiantamentoSolicitacaoService = {
     }
     return { sucesso: true, mensagem: "OK" };
   },
-  aprovar(id: string, usuarioId = "u1") {
+  aprovar(id: string, usuarioId = usuarioAtualId()) {
     return this._transicao(id, ["SOLICITADO"], "APROVADO", usuarioId, true);
   },
-  rejeitar(id: string, usuarioId = "u1") {
+  rejeitar(id: string, usuarioId = usuarioAtualId()) {
     return this._transicao(id, ["SOLICITADO"], "REJEITADO", usuarioId);
   },
-  cancelar(id: string, usuarioId = "u1") {
+  cancelar(id: string, usuarioId = usuarioAtualId()) {
     return this._transicao(id, ["SOLICITADO", "APROVADO"], "CANCELADO", usuarioId);
   },
 };
@@ -3360,13 +3360,13 @@ export const motoristaService = {
     const now = new Date().toISOString();
     if (data.id) {
       const existing = mockMotoristas.find((m) => m.id === data.id);
-      if (existing) { Object.assign(existing, data, { atualizadoEm: now, atualizadoPor: "u1" }); return existing; }
+      if (existing) { Object.assign(existing, data, { atualizadoEm: now, atualizadoPor: usuarioAtualId() }); return existing; }
     }
     const novo: Motorista = {
       id: `mot${Date.now()}`, grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: null,
       nome: data.nome || "", documento: data.documento || "", telefone: data.telefone || "",
       ativo: data.ativo ?? true,
-      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       deletadoEm: null, deletadoPor: null,
     };
     mockMotoristas.push(novo);
@@ -3375,7 +3375,7 @@ export const motoristaService = {
   async excluir(id: string): Promise<void> {
     await delay();
     const m = mockMotoristas.find((x) => x.id === id);
-    if (m) { m.deletadoEm = new Date().toISOString(); m.deletadoPor = "u1"; }
+    if (m) { m.deletadoEm = new Date().toISOString(); m.deletadoPor = usuarioAtualId(); }
   },
 };
 
@@ -3398,13 +3398,13 @@ export const veiculoService = {
     const now = new Date().toISOString();
     if (data.id) {
       const existing = mockVeiculos.find((v) => v.id === data.id);
-      if (existing) { Object.assign(existing, data, { atualizadoEm: now, atualizadoPor: "u1" }); return existing; }
+      if (existing) { Object.assign(existing, data, { atualizadoEm: now, atualizadoPor: usuarioAtualId() }); return existing; }
     }
     const novo: Veiculo = {
       id: `veic${Date.now()}`, grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: null,
       placa: data.placa || "", tipoVeiculo: data.tipoVeiculo || "", transportadora: data.transportadora || "",
       ativo: data.ativo ?? true,
-      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       deletadoEm: null, deletadoPor: null,
     };
     mockVeiculos.push(novo);
@@ -3413,7 +3413,7 @@ export const veiculoService = {
   async excluir(id: string): Promise<void> {
     await delay();
     const v = mockVeiculos.find((x) => x.id === id);
-    if (v) { v.deletadoEm = new Date().toISOString(); v.deletadoPor = "u1"; }
+    if (v) { v.deletadoEm = new Date().toISOString(); v.deletadoPor = usuarioAtualId(); }
   },
 };
 
@@ -3471,7 +3471,7 @@ export const romaneioService = {
     if (data.id) {
       const existing = mockRomaneios.find((r) => r.id === data.id);
       if (existing) {
-        Object.assign(existing, data, { atualizadoEm: now, atualizadoPor: "u1" });
+        Object.assign(existing, data, { atualizadoEm: now, atualizadoPor: usuarioAtualId() });
         return existing;
       }
     }
@@ -3504,7 +3504,7 @@ export const romaneioService = {
       pesoLiquidoSecoLimpo: 0,
       observacao: data.observacao || "",
       origemCriacao: data.origemCriacao || "TELA_ROMANEIOS",
-      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       deletadoEm: null, deletadoPor: null,
     };
     mockRomaneios.push(novo);
@@ -3513,12 +3513,12 @@ export const romaneioService = {
   async excluir(id: string): Promise<void> {
     await delay();
     const r = mockRomaneios.find((x) => x.id === id);
-    if (r) { r.deletadoEm = new Date().toISOString(); r.deletadoPor = "u1"; }
+    if (r) { r.deletadoEm = new Date().toISOString(); r.deletadoPor = usuarioAtualId(); }
   },
   async cancelar(id: string): Promise<void> {
     await delay();
     const r = mockRomaneios.find((x) => x.id === id && x.deletadoEm === null);
-    if (r) { r.status = "CANCELADO"; r.atualizadoEm = new Date().toISOString(); r.atualizadoPor = "u1"; }
+    if (r) { r.status = "CANCELADO"; r.atualizadoEm = new Date().toISOString(); r.atualizadoPor = usuarioAtualId(); }
   },
   async finalizar(id: string): Promise<{ sucesso: boolean; mensagem: string }> {
     await delay();
@@ -3619,7 +3619,7 @@ export const romaneioService = {
       observacao: obsMov,
       contratoId: contrato?.id ?? null,
       romaneioId: r.id,
-      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       deletadoEm: null, deletadoPor: null,
     };
     mockMovimentacoesEstoque.push(mov);
@@ -3636,12 +3636,12 @@ export const romaneioService = {
       contrato.quantidadeSaldo = contrato.quantidadeTotal - contrato.quantidadeEntregue;
       if (contrato.quantidadeSaldo <= 0) contrato.status = "FINALIZADO";
       else if (contrato.quantidadeEntregue > 0) contrato.status = "PARCIAL";
-      contrato.atualizadoEm = now; contrato.atualizadoPor = "u1";
+      contrato.atualizadoEm = now; contrato.atualizadoPor = usuarioAtualId();
     }
 
     // 5. Finalize romaneio
     r.status = "FINALIZADO";
-    r.atualizadoEm = now; r.atualizadoPor = "u1";
+    r.atualizadoEm = now; r.atualizadoPor = usuarioAtualId();
 
     const unRomaneio = unidadeMedidaService.obterPorId(unidadeRomaneioId);
     const unBase = unidadeMedidaService.obterPorId(unidadeBaseId);
@@ -3667,7 +3667,7 @@ export const romaneioService = {
       else if (r.pesoLiquidoFisico > 0) r.status = "AGUARDANDO_CLASSIFICACAO";
       else r.status = "ABERTO";
     }
-    r.atualizadoEm = now; r.atualizadoPor = "u1";
+    r.atualizadoEm = now; r.atualizadoPor = usuarioAtualId();
     return { sucesso: true, mensagem: "Contrato vinculado ao romaneio." };
   },
   recalcularPesos(romaneioId: string) {
@@ -3716,7 +3716,7 @@ export const romaneioService = {
     }
 
     rom.atualizadoEm = new Date().toISOString();
-    rom.atualizadoPor = "u1";
+    rom.atualizadoPor = usuarioAtualId();
   },
   async vincularColheita(romaneioId: string, safraId: string, cultivoId: string): Promise<{ sucesso: boolean; mensagem: string }> {
     await delay();
@@ -3732,7 +3732,7 @@ export const romaneioService = {
       r.status = r.pesoClassificado > 0 ? "CLASSIFICADO" : "AGUARDANDO_CLASSIFICACAO";
     }
     r.atualizadoEm = now;
-    r.atualizadoPor = "u1";
+    r.atualizadoPor = usuarioAtualId();
     return { sucesso: true, mensagem: "Colheita vinculada ao romaneio." };
   },
 };
@@ -3761,7 +3761,7 @@ export const romaneioPesagemService = {
       origemLeitura: (data.origemLeitura as any) || "MANUAL",
       operador: data.operador || "u1",
       observacao: data.observacao || "",
-      criadoEm: now, criadoPor: "u1",
+      criadoEm: now, criadoPor: usuarioAtualId(),
       editadoEm: null, editadoPor: null,
     };
     mockRomaneioPesagens.push(novo);
@@ -3823,7 +3823,7 @@ export const estoqueTransitoService = {
       quantidadeMovimentada: 0,
       quantidadeSaldo: contrato.quantidadeTotal,
       status: "ATIVO",
-      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       deletadoEm: null, deletadoPor: null,
     };
     mockEstoquesTransito.push(novo);
@@ -3839,7 +3839,7 @@ export const estoqueTransitoService = {
       transito.quantidadeSaldo = 0;
       transito.status = "FINALIZADO";
     }
-    transito.atualizadoEm = now; transito.atualizadoPor = "u1";
+    transito.atualizadoEm = now; transito.atualizadoPor = usuarioAtualId();
   },
   obterSaldoTransitoProduto(produtoId: string, empresaId: string, filialId: string): number {
     return mockEstoquesTransito
@@ -3900,7 +3900,7 @@ export const contratoLiquidacaoService = {
       status: "PREVIA",
       dataLiquidacao: now,
       observacao: "",
-      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       deletadoEm: null, deletadoPor: null,
     };
     mockContratoLiquidacoes.push(liquidacao);
@@ -4009,7 +4009,7 @@ export const contratoLiquidacaoService = {
     liquidacao.valorDescontos = valorDescontos;
     liquidacao.valorLiquido = valorLiquido;
     liquidacao.atualizadoEm = now;
-    liquidacao.atualizadoPor = "u1";
+    liquidacao.atualizadoPor = usuarioAtualId();
 
     return { sucesso: true, mensagem: "Prévia de liquidação gerada.", liquidacao };
   },
@@ -4137,8 +4137,8 @@ export const contratoLiquidacaoService = {
       valorNovo: Math.round(valorNovo * 100) / 100,
       diferenca: Math.round((valorNovo - valorAnterior) * 100) / 100,
       motivo, dadosExtras: extras ?? null,
-      usuarioId: "u1", dataMovimento: now,
-      criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+      usuarioId: usuarioAtualId(), dataMovimento: now,
+      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
       deletadoEm: null, deletadoPor: null,
     };
     mockMovAjusteParcela.push(mov);
@@ -4215,12 +4215,12 @@ export const contratoLiquidacaoService = {
     liquidacao.dataLiquidacao = now;
     if (observacao && observacao.trim().length > 0) liquidacao.observacao = observacao.trim();
     liquidacao.atualizadoEm = now;
-    liquidacao.atualizadoPor = "u1";
+    liquidacao.atualizadoPor = usuarioAtualId();
 
     // 2. Encerra contrato
     contrato.status = "LIQUIDADO";
     contrato.atualizadoEm = now;
-    contrato.atualizadoPor = "u1";
+    contrato.atualizadoPor = usuarioAtualId();
 
     // 3. Zera estoque em trânsito
     const transito = mockEstoquesTransito.find(
@@ -4230,7 +4230,7 @@ export const contratoLiquidacaoService = {
       transito.quantidadeSaldo = 0;
       transito.status = "FINALIZADO";
       transito.atualizadoEm = now;
-      transito.atualizadoPor = "u1";
+      transito.atualizadoPor = usuarioAtualId();
     }
 
     // 4. Localiza conta(s) vinculada(s) ao contrato
@@ -4279,7 +4279,7 @@ export const contratoLiquidacaoService = {
         if (p.status === "PREVISTO") {
           const valorAnt = p.valorParcela;
           p.status = "PENDENTE";
-          p.atualizadoEm = now; p.atualizadoPor = "u1";
+          p.atualizadoEm = now; p.atualizadoPor = usuarioAtualId();
           this._registrarMov(p.id, p.contaId, contrato.id, liquidacao.id,
             "PROMOCAO_PREVISTO_PENDENTE", valorAnt, valorAnt,
             "Parcela efetivada por liquidação do contrato.", ctx);
@@ -4322,7 +4322,7 @@ export const contratoLiquidacaoService = {
             p.motivoAjuste = `Reduzida em ${corte.toFixed(2)} por liquidação`;
             resumo.parcelasAjustadas++;
           }
-          p.atualizadoEm = now; p.atualizadoPor = "u1";
+          p.atualizadoEm = now; p.atualizadoPor = usuarioAtualId();
           this._registrarMov(p.id, p.contaId, contrato.id, liquidacao.id,
             valorNovo <= 0.005 ? "PARCELA_ZERADA" : "AJUSTE_LIQUIDACAO",
             valorAnt, valorNovo,
@@ -4368,7 +4368,7 @@ export const contratoLiquidacaoService = {
               "PROMOCAO_PREVISTO_PENDENTE", valorAnt, valorAnt,
               "Parcela efetivada por liquidação (sem ajuste de valor).", ctx);
           }
-          p.atualizadoEm = now; p.atualizadoPor = "u1";
+          p.atualizadoEm = now; p.atualizadoPor = usuarioAtualId();
         });
       }
 
@@ -4391,7 +4391,7 @@ export const contratoLiquidacaoService = {
           liquidacaoOrigemId: liquidacao.id,
           contaOrigemId: contaPrincipal.id,
           observacao: `Crédito gerado por liquidação do contrato ${contrato.numeroContrato} — valor pago em excesso.`,
-          criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+          criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
           deletadoEm: null, deletadoPor: null,
         };
         mockFinanceiroAdiantamentos.push(adt);
@@ -4413,7 +4413,7 @@ export const contratoLiquidacaoService = {
         if (p.status === "PREVISTO") {
           const valorAnt = p.valorParcela;
           p.status = "PENDENTE";
-          p.atualizadoEm = now; p.atualizadoPor = "u1";
+          p.atualizadoEm = now; p.atualizadoPor = usuarioAtualId();
           this._registrarMov(p.id, p.contaId, contrato.id, liquidacao.id,
             "PROMOCAO_PREVISTO_PENDENTE", valorAnt, valorAnt,
             "Parcela efetivada por liquidação do contrato.", ctx);
@@ -4438,7 +4438,7 @@ export const contratoLiquidacaoService = {
         status: "PENDENTE",
         tipoEspecial: "BONIFICACAO",
         motivoAjuste: `BONIFICAÇÃO - Liquidação com Ganho (+${aumento.toFixed(2)})`,
-        criadoEm: now, criadoPor: "u1", atualizadoEm: now, atualizadoPor: "u1",
+        criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
         deletadoEm: null, deletadoPor: null,
       };
       mockFinanceiroParcelas.push(bonif);
@@ -4456,7 +4456,7 @@ export const contratoLiquidacaoService = {
       this._recalcularStatusConta(conta);
       if (!conta.dataFaturamento) conta.dataFaturamento = now.slice(0, 10);
       conta.atualizadoEm = now;
-      conta.atualizadoPor = "u1";
+      conta.atualizadoPor = usuarioAtualId();
     }
 
     return { sucesso: true, mensagem: "Liquidação confirmada. Contrato encerrado.", resumo };
@@ -4483,7 +4483,7 @@ export const contratoLiquidacaoService = {
     if (liquidacao.status !== "PREVIA") return { sucesso: false, mensagem: "Apenas prévias podem ser canceladas." };
     liquidacao.status = "CANCELADA";
     liquidacao.atualizadoEm = now;
-    liquidacao.atualizadoPor = "u1";
+    liquidacao.atualizadoPor = usuarioAtualId();
     return { sucesso: true, mensagem: "Liquidação cancelada." };
   },
 };
