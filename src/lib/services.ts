@@ -3643,7 +3643,11 @@ export const romaneioService = {
     const novaQtd = tipoMov === "ENTRADA" ? qtdAtual + quantidadeEstoque : qtdAtual - quantidadeEstoque;
     estoqueService.atualizarSaldo(r.produtoId, r.pontoEstoqueId, novaQtd, ctx);
 
-    // 4. Update contract saldo (apenas se houver contrato)
+    // 4. Finalize romaneio (antes do cache: o saldo é derivado dos romaneios FINALIZADOS)
+    r.status = "FINALIZADO";
+    r.atualizadoEm = now; r.atualizadoPor = usuarioAtualId();
+
+    // 5. Update contract saldo cache (apenas se houver contrato)
     if (contrato) {
       // Romaneio já está FINALIZADO neste ponto → cache recalculado a partir da verdade
       const saldo = atualizarCacheSaldoContrato(contrato);
@@ -3651,10 +3655,6 @@ export const romaneioService = {
       else if (saldo.entregueNeg > 0) contrato.status = "PARCIAL";
       contrato.atualizadoEm = now; contrato.atualizadoPor = usuarioAtualId();
     }
-
-    // 5. Finalize romaneio
-    r.status = "FINALIZADO";
-    r.atualizadoEm = now; r.atualizadoPor = usuarioAtualId();
 
     const unRomaneio = unidadeMedidaService.obterPorId(unidadeRomaneioId);
     const unBase = unidadeMedidaService.obterPorId(unidadeBaseId);
