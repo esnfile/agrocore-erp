@@ -14,8 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Pencil, Trash2, Check, X } from "lucide-react";
-import { empresas } from "@/lib/mock-data";
-import { descontoStore } from "@/lib/mock-store";
+import { catalogo, descontoTipoService } from "@/lib/services";
 import type {
   DescontoTipo,
   DescontoEmpresaConfig,
@@ -106,12 +105,16 @@ const emptyForm: DescontoTipo = {
 };
 
 export default function CondicoesDescontosPage() {
-  const [descontos, setDescontos] = useState(descontoStore.getDescontoTipos());
-  const [empresaConfigs, setEmpresaConfigs] = useState(descontoStore.getDescontoEmpresaConfigs());
+  const [descontos, setDescontos] = useState<DescontoTipo[]>([]);
+  const [empresaConfigs, setEmpresaConfigs] = useState<DescontoEmpresaConfig[]>([]);
 
-  // Sync state changes back to the in-memory store so other pages see updates
-  useEffect(() => { descontoStore.setDescontoTipos(descontos); }, [descontos]);
-  useEffect(() => { descontoStore.setDescontoEmpresaConfigs(empresaConfigs); }, [empresaConfigs]);
+  // Toda leitura/gravação passa pelo descontoTipoService
+  const recarregar = async () => {
+    const [tipos, configs] = await Promise.all([descontoTipoService.listarTodos(), descontoTipoService.listarConfigsTodas()]);
+    setDescontos(tipos);
+    setEmpresaConfigs(configs);
+  };
+  useEffect(() => { recarregar(); }, []);
 
   // Filters
   const [filtroEmpresa, setFiltroEmpresa] = useState("todos");
@@ -133,7 +136,7 @@ export default function CondicoesDescontosPage() {
   const [showNewConfig, setShowNewConfig] = useState(false);
   const [newConfigForm, setNewConfigForm] = useState<{ empresaId: string; valorPadrao: number; ativo: boolean }>({ empresaId: "", valorPadrao: 0, ativo: true });
 
-  const empresaAtivas = empresas.filter(e => !e.deletadoEm);
+  const empresaAtivas = catalogo.empresas().filter(e => !e.deletadoEm);
   const getEmpresaNome = (id: string) => empresaAtivas.find(e => e.id === id)?.nome ?? id;
 
   // Build listing joining descontos with their empresa configs
@@ -185,46 +188,46 @@ export default function CondicoesDescontosPage() {
 
   const hasInlineEditing = inlineEditId !== null;
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (hasInlineEditing) {
       toast.error("Finalize a edição da configuração por empresa antes de salvar o tipo de desconto.");
       return;
     }
     if (!form.nome.trim()) { toast.error("Nome é obrigatório"); return; }
     if (editingItem) {
-      setDescontos(prev => prev.map(d => d.id === editingItem.id ? { ...form } : d));
+      await descontoTipoService.salvarTipo({ ...form, id: editingItem.id });
+      await recarregar();
       toast.success("Tipo de desconto atualizado");
     } else {
-      const newId = `dt${Date.now()}`;
-      setDescontos(prev => [...prev, { ...form, id: newId }]);
+      await descontoTipoService.salvarTipo({ ...form, id: "" });
+      await recarregar();
       toast.success("Tipo de desconto criado");
     }
     setModalOpen(false);
   };
 
-  const handleDelete = (id: string) => {
-    setDescontos(prev => prev.filter(d => d.id !== id));
-    setEmpresaConfigs(prev => prev.filter(c => c.descontoTipoId !== id));
+  const handleDelete = async (id: string) => {
+    await descontoTipoService.excluirTipo(id);
+    await recarregar();
     toast.success("Tipo de desconto removido");
   };
 
   // Empresa config CRUD
   const configsForCurrent = editingItem ? empresaConfigs.filter(c => c.descontoTipoId === editingItem.id) : [];
 
-  const saveNewConfig = () => {
+  const saveNewConfig = async () => {
     if (!newConfigForm.empresaId) { toast.error("Selecione uma empresa"); return; }
     if (configsForCurrent.some(c => c.empresaId === newConfigForm.empresaId)) {
       toast.error("Esta empresa já está vinculada");
       return;
     }
-    const newCfg: DescontoEmpresaConfig = {
-      id: `dec${Date.now()}`,
+    await descontoTipoService.salvarConfig({
       descontoTipoId: editingItem!.id,
       empresaId: newConfigForm.empresaId,
       valorPadrao: newConfigForm.valorPadrao,
       ativo: newConfigForm.ativo,
-    };
-    setEmpresaConfigs(prev => [...prev, newCfg]);
+    });
+    await recarregar();
     toast.success("Empresa vinculada");
     setShowNewConfig(false);
     setNewConfigForm({ empresaId: "", valorPadrao: 0, ativo: true });
@@ -236,9 +239,11 @@ export default function CondicoesDescontosPage() {
     setShowNewConfig(false);
   };
 
-  const saveInlineEdit = () => {
+  const saveInlineEdit = async () => {
     if (!inlineEditId) return;
-    setEmpresaConfigs(prev => prev.map(c => c.id === inlineEditId ? { ...c, valorPadrao: inlineForm.valorPadrao, ativo: inlineForm.ativo } : c));
+    const atual = empresaConfigs.find(c => c.id === inlineEditId);
+    if (atual) await descontoTipoService.salvarConfig({ ...atual, valorPadrao: inlineForm.valorPadrao, ativo: inlineForm.ativo });
+    await recarregar();
     toast.success("Configuração atualizada");
     setInlineEditId(null);
   };
@@ -247,8 +252,9 @@ export default function CondicoesDescontosPage() {
     setInlineEditId(null);
   };
 
-  const deleteConfig = (id: string) => {
-    setEmpresaConfigs(prev => prev.filter(c => c.id !== id));
+  const deleteConfig = async (id: string) => {
+    await descontoTipoService.excluirConfig(id);
+    await recarregar();
     toast.success("Configuração removida");
   };
 
