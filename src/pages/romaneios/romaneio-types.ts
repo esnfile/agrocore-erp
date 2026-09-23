@@ -152,7 +152,7 @@ export function isRomaneioEditable(status: StatusRomaneioNew): boolean {
 }
 
 // ---- Dual-unit contract display helpers ----
-import { romaneios as mockRomaneios } from "@/lib/mock-data";
+import { calcularSaldoContrato } from "@/lib/services";
 import type { Contrato, Produto, UnidadeMedida } from "@/lib/mock-data";
 
 export interface ContratoUnidadeInfo {
@@ -169,7 +169,7 @@ export interface ContratoUnidadeInfo {
 
 /**
  * Resolves the contract's negotiation unit info for dual-unit display.
- * saldoKg is calculated by direct subtraction: quantidadeBaseTotal - sum of finalized romaneios pesoClassificado.
+ * entregue/saldo vêm de calcularSaldoContrato (services) — fonte única.
  * This avoids cumulative rounding errors from intermediate conversions.
  */
 export function resolveContratoUnidadeInfo(contrato: Contrato, tipoRomaneio?: TipoRomaneio): ContratoUnidadeInfo {
@@ -195,13 +195,11 @@ export function resolveContratoUnidadeInfo(contrato: Contrato, tipoRomaneio?: Ti
   }
 
   // Calculate entregueKg by summing pesoClassificado from finalized romaneios (exact KG, no conversion)
-  const entregueKg = mockRomaneios
-    .filter((r) => r.contratoId === contrato.id && r.status === "FINALIZADO" && r.deletadoEm === null)
-    .reduce((sum, r) => sum + (r.pesoClassificado || 0), 0);
-
-  // saldoKg via direct subtraction — no intermediate rounding
-  const totalKg = contrato.quantidadeBaseTotal;
-  const saldoKg = totalKg - entregueKg;
+  // Fonte única de saldo (camada de serviço) — derivada dos romaneios finalizados
+  const saldo = calcularSaldoContrato(contrato);
+  const entregueKg = saldo.entregueBase;
+  const totalKg = saldo.totalBase;
+  const saldoKg = saldo.saldoBase;
 
   // Display-only values in negotiation unit (SC, etc.) — Math.round for single consistent rounding
   const entregueOriginal = isKg ? entregueKg : Math.round(entregueKg / fator);
