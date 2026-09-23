@@ -19,6 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
+import { catalogo, getUnidadeBaseParaTipo } from "@/lib/services";
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -50,15 +51,6 @@ import {
   descontoTipoService,
   unidadeMedidaService,
 } from "@/lib/services";
-import {
-  pessoas as mockPessoas,
-  produtos as mockProdutos,
-  unidadesMedida as mockUnidades,
-  moedas as mockMoedas,
-  empresas as mockEmpresas,
-  financeiroFormasPagto as mockFormasPagto,
-  getUnidadeBaseParaTipo,
-} from "@/lib/mock-data";
 import type {
   Contrato,
   ContratoFixacao,
@@ -399,7 +391,7 @@ export default function ContratosPage() {
   // FURO 4: Pre-preencher unidadeNegociacaoId ao selecionar produto/tipo
   useEffect(() => {
     if (!produtoIdWatch || editingContrato) return; // Só pré-preenche em criação
-    const produto = mockProdutos.find((p) => p.id === produtoIdWatch && p.deletadoEm === null);
+    const produto = catalogo.produtos().find((p) => p.id === produtoIdWatch && p.deletadoEm === null);
     if (!produto) return;
     const unidadeId = tipoContratoWatch === "COMPRA" ? produto.unidadeEntradaId : produto.unidadeSaidaId;
     if (unidadeId) {
@@ -484,12 +476,12 @@ export default function ContratosPage() {
   }, [empresaId, filialOperacaoWatch]);
 
   // Pessoas are GLOBAL - not filtered by empresa
-  const pessoasAtivas = useMemo(() => mockPessoas.filter((p) => p.deletadoEm === null && p.ativo), []);
+  const pessoasAtivas = useMemo(() => catalogo.pessoas().filter((p) => p.deletadoEm === null && p.ativo), []);
   const produtosAtivos = useMemo(
-    () => mockProdutos.filter((p) => p.deletadoEm === null && p.ativo && p.empresaId === (empresaIdWatch || empresaId)),
+    () => catalogo.produtos().filter((p) => p.deletadoEm === null && p.ativo && p.empresaId === (empresaIdWatch || empresaId)),
     [empresaIdWatch, empresaId],
   );
-  const unidadesAtivas = useMemo(() => mockUnidades.filter((u) => u.deletadoEm === null && u.ativo), []);
+  const unidadesAtivas = useMemo(() => catalogo.unidadesMedida().filter((u) => u.deletadoEm === null && u.ativo), []);
 
   // Searchable options for Pessoa
   const pessoaOptions: SearchableOption[] = useMemo(
@@ -507,7 +499,7 @@ export default function ContratosPage() {
   const produtoOptions: SearchableOption[] = useMemo(
     () =>
       produtosAtivos.map((p) => {
-        const unBase = mockUnidades.find((u) => u.id === getUnidadeBaseParaTipo(p.tipoUnidade));
+        const unBase = catalogo.unidadesMedida().find((u) => u.id === getUnidadeBaseParaTipo(p.tipoUnidade));
         return {
           id: p.id,
           label: p.descricao,
@@ -521,7 +513,7 @@ export default function ContratosPage() {
   // Currency watch
   const moedaIdWatch = contratoForm.watch("moedaId");
   const precoWatch = contratoForm.watch("precoUnitario");
-  const moedaCodigo = useMemo(() => mockMoedas.find((m) => m.id === moedaIdWatch)?.codigo ?? "BRL", [moedaIdWatch]);
+  const moedaCodigo = useMemo(() => catalogo.moedas().find((m) => m.id === moedaIdWatch)?.codigo ?? "BRL", [moedaIdWatch]);
   const [precoDisplay, setPrecoDisplay] = useState("");
 
   // Sync price display on blur
@@ -547,11 +539,11 @@ export default function ContratosPage() {
   }, []);
 
   // Helpers
-  const getNomePessoa = (id: string) => mockPessoas.find((p) => p.id === id)?.nomeRazao ?? id;
-  const getNomeProduto = (id: string) => mockProdutos.find((p) => p.id === id)?.descricao ?? id;
-  const getCodigoUnidade = (id: string) => mockUnidades.find((u) => u.id === id)?.codigo ?? id;
-  const getSimboloMoeda = (id: string) => mockMoedas.find((m) => m.id === id)?.simbolo ?? "";
-  const getCodigoMoeda = (id: string) => mockMoedas.find((m) => m.id === id)?.codigo ?? id;
+  const getNomePessoa = (id: string) => catalogo.pessoas().find((p) => p.id === id)?.nomeRazao ?? id;
+  const getNomeProduto = (id: string) => catalogo.produtos().find((p) => p.id === id)?.descricao ?? id;
+  const getCodigoUnidade = (id: string) => catalogo.unidadesMedida().find((u) => u.id === id)?.codigo ?? id;
+  const getSimboloMoeda = (id: string) => catalogo.moedas().find((m) => m.id === id)?.simbolo ?? "";
+  const getCodigoMoeda = (id: string) => catalogo.moedas().find((m) => m.id === id)?.codigo ?? id;
   const getNomeFilial = (id: string | null) => {
     if (!id) return "—";
     // Search across all known filiais
@@ -561,7 +553,7 @@ export default function ContratosPage() {
     if (fromEmpresa) return fromEmpresa.nomeRazao;
     return id;
   };
-  const getNomeEmpresa = (id: string) => orgEmpresas.find((e) => e.id === id)?.nome ?? mockEmpresas.find((e) => e.id === id)?.nome ?? id;
+  const getNomeEmpresa = (id: string) => orgEmpresas.find((e) => e.id === id)?.nome ?? catalogo.empresas().find((e) => e.id === id)?.nome ?? id;
 
   // ---- Lista filtrada + ordenada para a tabela ----
   // Filtro por status + ordenação padrão (Empresa ASC → Filial ASC → dataContrato DESC)
@@ -1096,7 +1088,7 @@ export default function ContratosPage() {
 
     // 🔄 Romaneios armazenam peso em UNIDADE BASE (KG). Converter para a unidade
     // de negociação do contrato (ex: SC) antes de qualquer comparação visual.
-    const produto = mockProdutos.find((p) => p.id === editingContrato.produtoId);
+    const produto = catalogo.produtos().find((p) => p.id === editingContrato.produtoId);
     const unidadeBaseId = produto ? getUnidadeBaseParaTipo(produto.tipoUnidade) : null;
     const converterParaNegociacao = (valorBase: number): number => {
       if (!produto || !unidadeBaseId || !editingContrato.unidadeNegociacaoId) return valorBase;
@@ -1580,7 +1572,7 @@ export default function ContratosPage() {
                       {Math.round(c.quantidadeSaldo).toLocaleString("pt-BR")} {getCodigoUnidade(c.unidadeNegociacaoId)}
                     </TableCell>
                     <TableCell className="text-right">
-                      {formatCurrency(c.precoUnitario, mockMoedas.find((m) => m.id === c.moedaId)?.codigo ?? "BRL")}
+                      {formatCurrency(c.precoUnitario, catalogo.moedas().find((m) => m.id === c.moedaId)?.codigo ?? "BRL")}
                     </TableCell>
                     <TableCell className="text-center">
                       <TooltipProvider delayDuration={200}>
@@ -2651,7 +2643,7 @@ export default function ContratosPage() {
                                               </TableHeader>
                                               <TableBody>
                                                 {parcelaMovs.map((m) => {
-                                                  const formaLabel = mockFormasPagto.find((f) => f.id === m.formaPagamentoId)?.descricao ?? "—";
+                                                  const formaLabel = catalogo.formasPagto().find((f) => f.id === m.formaPagamentoId)?.descricao ?? "—";
                                                   return (
                                                     <TableRow key={m.id}>
                                                       <TableCell className="text-xs">{format(new Date(m.dataMovimento), "dd/MM/yyyy")}</TableCell>
@@ -3064,7 +3056,7 @@ export default function ContratosPage() {
                                               </TableHeader>
                                               <TableBody>
                                                 {parcelaMovs.map((m) => {
-                                                  const formaLabel = mockFormasPagto.find((f) => f.id === m.formaPagamentoId)?.descricao ?? "—";
+                                                  const formaLabel = catalogo.formasPagto().find((f) => f.id === m.formaPagamentoId)?.descricao ?? "—";
                                                   return (
                                                     <TableRow key={m.id}>
                                                       <TableCell className="text-xs">{format(new Date(m.dataMovimento), "dd/MM/yyyy")}</TableCell>
@@ -3176,7 +3168,7 @@ export default function ContratosPage() {
                       <h3 className="font-semibold text-foreground">Descontos Oficiais</h3>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         Descontos cadastrados no módulo Condições e Descontos para a empresa{" "}
-                        {mockEmpresas.find((e) => e.id === (empresaIdWatch || empresaId))?.nome ?? "selecionada"}
+                        {catalogo.empresas().find((e) => e.id === (empresaIdWatch || empresaId))?.nome ?? "selecionada"}
                       </p>
                     </div>
                     <div className="flex gap-2"></div>
@@ -3801,7 +3793,7 @@ export default function ContratosPage() {
             const saldoAgora = Math.max(0, totalRomaneios - jaFixadoAnterior);
             const volAtual = Number(fixacaoForm.watch("quantidadeFixada")) || 0;
             const precoAtual = Number(fixacaoForm.watch("precoFixado")) || 0;
-            const fixMoedaSimbolo = mockMoedas.find((m) => m.id === fixacaoForm.watch("moedaId"))?.simbolo ?? "R$";
+            const fixMoedaSimbolo = catalogo.moedas().find((m) => m.id === fixacaoForm.watch("moedaId"))?.simbolo ?? "R$";
             const valorFixacao = volAtual * precoAtual;
             return (
               <div className="rounded-md border border-amber-500/30 bg-amber-50/30 dark:bg-amber-950/10 p-3 text-sm space-y-1">
@@ -3896,7 +3888,7 @@ export default function ContratosPage() {
             const vol = fixacaoForm.watch("quantidadeFixada") || 0;
             const preco = fixacaoForm.watch("precoFixado") || 0;
             const fixMoedaId = fixacaoForm.watch("moedaId");
-            const fixMoedaCod = mockMoedas.find((m) => m.id === fixMoedaId)?.codigo ?? "BRL";
+            const fixMoedaCod = catalogo.moedas().find((m) => m.id === fixMoedaId)?.codigo ?? "BRL";
             const total = vol * preco;
             const custoBase =
               precoSugestao?.breakdown?.find((b) => b.tipo.includes("Custo") || b.tipo.includes("Pago"))?.valor ??
@@ -4164,7 +4156,7 @@ export default function ContratosPage() {
         >
           {(() => {
             const ctr = (editingContrato || autoGerarDuplicatasContrato)!;
-            const ctrMoedaSimbolo = mockMoedas.find((m) => m.id === ctr.moedaId)?.simbolo ?? "R$";
+            const ctrMoedaSimbolo = catalogo.moedas().find((m) => m.id === ctr.moedaId)?.simbolo ?? "R$";
             const valorEsperado = fixacaoParaDuplicata
               ? fixacaoParaDuplicata.quantidadeFixada * fixacaoParaDuplicata.precoFixado
               : ctr.quantidadeTotal * ctr.precoUnitario;

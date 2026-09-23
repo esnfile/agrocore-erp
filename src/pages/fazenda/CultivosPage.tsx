@@ -13,10 +13,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
+import { catalogo } from "@/lib/services";
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { empresas, filiais } from "@/lib/mock-data";
 
 // ---- Interface & Mock ----
 export interface Cultivo {
@@ -135,7 +135,7 @@ export default function CultivosPage() {
   });
 
   const watchEmpresaId = watch("empresaId");
-  const filiaisFiltradas = useMemo(() => filiais.filter((f) => f.empresaId === watchEmpresaId), [watchEmpresaId]);
+  const filiaisFiltradas = useMemo(() => catalogo.filiais().filter((f) => f.empresaId === watchEmpresaId), [watchEmpresaId]);
 
   const filtered = useMemo(() => {
     return data.filter((c) => {
@@ -237,14 +237,14 @@ export default function CultivosPage() {
           <SelectTrigger><SelectValue placeholder="Empresa" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas</SelectItem>
-            {empresas.map((e) => <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>)}
+            {catalogo.empresas().map((e) => <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={filtroFilial} onValueChange={setFiltroFilial}>
           <SelectTrigger><SelectValue placeholder="Filial" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas</SelectItem>
-            {filiais.filter((f) => filtroEmpresa === "all" || f.empresaId === filtroEmpresa).map((f) => (
+            {catalogo.filiais().filter((f) => filtroEmpresa === "all" || f.empresaId === filtroEmpresa).map((f) => (
               <SelectItem key={f.id} value={f.id}>{f.nomeRazao}</SelectItem>
             ))}
           </SelectContent>
@@ -281,7 +281,7 @@ export default function CultivosPage() {
               <Select value={field.value} onValueChange={field.onChange}>
                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
-                  {empresas.map((e) => <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>)}
+                  {catalogo.empresas().map((e) => <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>)}
                 </SelectContent>
               </Select>
             )} />

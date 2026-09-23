@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
+import { catalogo } from "@/lib/services";
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
@@ -17,7 +18,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { romaneioService } from "@/lib/services";
-import { produtos as mockProdutos, empresas, filiais } from "@/lib/mock-data";
 import type { Romaneio } from "@/lib/mock-data";
 import {
   STATUS_LABELS, STATUS_BADGE_CLASSES, STATUS_ICONS, ORIGEM_LABELS,
@@ -61,14 +61,14 @@ export default function RomaneiosPage() {
     setLoading(true);
     let data: Romaneio[] = [];
     if (filterEmpresa === "TODAS") {
-      for (const emp of empresas.filter((e) => e.deletadoEm === null && e.grupoId === grupoAtual?.id)) {
-        for (const fil of filiais.filter((f) => f.empresaId === emp.id && f.deletadoEm === null)) {
+      for (const emp of catalogo.empresas().filter((e) => e.deletadoEm === null && e.grupoId === grupoAtual?.id)) {
+        for (const fil of catalogo.filiais().filter((f) => f.empresaId === emp.id && f.deletadoEm === null)) {
           const r = await romaneioService.listar(emp.id, fil.id);
           data = data.concat(r);
         }
       }
     } else if (filterFilial === "TODAS") {
-      for (const fil of filiais.filter((f) => f.empresaId === filterEmpresa && f.deletadoEm === null)) {
+      for (const fil of catalogo.filiais().filter((f) => f.empresaId === filterEmpresa && f.deletadoEm === null)) {
         const r = await romaneioService.listar(filterEmpresa, fil.id);
         data = data.concat(r);
       }
@@ -83,19 +83,19 @@ export default function RomaneiosPage() {
 
   const produtoMap = useMemo(() => {
     const m: Record<string, string> = {};
-    mockProdutos.forEach((p) => { m[p.id] = p.descricao; });
+    catalogo.produtos().forEach((p) => { m[p.id] = p.descricao; });
     return m;
   }, []);
 
   const empresaMap = useMemo(() => {
     const m: Record<string, string> = {};
-    empresas.forEach((e) => { m[e.id] = e.nome; });
+    catalogo.empresas().forEach((e) => { m[e.id] = e.nome; });
     return m;
   }, []);
 
   const filialMap = useMemo(() => {
     const m: Record<string, string> = {};
-    filiais.forEach((f) => { m[f.id] = f.nomeRazao; });
+    catalogo.filiais().forEach((f) => { m[f.id] = f.nomeRazao; });
     return m;
   }, []);
 
@@ -151,7 +151,7 @@ export default function RomaneiosPage() {
   const origemOptions: OrigemRomaneio[] = ["CONTRATO", "COLHEITA", "AVULSO"];
 
   const filiaisFiltradas = filterEmpresa !== "TODAS"
-    ? filiais.filter((f) => f.empresaId === filterEmpresa && f.deletadoEm === null)
+    ? catalogo.filiais().filter((f) => f.empresaId === filterEmpresa && f.deletadoEm === null)
     : [];
 
   const isReadOnly = (status: string) => status === "FINALIZADO" || status === "CANCELADO";
@@ -178,7 +178,7 @@ export default function RomaneiosPage() {
               <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="TODAS">Todas as empresas</SelectItem>
-                {empresas.filter((e) => e.deletadoEm === null && e.grupoId === grupoAtual?.id).map((e) => (
+                {catalogo.empresas().filter((e) => e.deletadoEm === null && e.grupoId === grupoAtual?.id).map((e) => (
                   <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
                 ))}
               </SelectContent>

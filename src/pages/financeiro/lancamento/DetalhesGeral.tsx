@@ -3,10 +3,10 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { FinanceiroCentroCusto, FinanceiroContaFinanceira, FinanceiroTipoLancamento } from "@/lib/mock-data";
-import { financeiroTipoContas } from "@/lib/mock-data";
 import { formatMoeda } from "@/lib/format";
 import { avaliarSaldo } from "./saldo-utils";
 import type { LancamentoFormState } from "./types";
+import { catalogo } from "@/lib/services";
 
 interface Props {
   state: LancamentoFormState;

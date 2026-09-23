@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+import { catalogo, getCodigoUnidadeBase } from "@/lib/services";
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
@@ -11,11 +12,6 @@ import {
 } from "@/components/ui/table";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { estoqueService, pontoEstoqueService } from "@/lib/services";
-import {
-  produtos as mockProdutos,
-  unidadesMedida as mockUnidades,
-  getCodigoUnidadeBase,
-} from "@/lib/mock-data";
 import type { Estoque, PontoEstoque } from "@/lib/mock-data";
 
 export default function ConsultaEstoquePage() {
@@ -32,7 +28,7 @@ export default function ConsultaEstoquePage() {
   const [filtroPonto, setFiltroPonto] = useState<string>("__all__");
 
   const produtosAtivos = useMemo(
-    () => mockProdutos.filter((p) => p.deletadoEm === null && p.empresaId === selectedEmpresa),
+    () => catalogo.produtos().filter((p) => p.deletadoEm === null && p.empresaId === selectedEmpresa),
     [selectedEmpresa]
   );
 
@@ -56,10 +52,10 @@ export default function ConsultaEstoquePage() {
     return list;
   }, [estoques, filtroProduto, filtroPonto]);
 
-  const getNomeProduto = (id: string) => mockProdutos.find((p) => p.id === id)?.descricao ?? id;
+  const getNomeProduto = (id: string) => catalogo.produtos().find((p) => p.id === id)?.descricao ?? id;
   const getNomePonto = (id: string) => pontos.find((p) => p.id === id)?.descricao ?? id;
   const getUnidadeBaseProduto = (produtoId: string) => {
-    const produto = mockProdutos.find((p) => p.id === produtoId);
+    const produto = catalogo.produtos().find((p) => p.id === produtoId);
     if (!produto) return "";
     return getCodigoUnidadeBase(produto.tipoUnidade);
   };

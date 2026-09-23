@@ -8,9 +8,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { AlertTriangle, CheckCircle, Link2, ShieldCheck } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { romaneioService, contratoService } from "@/lib/services";
-import { produtos as mockProdutos } from "@/lib/mock-data";
 import type { Romaneio, Contrato } from "@/lib/mock-data";
 import { ORIGEM_LABELS, TIPO_LABELS, SAFRAS_REF, CULTIVOS_REF, resolveContratoUnidadeInfo, fmtDualUnit, fmtContratoSaldo } from "../romaneio-types";
+import { catalogo } from "@/lib/services";
 
 interface StepVinculoProps {
   romaneio: Romaneio;
@@ -31,7 +31,7 @@ export function StepVinculo({ romaneio, onRefresh, ctx }: StepVinculoProps) {
     && romaneio.status !== "FINALIZADO" && romaneio.status !== "CANCELADO";
   const isEditable = romaneio.status !== "FINALIZADO" && romaneio.status !== "CANCELADO";
 
-  const produtoNome = mockProdutos.find((p) => p.id === romaneio.produtoId)?.descricao || romaneio.produtoId;
+  const produtoNome = catalogo.produtos().find((p) => p.id === romaneio.produtoId)?.descricao || romaneio.produtoId;
 
   // CORREÇÃO 4 & 6: Filter contracts by empresa, produto, tipo AND check saldo > 0
   const contratosCompativeis = useMemo(() => {

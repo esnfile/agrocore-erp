@@ -13,10 +13,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
+import { catalogo } from "@/lib/services";
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { empresas, filiais } from "@/lib/mock-data";
 import { SafrasDashboard } from "./components/SafrasDashboard";
 
 // ---- Interfaces & Mock ----
@@ -125,7 +125,7 @@ export default function SafrasPage() {
   });
 
   const watchEmpresaId = watch("empresaId");
-  const filiaisFiltradas = useMemo(() => filiais.filter((f) => f.empresaId === watchEmpresaId), [watchEmpresaId]);
+  const filiaisFiltradas = useMemo(() => catalogo.filiais().filter((f) => f.empresaId === watchEmpresaId), [watchEmpresaId]);
 
   const filtered = useMemo(() => {
     return data.filter((s) => {
@@ -144,11 +144,11 @@ export default function SafrasPage() {
     { key: "dataFim", header: "Fim", render: (r) => new Date(r.dataFim).toLocaleDateString("pt-BR") },
     {
       key: "empresaId", header: "Empresa",
-      render: (r) => empresas.find((e) => e.id === r.empresaId)?.nome ?? "—",
+      render: (r) => catalogo.empresas().find((e) => e.id === r.empresaId)?.nome ?? "—",
     },
     {
       key: "filialId", header: "Filial",
-      render: (r) => filiais.find((f) => f.id === r.filialId)?.nomeRazao ?? "—",
+      render: (r) => catalogo.filiais().find((f) => f.id === r.filialId)?.nomeRazao ?? "—",
     },
     { key: "areaTotalHa", header: "Área (ha)", render: (r) => r.areaTotalHa.toLocaleString("pt-BR") },
     {
@@ -239,14 +239,14 @@ export default function SafrasPage() {
           <SelectTrigger><SelectValue placeholder="Empresa" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas as empresas</SelectItem>
-            {empresas.map((e) => <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>)}
+            {catalogo.empresas().map((e) => <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={filtroFilial} onValueChange={setFiltroFilial}>
           <SelectTrigger><SelectValue placeholder="Filial" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas as filiais</SelectItem>
-            {filiais.filter((f) => filtroEmpresa === "all" || f.empresaId === filtroEmpresa).map((f) => (
+            {catalogo.filiais().filter((f) => filtroEmpresa === "all" || f.empresaId === filtroEmpresa).map((f) => (
               <SelectItem key={f.id} value={f.id}>{f.nomeRazao}</SelectItem>
             ))}
           </SelectContent>
@@ -272,7 +272,7 @@ export default function SafrasPage() {
               <Select value={field.value} onValueChange={field.onChange}>
                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
-                  {empresas.map((e) => <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>)}
+                  {catalogo.empresas().map((e) => <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>)}
                 </SelectContent>
               </Select>
             )} />

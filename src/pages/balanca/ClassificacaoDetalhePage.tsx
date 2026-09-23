@@ -6,10 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { romaneioService } from "@/lib/services";
-import { produtos as mockProdutos, type Romaneio } from "@/lib/mock-data";
+import { type Romaneio } from "@/lib/mock-data";
 import { StepClassificacao } from "@/pages/romaneios/steps/StepClassificacao";
 import { RomaneioStatusBadge } from "@/pages/romaneios/components/RomaneioStatusBadge";
 import { ArrowLeft } from "lucide-react";
+import { catalogo } from "@/lib/services";
 
 export default function ClassificacaoDetalhePage() {
   const { id } = useParams<{ id: string }>();
@@ -52,7 +53,7 @@ export default function ClassificacaoDetalhePage() {
     );
   }
 
-  const produtoNome = mockProdutos.find((p) => p.id === romaneio.produtoId)?.descricao || "—";
+  const produtoNome = catalogo.produtos().find((p) => p.id === romaneio.produtoId)?.descricao || "—";
 
   return (
     <div className="space-y-4">

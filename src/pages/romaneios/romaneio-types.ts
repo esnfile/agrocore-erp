@@ -41,6 +41,7 @@ export const STATUS_BADGE_CLASSES: Record<StatusRomaneioNew, string> = {
 // Icon for each status — paired with STATUS_BADGE_CLASSES (kept colors).
 // Imported lazily to avoid circular deps with consumers.
 import {
+import { catalogo, getUnidadeBaseParaTipo, getCodigoUnidadeBase } from "@/lib/services";
   FileEdit,
   Truck,
   FileText,
@@ -151,8 +152,7 @@ export function isRomaneioEditable(status: StatusRomaneioNew): boolean {
 }
 
 // ---- Dual-unit contract display helpers ----
-import { unidadesMedida, getUnidadeBaseParaTipo, getCodigoUnidadeBase, romaneios as mockRomaneios } from "@/lib/mock-data";
-import { produtos as mockProdutos } from "@/lib/mock-data";
+import { romaneios as mockRomaneios } from "@/lib/mock-data";
 import type { Contrato, Produto, UnidadeMedida } from "@/lib/mock-data";
 
 export interface ContratoUnidadeInfo {
@@ -173,10 +173,10 @@ export interface ContratoUnidadeInfo {
  * This avoids cumulative rounding errors from intermediate conversions.
  */
 export function resolveContratoUnidadeInfo(contrato: Contrato, tipoRomaneio?: TipoRomaneio): ContratoUnidadeInfo {
-  const unidade = unidadesMedida.find((u) => u.id === contrato.unidadeNegociacaoId && u.deletadoEm === null);
+  const unidade = catalogo.unidadesMedida().find((u) => u.id === contrato.unidadeNegociacaoId && u.deletadoEm === null);
   const codigo = unidade?.codigo || "KG";
   
-  const produto = mockProdutos.find((p) => p.id === contrato.produtoId && p.deletadoEm === null);
+  const produto = catalogo.produtos().find((p) => p.id === contrato.produtoId && p.deletadoEm === null);
   
   let fator = 1;
   let isKg = true;

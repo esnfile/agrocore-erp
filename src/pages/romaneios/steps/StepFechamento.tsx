@@ -9,10 +9,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { CheckCircle, XCircle, AlertTriangle, Scale, Pencil } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { romaneioService, pontoEstoqueService, contratoService } from "@/lib/services";
-import { produtos as mockProdutos } from "@/lib/mock-data";
 import type { Romaneio, PontoEstoque, Contrato } from "@/lib/mock-data";
 import { STATUS_LABELS, ORIGEM_LABELS, TIPO_LABELS, SAFRAS_REF, CULTIVOS_REF, STATUS_BADGE_CLASSES, STATUS_ICONS, type StatusRomaneioNew, resolveContratoUnidadeInfo, fmtDualUnit } from "../romaneio-types";
-import { empresas, filiais } from "@/lib/mock-data";
+import { catalogo } from "@/lib/services";
 
 interface StepFechamentoProps {
   romaneio: Romaneio;
@@ -28,9 +27,9 @@ export function StepFechamento({ romaneio, onRefresh, ctx }: StepFechamentoProps
   const [confirmCancelar, setConfirmCancelar] = useState(false);
   const [contratoVinculado, setContratoVinculado] = useState<Contrato | null>(null);
 
-  const produtoNome = mockProdutos.find((p) => p.id === romaneio.produtoId)?.descricao || romaneio.produtoId;
-  const empresaNome = empresas.find((e) => e.id === romaneio.empresaId)?.nome || romaneio.empresaId.substring(0, 8);
-  const filialNome = filiais.find((f) => f.id === romaneio.filialId)?.nomeRazao || romaneio.filialId.substring(0, 8);
+  const produtoNome = catalogo.produtos().find((p) => p.id === romaneio.produtoId)?.descricao || romaneio.produtoId;
+  const empresaNome = catalogo.empresas().find((e) => e.id === romaneio.empresaId)?.nome || romaneio.empresaId.substring(0, 8);
+  const filialNome = catalogo.filiais().find((f) => f.id === romaneio.filialId)?.nomeRazao || romaneio.filialId.substring(0, 8);
 
   const loadPontos = async () => {
     if (pontosLoaded) return;

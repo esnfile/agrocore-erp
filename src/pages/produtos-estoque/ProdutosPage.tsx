@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
+import { catalogo, getUnidadeBaseParaTipo, getCodigoUnidadeBase } from "@/lib/services";
   Select,
   SelectContent,
   SelectItem,
@@ -54,14 +55,6 @@ import {
   produtoClassificacaoService,
   classificacaoDescontoService,
 } from "@/lib/services";
-import {
-  tabelasPreco as mockTabelasPrecoData,
-  coeficientes as mockCoeficientesData,
-  coeficienteEmpresas as mockCoeficienteEmpresasData,
-  tabelaPrecoEmpresas as mockTabelaPrecoEmpresasData,
-  getUnidadeBaseParaTipo,
-  getCodigoUnidadeBase,
-} from "@/lib/mock-data";
 import type {
   Produto,
   Empresa,
@@ -316,11 +309,11 @@ export default function ProdutosPage() {
     const coefMap: Record<string, CoeficienteEmpresa[]> = {};
     const tpMap: Record<string, TabelaPrecoEmpresa[]> = {};
     for (const emp of empresasGrupo) {
-      coefMap[emp.id] = mockCoeficienteEmpresasData.filter(
+      coefMap[emp.id] = catalogo.coeficienteEmpresas().filter(
         (ce: CoeficienteEmpresa) =>
           ce.deletadoEm === null && ce.empresaId === emp.id
       );
-      tpMap[emp.id] = mockTabelaPrecoEmpresasData.filter(
+      tpMap[emp.id] = catalogo.tabelaPrecoEmpresas().filter(
         (tpe: TabelaPrecoEmpresa) =>
           tpe.deletadoEm === null && tpe.empresaId === emp.id
       );
@@ -630,7 +623,7 @@ export default function ProdutosPage() {
     for (const tpes of Object.values(tabelasPrecoPorEmpresa)) {
       const tpe = tpes.find((t) => t.id === tpeId);
       if (tpe) {
-        const parent = mockTabelasPrecoData.find(
+        const parent = catalogo.tabelasPreco().find(
           (tp) => tp.id === tpe.tabelaPrecoId && tp.deletadoEm === null
         );
         return parent?.descricao ?? tpeId;
@@ -644,7 +637,7 @@ export default function ProdutosPage() {
     for (const ces of Object.values(coeficientesPorEmpresa)) {
       const ce = ces.find((c) => c.id === ceId);
       if (ce) {
-        const parent = mockCoeficientesData.find(
+        const parent = catalogo.coeficientes().find(
           (c) => c.id === ce.coeficienteId && c.deletadoEm === null
         );
         return parent?.descricao ?? ceId;

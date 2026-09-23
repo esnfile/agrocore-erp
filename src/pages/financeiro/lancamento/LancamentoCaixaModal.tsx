@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import {
+import { catalogo } from "@/lib/services";
   financeiroMovimentacaoService, financeiroFormaPagtoService,
   financeiroChequeService, financeiroCartaoService,
 } from "@/lib/services";
@@ -12,7 +13,6 @@ import type {
   Pessoa, FinanceiroContaFinanceira, FinanceiroTipoLancamento,
   FinanceiroCentroCusto, FinanceiroFormaPagto, FinanceiroCheque, FinanceiroCartao,
 } from "@/lib/mock-data";
-import { financeiroTipoContas } from "@/lib/mock-data";
 import { categoriasImplementadas } from "./types";
 import { avaliarSaldo } from "./saldo-utils";
 import { REQUER_AUTORIZACAO_ADIANT_CLIENTE } from "@/lib/constants";
@@ -101,7 +101,7 @@ export function LancamentoCaixaModal({
 
   const contaSel = contasFinanceiras.find((c) => c.id === state.contaFinanceiraId);
   const tipoContaConta = contaSel
-    ? financeiroTipoContas.find((tc) => tc.id === contaSel.tipoContaId)?.descricao ?? null
+    ? catalogo.tipoContas().find((tc) => tc.id === contaSel.tipoContaId)?.descricao ?? null
     : null;
 
   const tiposFiltrados = useMemo(
