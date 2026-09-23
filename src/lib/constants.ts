@@ -35,4 +35,6 @@ export const ESTADOS_BRASILEIROS = [
 // Adiantamento de Cliente exige autorização de supervisor (mock).
 // TODO: substituir por verificação de permissão real quando o módulo de Usuários/Permissões existir.
 export const REQUER_AUTORIZACAO_ADIANT_CLIENTE = true;
-export const SENHA_SUPERVISOR_MOCK = "admin123";
+// Autenticação real na Fase 1. Nenhuma senha fica no código:
+// enquanto true, o protótipo aceita qualquer senha não vazia (ver autorizacaoService).
+export const PROTOTIPO_AUTORIZACAO_SEM_CREDENCIAL = true;

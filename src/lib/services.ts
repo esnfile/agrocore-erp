@@ -3527,11 +3527,13 @@ export const romaneioService = {
     await delay();
     const r = mockRomaneios.find((x) => x.id === id);
     if (r) { r.deletadoEm = new Date().toISOString(); r.deletadoPor = usuarioAtualId(); }
+    if (r?.contratoId) { const c = mockContratos.find((x) => x.id === r.contratoId); if (c) atualizarCacheSaldoContrato(c); }
   },
   async cancelar(id: string): Promise<void> {
     await delay();
     const r = mockRomaneios.find((x) => x.id === id && x.deletadoEm === null);
     if (r) { r.status = "CANCELADO"; r.atualizadoEm = new Date().toISOString(); r.atualizadoPor = usuarioAtualId(); }
+    if (r?.contratoId) { const c = mockContratos.find((x) => x.id === r.contratoId); if (c) atualizarCacheSaldoContrato(c); }
   },
   async finalizar(id: string): Promise<{ sucesso: boolean; mensagem: string }> {
     await delay();
@@ -4501,6 +4503,7 @@ export const contratoLiquidacaoService = {
 // Tipos de Desconto Oficiais (Cadastro Mestre)
 // ============================================================
 import { descontoStore } from "./mock-store";
+import { PROTOTIPO_AUTORIZACAO_SEM_CREDENCIAL } from "./constants";
 import type { DescontoTipo, DescontoEmpresaConfig } from "./mock-data";
 
 export const descontoTipoService = {
@@ -4523,5 +4526,55 @@ export const descontoTipoService = {
         descontoTipo: tipos.find((d) => d.id === c.descontoTipoId)!,
       }))
       .filter((c) => c.descontoTipo && c.descontoTipo.ativo);
+  },
+  async listarConfigsTodas(): Promise<DescontoEmpresaConfig[]> {
+    await delay(50);
+    return [...descontoStore.getDescontoEmpresaConfigs()];
+  },
+  async salvarTipo(data: DescontoTipo): Promise<DescontoTipo> {
+    await delay(50);
+    const tipos = descontoStore.getDescontoTipos();
+    if (data.id && tipos.some((d) => d.id === data.id)) {
+      descontoStore.setDescontoTipos(tipos.map((d) => (d.id === data.id ? { ...data } : d)));
+      return data;
+    }
+    const novo = { ...data, id: `dt${Date.now()}` };
+    descontoStore.setDescontoTipos([...tipos, novo]);
+    return novo;
+  },
+  async excluirTipo(id: string): Promise<void> {
+    await delay(50);
+    descontoStore.setDescontoTipos(descontoStore.getDescontoTipos().filter((d) => d.id !== id));
+    descontoStore.setDescontoEmpresaConfigs(descontoStore.getDescontoEmpresaConfigs().filter((c) => c.descontoTipoId !== id));
+  },
+  async salvarConfig(data: Omit<DescontoEmpresaConfig, "id"> & { id?: string }): Promise<DescontoEmpresaConfig> {
+    await delay(50);
+    const configs = descontoStore.getDescontoEmpresaConfigs();
+    if (data.id && configs.some((c) => c.id === data.id)) {
+      const upd = { ...(configs.find((c) => c.id === data.id) as DescontoEmpresaConfig), ...data } as DescontoEmpresaConfig;
+      descontoStore.setDescontoEmpresaConfigs(configs.map((c) => (c.id === data.id ? upd : c)));
+      return upd;
+    }
+    const novo = { ...data, id: `dec${Date.now()}` } as DescontoEmpresaConfig;
+    descontoStore.setDescontoEmpresaConfigs([...configs, novo]);
+    return novo;
+  },
+  async excluirConfig(id: string): Promise<void> {
+    await delay(50);
+    descontoStore.setDescontoEmpresaConfigs(descontoStore.getDescontoEmpresaConfigs().filter((c) => c.id !== id));
+  },
+};
+
+// ============================================================
+// Autorização de supervisor (PROTÓTIPO)
+// ------------------------------------------------------------
+// Nenhuma credencial fica no código. Autenticação/permissão real na Fase 1:
+// a API validará a permissão do supervisor. Até lá, qualquer senha não vazia
+// é aceita quando a flag de protótipo está ativa.
+// ============================================================
+export const autorizacaoService = {
+  async validarSupervisor(senha: string): Promise<boolean> {
+    await delay(100);
+    return PROTOTIPO_AUTORIZACAO_SEM_CREDENCIAL && senha.trim().length > 0;
   },
 };
