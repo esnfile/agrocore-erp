@@ -1609,8 +1609,8 @@ export const contratos: Contrato[] = [
     produtoId: "prod1",
     unidadeNegociacaoId: "um1",
     quantidadeTotal: 100000,
-    quantidadeEntregue: 25000,
-    quantidadeSaldo: 75000,
+    quantidadeEntregue: 0, // cache — entrega fictícia (ContratoEntrega) removida na Fase 0
+    quantidadeSaldo: 100000,
     quantidadeBaseTotal: 100000,
     moedaId: "moeda1",
     precoUnitario: 120.5,
