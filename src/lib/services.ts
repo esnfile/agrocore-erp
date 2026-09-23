@@ -30,7 +30,6 @@ import {
   cotacoesMoeda as mockCotacoesMoeda,
   pontoEstoqueTiposProduto as mockPontoEstoqueTiposProduto,
   contratos as mockContratos,
-  contratoEntregas as mockContratoEntregas,
   contratoFixacoes as mockContratoFixacoes,
   condicaoDescontoModelos as mockCondicaoDescontoModelos,
   condicaoDescontoModeloItens as mockCondicaoDescontoModeloItens,
@@ -67,7 +66,7 @@ import type {
   PontoEstoque, TipoPontoEstoque, Estoque, MovimentacaoEstoque, TipoMovimentoEstoque,
   EstoqueTransito, StatusEstoqueTransito,
   Moeda, CotacaoMoeda, PontoEstoqueTipoProduto,
-  Contrato, ContratoEntrega, ContratoFixacao, TipoContrato, TipoPreco, StatusContrato,
+  Contrato, ContratoFixacao, TipoContrato, TipoPreco, StatusContrato,
   CondicaoDescontoModelo, CondicaoDescontoModeloItem, ContratoCondicao, TipoCondicaoDesconto,
   ClassificacaoTipo, UnidadeClassificacao, ProdutoClassificacao, ClassificacaoDesconto, RomaneioClassificacao,
   FinanceiroConta, FinanceiroParcela, FinanceiroBaixa, TipoConta, StatusConta, OrigemConta, StatusParcela, FormaPagamento,
@@ -1648,147 +1647,6 @@ export const contratoService = {
     await delay(100);
     const t = numero.trim().toUpperCase();
     return mockContratos.some((c) => c.deletadoEm === null && c.numeroContrato.toUpperCase() === t && c.id !== excludeId);
-  },
-};
-
-// ============================================================
-// Contrato Entregas (Romaneios)
-// ============================================================
-export const contratoEntregaService = {
-  async listarPorContrato(contratoId: string): Promise<ContratoEntrega[]> {
-    await delay();
-    return mockContratoEntregas
-      .filter((e) => e.deletadoEm === null && e.contratoId === contratoId)
-      .sort((a, b) => new Date(b.dataEntrega).getTime() - new Date(a.dataEntrega).getTime());
-  },
-  async salvar(
-    data: Partial<ContratoEntrega>,
-    ctx: { grupoId: string; empresaId: string; filialId: string }
-  ): Promise<{ sucesso: boolean; mensagem: string; entrega?: ContratoEntrega }> {
-    await delay(400);
-    const now = new Date().toISOString();
-
-    const contrato = mockContratos.find((c) => c.id === data.contratoId && c.deletadoEm === null);
-    if (!contrato) return { sucesso: false, mensagem: "Contrato não encontrado." };
-
-    // Convert to base
-    const produto = mockProdutos.find((p) => p.id === contrato.produtoId);
-    const unidadeInf = mockUnidadesMedida.find((u) => u.id === data.unidadeInformadaId);
-    let quantidadeConvertidaBase = data.quantidadeInformada ?? 0;
-    if (produto && data.unidadeInformadaId) {
-      try {
-        const unidadeBaseId = getUnidadeBaseParaTipo(produto.tipoUnidade);
-        quantidadeConvertidaBase = unidadeMedidaService.converterQuantidade(
-          data.quantidadeInformada ?? 0, data.unidadeInformadaId, unidadeBaseId, produto.id
-        );
-      } catch { /* keep original value */ }
-    }
-
-    const existing = data.id ? mockContratoEntregas.find((e) => e.id === data.id && e.deletadoEm === null) : undefined;
-
-    if (existing) {
-      // Revert old quantities from contract
-      contrato.quantidadeEntregue -= existing.quantidadeInformada;
-      contrato.quantidadeSaldo += existing.quantidadeInformada;
-
-      Object.assign(existing, data, {
-        quantidadeConvertidaBase,
-        grupoId: existing.grupoId, empresaId: existing.empresaId, filialId: existing.filialId,
-        criadoEm: existing.criadoEm, criadoPor: existing.criadoPor,
-        atualizadoEm: now, atualizadoPor: usuarioAtualId(),
-      });
-
-      // Apply new quantities
-      contrato.quantidadeEntregue += (data.quantidadeInformada ?? 0);
-      contrato.quantidadeSaldo -= (data.quantidadeInformada ?? 0);
-      contrato.status = contrato.quantidadeSaldo <= 0 ? "FINALIZADO" : contrato.quantidadeEntregue > 0 ? "PARCIAL" : "ABERTO";
-      contrato.atualizadoEm = now;
-      contrato.atualizadoPor = usuarioAtualId();
-
-      return { sucesso: true, mensagem: "Romaneio atualizado.", entrega: existing };
-    }
-
-    // Validate saldo
-    if ((data.quantidadeInformada ?? 0) > contrato.quantidadeSaldo) {
-      return { sucesso: false, mensagem: `Quantidade (${data.quantidadeInformada}) excede o saldo do contrato (${contrato.quantidadeSaldo}).` };
-    }
-
-    const entrega: ContratoEntrega = {
-      id: `ctre${Date.now()}`,
-      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
-      contratoId: data.contratoId!,
-      dataEntrega: data.dataEntrega ?? now,
-      quantidadeInformada: data.quantidadeInformada ?? 0,
-      unidadeInformadaId: data.unidadeInformadaId ?? "",
-      quantidadeConvertidaBase,
-      pontoEstoqueId: data.pontoEstoqueId ?? "",
-      pesoBruto: data.pesoBruto ?? null,
-      pesoLiquido: data.pesoLiquido ?? null,
-      pesoClassificado: data.pesoClassificado ?? null,
-      descontoTotalPercentual: data.descontoTotalPercentual ?? null,
-      pesoComercial: data.pesoComercial ?? null,
-      placaVeiculo: data.placaVeiculo ?? "",
-      nomeMotorista: data.nomeMotorista ?? "",
-      documentoMotorista: data.documentoMotorista ?? "",
-      observacoes: data.observacoes ?? "",
-      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
-      deletadoEm: null, deletadoPor: null,
-    };
-    mockContratoEntregas.push(entrega);
-
-    // Update contract saldo
-    contrato.quantidadeEntregue += entrega.quantidadeInformada;
-    contrato.quantidadeSaldo -= entrega.quantidadeInformada;
-    contrato.status = contrato.quantidadeSaldo <= 0 ? "FINALIZADO" : "PARCIAL";
-    contrato.atualizadoEm = now;
-    contrato.atualizadoPor = usuarioAtualId();
-
-    // Create stock movement
-    const tipoMov = contrato.tipoContrato === "COMPRA" ? "ENTRADA" : "SAIDA";
-    const mov: MovimentacaoEstoque = {
-      id: `mov${Date.now()}`,
-      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: ctx.filialId,
-      produtoId: contrato.produtoId, pontoEstoqueId: entrega.pontoEstoqueId,
-      tipoMovimento: tipoMov,
-      quantidadeInformada: entrega.quantidadeInformada,
-      unidadeMovimentacaoId: entrega.unidadeInformadaId,
-      quantidadeConvertidaBase: entrega.quantidadeConvertidaBase,
-      dataMovimentacao: entrega.dataEntrega,
-      observacao: `Romaneio ${entrega.id} — Contrato ${contrato.numeroContrato}`,
-      contratoId: contrato.id, romaneioId: entrega.id,
-      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
-      deletadoEm: null, deletadoPor: null,
-    };
-    mockMovimentacoesEstoque.push(mov);
-
-    // Update estoque
-    const saldoAtual = estoqueService.obterSaldo(contrato.produtoId, entrega.pontoEstoqueId);
-    const qtdAtual = saldoAtual?.quantidadeAtual ?? 0;
-    const novaQtd = tipoMov === "ENTRADA"
-      ? qtdAtual + entrega.quantidadeConvertidaBase
-      : qtdAtual - entrega.quantidadeConvertidaBase;
-    estoqueService.atualizarSaldo(contrato.produtoId, entrega.pontoEstoqueId, novaQtd, ctx);
-
-    return { sucesso: true, mensagem: "Romaneio registrado e estoque atualizado.", entrega };
-  },
-  async excluir(id: string): Promise<{ sucesso: boolean; mensagem: string }> {
-    await delay();
-    const now = new Date().toISOString();
-    const e = mockContratoEntregas.find((e) => e.id === id && e.deletadoEm === null);
-    if (!e) return { sucesso: false, mensagem: "Entrega não encontrada." };
-
-    // Revert contract
-    const contrato = mockContratos.find((c) => c.id === e.contratoId && c.deletadoEm === null);
-    if (contrato) {
-      contrato.quantidadeEntregue -= e.quantidadeInformada;
-      contrato.quantidadeSaldo += e.quantidadeInformada;
-      contrato.status = contrato.quantidadeEntregue <= 0 ? "ABERTO" : "PARCIAL";
-      contrato.atualizadoEm = now;
-      contrato.atualizadoPor = usuarioAtualId();
-    }
-
-    e.deletadoEm = now; e.deletadoPor = usuarioAtualId(); e.atualizadoEm = now; e.atualizadoPor = usuarioAtualId();
-    return { sucesso: true, mensagem: "Romaneio excluído." };
   },
 };
 
