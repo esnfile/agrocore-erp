@@ -56,7 +56,7 @@ import {
   movimentacoesAjusteParcela as mockMovAjusteParcela,
   mockParametros,
 } from "./mock-data";
-import { getUnidadeBaseParaTipo } from "./mock-data";
+import { getUnidadeBaseParaTipo, getCodigoUnidadeBase } from "./mock-data";
 import type {
   Empresa, Filial, Grupo, GrupoPessoa, Pessoa,
   TipoProduto, MarcaProduto, DivisaoProduto, SecaoProduto, GrupoProduto, SubgrupoProduto,
@@ -80,6 +80,48 @@ import type {
 } from "./mock-data";
 
 const delay = (ms = 300) => new Promise((r) => setTimeout(r, ms));
+
+// ============================================================
+// Usuário atual (placeholder de auditoria)
+// ------------------------------------------------------------
+// ÚNICO ponto de onde sai o valor gravado em criadoPor / atualizadoPor /
+// deletadoPor em TODOS os services. Autenticação real chega na Fase 1:
+// basta trocar a implementação desta função pelo id do usuário do JWT.
+// ============================================================
+const USUARIO_PLACEHOLDER_ID = "u1"; // PROTÓTIPO — substituído na Fase 1
+export function usuarioAtualId(): string {
+  return USUARIO_PLACEHOLDER_ID;
+}
+
+// ============================================================
+// Catálogo (read-model síncrono, somente leitura)
+// ------------------------------------------------------------
+// Telas NÃO importam valores de "./mock-data". Leituras síncronas de
+// catálogos (nomes, unidades, produtos...) passam por aqui. Os arrays são
+// expostos como ReadonlyArray: nenhuma tela consegue gravar neles.
+// Fase 2 (HTTP): este cache será hidratado no bootstrap via API.
+// ============================================================
+export const catalogo = {
+  produtos: (): ReadonlyArray<Produto> => mockProdutos,
+  empresas: (): ReadonlyArray<Empresa> => mockEmpresas,
+  filiais: (): ReadonlyArray<Filial> => mockFiliais,
+  pessoas: (): ReadonlyArray<Pessoa> => mockPessoas,
+  moedas: (): ReadonlyArray<Moeda> => mockMoedas,
+  cotacoesMoeda: (): ReadonlyArray<CotacaoMoeda> => mockCotacoesMoeda,
+  unidadesMedida: (): ReadonlyArray<UnidadeMedida> => mockUnidadesMedida,
+  formasPagto: (): ReadonlyArray<FinanceiroFormaPagto> => mockFinanceiroFormasPagto,
+  tipoContas: (): ReadonlyArray<FinanceiroTipoConta> => mockFinanceiroTipoContas,
+  classificacaoTipos: (): ReadonlyArray<ClassificacaoTipo> => mockClassificacaoTipos,
+  produtoClassificacoes: (): ReadonlyArray<ProdutoClassificacao> => mockProdutoClassificacoes,
+  classificacaoDescontos: (): ReadonlyArray<ClassificacaoDesconto> => mockClassificacaoDescontos,
+  tabelasPreco: (): ReadonlyArray<TabelaPreco> => mockTabelasPreco,
+  coeficientes: (): ReadonlyArray<Coeficiente> => mockCoeficientes,
+  coeficienteEmpresas: (): ReadonlyArray<CoeficienteEmpresa> => mockCoeficienteEmpresas,
+  tabelaPrecoEmpresas: (): ReadonlyArray<TabelaPrecoEmpresa> => mockTabelaPrecoEmpresas,
+};
+
+// Helpers puros de unidade (sem estado) — reexportados para as telas.
+export { getUnidadeBaseParaTipo, getCodigoUnidadeBase };
 
 // ---- Grupos ----
 export const grupoService = {
@@ -1518,6 +1560,114 @@ export const pontoEstoqueTipoProdutoService = {
 };
 
 // ============================================================
+// SALDO DO CONTRATO — FONTE ÚNICA (cache + verdade absoluta)
+// ------------------------------------------------------------
+// VERDADE: entregue = soma dos romaneios FINALIZADOS vinculados ao contrato
+//          (peso comercial: PLSL se > 0, senão peso líquido);
+//          saldo = contratado - entregue.
+// CACHE:   Contrato.quantidadeEntregue / quantidadeSaldo — atualizados na
+//          mesma operação que altera o romaneio (atualizarCacheSaldoContrato).
+// EXIBIÇÃO: toda tela recebe contratos já com a VERDADE aplicada
+//          (comSaldoDerivado). Se cache ≠ verdade, vale a verdade.
+// RECONCILIAÇÃO: reconciliarSaldosContratos() compara e reporta divergências
+//          sem corrigir silenciosamente.
+// FASE 2 (multi-produto): o contrato terá N itens (tabela `contrato_itens`).
+//          Esta função passará a agregar por item (romaneio → item), mantendo
+//          a mesma assinatura para as telas.
+// ============================================================
+export interface SaldoContrato {
+  /** Contratado, na unidade de negociação do contrato */
+  totalNeg: number;
+  /** Entregue (romaneios finalizados), na unidade de negociação */
+  entregueNeg: number;
+  /** Saldo, na unidade de negociação */
+  saldoNeg: number;
+  /** Contratado em unidade base (KG/LT/UND) */
+  totalBase: number;
+  /** Entregue em unidade base */
+  entregueBase: number;
+  /** Saldo em unidade base */
+  saldoBase: number;
+}
+
+/** Peso comercial de um romaneio (mesma regra da finalização). */
+export function pesoComercialRomaneio(r: { pesoLiquidoSecoLimpo: number; pesoLiquido: number }): number {
+  return r.pesoLiquidoSecoLimpo > 0 ? r.pesoLiquidoSecoLimpo : r.pesoLiquido;
+}
+
+/** Romaneios que contam como entrega física do contrato. */
+export function romaneiosEntreguesDoContrato(contratoId: string) {
+  return mockRomaneios.filter(
+    (r) => r.contratoId === contratoId && r.deletadoEm === null && r.status === "FINALIZADO"
+  );
+}
+
+export function calcularSaldoContrato(contrato: Contrato): SaldoContrato {
+  const produto = mockProdutos.find((p) => p.id === contrato.produtoId);
+  const unidadeBaseId = produto ? getUnidadeBaseParaTipo(produto.tipoUnidade) : null;
+  const converter = (qtd: number, de: string | null, para: string | null): number => {
+    if (!produto || !de || !para || de === para) return qtd;
+    try { return unidadeMedidaService.converterQuantidade(qtd, de, para, produto.id); }
+    catch { return qtd; }
+  };
+  let entregueNeg = 0;
+  let entregueBase = 0;
+  for (const r of romaneiosEntreguesDoContrato(contrato.id)) {
+    const peso = pesoComercialRomaneio(r);
+    const unidadeRom = r.unidadeRomaneioId || unidadeBaseId;
+    entregueNeg += converter(peso, unidadeRom, contrato.unidadeNegociacaoId || unidadeBaseId);
+    entregueBase += converter(peso, unidadeRom, unidadeBaseId);
+  }
+  return {
+    totalNeg: contrato.quantidadeTotal,
+    entregueNeg,
+    saldoNeg: contrato.quantidadeTotal - entregueNeg,
+    totalBase: contrato.quantidadeBaseTotal,
+    entregueBase,
+    saldoBase: contrato.quantidadeBaseTotal - entregueBase,
+  };
+}
+
+/** Cópia do contrato com entregue/saldo substituídos pela VERDADE derivada. */
+export function comSaldoDerivado(contrato: Contrato): Contrato {
+  const s = calcularSaldoContrato(contrato);
+  return { ...contrato, quantidadeEntregue: s.entregueNeg, quantidadeSaldo: s.saldoNeg };
+}
+
+/** Atualiza o CACHE armazenado — chamado na mesma operação que altera romaneios. */
+function atualizarCacheSaldoContrato(contrato: Contrato): SaldoContrato {
+  const s = calcularSaldoContrato(contrato);
+  contrato.quantidadeEntregue = s.entregueNeg;
+  contrato.quantidadeSaldo = s.saldoNeg;
+  return s;
+}
+
+export interface DivergenciaSaldoContrato {
+  contratoId: string;
+  numeroContrato: string;
+  cacheEntregue: number;
+  verdadeEntregue: number;
+  diferenca: number;
+}
+
+/** Compara cache × verdade. Apenas reporta — nunca corrige silenciosamente. */
+export function reconciliarSaldosContratos(grupoId?: string, tolerancia = 0.000001): DivergenciaSaldoContrato[] {
+  return mockContratos
+    .filter((c) => c.deletadoEm === null && (!grupoId || c.grupoId === grupoId))
+    .map((c) => {
+      const s = calcularSaldoContrato(c);
+      return {
+        contratoId: c.id,
+        numeroContrato: c.numeroContrato,
+        cacheEntregue: c.quantidadeEntregue,
+        verdadeEntregue: s.entregueNeg,
+        diferenca: c.quantidadeEntregue - s.entregueNeg,
+      };
+    })
+    .filter((d) => Math.abs(d.diferenca) > tolerancia);
+}
+
+// ============================================================
 // Contratos
 // ============================================================
 export const contratoService = {
@@ -1525,17 +1675,17 @@ export const contratoService = {
     await delay();
     return mockContratos.filter(
       (c) => c.deletadoEm === null && c.empresaId === empresaId && c.filialId === filialId
-    );
+    ).map(comSaldoDerivado);
   },
   async listarPorEmpresa(empresaId: string): Promise<Contrato[]> {
     await delay();
     return mockContratos.filter(
       (c) => c.deletadoEm === null && c.empresaId === empresaId
-    );
+    ).map(comSaldoDerivado);
   },
   async listarTodos(grupoId: string): Promise<Contrato[]> {
     await delay();
-    return mockContratos.filter((c) => c.deletadoEm === null && c.grupoId === grupoId);
+    return mockContratos.filter((c) => c.deletadoEm === null && c.grupoId === grupoId).map(comSaldoDerivado);
   },
   gerarNumeroContrato(grupoId: string): string {
     const now = new Date();
@@ -1570,12 +1720,16 @@ export const contratoService = {
     if (existing) {
       // Never allow manual numero override
       delete (data as any).numeroContrato;
+      // Entregue/saldo nunca vêm da tela: são derivados dos romaneios
+      delete (data as any).quantidadeEntregue;
+      delete (data as any).quantidadeSaldo;
       Object.assign(existing, data, {
         grupoId: existing.grupoId, empresaId: existing.empresaId, filialId: existing.filialId,
         criadoEm: existing.criadoEm, criadoPor: existing.criadoPor,
         atualizadoEm: now, atualizadoPor: usuarioAtualId(), deletadoEm: null, deletadoPor: null,
       });
-      return existing;
+      atualizarCacheSaldoContrato(existing);
+      return comSaldoDerivado(existing);
     }
     // Auto-generate number
     const numeroContrato = this.gerarNumeroContrato(ctx.grupoId);
@@ -1637,8 +1791,9 @@ export const contratoService = {
     await delay();
     const now = new Date().toISOString();
     // Check if has entregas
-    const hasEntregas = mockContratoEntregas.some((e) => e.contratoId === id && e.deletadoEm === null);
-    if (hasEntregas) return { sucesso: false, mensagem: "Não é possível excluir contrato com entregas vinculadas." };
+    // Entrega física = romaneio vinculado (qualquer status exceto cancelado)
+    const hasEntregas = mockRomaneios.some((r) => r.contratoId === id && r.deletadoEm === null && r.status !== "CANCELADO");
+    if (hasEntregas) return { sucesso: false, mensagem: "Não é possível excluir contrato com romaneios vinculados." };
     const c = mockContratos.find((c) => c.id === id && c.deletadoEm === null);
     if (c) { c.deletadoEm = now; c.deletadoPor = usuarioAtualId(); c.atualizadoEm = now; c.atualizadoPor = usuarioAtualId(); }
     return { sucesso: true, mensagem: "Contrato excluído com sucesso." };
@@ -1675,7 +1830,7 @@ export const contratoFixacaoService = {
       .filter((f) => f.deletadoEm === null && f.contratoId === data.contratoId && f.id !== data.id)
       .reduce((sum, f) => sum + f.quantidadeFixada, 0);
 
-    const saldoDisponivel = contrato.quantidadeEntregue - jaFixado;
+    const saldoDisponivel = calcularSaldoContrato(contrato).entregueNeg - jaFixado;
     const volumeSolicitado = data.quantidadeFixada ?? 0;
 
     if (volumeSolicitado > saldoDisponivel * 1.05) {
@@ -3490,10 +3645,10 @@ export const romaneioService = {
 
     // 4. Update contract saldo (apenas se houver contrato)
     if (contrato) {
-      contrato.quantidadeEntregue += quantidadeContrato;
-      contrato.quantidadeSaldo = contrato.quantidadeTotal - contrato.quantidadeEntregue;
-      if (contrato.quantidadeSaldo <= 0) contrato.status = "FINALIZADO";
-      else if (contrato.quantidadeEntregue > 0) contrato.status = "PARCIAL";
+      // Romaneio já está FINALIZADO neste ponto → cache recalculado a partir da verdade
+      const saldo = atualizarCacheSaldoContrato(contrato);
+      if (saldo.saldoNeg <= 0) contrato.status = "FINALIZADO";
+      else if (saldo.entregueNeg > 0) contrato.status = "PARCIAL";
       contrato.atualizadoEm = now; contrato.atualizadoPor = usuarioAtualId();
     }
 
@@ -3776,12 +3931,8 @@ export const contratoLiquidacaoService = {
     // 1. Quantidade entregue = soma do peso líquido FINAL (após desconto qualidade) dos romaneios
     //    FINALIZADOS, em unidade base (KG). Usa pesoLiquidoSecoLimpo se >0, senão pesoLiquido —
     //    mesma regra usada na finalização do romaneio para somar em contrato.quantidadeEntregue.
-    const romaneiosFinalizados = mockRomaneios.filter(
-      (r) => r.contratoId === contrato.id && r.deletadoEm === null && r.status === "FINALIZADO"
-    );
-    const pesoFinalRom = (r: typeof romaneiosFinalizados[number]) =>
-      r.pesoLiquidoSecoLimpo > 0 ? r.pesoLiquidoSecoLimpo : r.pesoLiquido;
-    const quantidadeEntregueBase = romaneiosFinalizados.reduce((sum, r) => sum + pesoFinalRom(r), 0);
+    const romaneiosFinalizados = romaneiosEntreguesDoContrato(contrato.id);
+    const quantidadeEntregueBase = calcularSaldoContrato(contrato).entregueBase;
 
     // 1b. Converter para unidade de negociação do contrato (ex: KG → SC)
     // Helper de conversão (KG → unidade negociação do contrato)
