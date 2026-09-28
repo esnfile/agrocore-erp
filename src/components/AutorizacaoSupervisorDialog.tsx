@@ -20,7 +20,7 @@ interface Props {
   minJustificativa?: number;
   aviso?: string;
   onClose: () => void;
-  onAuthorized: (justificativa: string) => void;
+  onAuthorized: (justificativa: string, token?: string) => void;
   children?: React.ReactNode;
 }
 
@@ -60,7 +60,7 @@ export function AutorizacaoSupervisorDialog({
     if (!res.ok) { setErro(res.mensagem); return; }
     const texto = justificativa.trim();
     reset();
-    onAuthorized(texto);
+    onAuthorized(texto, res.token);
   };
 
   return (
