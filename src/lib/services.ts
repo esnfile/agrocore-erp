@@ -3703,8 +3703,19 @@ export const romaneioService = {
     r.atualizadoPor = userId;
 
     // 3. Saldo do contrato (cache) recalculado a partir da verdade — o
-    //    romaneio ESTORNADO já não entra nas somas.
+    //    romaneio ESTORNADO já não entra nas somas. Estoque em trânsito
+    //    revertido na mesma operação.
     if (contrato) {
+      const produtoContrato = mockProdutos.find((p) => p.id === r.produtoId);
+      if (produtoContrato) {
+        const unidadeRom = r.unidadeRomaneioId || getUnidadeBaseParaTipo(produtoContrato.tipoUnidade);
+        try {
+          const qtdContrato = unidadeMedidaService.converterQuantidade(
+            pesoComercialRomaneio(r), unidadeRom, contrato.unidadeNegociacaoId, produtoContrato.id
+          );
+          estoqueTransitoService.registrarMovimento(contrato.id, -qtdContrato);
+        } catch { /* conversão indisponível: trânsito permanece para reconciliação */ }
+      }
       const s = atualizarCacheSaldoContrato(contrato);
       contrato.status = s.entregueNeg > 0 ? "PARCIAL" : "ABERTO";
       contrato.atualizadoEm = now;
