@@ -3796,6 +3796,27 @@ export const romaneioService = {
       return { sucesso: false, mensagem: `Erro na conversão de unidades: ${e.message}` };
     }
 
+    // TAREFA 8 — Validação de saldo/tolerância NA CAMADA DE SERVIÇO.
+    // Recusa se a entrega deixar o saldo negativo além da tolerância a maior
+    // definida no contrato. Dentro da tolerância: permitido.
+    if (contrato) {
+      const saldoAtualContrato = calcularSaldoContrato(contrato);
+      const saldoProjetado = saldoAtualContrato.saldoNeg - quantidadeContrato;
+      if (saldoProjetado < 0) {
+        const tolPerc = contrato.toleranciaPercentualMais ?? 0;
+        const limiteExcesso = contrato.quantidadeTotal * (tolPerc / 100);
+        const excesso = Math.abs(saldoProjetado);
+        if (excesso > limiteExcesso + 0.000001) {
+          const un = unidadeMedidaService.obterPorId(contrato.unidadeNegociacaoId)?.codigo ?? "";
+          return {
+            sucesso: false,
+            mensagem: `Excede o contratado além da tolerância de ${tolPerc}%: excesso de ${excesso.toFixed(3)} ${un} (limite ${limiteExcesso.toFixed(3)} ${un}).`,
+          };
+        }
+      }
+    }
+
+
     // Para colheita (sem contrato): sempre ENTRADA (produção colhida).
     // Para contrato: COMPRA = ENTRADA, VENDA = SAÍDA.
     const tipoMov: "ENTRADA" | "SAIDA" = contrato
