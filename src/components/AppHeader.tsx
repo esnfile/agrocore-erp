@@ -142,17 +142,25 @@ export function AppHeader() {
         <DropdownMenuTrigger className="flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-muted/50">
           <Avatar className="h-8 w-8">
             <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-              JA
+              {iniciais}
             </AvatarFallback>
           </Avatar>
-          <span className="hidden text-sm font-medium md:inline">João Admin</span>
+          <span className="hidden text-sm font-medium md:inline">{nomeUsuario}</span>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem>
-            <User className="mr-2 h-4 w-4" />
-            Perfil
-          </DropdownMenuItem>
-          <DropdownMenuItem>
+        <DropdownMenuContent align="end" className="w-56">
+          <div className="px-2 py-1.5">
+            <p className="text-sm font-medium">{nomeUsuario}</p>
+            <p className="text-xs text-muted-foreground">{perfilUsuario?.email}</p>
+            <p className="mt-1 text-xs text-muted-foreground">Perfil: {perfil ?? "—"}</p>
+          </div>
+          <DropdownMenuSeparator />
+          {perfil === "ADMINISTRADOR" && (
+            <DropdownMenuItem onClick={() => navigate("/configuracoes/log-autorizacoes")}>
+              <ShieldCheck className="mr-2 h-4 w-4" />
+              Log de Autorizações
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuItem onClick={handleSair}>
             <LogOut className="mr-2 h-4 w-4" />
             Sair
           </DropdownMenuItem>
