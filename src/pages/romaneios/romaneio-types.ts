@@ -11,7 +11,8 @@ export type StatusRomaneioNew =
   | "AGUARDANDO_CLASSIFICACAO"
   | "CLASSIFICADO"
   | "FINALIZADO"
-  | "CANCELADO";
+  | "CANCELADO"
+  | "ESTORNADO";
 
 export type OrigemRomaneio = "CONTRATO" | "COLHEITA" | "AVULSO";
 export type TipoRomaneio = "ENTRADA" | "SAIDA";
@@ -25,6 +26,7 @@ export const STATUS_LABELS: Record<StatusRomaneioNew, string> = {
   CLASSIFICADO: "Classificado",
   FINALIZADO: "Finalizado",
   CANCELADO: "Cancelado",
+  ESTORNADO: "Estornado",
 };
 
 // Badge className for each status — used directly in className prop
@@ -37,6 +39,7 @@ export const STATUS_BADGE_CLASSES: Record<StatusRomaneioNew, string> = {
   CLASSIFICADO: "bg-blue-100 text-blue-700 border-blue-300",
   FINALIZADO: "bg-green-600 text-white border-green-700",
   CANCELADO: "bg-red-100 text-red-700 border-red-300",
+  ESTORNADO: "bg-orange-100 text-orange-800 border-orange-300",
 };
 
 // Icon for each status — paired with STATUS_BADGE_CLASSES (kept colors).
@@ -49,6 +52,7 @@ import {
   ClipboardCheck,
   CheckCircle2,
   XCircle,
+  RotateCcw,
   type LucideIcon,
 } from "lucide-react";
 
@@ -61,6 +65,7 @@ export const STATUS_ICONS: Record<StatusRomaneioNew, LucideIcon> = {
   CLASSIFICADO: ClipboardCheck,
   FINALIZADO: CheckCircle2,
   CANCELADO: XCircle,
+  ESTORNADO: RotateCcw,
 };
 
 // Keep STATUS_COLORS for backward compat but prefer STATUS_BADGE_CLASSES
@@ -73,6 +78,7 @@ export const STATUS_COLORS: Record<StatusRomaneioNew, "default" | "secondary" | 
   CLASSIFICADO: "default",
   FINALIZADO: "default",
   CANCELADO: "destructive",
+  ESTORNADO: "destructive",
 };
 
 export const ORIGEM_LABELS: Record<OrigemRomaneio, string> = {
@@ -122,6 +128,7 @@ export function getMaxStepForStatus(status: StatusRomaneioNew): number {
     case "CLASSIFICADO": return 5;
     case "FINALIZADO": return 5;
     case "CANCELADO": return 5;
+    case "ESTORNADO": return 5;
     default: return 1;
   }
 }
@@ -139,6 +146,7 @@ export function getCurrentStepForStatus(status: StatusRomaneioNew): number {
     case "CLASSIFICADO": return 5;
     case "FINALIZADO": return 5;
     case "CANCELADO": return 1;
+    case "ESTORNADO": return 5;
     default: return 1;
   }
 }
@@ -148,7 +156,7 @@ export function isStepAccessible(stepNumber: number, status: StatusRomaneioNew):
 }
 
 export function isRomaneioEditable(status: StatusRomaneioNew): boolean {
-  return status !== "FINALIZADO" && status !== "CANCELADO";
+  return status !== "FINALIZADO" && status !== "CANCELADO" && status !== "ESTORNADO";
 }
 
 // ---- Dual-unit contract display helpers ----
