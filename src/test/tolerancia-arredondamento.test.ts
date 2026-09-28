@@ -3,7 +3,7 @@ import {
   definirSessaoAtual, contratoService, romaneioService, romaneioPesagemService,
   calcularSaldoContrato, arredondarKg, catalogo,
 } from "@/lib/services";
-import { mockContratos, mockRomaneios, mockPontosEstoque } from "@/lib/mock-data";
+import { contratos as mockContratos, romaneios as mockRomaneios, pontosEstoque as mockPontosEstoque } from "@/lib/mock-data";
 
 const ctxBase = () => {
   const c = mockContratos[0];
