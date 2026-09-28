@@ -18,6 +18,7 @@ export default function PlanoContasPage() {
       title="Plano de Contas"
       description="Cadastro do plano de contas"
       entityName="Plano de Conta"
+      acaoSupervisao="EXCLUIR_PLANO_CONTAS"
       service={financeiroPlanoContaService as any}
       extraSchema={extraSchema}
       extraDefaultValues={{ codigo: "", tipo: "RECEITA" }}
