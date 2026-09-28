@@ -8,6 +8,7 @@ export default function CentrosCustoPage() {
       title="Centros de Custo"
       description="Cadastro de centros de custo"
       entityName="Centro de Custo"
+      acaoSupervisao="EXCLUIR_CENTRO_CUSTO"
       service={financeiroCentroCustoService as any}
     />
   );

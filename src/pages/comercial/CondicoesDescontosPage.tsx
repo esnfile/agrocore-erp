@@ -1,3 +1,4 @@
+import { AutorizacaoSupervisorDialog } from "@/components/AutorizacaoSupervisorDialog";
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/PageHeader";
@@ -123,6 +124,7 @@ export default function CondicoesDescontosPage() {
   const [filtroStatus, setFiltroStatus] = useState("todos");
 
   // Modal
+  const [tipoParaExcluir, setTipoParaExcluir] = useState<{ id: string; descricao: string } | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalTab, setModalTab] = useState("basicos");
   const [editingItem, setEditingItem] = useState<DescontoTipo | null>(null);
@@ -206,10 +208,23 @@ export default function CondicoesDescontosPage() {
     setModalOpen(false);
   };
 
-  const handleDelete = async (id: string) => {
-    await descontoTipoService.excluirTipo(id);
-    await recarregar();
-    toast.success("Tipo de desconto removido");
+  // Exclusão de condição/desconto afeta cálculos: exige autorização de supervisor.
+  const handleDelete = (id: string) => {
+    const t = tipos.find((x) => x.id === id);
+    setTipoParaExcluir({ id, descricao: t?.descricao ?? id });
+  };
+
+  const excluirTipoAutorizado = async () => {
+    const alvo = tipoParaExcluir;
+    setTipoParaExcluir(null);
+    if (!alvo) return;
+    try {
+      await descontoTipoService.excluirTipo(alvo.id);
+      await recarregar();
+      toast.success("Tipo de desconto removido");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Não foi possível excluir o registro.");
+    }
   };
 
   // Empresa config CRUD
@@ -581,6 +596,15 @@ export default function CondicoesDescontosPage() {
           </TabsContent>
         </Tabs>
       </CrudModal>
+      {tipoParaExcluir && (
+        <AutorizacaoSupervisorDialog
+          open={!!tipoParaExcluir}
+          acao="EXCLUIR_CONDICAO_DESCONTO"
+          alvo={{ tipo: "Tipo de desconto", id: tipoParaExcluir.id, descricao: tipoParaExcluir.descricao }}
+          onClose={() => setTipoParaExcluir(null)}
+          onAuthorized={excluirTipoAutorizado}
+        />
+      )}
     </div>
   );
 }

@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react"; // v2
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react"; // v3
 import { empresaService, filialService, grupoService } from "@/lib/services";
+import { useAuth } from "@/contexts/AuthContext";
 import type { Empresa, Filial, Grupo } from "@/lib/mock-data";
 
 interface OrganizationContextType {
@@ -18,6 +19,7 @@ interface OrganizationContextType {
 const OrganizationContext = createContext<OrganizationContextType | null>(null);
 
 export function OrganizationProvider({ children }: { children: React.ReactNode }) {
+  const { perfilUsuario, definirContextoOrganizacional } = useAuth();
   const [grupos, setGrupos] = useState<Grupo[]>([]);
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
   const [filiais, setFiliais] = useState<Filial[]>([]);
@@ -25,6 +27,11 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
   const [empresaAtual, setEmpresaAtual] = useState<Empresa | null>(null);
   const [filialAtual, setFilialAtual] = useState<Filial | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Empresas/filiais permitidas para o usuário logado. Lista vazia = sem
+  // restrição cadastrada (todas as opções do grupo ficam disponíveis).
+  const empresasPermitidas = perfilUsuario?.empresasPermitidas ?? [];
+  const filiaisPermitidas = perfilUsuario?.filiaisPermitidas ?? [];
 
   // Load grupos on mount
   useEffect(() => {
@@ -35,7 +42,7 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
     });
   }, []);
 
-  // When grupo changes, reload empresas
+  // When grupo changes, reload empresas (limitadas às permitidas)
   useEffect(() => {
     if (!grupoAtual) {
       setEmpresas([]);
@@ -45,12 +52,16 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
       return;
     }
     empresaService.listar(grupoAtual.id).then((list) => {
-      setEmpresas(list);
-      setEmpresaAtual(list.length > 0 ? list[0] : null);
+      const permitidas = empresasPermitidas.length > 0
+        ? list.filter((e) => empresasPermitidas.includes(e.id))
+        : list;
+      setEmpresas(permitidas);
+      setEmpresaAtual(permitidas.length > 0 ? permitidas[0] : null);
     });
-  }, [grupoAtual]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [grupoAtual, perfilUsuario?.id]);
 
-  // When empresa changes, reload filiais
+  // When empresa changes, reload filiais (limitadas às permitidas)
   useEffect(() => {
     if (!empresaAtual) {
       setFiliais([]);
@@ -58,10 +69,25 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
       return;
     }
     filialService.listarPorEmpresa(empresaAtual.id).then((list) => {
-      setFiliais(list);
-      setFilialAtual(list.length > 0 ? list[0] : null);
+      const permitidas = filiaisPermitidas.length > 0
+        ? list.filter((f) => filiaisPermitidas.includes(f.id))
+        : list;
+      setFiliais(permitidas);
+      setFilialAtual(permitidas.length > 0 ? permitidas[0] : null);
     });
-  }, [empresaAtual]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [empresaAtual, perfilUsuario?.id]);
+
+  // O contexto selecionado alimenta a sessão usada pela camada de serviços.
+  useEffect(() => {
+    if (!perfilUsuario) return;
+    definirContextoOrganizacional({
+      grupoId: grupoAtual?.id ?? "",
+      empresaId: empresaAtual?.id ?? "",
+      filialId: filialAtual?.id ?? "",
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [grupoAtual?.id, empresaAtual?.id, filialAtual?.id, perfilUsuario?.id]);
 
   const setGrupoId = useCallback(
     (id: string) => {

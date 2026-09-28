@@ -24,8 +24,10 @@ import {
   type StatusRomaneioNew, type OrigemRomaneio,
 } from "./romaneio-types";
 import {
-  Search, Plus, Pencil, Trash2, Eye, ChevronLeft, ChevronRight, ArrowUpDown,
+  Search, Plus, Pencil, Trash2, Eye, ChevronLeft, ChevronRight, ArrowUpDown, RotateCcw,
 } from "lucide-react";
+import { AutorizacaoSupervisorDialog } from "@/components/AutorizacaoSupervisorDialog";
+import { MIN_CARACTERES_JUSTIFICATIVA_ESTORNO } from "@/lib/constants";
 import { toast } from "@/hooks/use-toast";
 import { FormRow } from "@/components/FormRow";
 
@@ -38,6 +40,8 @@ export default function RomaneiosPage() {
   const [romaneios, setRomaneios] = useState<Romaneio[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  // Estorno de romaneio finalizado: supervisor + justificativa obrigatória.
+  const [estornoAlvo, setEstornoAlvo] = useState<Romaneio | null>(null);
 
   // Filters
   const [search, setSearch] = useState("");
@@ -143,9 +147,22 @@ export default function RomaneiosPage() {
     load();
   };
 
+  const confirmarEstorno = async (justificativa: string, token?: string) => {
+    const alvo = estornoAlvo;
+    setEstornoAlvo(null);
+    if (!alvo) return;
+    const res = await romaneioService.estornar(alvo.id, justificativa, token);
+    if (!res.sucesso) {
+      toast({ title: "Estorno não realizado", description: res.mensagem, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Romaneio estornado", description: res.mensagem });
+    load();
+  };
+
   const statusOptions = [
     "RASCUNHO", "AGUARDANDO_PESAGEM", "PESAGEM_PARCIAL", "AGUARDANDO_VINCULO",
-    "AGUARDANDO_CLASSIFICACAO", "CLASSIFICADO", "FINALIZADO", "CANCELADO",
+    "AGUARDANDO_CLASSIFICACAO", "CLASSIFICADO", "FINALIZADO", "CANCELADO", "ESTORNADO",
   ] as StatusRomaneioNew[];
 
   const origemOptions: OrigemRomaneio[] = ["CONTRATO", "COLHEITA", "AVULSO"];
@@ -154,7 +171,7 @@ export default function RomaneiosPage() {
     ? catalogo.filiais().filter((f) => f.empresaId === filterEmpresa && f.deletadoEm === null)
     : [];
 
-  const isReadOnly = (status: string) => status === "FINALIZADO" || status === "CANCELADO";
+  const isReadOnly = (status: string) => status === "FINALIZADO" || status === "CANCELADO" || status === "ESTORNADO";
 
   if (loading) {
     return (
@@ -315,9 +332,16 @@ export default function RomaneiosPage() {
                   <TableCell>
                     <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                       {readOnly ? (
-                        <Button variant="ghost" size="icon" onClick={() => navigate(`/romaneios/${rom.id}`)} title="Visualizar">
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                        <>
+                          <Button variant="ghost" size="icon" onClick={() => navigate(`/romaneios/${rom.id}`)} title="Visualizar">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          {rom.status === "FINALIZADO" && (
+                            <Button variant="ghost" size="icon" onClick={() => setEstornoAlvo(rom)} title="Estornar romaneio">
+                              <RotateCcw className="h-4 w-4 text-warning" />
+                            </Button>
+                          )}
+                        </>
                       ) : (
                         <>
                           <Button variant="ghost" size="icon" onClick={() => navigate(`/romaneios/${rom.id}`)} title="Editar">
@@ -365,6 +389,17 @@ export default function RomaneiosPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {estornoAlvo && (
+        <AutorizacaoSupervisorDialog
+          open={!!estornoAlvo}
+          acao="ESTORNO_ROMANEIO"
+          alvo={{ tipo: "Romaneio", id: estornoAlvo.id, descricao: `${estornoAlvo.id.substring(0, 8)} — ${estornoAlvo.placaVeiculo || ""}` }}
+          minJustificativa={MIN_CARACTERES_JUSTIFICATIVA_ESTORNO}
+          aviso="O estorno reverte o movimento de estoque e o saldo do contrato. O romaneio não é apagado: fica com status Estornado."
+          onClose={() => setEstornoAlvo(null)}
+          onAuthorized={confirmarEstorno}
+        />
+      )}
     </div>
   );
 }

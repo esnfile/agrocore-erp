@@ -12,11 +12,14 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Building2, GitBranch, LogOut, Network, User, TrendingUp, TrendingDown } from "lucide-react";
+import { Building2, GitBranch, LogOut, Network, ShieldCheck, TrendingUp, TrendingDown } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { cotacaoMoedaService } from "@/lib/services";
 import type { CotacaoMoeda } from "@/lib/mock-data";
 
@@ -72,6 +75,22 @@ export function AppHeader() {
     grupoAtual, empresaAtual, filialAtual,
     setGrupoId, setEmpresaId, setFilialId,
   } = useOrganization();
+  const { perfilUsuario, perfil, sair } = useAuth();
+  const navigate = useNavigate();
+
+  const nomeUsuario = perfilUsuario?.nome ?? "Usuário";
+  const iniciais = nomeUsuario
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase())
+    .join("");
+
+  const handleSair = async () => {
+    await sair();
+    navigate("/login", { replace: true });
+  };
+
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-card px-4">
@@ -142,17 +161,25 @@ export function AppHeader() {
         <DropdownMenuTrigger className="flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-muted/50">
           <Avatar className="h-8 w-8">
             <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-              JA
+              {iniciais}
             </AvatarFallback>
           </Avatar>
-          <span className="hidden text-sm font-medium md:inline">João Admin</span>
+          <span className="hidden text-sm font-medium md:inline">{nomeUsuario}</span>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem>
-            <User className="mr-2 h-4 w-4" />
-            Perfil
-          </DropdownMenuItem>
-          <DropdownMenuItem>
+        <DropdownMenuContent align="end" className="w-56">
+          <div className="px-2 py-1.5">
+            <p className="text-sm font-medium">{nomeUsuario}</p>
+            <p className="text-xs text-muted-foreground">{perfilUsuario?.email}</p>
+            <p className="mt-1 text-xs text-muted-foreground">Perfil: {perfil ?? "—"}</p>
+          </div>
+          <DropdownMenuSeparator />
+          {perfil === "ADMINISTRADOR" && (
+            <DropdownMenuItem onClick={() => navigate("/configuracoes/log-autorizacoes")}>
+              <ShieldCheck className="mr-2 h-4 w-4" />
+              Log de Autorizações
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuItem onClick={handleSair}>
             <LogOut className="mr-2 h-4 w-4" />
             Sair
           </DropdownMenuItem>

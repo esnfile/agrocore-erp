@@ -1,6 +1,7 @@
 // ============================================================
 // AgroERP — Service Layer (mock, swap-ready)
 // ============================================================
+import { MIN_CARACTERES_JUSTIFICATIVA_ESTORNO } from "./constants";
 import {
   empresas as mockEmpresas,
   filiais as mockFiliais,
@@ -82,15 +83,106 @@ import type {
 const delay = (ms = 300) => new Promise((r) => setTimeout(r, ms));
 
 // ============================================================
-// Usuário atual (placeholder de auditoria)
+// FASE 1 — Sessão do usuário autenticado e permissões
 // ------------------------------------------------------------
 // ÚNICO ponto de onde sai o valor gravado em criadoPor / atualizadoPor /
-// deletadoPor em TODOS os services. Autenticação real chega na Fase 1:
-// basta trocar a implementação desta função pelo id do usuário do JWT.
+// deletadoPor em TODOS os services. A sessão é injetada pelo AuthContext
+// logo após o login (definirSessaoAtual) e limpa no logout.
+// Nenhuma gravação acontece sem usuário autenticado.
 // ============================================================
-const USUARIO_PLACEHOLDER_ID = "u1"; // PROTÓTIPO — substituído na Fase 1
+export type PerfilAcesso = "ADMINISTRADOR" | "OPERADOR" | "CONSULTA";
+
+export interface SessaoUsuario {
+  id: string;
+  nome: string;
+  email: string;
+  perfil: PerfilAcesso;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  empresasPermitidas: string[];
+  filiaisPermitidas: string[];
+}
+
+let _sessao: SessaoUsuario | null = null;
+
+/** Chamado pelo AuthContext ao autenticar / encerrar sessão. */
+export function definirSessaoAtual(sessao: SessaoUsuario | null): void {
+  _sessao = sessao;
+}
+
+export function sessaoAtual(): SessaoUsuario | null {
+  return _sessao;
+}
+
+/**
+ * Ações sensíveis controladas por perfil — a verificação vive NA CAMADA DE
+ * SERVIÇO. A UI pode esconder botões, mas isso é cosmético.
+ */
+export type AcaoPermissao =
+  | "OPERAR"                        // criar/editar registros operacionais
+  | "EXCLUIR_CADASTRO_ESTRUTURAL"   // plano de contas, centros de custo, condições, moedas
+  | "AUTORIZAR_SUPERVISOR";         // reautenticação de supervisor
+
+const PERMISSOES_POR_PERFIL: Record<PerfilAcesso, AcaoPermissao[]> = {
+  ADMINISTRADOR: ["OPERAR", "EXCLUIR_CADASTRO_ESTRUTURAL", "AUTORIZAR_SUPERVISOR"],
+  OPERADOR: ["OPERAR"],
+  CONSULTA: [],
+};
+
+export function podeExecutar(acao: AcaoPermissao): boolean {
+  if (!_sessao) return false;
+  return PERMISSOES_POR_PERFIL[_sessao.perfil].includes(acao);
+}
+
+export function exigirPermissao(acao: AcaoPermissao): void {
+  if (!_sessao) throw new Error("Sessão expirada. Entre novamente para continuar.");
+  if (!podeExecutar(acao)) {
+    throw new Error(
+      acao === "EXCLUIR_CADASTRO_ESTRUTURAL"
+        ? "Permissão negada: apenas o perfil Administrador pode excluir cadastros estruturais."
+        : acao === "AUTORIZAR_SUPERVISOR"
+          ? "Permissão negada: seu perfil não autoriza esta operação."
+          : "Permissão negada: o perfil Consulta é somente leitura."
+    );
+  }
+}
+
+/**
+ * Id do usuário autenticado. Lançar aqui garante que NENHUMA gravação
+ * acontece sem sessão válida e que o perfil Consulta nunca grava —
+ * toda função de escrita passa por esta chamada.
+ */
 export function usuarioAtualId(): string {
-  return USUARIO_PLACEHOLDER_ID;
+  if (!_sessao) throw new Error("Sessão expirada. Entre novamente para continuar.");
+  if (!PERMISSOES_POR_PERFIL[_sessao.perfil].includes("OPERAR")) {
+    throw new Error("Permissão negada: o perfil Consulta é somente leitura.");
+  }
+  return _sessao.id;
+}
+
+// ------------------------------------------------------------
+// Tokens de autorização de supervisor.
+// A janela de reautenticação devolve um token de uso único; as operações
+// sensíveis EXIGEM esse token na CAMADA DE SERVIÇO — esconder o botão na
+// tela não é proteção.
+// ------------------------------------------------------------
+const _autorizacoes = new Map<string, { acao: string; alvoId: string; expiraEm: number }>();
+
+export function emitirTokenAutorizacao(acao: string, alvoId: string): string {
+  const token = `aut_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  _autorizacoes.set(token, { acao, alvoId, expiraEm: Date.now() + 5 * 60 * 1000 });
+  return token;
+}
+
+/** Consome o token (uso único). Lança se ausente, expirado ou de outro alvo. */
+export function consumirAutorizacao(token: string | undefined, acao: string, alvoId: string): void {
+  const reg = token ? _autorizacoes.get(token) : undefined;
+  if (!reg) throw new Error("Operação não autorizada: é necessária autorização de supervisor.");
+  _autorizacoes.delete(token!);
+  if (reg.acao !== acao || reg.alvoId !== alvoId || reg.expiraEm < Date.now()) {
+    throw new Error("Autorização inválida ou expirada. Refaça a autorização de supervisor.");
+  }
 }
 
 // ============================================================
@@ -1430,6 +1522,7 @@ export const moedaService = {
     return novo;
   },
   async excluir(id: string): Promise<void> {
+    exigirPermissao("EXCLUIR_CADASTRO_ESTRUTURAL");
     await delay();
     const now = new Date().toISOString();
     const m = mockMoedas.find((m) => m.id === id && m.deletadoEm === null);
@@ -1596,6 +1689,11 @@ export function pesoComercialRomaneio(r: { pesoLiquidoSecoLimpo: number; pesoLiq
 }
 
 /** Romaneios que contam como entrega física do contrato. */
+/**
+ * Romaneios que contam como entrega. Somente FINALIZADO — romaneios
+ * CANCELADO e ESTORNADO ficam de fora das somas de verdade absoluta
+ * (saldo de contrato e saldo de estoque).
+ */
 export function romaneiosEntreguesDoContrato(contratoId: string) {
   return mockRomaneios.filter(
     (r) => r.contratoId === contratoId && r.deletadoEm === null && r.status === "FINALIZADO"
@@ -1648,6 +1746,8 @@ export interface DivergenciaSaldoContrato {
   cacheEntregue: number;
   verdadeEntregue: number;
   diferenca: number;
+  /** true quando algum romaneio ESTORNADO/CANCELADO entrou indevidamente na soma. */
+  estornadosContabilizados: boolean;
 }
 
 /** Compara cache × verdade. Apenas reporta — nunca corrige silenciosamente. */
@@ -1656,15 +1756,20 @@ export function reconciliarSaldosContratos(grupoId?: string, tolerancia = 0.0000
     .filter((c) => c.deletadoEm === null && (!grupoId || c.grupoId === grupoId))
     .map((c) => {
       const s = calcularSaldoContrato(c);
+      // Validação explícita: nenhuma soma de verdade pode incluir ESTORNADO/CANCELADO.
+      const estornadosContabilizados = romaneiosEntreguesDoContrato(c.id).some(
+        (r) => r.status !== "FINALIZADO"
+      );
       return {
         contratoId: c.id,
         numeroContrato: c.numeroContrato,
         cacheEntregue: c.quantidadeEntregue,
         verdadeEntregue: s.entregueNeg,
         diferenca: c.quantidadeEntregue - s.entregueNeg,
+        estornadosContabilizados,
       };
     })
-    .filter((d) => Math.abs(d.diferenca) > tolerancia);
+    .filter((d) => Math.abs(d.diferenca) > tolerancia || d.estornadosContabilizados);
 }
 
 // ============================================================
@@ -1932,6 +2037,7 @@ export const condicaoDescontoModeloService = {
     return novo;
   },
   async excluir(id: string): Promise<void> {
+    exigirPermissao("EXCLUIR_CADASTRO_ESTRUTURAL");
     await delay();
     const now = new Date().toISOString();
     const m = mockCondicaoDescontoModelos.find((m) => m.id === id && m.deletadoEm === null);
@@ -1986,6 +2092,7 @@ export const condicaoDescontoModeloItemService = {
     return novo;
   },
   async excluir(id: string): Promise<void> {
+    exigirPermissao("EXCLUIR_CADASTRO_ESTRUTURAL");
     await delay();
     const now = new Date().toISOString();
     const i = mockCondicaoDescontoModeloItens.find((i) => i.id === id && i.deletadoEm === null);
@@ -2908,12 +3015,28 @@ export const financeiroCartaoService = {
 // ============================================================
 // Financeiro — Plano de Contas
 // ============================================================
-export const financeiroPlanoContaService = createCorporateCrudService<FinanceiroPlanoConta>(mockFinanceiroPlanoContas as any, "fpc");
+const _financeiroPlanoContaBase = createCorporateCrudService<FinanceiroPlanoConta>(mockFinanceiroPlanoContas as any, "fpc");
+export const financeiroPlanoContaService = {
+  ..._financeiroPlanoContaBase,
+  // Cadastro estrutural: exclusão restrita ao perfil Administrador (Fase 1).
+  async excluir(id: string) {
+    exigirPermissao("EXCLUIR_CADASTRO_ESTRUTURAL");
+    return _financeiroPlanoContaBase.excluir(id);
+  },
+};
 
 // ============================================================
 // Financeiro — Centros de Custo
 // ============================================================
-export const financeiroCentroCustoService = createCorporateCrudService<FinanceiroCentroCusto>(mockFinanceiroCentrosCusto as any, "fcc");
+const _financeiroCentroCustoBase = createCorporateCrudService<FinanceiroCentroCusto>(mockFinanceiroCentrosCusto as any, "fcc");
+export const financeiroCentroCustoService = {
+  ..._financeiroCentroCustoBase,
+  // Cadastro estrutural: exclusão restrita ao perfil Administrador (Fase 1).
+  async excluir(id: string) {
+    exigirPermissao("EXCLUIR_CADASTRO_ESTRUTURAL");
+    return _financeiroCentroCustoBase.excluir(id);
+  },
+};
 
 // ============================================================
 // Financeiro — Movimentações
@@ -3529,11 +3652,127 @@ export const romaneioService = {
     if (r) { r.deletadoEm = new Date().toISOString(); r.deletadoPor = usuarioAtualId(); }
     if (r?.contratoId) { const c = mockContratos.find((x) => x.id === r.contratoId); if (c) atualizarCacheSaldoContrato(c); }
   },
+  /**
+   * CANCELAMENTO — só para romaneio que ainda NÃO virou fato físico.
+   * Romaneio FINALIZADO / CANCELADO / ESTORNADO é recusado AQUI, na camada de
+   * serviço (não basta esconder o botão). Para desfazer um finalizado existe
+   * o ESTORNO, que reverte estoque e saldo na mesma operação.
+   */
   async cancelar(id: string): Promise<void> {
     await delay();
     const r = mockRomaneios.find((x) => x.id === id && x.deletadoEm === null);
-    if (r) { r.status = "CANCELADO"; r.atualizadoEm = new Date().toISOString(); r.atualizadoPor = usuarioAtualId(); }
-    if (r?.contratoId) { const c = mockContratos.find((x) => x.id === r.contratoId); if (c) atualizarCacheSaldoContrato(c); }
+    if (!r) throw new Error("Romaneio não encontrado.");
+    if (r.status === "FINALIZADO") {
+      throw new Error("Romaneio finalizado não pode ser cancelado. Use o Estorno, que reverte estoque e saldo do contrato com autorização e justificativa.");
+    }
+    if (r.status === "CANCELADO" || r.status === "ESTORNADO") {
+      throw new Error(`Romaneio já está ${r.status === "CANCELADO" ? "cancelado" : "estornado"}.`);
+    }
+    r.status = "CANCELADO";
+    r.atualizadoEm = new Date().toISOString();
+    r.atualizadoPor = usuarioAtualId();
+    if (r.contratoId) { const c = mockContratos.find((x) => x.id === r.contratoId); if (c) atualizarCacheSaldoContrato(c); }
+  },
+
+  /**
+   * ESTORNO — único mecanismo de correção de romaneio FINALIZADO.
+   * Histórico físico nunca é apagado nem reescrito: o romaneio permanece
+   * visível com status ESTORNADO, justificativa, autor e data.
+   *
+   * Recusado quando houver dependência: fixação de preço vinculada ao
+   * contrato ou liquidação referenciando o contrato. O caminho é reverter a
+   * fixação/liquidação primeiro e só então estornar.
+   *
+   * Reverte em UMA única operação lógica: movimento de estoque + saldo do
+   * contrato (cache) + status do romaneio.
+   */
+  async estornar(
+    id: string,
+    justificativa: string,
+    tokenAutorizacao?: string
+  ): Promise<{ sucesso: boolean; mensagem: string }> {
+    await delay();
+    try {
+      consumirAutorizacao(tokenAutorizacao, "ESTORNO_ROMANEIO", id);
+    } catch (e: any) {
+      return { sucesso: false, mensagem: e.message };
+    }
+    const r = mockRomaneios.find((x) => x.id === id && x.deletadoEm === null);
+    if (!r) return { sucesso: false, mensagem: "Romaneio não encontrado." };
+    if (r.status !== "FINALIZADO") {
+      return { sucesso: false, mensagem: "Somente romaneios FINALIZADOS podem ser estornados." };
+    }
+    const texto = (justificativa ?? "").trim();
+    if (texto.length < MIN_CARACTERES_JUSTIFICATIVA_ESTORNO) {
+      return { sucesso: false, mensagem: `Justificativa obrigatória com no mínimo ${MIN_CARACTERES_JUSTIFICATIVA_ESTORNO} caracteres.` };
+    }
+
+    const contrato = r.contratoId ? mockContratos.find((c) => c.id === r.contratoId && c.deletadoEm === null) : null;
+
+    // Dependências que impedem o estorno
+    if (contrato) {
+      const temFixacao = mockContratoFixacoes.some(
+        (f) => f.contratoId === contrato.id && f.deletadoEm === null
+      );
+      if (temFixacao) {
+        return { sucesso: false, mensagem: "Romaneio com preço fixado — reverter a fixação antes de estornar." };
+      }
+      const temLiquidacao = mockContratoLiquidacoes.some(
+        (l) => l.contratoId === contrato.id && l.deletadoEm === null && l.status !== "CANCELADA"
+      );
+      if (temLiquidacao) {
+        return { sucesso: false, mensagem: "Romaneio referenciado em liquidação — reverter a liquidação antes de estornar." };
+      }
+    }
+
+    const now = new Date().toISOString();
+    const userId = usuarioAtualId();
+    const ctx = { grupoId: r.grupoId, empresaId: r.empresaId, filialId: r.filialId };
+
+    // 1. Reverter movimentações de estoque geradas pelo romaneio
+    const movs = mockMovimentacoesEstoque.filter((m) => m.romaneioId === r.id && m.deletadoEm === null);
+    for (const m of movs) {
+      const saldo = estoqueService.obterSaldo(m.produtoId, m.pontoEstoqueId);
+      const qtdAtual = saldo?.quantidadeAtual ?? 0;
+      const nova = m.tipoMovimento === "ENTRADA"
+        ? qtdAtual - m.quantidadeConvertidaBase
+        : qtdAtual + m.quantidadeConvertidaBase;
+      estoqueService.atualizarSaldo(m.produtoId, m.pontoEstoqueId, nova, ctx);
+      m.deletadoEm = now;
+      m.deletadoPor = userId;
+      m.atualizadoEm = now;
+      m.atualizadoPor = userId;
+    }
+
+    // 2. Status ESTORNADO com rastreabilidade (registro nunca é apagado)
+    r.status = "ESTORNADO";
+    r.motivoEstorno = texto;
+    r.estornadoPor = userId;
+    r.estornadoEm = now;
+    r.atualizadoEm = now;
+    r.atualizadoPor = userId;
+
+    // 3. Saldo do contrato (cache) recalculado a partir da verdade — o
+    //    romaneio ESTORNADO já não entra nas somas. Estoque em trânsito
+    //    revertido na mesma operação.
+    if (contrato) {
+      const produtoContrato = mockProdutos.find((p) => p.id === r.produtoId);
+      if (produtoContrato) {
+        const unidadeRom = r.unidadeRomaneioId || getUnidadeBaseParaTipo(produtoContrato.tipoUnidade);
+        try {
+          const qtdContrato = unidadeMedidaService.converterQuantidade(
+            pesoComercialRomaneio(r), unidadeRom, contrato.unidadeNegociacaoId, produtoContrato.id
+          );
+          estoqueTransitoService.registrarMovimento(contrato.id, -qtdContrato);
+        } catch { /* conversão indisponível: trânsito permanece para reconciliação */ }
+      }
+      const s = atualizarCacheSaldoContrato(contrato);
+      contrato.status = s.entregueNeg > 0 ? "PARCIAL" : "ABERTO";
+      contrato.atualizadoEm = now;
+      contrato.atualizadoPor = userId;
+    }
+
+    return { sucesso: true, mensagem: "Romaneio estornado. Estoque e saldo do contrato revertidos." };
   },
   async finalizar(id: string): Promise<{ sucesso: boolean; mensagem: string }> {
     await delay();
@@ -3606,6 +3845,27 @@ export const romaneioService = {
     } catch (e: any) {
       return { sucesso: false, mensagem: `Erro na conversão de unidades: ${e.message}` };
     }
+
+    // TAREFA 8 — Validação de saldo/tolerância NA CAMADA DE SERVIÇO.
+    // Recusa se a entrega deixar o saldo negativo além da tolerância a maior
+    // definida no contrato. Dentro da tolerância: permitido.
+    if (contrato) {
+      const saldoAtualContrato = calcularSaldoContrato(contrato);
+      const saldoProjetado = saldoAtualContrato.saldoNeg - quantidadeContrato;
+      if (saldoProjetado < 0) {
+        const tolPerc = contrato.toleranciaPercentualMais ?? 0;
+        const limiteExcesso = contrato.quantidadeTotal * (tolPerc / 100);
+        const excesso = Math.abs(saldoProjetado);
+        if (excesso > limiteExcesso + 0.000001) {
+          const un = unidadeMedidaService.obterPorId(contrato.unidadeNegociacaoId)?.codigo ?? "";
+          return {
+            sucesso: false,
+            mensagem: `Excede o contratado além da tolerância de ${tolPerc}%: excesso de ${excesso.toFixed(3)} ${un} (limite ${limiteExcesso.toFixed(3)} ${un}).`,
+          };
+        }
+      }
+    }
+
 
     // Para colheita (sem contrato): sempre ENTRADA (produção colhida).
     // Para contrato: COMPRA = ENTRADA, VENDA = SAÍDA.
@@ -4503,7 +4763,7 @@ export const contratoLiquidacaoService = {
 // Tipos de Desconto Oficiais (Cadastro Mestre)
 // ============================================================
 import { descontoStore } from "./mock-store";
-import { PROTOTIPO_AUTORIZACAO_SEM_CREDENCIAL } from "./constants";
+import { supabase } from "@/integrations/supabase/client";
 import type { DescontoTipo, DescontoEmpresaConfig } from "./mock-data";
 
 export const descontoTipoService = {
@@ -4543,6 +4803,7 @@ export const descontoTipoService = {
     return novo;
   },
   async excluirTipo(id: string): Promise<void> {
+    exigirPermissao("EXCLUIR_CADASTRO_ESTRUTURAL");
     await delay(50);
     descontoStore.setDescontoTipos(descontoStore.getDescontoTipos().filter((d) => d.id !== id));
     descontoStore.setDescontoEmpresaConfigs(descontoStore.getDescontoEmpresaConfigs().filter((c) => c.descontoTipoId !== id));
@@ -4566,15 +4827,135 @@ export const descontoTipoService = {
 };
 
 // ============================================================
-// Autorização de supervisor (PROTÓTIPO)
+// FASE 1 — Autorização de supervisor (reautenticação real)
 // ------------------------------------------------------------
-// Nenhuma credencial fica no código. Autenticação/permissão real na Fase 1:
-// a API validará a permissão do supervisor. Até lá, qualquer senha não vazia
-// é aceita quando a flag de protótipo está ativa.
+// A senha validada é SEMPRE a do usuário logado que executa a ação, e o
+// perfil dele precisa ter a permissão AUTORIZAR_SUPERVISOR.
+// Fluxo de dois usuários (operador pede / supervisor autoriza com a própria
+// senha) fica registrado como evolução futura — fora do escopo desta fase.
+//
+// ESCOPO das ações que exigem supervisor:
+//   1. Registrar Adiantamento de Cliente
+//   2. Estorno de romaneio finalizado
+//   3. Exclusão de Condições e Descontos
+//   4. Exclusão de Moedas e Cotações
+//   5. Exclusão de Plano de Contas e Centros de Custo
 // ============================================================
+export type AcaoSupervisionada =
+  | "ADIANTAMENTO_CLIENTE"
+  | "ESTORNO_ROMANEIO"
+  | "EXCLUIR_CONDICAO_DESCONTO"
+  | "EXCLUIR_MOEDA_COTACAO"
+  | "EXCLUIR_PLANO_CONTAS"
+  | "EXCLUIR_CENTRO_CUSTO";
+
+export const ROTULO_ACAO_SUPERVISIONADA: Record<AcaoSupervisionada, string> = {
+  ADIANTAMENTO_CLIENTE: "Registrar Adiantamento de Cliente",
+  ESTORNO_ROMANEIO: "Estorno de romaneio finalizado",
+  EXCLUIR_CONDICAO_DESCONTO: "Exclusão de Condições e Descontos",
+  EXCLUIR_MOEDA_COTACAO: "Exclusão de Moedas e Cotações",
+  EXCLUIR_PLANO_CONTAS: "Exclusão de Plano de Contas",
+  EXCLUIR_CENTRO_CUSTO: "Exclusão de Centro de Custo",
+};
+
+export interface AlvoAutorizacao {
+  tipo: string;
+  id: string;
+  descricao?: string;
+}
+
+export interface RegistroAutorizacao {
+  id: string;
+  usuarioId: string;
+  usuarioNome: string;
+  acao: string;
+  registroTipo: string;
+  registroId: string;
+  descricao: string;
+  justificativa: string;
+  resultado: string;
+  criadoEm: string;
+}
+
+async function gravarLogAutorizacao(params: {
+  acao: AcaoSupervisionada;
+  alvo: AlvoAutorizacao;
+  justificativa?: string;
+  resultado: "AUTORIZADO" | "RECUSADO" | "CANCELADO";
+}): Promise<void> {
+  const s = _sessao;
+  if (!s) return;
+  await supabase.from("autorizacoes_log").insert({
+    usuario_id: s.id,
+    usuario_nome: s.nome,
+    acao: ROTULO_ACAO_SUPERVISIONADA[params.acao],
+    registro_tipo: params.alvo.tipo,
+    registro_id: params.alvo.id,
+    descricao: params.alvo.descricao ?? "",
+    justificativa: params.justificativa ?? "",
+    resultado: params.resultado,
+  });
+}
+
 export const autorizacaoService = {
-  async validarSupervisor(senha: string): Promise<boolean> {
-    await delay(100);
-    return PROTOTIPO_AUTORIZACAO_SEM_CREDENCIAL && senha.trim().length > 0;
+  /**
+   * Reautentica o usuário logado com a SENHA REAL dele e registra o
+   * resultado no log de autorizações — inclusive quando é recusado.
+   */
+  async validarSupervisor(
+    senha: string,
+    contexto?: { acao: AcaoSupervisionada; alvo: AlvoAutorizacao; justificativa?: string }
+  ): Promise<{ ok: boolean; mensagem: string; token?: string }> {
+    const s = _sessao;
+    if (!s) return { ok: false, mensagem: "Sessão expirada. Entre novamente." };
+    if (!podeExecutar("AUTORIZAR_SUPERVISOR")) {
+      if (contexto) await gravarLogAutorizacao({ ...contexto, resultado: "RECUSADO" });
+      return { ok: false, mensagem: "Seu perfil não tem permissão para autorizar esta operação." };
+    }
+    const { error } = await supabase.auth.signInWithPassword({ email: s.email, password: senha });
+    if (error) {
+      if (contexto) await gravarLogAutorizacao({ ...contexto, resultado: "RECUSADO" });
+      return { ok: false, mensagem: "Senha inválida." };
+    }
+    if (contexto) await gravarLogAutorizacao({ ...contexto, resultado: "AUTORIZADO" });
+    const token = contexto ? emitirTokenAutorizacao(contexto.acao, contexto.alvo.id) : undefined;
+    return { ok: true, mensagem: "Autorizado.", token };
+  },
+
+  /** Registro explícito (ex.: usuário cancelou a janela). */
+  async registrarTentativa(
+    acao: AcaoSupervisionada,
+    alvo: AlvoAutorizacao,
+    resultado: "CANCELADO" | "RECUSADO",
+    justificativa?: string
+  ): Promise<void> {
+    await gravarLogAutorizacao({ acao, alvo, justificativa, resultado });
+  },
+
+  async listarLog(filtros?: {
+    usuarioId?: string;
+    acao?: string;
+    de?: string;
+    ate?: string;
+  }): Promise<RegistroAutorizacao[]> {
+    let q = supabase.from("autorizacoes_log").select("*").order("criado_em", { ascending: false }).limit(500);
+    if (filtros?.usuarioId) q = q.eq("usuario_id", filtros.usuarioId);
+    if (filtros?.acao) q = q.eq("acao", filtros.acao);
+    if (filtros?.de) q = q.gte("criado_em", filtros.de);
+    if (filtros?.ate) q = q.lte("criado_em", filtros.ate);
+    const { data, error } = await q;
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((r: any) => ({
+      id: r.id,
+      usuarioId: r.usuario_id,
+      usuarioNome: r.usuario_nome,
+      acao: r.acao,
+      registroTipo: r.registro_tipo,
+      registroId: r.registro_id,
+      descricao: r.descricao,
+      justificativa: r.justificativa,
+      resultado: r.resultado,
+      criadoEm: r.criado_em,
+    }));
   },
 };

@@ -10,6 +10,8 @@ import { toast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { AutorizacaoSupervisorDialog } from "@/components/AutorizacaoSupervisorDialog";
+import type { AcaoSupervisionada } from "@/lib/services";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -65,6 +67,8 @@ interface SimpleCrudPageProps<T extends SimpleEntity> {
   getExtraData?: (row: T) => Partial<T>;
   extraDefaultValues?: Record<string, any>;
   extraSchema?: z.ZodTypeAny;
+  /** Quando informado, a exclusão exige reautenticação de supervisor e gera log. */
+  acaoSupervisao?: AcaoSupervisionada;
 }
 
 export function SimpleCrudPage<T extends SimpleEntity>({
@@ -77,6 +81,7 @@ export function SimpleCrudPage<T extends SimpleEntity>({
   getExtraData,
   extraDefaultValues = {},
   extraSchema,
+  acaoSupervisao,
 }: SimpleCrudPageProps<T>) {
   const { grupoAtual, empresaAtual, filialAtual } = useOrganization();
   const selectedGrupo = grupoAtual?.id ?? null;
@@ -88,6 +93,7 @@ export function SimpleCrudPage<T extends SimpleEntity>({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<T | null>(null);
+  const [supervisaoTarget, setSupervisaoTarget] = useState<T | null>(null);
 
   const mergedSchema = extraSchema
     ? z.intersection(schema, extraSchema as z.ZodTypeAny)
@@ -197,12 +203,26 @@ export function SimpleCrudPage<T extends SimpleEntity>({
     }
   });
 
+  const executarExclusao = async (alvo: T) => {
+    try {
+      await service.excluir(alvo.id);
+      toast({ title: `${entityName} excluído`, description: `"${alvo.descricao}" foi removido.` });
+      loadData();
+    } catch (e: any) {
+      toast({ title: "Não foi possível excluir", description: e?.message ?? "Erro inesperado.", variant: "destructive" });
+    }
+  };
+
   const confirmDelete = async () => {
     if (!deleteTarget) return;
-    await service.excluir(deleteTarget.id);
-    toast({ title: `${entityName} excluído`, description: `"${deleteTarget.descricao}" foi removido.` });
+    const alvo = deleteTarget;
     setDeleteTarget(null);
-    loadData();
+    // Cadastro estrutural: exige autorização de supervisor antes de excluir.
+    if (acaoSupervisao) {
+      setSupervisaoTarget(alvo);
+      return;
+    }
+    await executarExclusao(alvo);
   };
 
   if (!selectedEmpresa || !selectedFilial) {
@@ -279,6 +299,20 @@ export function SimpleCrudPage<T extends SimpleEntity>({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {acaoSupervisao && supervisaoTarget && (
+        <AutorizacaoSupervisorDialog
+          open={!!supervisaoTarget}
+          acao={acaoSupervisao}
+          alvo={{ tipo: entityName, id: supervisaoTarget.id, descricao: supervisaoTarget.descricao }}
+          onClose={() => setSupervisaoTarget(null)}
+          onAuthorized={async () => {
+            const alvo = supervisaoTarget;
+            setSupervisaoTarget(null);
+            if (alvo) await executarExclusao(alvo);
+          }}
+        />
+      )}
     </>
   );
 }
