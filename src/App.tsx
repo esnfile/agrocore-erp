@@ -56,6 +56,7 @@ import ClassificacaoListaPage from "@/pages/balanca/ClassificacaoListaPage";
 import ClassificacaoDetalhePage from "@/pages/balanca/ClassificacaoDetalhePage";
 import NotFound from "./pages/NotFound";
 import LoginPage from "@/pages/LoginPage";
+import UsuariosPage from "@/pages/admin/UsuariosPage";
 import LogAutorizacoesPage from "@/pages/configuracoes/LogAutorizacoesPage";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -85,7 +86,7 @@ const App = () => (
               <Route path="/admin/empresas" element={<EmpresasPage />} />
               <Route path="/admin/filiais" element={<FiliaisPage />} />
               {/* Administrativo — GerSys */}
-              <Route path="/admin/usuarios" element={<PlaceholderPage />} />
+              <Route path="/admin/usuarios" element={<ProtectedRoute perfis={["ADMINISTRADOR"]}><UsuariosPage /></ProtectedRoute>} />
               <Route path="/admin/gersys_modulos" element={<PlaceholderPage />} />
               <Route path="/admin/gersys_submodulos" element={<PlaceholderPage />} />
               <Route path="/admin/gersys_programas" element={<PlaceholderPage />} />

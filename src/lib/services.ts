@@ -1683,6 +1683,31 @@ export interface SaldoContrato {
   saldoBase: number;
 }
 
+/**
+ * REGRA DE ARREDONDAMENTO DE PESO (Fase 1):
+ * Pesos derivados da classificação (PLSL, peso classificado, peso descontado)
+ * são ARREDONDADOS PARA KG INTEIRO no ponto de GRAVAÇÃO (half-even / ToEven).
+ * O valor armazenado já é o exibido — contratado − entregue = saldo fecha
+ * sempre a conta mental do usuário. Exibição nunca arredonda por conta própria.
+ */
+export function arredondarKg(v: number): number {
+  if (!Number.isFinite(v)) return 0;
+  const f = Math.floor(v);
+  const d = v - f;
+  if (Math.abs(d - 0.5) < 1e-9) return f % 2 === 0 ? f : f + 1;
+  return Math.round(v);
+}
+
+function normalizarPesosRomaneio<T extends Partial<Romaneio>>(data: T): T {
+  const campos = ["pesoLiquidoSecoLimpo", "pesoClassificado", "totalPesoDescontado"] as const;
+  const out = { ...data };
+  for (const c of campos) {
+    const v = out[c as keyof T];
+    if (typeof v === "number") (out as Record<string, unknown>)[c] = arredondarKg(v);
+  }
+  return out;
+}
+
 /** Peso comercial de um romaneio (mesma regra da finalização). */
 export function pesoComercialRomaneio(r: { pesoLiquidoSecoLimpo: number; pesoLiquido: number }): number {
   return r.pesoLiquidoSecoLimpo > 0 ? r.pesoLiquidoSecoLimpo : r.pesoLiquido;
@@ -1886,6 +1911,8 @@ export const contratoService = {
       dataContrato: data.dataContrato ?? new Date().toISOString().slice(0, 10),
       dataEntregaInicio: data.dataEntregaInicio ?? "",
       dataEntregaFim: data.dataEntregaFim ?? "",
+      toleranciaPercentualMenos: data.toleranciaPercentualMenos ?? null,
+      toleranciaPercentualMais: data.toleranciaPercentualMais ?? null,
       filialOperacaoId: data.filialOperacaoId ?? null,
       filialOrigemId: data.filialOrigemId ?? null,
       filialDestinoId: data.filialDestinoId ?? null,
@@ -3613,6 +3640,7 @@ export const romaneioService = {
   },
   async salvar(data: Partial<Romaneio>, ctx: { grupoId: string; empresaId: string; filialId: string }): Promise<Romaneio> {
     await delay();
+    data = normalizarPesosRomaneio(data);
     const now = new Date().toISOString();
     if (data.id) {
       const existing = mockRomaneios.find((r) => r.id === data.id);

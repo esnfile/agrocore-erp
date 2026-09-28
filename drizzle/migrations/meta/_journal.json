@@ -8,6 +8,13 @@
       "when": 1790566457856,
       "tag": "0000_fase1_auth_perfis_permissoes_log",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790608555067,
+      "tag": "0001_remove_first_user_admin",
+      "breakpoints": true
     }
   ]
 }

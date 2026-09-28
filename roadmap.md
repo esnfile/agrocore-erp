@@ -20,3 +20,9 @@
 - Estorno via documento compensatório espelhado (romaneio de estorno), não status in-place
 - Fluxo de dois usuários na autorização de supervisor (operador pede, supervisor autoriza)
 - contrato_itens (multi-produto)
+
+## Pendências pós-Fase 1
+- [x] P1 Cadastro público fechado; gestão de usuários só pelo Administrador
+- [x] P2 Recusa por tolerância exercitada (teste automático no serviço; campo de tolerância adicionado ao contrato)
+- [ ] P2b Repetir o teste de tolerância clicando na interface (aguarda validação do usuário)
+- [x] P3 Regra de arredondamento: pesos de classificação gravados em kg inteiro (half-even)

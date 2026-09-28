@@ -16,7 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Building2, GitBranch, LogOut, Network, ShieldCheck, TrendingUp, TrendingDown } from "lucide-react";
+import { Building2, GitBranch, LogOut, Network, ShieldCheck, Users, TrendingUp, TrendingDown } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -177,6 +177,12 @@ export function AppHeader() {
             <DropdownMenuItem onClick={() => navigate("/configuracoes/log-autorizacoes")}>
               <ShieldCheck className="mr-2 h-4 w-4" />
               Log de Autorizações
+            </DropdownMenuItem>
+          )}
+          {perfil === "ADMINISTRADOR" && (
+            <DropdownMenuItem onClick={() => navigate("/admin/usuarios")}>
+              <Users className="mr-2 h-4 w-4" />
+              Gestão de Usuários
             </DropdownMenuItem>
           )}
           <DropdownMenuItem onClick={handleSair}>
