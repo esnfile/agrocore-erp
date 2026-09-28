@@ -14,16 +14,123 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      autorizacoes_log: {
+        Row: {
+          acao: string
+          criado_em: string
+          descricao: string
+          id: string
+          justificativa: string
+          registro_id: string
+          registro_tipo: string
+          resultado: string
+          usuario_id: string
+          usuario_nome: string
+        }
+        Insert: {
+          acao: string
+          criado_em?: string
+          descricao?: string
+          id?: string
+          justificativa?: string
+          registro_id?: string
+          registro_tipo?: string
+          resultado: string
+          usuario_id: string
+          usuario_nome?: string
+        }
+        Update: {
+          acao?: string
+          criado_em?: string
+          descricao?: string
+          id?: string
+          justificativa?: string
+          registro_id?: string
+          registro_tipo?: string
+          resultado?: string
+          usuario_id?: string
+          usuario_nome?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          ativo: boolean
+          atualizado_em: string
+          criado_em: string
+          email: string
+          empresa_id: string
+          empresas_permitidas: string[]
+          filiais_permitidas: string[]
+          filial_id: string
+          grupo_id: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_em?: string
+          criado_em?: string
+          email?: string
+          empresa_id?: string
+          empresas_permitidas?: string[]
+          filiais_permitidas?: string[]
+          filial_id?: string
+          grupo_id?: string
+          id: string
+          nome?: string
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_em?: string
+          criado_em?: string
+          email?: string
+          empresa_id?: string
+          empresas_permitidas?: string[]
+          filiais_permitidas?: string[]
+          filial_id?: string
+          grupo_id?: string
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          criado_em: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          criado_em?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          criado_em?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "ADMINISTRADOR" | "OPERADOR" | "CONSULTA"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +257,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["ADMINISTRADOR", "OPERADOR", "CONSULTA"],
+    },
   },
 } as const
