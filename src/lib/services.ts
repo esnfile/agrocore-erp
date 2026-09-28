@@ -4633,15 +4633,134 @@ export const descontoTipoService = {
 };
 
 // ============================================================
-// Autorização de supervisor (PROTÓTIPO)
+// FASE 1 — Autorização de supervisor (reautenticação real)
 // ------------------------------------------------------------
-// Nenhuma credencial fica no código. Autenticação/permissão real na Fase 1:
-// a API validará a permissão do supervisor. Até lá, qualquer senha não vazia
-// é aceita quando a flag de protótipo está ativa.
+// A senha validada é SEMPRE a do usuário logado que executa a ação, e o
+// perfil dele precisa ter a permissão AUTORIZAR_SUPERVISOR.
+// Fluxo de dois usuários (operador pede / supervisor autoriza com a própria
+// senha) fica registrado como evolução futura — fora do escopo desta fase.
+//
+// ESCOPO das ações que exigem supervisor:
+//   1. Registrar Adiantamento de Cliente
+//   2. Estorno de romaneio finalizado
+//   3. Exclusão de Condições e Descontos
+//   4. Exclusão de Moedas e Cotações
+//   5. Exclusão de Plano de Contas e Centros de Custo
 // ============================================================
+export type AcaoSupervisionada =
+  | "ADIANTAMENTO_CLIENTE"
+  | "ESTORNO_ROMANEIO"
+  | "EXCLUIR_CONDICAO_DESCONTO"
+  | "EXCLUIR_MOEDA_COTACAO"
+  | "EXCLUIR_PLANO_CONTAS"
+  | "EXCLUIR_CENTRO_CUSTO";
+
+export const ROTULO_ACAO_SUPERVISIONADA: Record<AcaoSupervisionada, string> = {
+  ADIANTAMENTO_CLIENTE: "Registrar Adiantamento de Cliente",
+  ESTORNO_ROMANEIO: "Estorno de romaneio finalizado",
+  EXCLUIR_CONDICAO_DESCONTO: "Exclusão de Condições e Descontos",
+  EXCLUIR_MOEDA_COTACAO: "Exclusão de Moedas e Cotações",
+  EXCLUIR_PLANO_CONTAS: "Exclusão de Plano de Contas",
+  EXCLUIR_CENTRO_CUSTO: "Exclusão de Centro de Custo",
+};
+
+export interface AlvoAutorizacao {
+  tipo: string;
+  id: string;
+  descricao?: string;
+}
+
+export interface RegistroAutorizacao {
+  id: string;
+  usuarioId: string;
+  usuarioNome: string;
+  acao: string;
+  registroTipo: string;
+  registroId: string;
+  descricao: string;
+  justificativa: string;
+  resultado: string;
+  criadoEm: string;
+}
+
+async function gravarLogAutorizacao(params: {
+  acao: AcaoSupervisionada;
+  alvo: AlvoAutorizacao;
+  justificativa?: string;
+  resultado: "AUTORIZADO" | "RECUSADO" | "CANCELADO";
+}): Promise<void> {
+  const s = _sessao;
+  if (!s) return;
+  await supabase.from("autorizacoes_log").insert({
+    usuario_id: s.id,
+    usuario_nome: s.nome,
+    acao: ROTULO_ACAO_SUPERVISIONADA[params.acao],
+    registro_tipo: params.alvo.tipo,
+    registro_id: params.alvo.id,
+    descricao: params.alvo.descricao ?? "",
+    justificativa: params.justificativa ?? "",
+    resultado: params.resultado,
+  });
+}
+
 export const autorizacaoService = {
-  async validarSupervisor(senha: string): Promise<boolean> {
-    await delay(100);
-    return PROTOTIPO_AUTORIZACAO_SEM_CREDENCIAL && senha.trim().length > 0;
+  /**
+   * Reautentica o usuário logado com a SENHA REAL dele e registra o
+   * resultado no log de autorizações — inclusive quando é recusado.
+   */
+  async validarSupervisor(
+    senha: string,
+    contexto?: { acao: AcaoSupervisionada; alvo: AlvoAutorizacao; justificativa?: string }
+  ): Promise<{ ok: boolean; mensagem: string }> {
+    const s = _sessao;
+    if (!s) return { ok: false, mensagem: "Sessão expirada. Entre novamente." };
+    if (!podeExecutar("AUTORIZAR_SUPERVISOR")) {
+      if (contexto) await gravarLogAutorizacao({ ...contexto, resultado: "RECUSADO" });
+      return { ok: false, mensagem: "Seu perfil não tem permissão para autorizar esta operação." };
+    }
+    const { error } = await supabase.auth.signInWithPassword({ email: s.email, password: senha });
+    if (error) {
+      if (contexto) await gravarLogAutorizacao({ ...contexto, resultado: "RECUSADO" });
+      return { ok: false, mensagem: "Senha inválida." };
+    }
+    if (contexto) await gravarLogAutorizacao({ ...contexto, resultado: "AUTORIZADO" });
+    return { ok: true, mensagem: "Autorizado." };
+  },
+
+  /** Registro explícito (ex.: usuário cancelou a janela). */
+  async registrarTentativa(
+    acao: AcaoSupervisionada,
+    alvo: AlvoAutorizacao,
+    resultado: "CANCELADO" | "RECUSADO",
+    justificativa?: string
+  ): Promise<void> {
+    await gravarLogAutorizacao({ acao, alvo, justificativa, resultado });
+  },
+
+  async listarLog(filtros?: {
+    usuarioId?: string;
+    acao?: string;
+    de?: string;
+    ate?: string;
+  }): Promise<RegistroAutorizacao[]> {
+    let q = supabase.from("autorizacoes_log").select("*").order("criado_em", { ascending: false }).limit(500);
+    if (filtros?.usuarioId) q = q.eq("usuario_id", filtros.usuarioId);
+    if (filtros?.acao) q = q.eq("acao", filtros.acao);
+    if (filtros?.de) q = q.gte("criado_em", filtros.de);
+    if (filtros?.ate) q = q.lte("criado_em", filtros.ate);
+    const { data, error } = await q;
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((r: any) => ({
+      id: r.id,
+      usuarioId: r.usuario_id,
+      usuarioNome: r.usuario_nome,
+      acao: r.acao,
+      registroTipo: r.registro_tipo,
+      registroId: r.registro_id,
+      descricao: r.descricao,
+      justificativa: r.justificativa,
+      resultado: r.resultado,
+      criadoEm: r.criado_em,
+    }));
   },
 };
