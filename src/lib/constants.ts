@@ -32,9 +32,9 @@ export const ESTADOS_BRASILEIROS = [
   { sigla: "TO" },
 ] as const;
 
-// Adiantamento de Cliente exige autorização de supervisor (mock).
-// TODO: substituir por verificação de permissão real quando o módulo de Usuários/Permissões existir.
+// Adiantamento de Cliente exige autorização de supervisor.
+// Fase 1: a janela reautentica com a SENHA REAL do usuário logado.
 export const REQUER_AUTORIZACAO_ADIANT_CLIENTE = true;
-// Autenticação real na Fase 1. Nenhuma senha fica no código:
-// enquanto true, o protótipo aceita qualquer senha não vazia (ver autorizacaoService).
-export const PROTOTIPO_AUTORIZACAO_SEM_CREDENCIAL = true;
+
+// Justificativa obrigatória no estorno de romaneio finalizado.
+export const MIN_CARACTERES_JUSTIFICATIVA_ESTORNO = 20;
