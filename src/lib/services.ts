@@ -161,6 +161,30 @@ export function usuarioAtualId(): string {
   return _sessao.id;
 }
 
+// ------------------------------------------------------------
+// Tokens de autorização de supervisor.
+// A janela de reautenticação devolve um token de uso único; as operações
+// sensíveis EXIGEM esse token na CAMADA DE SERVIÇO — esconder o botão na
+// tela não é proteção.
+// ------------------------------------------------------------
+const _autorizacoes = new Map<string, { acao: string; alvoId: string; expiraEm: number }>();
+
+export function emitirTokenAutorizacao(acao: string, alvoId: string): string {
+  const token = `aut_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  _autorizacoes.set(token, { acao, alvoId, expiraEm: Date.now() + 5 * 60 * 1000 });
+  return token;
+}
+
+/** Consome o token (uso único). Lança se ausente, expirado ou de outro alvo. */
+export function consumirAutorizacao(token: string | undefined, acao: string, alvoId: string): void {
+  const reg = token ? _autorizacoes.get(token) : undefined;
+  if (!reg) throw new Error("Operação não autorizada: é necessária autorização de supervisor.");
+  _autorizacoes.delete(token!);
+  if (reg.acao !== acao || reg.alvoId !== alvoId || reg.expiraEm < Date.now()) {
+    throw new Error("Autorização inválida ou expirada. Refaça a autorização de supervisor.");
+  }
+}
+
 // ============================================================
 // Catálogo (read-model síncrono, somente leitura)
 // ------------------------------------------------------------
@@ -3664,9 +3688,15 @@ export const romaneioService = {
    */
   async estornar(
     id: string,
-    justificativa: string
+    justificativa: string,
+    tokenAutorizacao?: string
   ): Promise<{ sucesso: boolean; mensagem: string }> {
     await delay();
+    try {
+      consumirAutorizacao(tokenAutorizacao, "ESTORNO_ROMANEIO", id);
+    } catch (e: any) {
+      return { sucesso: false, mensagem: e.message };
+    }
     const r = mockRomaneios.find((x) => x.id === id && x.deletadoEm === null);
     if (!r) return { sucesso: false, mensagem: "Romaneio não encontrado." };
     if (r.status !== "FINALIZADO") {
@@ -4875,7 +4905,7 @@ export const autorizacaoService = {
   async validarSupervisor(
     senha: string,
     contexto?: { acao: AcaoSupervisionada; alvo: AlvoAutorizacao; justificativa?: string }
-  ): Promise<{ ok: boolean; mensagem: string }> {
+  ): Promise<{ ok: boolean; mensagem: string; token?: string }> {
     const s = _sessao;
     if (!s) return { ok: false, mensagem: "Sessão expirada. Entre novamente." };
     if (!podeExecutar("AUTORIZAR_SUPERVISOR")) {
@@ -4888,7 +4918,8 @@ export const autorizacaoService = {
       return { ok: false, mensagem: "Senha inválida." };
     }
     if (contexto) await gravarLogAutorizacao({ ...contexto, resultado: "AUTORIZADO" });
-    return { ok: true, mensagem: "Autorizado." };
+    const token = contexto ? emitirTokenAutorizacao(contexto.acao, contexto.alvo.id) : undefined;
+    return { ok: true, mensagem: "Autorizado.", token };
   },
 
   /** Registro explícito (ex.: usuário cancelou a janela). */
