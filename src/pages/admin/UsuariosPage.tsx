@@ -207,7 +207,7 @@ export default function UsuariosPage() {
                   if (fs.length === 0) return null;
                   return (
                     <div key={emp.id} className="space-y-1">
-                      <p className="text-xs font-semibold text-muted-foreground">{emp.nomeRazao}</p>
+                      <p className="text-xs font-semibold text-muted-foreground">{emp.nome}</p>
                       {fs.map((f) => (
                         <label key={f.id} className="flex items-center gap-2 text-sm">
                           <Checkbox
