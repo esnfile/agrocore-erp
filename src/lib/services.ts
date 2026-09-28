@@ -1663,6 +1663,11 @@ export function pesoComercialRomaneio(r: { pesoLiquidoSecoLimpo: number; pesoLiq
 }
 
 /** Romaneios que contam como entrega física do contrato. */
+/**
+ * Romaneios que contam como entrega. Somente FINALIZADO — romaneios
+ * CANCELADO e ESTORNADO ficam de fora das somas de verdade absoluta
+ * (saldo de contrato e saldo de estoque).
+ */
 export function romaneiosEntreguesDoContrato(contratoId: string) {
   return mockRomaneios.filter(
     (r) => r.contratoId === contratoId && r.deletadoEm === null && r.status === "FINALIZADO"
