@@ -107,6 +107,7 @@ const contratoSchema = z.object({
   dataContrato: z.string().min(1, "Data é obrigatória"),
   dataEntregaInicio: z.string().optional(),
   dataEntregaFim: z.string().optional(),
+  toleranciaPercentualMais: z.coerce.number().min(0, "Tolerância deve ser >= 0").max(100, "Tolerância deve ser <= 100").optional(),
   filialOperacaoId: z.string().optional(),
   filialOrigemId: z.string().optional(),
   filialDestinoId: z.string().optional(),
@@ -337,6 +338,7 @@ export default function ContratosPage() {
       dataContrato: new Date().toISOString().slice(0, 10),
       dataEntregaInicio: "",
       dataEntregaFim: "",
+      toleranciaPercentualMais: 0,
       filialOperacaoId: "",
       filialOrigemId: "",
       filialDestinoId: "",
@@ -684,6 +686,7 @@ export default function ContratosPage() {
       dataContrato: new Date().toISOString().slice(0, 10),
       dataEntregaInicio: "",
       dataEntregaFim: "",
+      toleranciaPercentualMais: 0,
       filialOperacaoId: "",
       filialOrigemId: "",
       filialDestinoId: "",
@@ -719,6 +722,7 @@ export default function ContratosPage() {
       dataContrato: c.dataContrato,
       dataEntregaInicio: c.dataEntregaInicio,
       dataEntregaFim: c.dataEntregaFim,
+      toleranciaPercentualMais: c.toleranciaPercentualMais ?? 0,
       filialOperacaoId: c.filialOperacaoId ?? "",
       filialOrigemId: c.filialOrigemId ?? "",
       filialDestinoId: c.filialDestinoId ?? "",
@@ -2051,7 +2055,7 @@ export default function ContratosPage() {
                 </FormRow>
 
                 {/* Row 5: Datas de entrega (2 cols) */}
-                <FormRow columns={2}>
+                <FormRow columns={3}>
                   <div className="w-full">
                     <Label>Data Entrega Início</Label>
                     <Input type="date" {...contratoForm.register("dataEntregaInicio")} />
@@ -2059,6 +2063,10 @@ export default function ContratosPage() {
                   <div className="w-full">
                     <Label>Data Entrega Fim</Label>
                     <Input type="date" {...contratoForm.register("dataEntregaFim")} />
+                  </div>
+                  <div className="w-full">
+                    <Label>Tolerância a maior (%)</Label>
+                    <Input type="number" step="0.01" min={0} max={100} {...contratoForm.register("toleranciaPercentualMais")} />
                   </div>
                 </FormRow>
 

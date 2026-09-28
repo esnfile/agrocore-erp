@@ -1911,6 +1911,8 @@ export const contratoService = {
       dataContrato: data.dataContrato ?? new Date().toISOString().slice(0, 10),
       dataEntregaInicio: data.dataEntregaInicio ?? "",
       dataEntregaFim: data.dataEntregaFim ?? "",
+      toleranciaPercentualMenos: data.toleranciaPercentualMenos ?? null,
+      toleranciaPercentualMais: data.toleranciaPercentualMais ?? null,
       filialOperacaoId: data.filialOperacaoId ?? null,
       filialOrigemId: data.filialOrigemId ?? null,
       filialDestinoId: data.filialDestinoId ?? null,
