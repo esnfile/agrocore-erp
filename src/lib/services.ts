@@ -82,15 +82,82 @@ import type {
 const delay = (ms = 300) => new Promise((r) => setTimeout(r, ms));
 
 // ============================================================
-// Usuário atual (placeholder de auditoria)
+// FASE 1 — Sessão do usuário autenticado e permissões
 // ------------------------------------------------------------
 // ÚNICO ponto de onde sai o valor gravado em criadoPor / atualizadoPor /
-// deletadoPor em TODOS os services. Autenticação real chega na Fase 1:
-// basta trocar a implementação desta função pelo id do usuário do JWT.
+// deletadoPor em TODOS os services. A sessão é injetada pelo AuthContext
+// logo após o login (definirSessaoAtual) e limpa no logout.
+// Nenhuma gravação acontece sem usuário autenticado.
 // ============================================================
-const USUARIO_PLACEHOLDER_ID = "u1"; // PROTÓTIPO — substituído na Fase 1
+export type PerfilAcesso = "ADMINISTRADOR" | "OPERADOR" | "CONSULTA";
+
+export interface SessaoUsuario {
+  id: string;
+  nome: string;
+  email: string;
+  perfil: PerfilAcesso;
+  grupoId: string;
+  empresaId: string;
+  filialId: string;
+  empresasPermitidas: string[];
+  filiaisPermitidas: string[];
+}
+
+let _sessao: SessaoUsuario | null = null;
+
+/** Chamado pelo AuthContext ao autenticar / encerrar sessão. */
+export function definirSessaoAtual(sessao: SessaoUsuario | null): void {
+  _sessao = sessao;
+}
+
+export function sessaoAtual(): SessaoUsuario | null {
+  return _sessao;
+}
+
+/**
+ * Ações sensíveis controladas por perfil — a verificação vive NA CAMADA DE
+ * SERVIÇO. A UI pode esconder botões, mas isso é cosmético.
+ */
+export type AcaoPermissao =
+  | "OPERAR"                        // criar/editar registros operacionais
+  | "EXCLUIR_CADASTRO_ESTRUTURAL"   // plano de contas, centros de custo, condições, moedas
+  | "AUTORIZAR_SUPERVISOR";         // reautenticação de supervisor
+
+const PERMISSOES_POR_PERFIL: Record<PerfilAcesso, AcaoPermissao[]> = {
+  ADMINISTRADOR: ["OPERAR", "EXCLUIR_CADASTRO_ESTRUTURAL", "AUTORIZAR_SUPERVISOR"],
+  OPERADOR: ["OPERAR"],
+  CONSULTA: [],
+};
+
+export function podeExecutar(acao: AcaoPermissao): boolean {
+  if (!_sessao) return false;
+  return PERMISSOES_POR_PERFIL[_sessao.perfil].includes(acao);
+}
+
+export function exigirPermissao(acao: AcaoPermissao): void {
+  if (!_sessao) throw new Error("Sessão expirada. Entre novamente para continuar.");
+  if (!podeExecutar(acao)) {
+    throw new Error(
+      acao === "EXCLUIR_CADASTRO_ESTRUTURAL"
+        ? "Permissão negada: apenas o perfil Administrador pode excluir cadastros estruturais."
+        : acao === "AUTORIZAR_SUPERVISOR"
+          ? "Permissão negada: seu perfil não autoriza esta operação."
+          : "Permissão negada: o perfil Consulta é somente leitura."
+    );
+  }
+}
+
+/**
+ * Id do usuário autenticado. Lançar aqui garante que NENHUMA gravação
+ * acontece sem sessão válida e que o perfil Consulta nunca grava —
+ * toda função de escrita passa por esta chamada.
+ */
 export function usuarioAtualId(): string {
-  return USUARIO_PLACEHOLDER_ID;
+  if (!_sessao) throw new Error("Sessão expirada. Entre novamente para continuar.");
+  if (!PERMISSOES_POR_PERFIL[_sessao.perfil].includes("OPERAR")) {
+    throw new Error("Permissão negada: o perfil Consulta é somente leitura.");
+  }
+  return _sessao.id;
 }
 
 // ============================================================
