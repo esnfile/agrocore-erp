@@ -1756,9 +1756,19 @@ export function reconciliarSaldosContratos(grupoId?: string, tolerancia = 0.0000
     .filter((c) => c.deletadoEm === null && (!grupoId || c.grupoId === grupoId))
     .map((c) => {
       const s = calcularSaldoContrato(c);
-      // Validação explícita: nenhuma soma de verdade pode incluir ESTORNADO/CANCELADO.
-      const estornadosContabilizados = romaneiosEntreguesDoContrato(c.id).some(
-        (r) => r.status !== "FINALIZADO"
+      // Validação explícita: nenhum romaneio ESTORNADO/CANCELADO pode continuar
+      // contabilizado — nem na soma de entregas, nem no estoque.
+      const romaneiosDoContrato = mockRomaneios.filter(
+        (r) => r.contratoId === c.id && r.deletadoEm === null
+      );
+      const desfeitos = romaneiosDoContrato.filter(
+        (r) => r.status === "ESTORNADO" || r.status === "CANCELADO"
+      );
+      const idsEntregues = new Set(romaneiosEntreguesDoContrato(c.id).map((r) => r.id));
+      const estornadosContabilizados = desfeitos.some(
+        (r) =>
+          idsEntregues.has(r.id) ||
+          mockMovimentacoesEstoque.some((m) => m.romaneioId === r.id && m.deletadoEm === null)
       );
       return {
         contratoId: c.id,

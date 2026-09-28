@@ -210,7 +210,7 @@ export default function CondicoesDescontosPage() {
 
   // Exclusão de condição/desconto afeta cálculos: exige autorização de supervisor.
   const handleDelete = (id: string) => {
-    const t = tipos.find((x) => x.id === id);
+    const t = descontos.find((x) => x.id === id);
     setTipoParaExcluir({ id, descricao: t?.descricao ?? id });
   };
 

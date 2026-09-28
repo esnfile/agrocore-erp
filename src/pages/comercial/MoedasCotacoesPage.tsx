@@ -90,7 +90,7 @@ export default function MoedasCotacoesPage() {
 
   // Exclusão de moeda afeta cálculos: exige autorização de supervisor.
   const handleDelete = (id: string) => {
-    const m = moedas.find((x) => x.id === id);
+    const m = moedasList.find((x) => x.id === id);
     setMoedaParaExcluir({ id, descricao: m ? `${m.codigo} — ${m.descricao}` : id });
   };
 
