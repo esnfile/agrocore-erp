@@ -55,6 +55,10 @@ import PesagemDetalhePage from "@/pages/balanca/PesagemDetalhePage";
 import ClassificacaoListaPage from "@/pages/balanca/ClassificacaoListaPage";
 import ClassificacaoDetalhePage from "@/pages/balanca/ClassificacaoDetalhePage";
 import NotFound from "./pages/NotFound";
+import LoginPage from "@/pages/LoginPage";
+import LogAutorizacoesPage from "@/pages/configuracoes/LogAutorizacoesPage";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -64,11 +68,18 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+       <AuthProvider>
         <OrganizationProvider>
           <Routes>
+            <Route path="/login" element={<LoginPage />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route element={<AppLayout />}>
+            <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route path="/dashboard" element={<DashboardPage />} />
+              {/* Configurações */}
+              <Route
+                path="/configuracoes/log-autorizacoes"
+                element={<ProtectedRoute perfis={["ADMINISTRADOR"]}><LogAutorizacoesPage /></ProtectedRoute>}
+              />
               {/* Administrativo — Grupo Empresarial */}
               <Route path="/admin/grupos" element={<GruposPage />} />
               <Route path="/admin/empresas" element={<EmpresasPage />} />
