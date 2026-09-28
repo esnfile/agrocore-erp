@@ -10,6 +10,8 @@ import { toast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { AutorizacaoSupervisorDialog } from "@/components/AutorizacaoSupervisorDialog";
+import type { AcaoSupervisionada } from "@/lib/services";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -65,6 +67,8 @@ interface SimpleCrudPageProps<T extends SimpleEntity> {
   getExtraData?: (row: T) => Partial<T>;
   extraDefaultValues?: Record<string, any>;
   extraSchema?: z.ZodTypeAny;
+  /** Quando informado, a exclusão exige reautenticação de supervisor e gera log. */
+  acaoSupervisao?: AcaoSupervisionada;
 }
 
 export function SimpleCrudPage<T extends SimpleEntity>({
@@ -77,6 +81,7 @@ export function SimpleCrudPage<T extends SimpleEntity>({
   getExtraData,
   extraDefaultValues = {},
   extraSchema,
+  acaoSupervisao,
 }: SimpleCrudPageProps<T>) {
   const { grupoAtual, empresaAtual, filialAtual } = useOrganization();
   const selectedGrupo = grupoAtual?.id ?? null;
