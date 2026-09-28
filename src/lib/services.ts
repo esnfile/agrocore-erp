@@ -3706,7 +3706,7 @@ export const romaneioService = {
     //    romaneio ESTORNADO já não entra nas somas.
     if (contrato) {
       const s = atualizarCacheSaldoContrato(contrato);
-      contrato.status = s.entregueNeg > 0 ? "PARCIAL" : "ATIVO";
+      contrato.status = s.entregueNeg > 0 ? "PARCIAL" : "ABERTO";
       contrato.atualizadoEm = now;
       contrato.atualizadoPor = userId;
     }
