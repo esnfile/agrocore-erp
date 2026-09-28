@@ -1,3 +1,4 @@
+import { AutorizacaoSupervisorDialog } from "@/components/AutorizacaoSupervisorDialog";
 import { useState, useMemo, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/PageHeader";
@@ -33,6 +34,7 @@ export default function MoedasCotacoesPage() {
   const [form, setForm] = useState({ codigo: "", descricao: "", simbolo: "", ativo: true });
 
   // Selected moeda for cotações
+  const [moedaParaExcluir, setMoedaParaExcluir] = useState<{ id: string; descricao: string } | null>(null);
   const [selectedMoedaId, setSelectedMoedaId] = useState<string | null>(null);
 
   const getMoedaNome = (id: string) => moedasList.find(m => m.id === id)?.codigo ?? id;
@@ -86,10 +88,23 @@ export default function MoedasCotacoesPage() {
     setModalOpen(false);
   };
 
-  const handleDelete = async (id: string) => {
-    await moedaService.excluir(id);
-    await recarregar();
-    toast.success("Moeda removida");
+  // Exclusão de moeda afeta cálculos: exige autorização de supervisor.
+  const handleDelete = (id: string) => {
+    const m = moedas.find((x) => x.id === id);
+    setMoedaParaExcluir({ id, descricao: m ? `${m.codigo} — ${m.descricao}` : id });
+  };
+
+  const excluirMoedaAutorizada = async () => {
+    const alvo = moedaParaExcluir;
+    setMoedaParaExcluir(null);
+    if (!alvo) return;
+    try {
+      await moedaService.excluir(alvo.id);
+      await recarregar();
+      toast.success("Moeda removida");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Não foi possível excluir a moeda.");
+    }
   };
 
   const handleSelectMoeda = (moedaId: string) => {
@@ -210,6 +225,15 @@ export default function MoedasCotacoesPage() {
           </div>
         </div>
       </CrudModal>
+      {moedaParaExcluir && (
+        <AutorizacaoSupervisorDialog
+          open={!!moedaParaExcluir}
+          acao="EXCLUIR_MOEDA_COTACAO"
+          alvo={{ tipo: "Moeda", id: moedaParaExcluir.id, descricao: moedaParaExcluir.descricao }}
+          onClose={() => setMoedaParaExcluir(null)}
+          onAuthorized={excluirMoedaAutorizada}
+        />
+      )}
     </div>
   );
 }
