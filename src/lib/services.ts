@@ -4773,6 +4773,7 @@ export const descontoTipoService = {
     return novo;
   },
   async excluirTipo(id: string): Promise<void> {
+    exigirPermissao("EXCLUIR_CADASTRO_ESTRUTURAL");
     await delay(50);
     descontoStore.setDescontoTipos(descontoStore.getDescontoTipos().filter((d) => d.id !== id));
     descontoStore.setDescontoEmpresaConfigs(descontoStore.getDescontoEmpresaConfigs().filter((c) => c.descontoTipoId !== id));
