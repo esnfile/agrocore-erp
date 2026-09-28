@@ -3877,6 +3877,8 @@ export type StatusRomaneio =
   | "CLASSIFICADO"
   | "FINALIZADO"
   | "CANCELADO"
+  // Estorno de fato físico já consumado — o registro nunca é apagado
+  | "ESTORNADO"
   // Legacy compat
   | "ABERTO"
   | "AGUARDANDO_CONTRATO";
@@ -3937,6 +3939,10 @@ export interface Romaneio {
   //
   observacao: string;
   origemCriacao: OrigemCriacaoRomaneio;
+  // Rastreabilidade do estorno (preenchidos apenas quando status = ESTORNADO)
+  motivoEstorno?: string | null;
+  estornadoPor?: string | null;
+  estornadoEm?: string | null;
   criadoEm: string;
   criadoPor: string;
   atualizadoEm: string;
