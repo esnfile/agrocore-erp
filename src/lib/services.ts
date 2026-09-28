@@ -3608,11 +3608,110 @@ export const romaneioService = {
     if (r) { r.deletadoEm = new Date().toISOString(); r.deletadoPor = usuarioAtualId(); }
     if (r?.contratoId) { const c = mockContratos.find((x) => x.id === r.contratoId); if (c) atualizarCacheSaldoContrato(c); }
   },
+  /**
+   * CANCELAMENTO — só para romaneio que ainda NÃO virou fato físico.
+   * Romaneio FINALIZADO / CANCELADO / ESTORNADO é recusado AQUI, na camada de
+   * serviço (não basta esconder o botão). Para desfazer um finalizado existe
+   * o ESTORNO, que reverte estoque e saldo na mesma operação.
+   */
   async cancelar(id: string): Promise<void> {
     await delay();
     const r = mockRomaneios.find((x) => x.id === id && x.deletadoEm === null);
-    if (r) { r.status = "CANCELADO"; r.atualizadoEm = new Date().toISOString(); r.atualizadoPor = usuarioAtualId(); }
-    if (r?.contratoId) { const c = mockContratos.find((x) => x.id === r.contratoId); if (c) atualizarCacheSaldoContrato(c); }
+    if (!r) throw new Error("Romaneio não encontrado.");
+    if (r.status === "FINALIZADO") {
+      throw new Error("Romaneio finalizado não pode ser cancelado. Use o Estorno, que reverte estoque e saldo do contrato com autorização e justificativa.");
+    }
+    if (r.status === "CANCELADO" || r.status === "ESTORNADO") {
+      throw new Error(`Romaneio já está ${r.status === "CANCELADO" ? "cancelado" : "estornado"}.`);
+    }
+    r.status = "CANCELADO";
+    r.atualizadoEm = new Date().toISOString();
+    r.atualizadoPor = usuarioAtualId();
+    if (r.contratoId) { const c = mockContratos.find((x) => x.id === r.contratoId); if (c) atualizarCacheSaldoContrato(c); }
+  },
+
+  /**
+   * ESTORNO — único mecanismo de correção de romaneio FINALIZADO.
+   * Histórico físico nunca é apagado nem reescrito: o romaneio permanece
+   * visível com status ESTORNADO, justificativa, autor e data.
+   *
+   * Recusado quando houver dependência: fixação de preço vinculada ao
+   * contrato ou liquidação referenciando o contrato. O caminho é reverter a
+   * fixação/liquidação primeiro e só então estornar.
+   *
+   * Reverte em UMA única operação lógica: movimento de estoque + saldo do
+   * contrato (cache) + status do romaneio.
+   */
+  async estornar(
+    id: string,
+    justificativa: string
+  ): Promise<{ sucesso: boolean; mensagem: string }> {
+    await delay();
+    const r = mockRomaneios.find((x) => x.id === id && x.deletadoEm === null);
+    if (!r) return { sucesso: false, mensagem: "Romaneio não encontrado." };
+    if (r.status !== "FINALIZADO") {
+      return { sucesso: false, mensagem: "Somente romaneios FINALIZADOS podem ser estornados." };
+    }
+    const texto = (justificativa ?? "").trim();
+    if (texto.length < MIN_CARACTERES_JUSTIFICATIVA_ESTORNO) {
+      return { sucesso: false, mensagem: `Justificativa obrigatória com no mínimo ${MIN_CARACTERES_JUSTIFICATIVA_ESTORNO} caracteres.` };
+    }
+
+    const contrato = r.contratoId ? mockContratos.find((c) => c.id === r.contratoId && c.deletadoEm === null) : null;
+
+    // Dependências que impedem o estorno
+    if (contrato) {
+      const temFixacao = mockContratoFixacoes.some(
+        (f) => f.contratoId === contrato.id && f.deletadoEm === null
+      );
+      if (temFixacao) {
+        return { sucesso: false, mensagem: "Romaneio com preço fixado — reverter a fixação antes de estornar." };
+      }
+      const temLiquidacao = mockContratoLiquidacoes.some(
+        (l) => l.contratoId === contrato.id && l.deletadoEm === null && l.status !== "CANCELADA"
+      );
+      if (temLiquidacao) {
+        return { sucesso: false, mensagem: "Romaneio referenciado em liquidação — reverter a liquidação antes de estornar." };
+      }
+    }
+
+    const now = new Date().toISOString();
+    const userId = usuarioAtualId();
+    const ctx = { grupoId: r.grupoId, empresaId: r.empresaId, filialId: r.filialId };
+
+    // 1. Reverter movimentações de estoque geradas pelo romaneio
+    const movs = mockMovimentacoesEstoque.filter((m) => m.romaneioId === r.id && m.deletadoEm === null);
+    for (const m of movs) {
+      const saldo = estoqueService.obterSaldo(m.produtoId, m.pontoEstoqueId);
+      const qtdAtual = saldo?.quantidadeAtual ?? 0;
+      const nova = m.tipoMovimento === "ENTRADA"
+        ? qtdAtual - m.quantidadeConvertidaBase
+        : qtdAtual + m.quantidadeConvertidaBase;
+      estoqueService.atualizarSaldo(m.produtoId, m.pontoEstoqueId, nova, ctx);
+      m.deletadoEm = now;
+      m.deletadoPor = userId;
+      m.atualizadoEm = now;
+      m.atualizadoPor = userId;
+    }
+
+    // 2. Status ESTORNADO com rastreabilidade (registro nunca é apagado)
+    r.status = "ESTORNADO";
+    r.motivoEstorno = texto;
+    r.estornadoPor = userId;
+    r.estornadoEm = now;
+    r.atualizadoEm = now;
+    r.atualizadoPor = userId;
+
+    // 3. Saldo do contrato (cache) recalculado a partir da verdade — o
+    //    romaneio ESTORNADO já não entra nas somas.
+    if (contrato) {
+      const s = atualizarCacheSaldoContrato(contrato);
+      contrato.status = s.entregueNeg > 0 ? "PARCIAL" : "ATIVO";
+      contrato.atualizadoEm = now;
+      contrato.atualizadoPor = userId;
+    }
+
+    return { sucesso: true, mensagem: "Romaneio estornado. Estoque e saldo do contrato revertidos." };
   },
   async finalizar(id: string): Promise<{ sucesso: boolean; mensagem: string }> {
     await delay();
