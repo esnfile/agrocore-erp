@@ -1498,6 +1498,7 @@ export const moedaService = {
     return novo;
   },
   async excluir(id: string): Promise<void> {
+    exigirPermissao("EXCLUIR_CADASTRO_ESTRUTURAL");
     await delay();
     const now = new Date().toISOString();
     const m = mockMoedas.find((m) => m.id === id && m.deletadoEm === null);
@@ -2012,6 +2013,7 @@ export const condicaoDescontoModeloService = {
     return novo;
   },
   async excluir(id: string): Promise<void> {
+    exigirPermissao("EXCLUIR_CADASTRO_ESTRUTURAL");
     await delay();
     const now = new Date().toISOString();
     const m = mockCondicaoDescontoModelos.find((m) => m.id === id && m.deletadoEm === null);
@@ -2066,6 +2068,7 @@ export const condicaoDescontoModeloItemService = {
     return novo;
   },
   async excluir(id: string): Promise<void> {
+    exigirPermissao("EXCLUIR_CADASTRO_ESTRUTURAL");
     await delay();
     const now = new Date().toISOString();
     const i = mockCondicaoDescontoModeloItens.find((i) => i.id === id && i.deletadoEm === null);
