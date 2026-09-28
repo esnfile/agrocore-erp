@@ -864,8 +864,8 @@ export default function ContratosPage() {
           description: "Registre fixações de preço para gerar as duplicatas correspondentes.",
         });
       }
-    } catch {
-      toast({ title: "Erro", description: "Falha ao salvar contrato.", variant: "destructive" });
+    } catch (e) {
+      toast({ title: "Erro", description: e instanceof Error && e.message ? e.message : "Falha ao salvar contrato.", variant: "destructive" });
     } finally {
       setSaving(false);
     }

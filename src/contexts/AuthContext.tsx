@@ -10,7 +10,6 @@ interface AuthContextType {
   perfil: PerfilAcesso | null;
   carregando: boolean;
   entrar: (email: string, senha: string) => Promise<{ erro?: string }>;
-  cadastrar: (nome: string, email: string, senha: string) => Promise<{ erro?: string }>;
   sair: () => Promise<void>;
   definirContextoOrganizacional: (ctx: { grupoId: string; empresaId: string; filialId: string }) => void;
 }
@@ -83,22 +82,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return {};
   }, []);
 
-  const cadastrar = useCallback(async (nome: string, email: string, senha: string) => {
-    const { error } = await supabase.auth.signUp({
-      email: email.trim(),
-      password: senha,
-      options: {
-        emailRedirectTo: window.location.origin,
-        data: { nome: nome.trim() },
-      },
-    });
-    if (error) {
-      if (error.message.includes("already registered")) return { erro: "Este e-mail já está cadastrado." };
-      return { erro: error.message };
-    }
-    return {};
-  }, []);
-
   const sair = useCallback(async () => {
     definirSessaoAtual(null);
     setPerfilUsuario(null);
@@ -126,7 +109,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         perfil: perfilUsuario?.perfil ?? null,
         carregando,
         entrar,
-        cadastrar,
         sair,
         definirContextoOrganizacional,
       }}
