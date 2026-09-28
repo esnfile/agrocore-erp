@@ -4570,7 +4570,7 @@ export const contratoLiquidacaoService = {
 // Tipos de Desconto Oficiais (Cadastro Mestre)
 // ============================================================
 import { descontoStore } from "./mock-store";
-import { PROTOTIPO_AUTORIZACAO_SEM_CREDENCIAL } from "./constants";
+import { supabase } from "@/integrations/supabase/client";
 import type { DescontoTipo, DescontoEmpresaConfig } from "./mock-data";
 
 export const descontoTipoService = {
