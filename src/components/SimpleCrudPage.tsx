@@ -88,6 +88,7 @@ export function SimpleCrudPage<T extends SimpleEntity>({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<T | null>(null);
+  const [supervisaoTarget, setSupervisaoTarget] = useState<T | null>(null);
 
   const mergedSchema = extraSchema
     ? z.intersection(schema, extraSchema as z.ZodTypeAny)
@@ -197,12 +198,26 @@ export function SimpleCrudPage<T extends SimpleEntity>({
     }
   });
 
+  const executarExclusao = async (alvo: T) => {
+    try {
+      await service.excluir(alvo.id);
+      toast({ title: `${entityName} excluído`, description: `"${alvo.descricao}" foi removido.` });
+      loadData();
+    } catch (e: any) {
+      toast({ title: "Não foi possível excluir", description: e?.message ?? "Erro inesperado.", variant: "destructive" });
+    }
+  };
+
   const confirmDelete = async () => {
     if (!deleteTarget) return;
-    await service.excluir(deleteTarget.id);
-    toast({ title: `${entityName} excluído`, description: `"${deleteTarget.descricao}" foi removido.` });
+    const alvo = deleteTarget;
     setDeleteTarget(null);
-    loadData();
+    // Cadastro estrutural: exige autorização de supervisor antes de excluir.
+    if (acaoSupervisao) {
+      setSupervisaoTarget(alvo);
+      return;
+    }
+    await executarExclusao(alvo);
   };
 
   if (!selectedEmpresa || !selectedFilial) {
@@ -279,6 +294,20 @@ export function SimpleCrudPage<T extends SimpleEntity>({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {acaoSupervisao && supervisaoTarget && (
+        <AutorizacaoSupervisorDialog
+          open={!!supervisaoTarget}
+          acao={acaoSupervisao}
+          alvo={{ tipo: entityName, id: supervisaoTarget.id, descricao: supervisaoTarget.descricao }}
+          onClose={() => setSupervisaoTarget(null)}
+          onAuthorized={async () => {
+            const alvo = supervisaoTarget;
+            setSupervisaoTarget(null);
+            if (alvo) await executarExclusao(alvo);
+          }}
+        />
+      )}
     </>
   );
 }
