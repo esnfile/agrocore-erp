@@ -2988,12 +2988,28 @@ export const financeiroCartaoService = {
 // ============================================================
 // Financeiro — Plano de Contas
 // ============================================================
-export const financeiroPlanoContaService = createCorporateCrudService<FinanceiroPlanoConta>(mockFinanceiroPlanoContas as any, "fpc");
+const _financeiroPlanoContaBase = createCorporateCrudService<FinanceiroPlanoConta>(mockFinanceiroPlanoContas as any, "fpc");
+export const financeiroPlanoContaService = {
+  ..._financeiroPlanoContaBase,
+  // Cadastro estrutural: exclusão restrita ao perfil Administrador (Fase 1).
+  async excluir(id: string) {
+    exigirPermissao("EXCLUIR_CADASTRO_ESTRUTURAL");
+    return _financeiroPlanoContaBase.excluir(id);
+  },
+};
 
 // ============================================================
 // Financeiro — Centros de Custo
 // ============================================================
-export const financeiroCentroCustoService = createCorporateCrudService<FinanceiroCentroCusto>(mockFinanceiroCentrosCusto as any, "fcc");
+const _financeiroCentroCustoBase = createCorporateCrudService<FinanceiroCentroCusto>(mockFinanceiroCentrosCusto as any, "fcc");
+export const financeiroCentroCustoService = {
+  ..._financeiroCentroCustoBase,
+  // Cadastro estrutural: exclusão restrita ao perfil Administrador (Fase 1).
+  async excluir(id: string) {
+    exigirPermissao("EXCLUIR_CADASTRO_ESTRUTURAL");
+    return _financeiroCentroCustoBase.excluir(id);
+  },
+};
 
 // ============================================================
 // Financeiro — Movimentações
