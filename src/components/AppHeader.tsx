@@ -12,11 +12,14 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Building2, GitBranch, LogOut, Network, User, TrendingUp, TrendingDown } from "lucide-react";
+import { Building2, GitBranch, LogOut, Network, ShieldCheck, TrendingUp, TrendingDown } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { cotacaoMoedaService } from "@/lib/services";
 import type { CotacaoMoeda } from "@/lib/mock-data";
 
@@ -72,6 +75,22 @@ export function AppHeader() {
     grupoAtual, empresaAtual, filialAtual,
     setGrupoId, setEmpresaId, setFilialId,
   } = useOrganization();
+  const { perfilUsuario, perfil, sair } = useAuth();
+  const navigate = useNavigate();
+
+  const nomeUsuario = perfilUsuario?.nome ?? "Usuário";
+  const iniciais = nomeUsuario
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase())
+    .join("");
+
+  const handleSair = async () => {
+    await sair();
+    navigate("/login", { replace: true });
+  };
+
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-card px-4">
