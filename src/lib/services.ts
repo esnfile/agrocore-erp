@@ -1,6 +1,7 @@
 // ============================================================
 // AgroERP — Service Layer (mock, swap-ready)
 // ============================================================
+import { MIN_CARACTERES_JUSTIFICATIVA_ESTORNO } from "./constants";
 import {
   empresas as mockEmpresas,
   filiais as mockFiliais,
