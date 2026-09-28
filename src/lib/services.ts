@@ -1720,6 +1720,8 @@ export interface DivergenciaSaldoContrato {
   cacheEntregue: number;
   verdadeEntregue: number;
   diferenca: number;
+  /** true quando algum romaneio ESTORNADO/CANCELADO entrou indevidamente na soma. */
+  estornadosContabilizados: boolean;
 }
 
 /** Compara cache × verdade. Apenas reporta — nunca corrige silenciosamente. */
@@ -1728,15 +1730,20 @@ export function reconciliarSaldosContratos(grupoId?: string, tolerancia = 0.0000
     .filter((c) => c.deletadoEm === null && (!grupoId || c.grupoId === grupoId))
     .map((c) => {
       const s = calcularSaldoContrato(c);
+      // Validação explícita: nenhuma soma de verdade pode incluir ESTORNADO/CANCELADO.
+      const estornadosContabilizados = romaneiosEntreguesDoContrato(c.id).some(
+        (r) => r.status !== "FINALIZADO"
+      );
       return {
         contratoId: c.id,
         numeroContrato: c.numeroContrato,
         cacheEntregue: c.quantidadeEntregue,
         verdadeEntregue: s.entregueNeg,
         diferenca: c.quantidadeEntregue - s.entregueNeg,
+        estornadosContabilizados,
       };
     })
-    .filter((d) => Math.abs(d.diferenca) > tolerancia);
+    .filter((d) => Math.abs(d.diferenca) > tolerancia || d.estornadosContabilizados);
 }
 
 // ============================================================
