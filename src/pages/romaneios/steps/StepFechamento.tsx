@@ -59,7 +59,7 @@ export function StepFechamento({ romaneio, onRefresh, ctx }: StepFechamentoProps
   const contratoUInfo = contratoVinculado ? resolveContratoUnidadeInfo(contratoVinculado) : null;
   // Regra de saldo + tolerância vem da camada de serviço (fonte única)
   const avaliacao = contratoVinculado && pesoComercial > 0 && romaneio.status !== "FINALIZADO" && romaneio.status !== "ESTORNADO"
-    ? avaliarToleranciaContrato(contratoVinculado, pesoComercial, romaneio.unidadeRomaneioId ?? null)
+    ? avaliarToleranciaContrato(contratoVinculado, romaneio.pesoLiquidoSecoLimpo > 0 ? romaneio.pesoLiquidoSecoLimpo : romaneio.pesoLiquido, romaneio.unidadeRomaneioId ?? null)
     : null;
   const excedeContrato = avaliacao?.status === "EXCEDE";
   const dentroTolerancia = avaliacao?.status === "DENTRO_TOLERANCIA";
