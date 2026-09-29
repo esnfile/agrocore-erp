@@ -209,7 +209,7 @@ export function StepFechamento({ romaneio, onRefresh, ctx }: StepFechamentoProps
               </div>
             )}
             {dentroTolerancia && isEditable && (
-              <div className="mt-3 rounded-md bg-warning/10 border border-warning/40 p-2 text-xs text-warning-foreground">
+              <div className="mt-3 rounded-md bg-warning/10 border border-warning/40 p-2 text-xs text-warning font-medium">
                 ⚠ {avaliacao?.mensagem}
               </div>
             )}
