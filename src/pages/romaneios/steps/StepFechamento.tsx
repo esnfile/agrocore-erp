@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { CheckCircle, XCircle, AlertTriangle, Scale, Pencil } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { romaneioService, pontoEstoqueService, contratoService } from "@/lib/services";
+import { romaneioService, pontoEstoqueService, contratoService, avaliarToleranciaContrato } from "@/lib/services";
 import type { Romaneio, PontoEstoque, Contrato } from "@/lib/mock-data";
 import { STATUS_LABELS, ORIGEM_LABELS, TIPO_LABELS, SAFRAS_REF, CULTIVOS_REF, STATUS_BADGE_CLASSES, STATUS_ICONS, type StatusRomaneioNew, resolveContratoUnidadeInfo, fmtDualUnit } from "../romaneio-types";
 import { catalogo } from "@/lib/services";
@@ -57,8 +57,12 @@ export function StepFechamento({ romaneio, onRefresh, ctx }: StepFechamentoProps
   // CORREÇÃO 4: Check contract balance vs peso classificado (compare in kg)
   const pesoComercial = romaneio.pesoClassificado > 0 ? romaneio.pesoClassificado : romaneio.pesoLiquidoSecoLimpo;
   const contratoUInfo = contratoVinculado ? resolveContratoUnidadeInfo(contratoVinculado) : null;
-  const saldoContratoKg = contratoUInfo ? contratoUInfo.saldoKg : 0;
-  const excedeContrato = contratoVinculado && pesoComercial > 0 && pesoComercial > saldoContratoKg;
+  // Regra de saldo + tolerância vem da camada de serviço (fonte única)
+  const avaliacao = contratoVinculado && pesoComercial > 0 && romaneio.status !== "FINALIZADO" && romaneio.status !== "ESTORNADO"
+    ? avaliarToleranciaContrato(contratoVinculado, romaneio.pesoLiquidoSecoLimpo > 0 ? romaneio.pesoLiquidoSecoLimpo : romaneio.pesoLiquido, romaneio.unidadeRomaneioId ?? null)
+    : null;
+  const excedeContrato = avaliacao?.status === "EXCEDE";
+  const dentroTolerancia = avaliacao?.status === "DENTRO_TOLERANCIA";
 
   // Validations for finalization
   const bloqueios = useMemo(() => {
@@ -70,10 +74,10 @@ export function StepFechamento({ romaneio, onRefresh, ctx }: StepFechamentoProps
     if (romaneio.pesoLiquidoFisico <= 0) erros.push("Peso líquido físico inválido");
     if (romaneio.pesoClassificado <= 0 && romaneio.status !== "CLASSIFICADO") erros.push("Classificação não concluída");
     if (!romaneio.pontoEstoqueId) erros.push("Ponto de estoque não definido");
-    if (excedeContrato) erros.push(`Peso classificado (${pesoComercial.toFixed(0)} kg) excede saldo disponível do contrato (${saldoContratoKg.toFixed(0)} kg)`);
+    if (excedeContrato && avaliacao) erros.push(avaliacao.mensagem);
     if (pesoComercial > romaneio.pesoLiquidoFisico && romaneio.pesoLiquidoFisico > 0) erros.push("Peso comercial inconsistente com peso físico");
     return erros;
-  }, [romaneio, excedeContrato, pesoComercial, contratoVinculado]);
+  }, [romaneio, excedeContrato, avaliacao, pesoComercial, contratoVinculado]);
 
   const podeFinalizar = bloqueios.length === 0 && romaneio.status !== "FINALIZADO" && romaneio.status !== "CANCELADO";
 
@@ -90,11 +94,6 @@ export function StepFechamento({ romaneio, onRefresh, ctx }: StepFechamentoProps
   const handleFinalizar = async () => {
     if (!romaneio.pontoEstoqueId) {
       toast({ title: "Ponto de estoque é obrigatório para finalizar.", variant: "destructive" });
-      setConfirmFinalizar(false);
-      return;
-    }
-    if (excedeContrato) {
-      toast({ title: "Peso classificado excede o saldo disponível do contrato.", variant: "destructive" });
       setConfirmFinalizar(false);
       return;
     }
@@ -206,7 +205,12 @@ export function StepFechamento({ romaneio, onRefresh, ctx }: StepFechamentoProps
             </div>
             {excedeContrato && romaneio.status !== "FINALIZADO" && romaneio.status !== "CANCELADO" && (
               <div className="mt-3 rounded-md bg-destructive/10 border border-destructive/30 p-2 text-xs text-destructive">
-                ⚠ O peso classificado excede o saldo disponível do contrato em {(pesoComercial - uInfo.saldoKg).toFixed(0)} kg. Finalização bloqueada.
+                ⚠ {avaliacao?.mensagem} Finalização bloqueada.
+              </div>
+            )}
+            {dentroTolerancia && isEditable && (
+              <div className="mt-3 rounded-md bg-warning/10 border border-warning/40 p-2 text-xs text-warning font-medium">
+                ⚠ {avaliacao?.mensagem}
               </div>
             )}
           </CardContent>
