@@ -1751,6 +1751,58 @@ export function calcularSaldoContrato(contrato: Contrato): SaldoContrato {
   };
 }
 
+export interface AvaliacaoToleranciaContrato {
+  status: "OK" | "DENTRO_TOLERANCIA" | "EXCEDE";
+  toleranciaPercentual: number;
+  unidadeCodigo: string;
+  /** Todos em unidade de NEGOCIAÇÃO do contrato (ex.: SC). */
+  excessoNeg: number;
+  limiteNeg: number;
+  /** Mesmos valores convertidos para a unidade BASE (ex.: KG). */
+  excessoBase: number;
+  limiteBase: number;
+  mensagem: string;
+}
+
+/**
+ * FONTE ÚNICA da regra de saldo + tolerância do contrato (usada pela finalização
+ * e pela tela). A comparação e a tolerância são calculadas na unidade de
+ * NEGOCIAÇÃO do contrato; os valores em base (kg) são apenas convertidos para exibição.
+ */
+export function avaliarToleranciaContrato(contrato: Contrato, pesoRomaneio: number, unidadeRomaneioId: string | null): AvaliacaoToleranciaContrato {
+  const produto = mockProdutos.find((p) => p.id === contrato.produtoId);
+  const unidadeBaseId = produto ? getUnidadeBaseParaTipo(produto.tipoUnidade) : null;
+  const unNegId = contrato.unidadeNegociacaoId || unidadeBaseId;
+  const conv = (q: number, de: string | null, para: string | null) => {
+    if (!produto || !de || !para || de === para) return q;
+    try { return unidadeMedidaService.converterQuantidade(q, de, para, produto.id); } catch { return q; }
+  };
+  const unRom = unidadeRomaneioId || unidadeBaseId;
+  const qtdNeg = conv(pesoRomaneio, unRom, unNegId);
+  const saldo = calcularSaldoContrato(contrato);
+  const excessoNeg = Math.max(0, qtdNeg - saldo.saldoNeg);
+  const tol = contrato.toleranciaPercentualMais ?? 0;
+  const limiteNeg = contrato.quantidadeTotal * (tol / 100);
+  const excessoBase = conv(excessoNeg, unNegId, unidadeBaseId);
+  const limiteBase = conv(limiteNeg, unNegId, unidadeBaseId);
+  const un = (unNegId && unidadeMedidaService.obterPorId(unNegId)?.codigo) || "KG";
+  const unBase = (unidadeBaseId && unidadeMedidaService.obterPorId(unidadeBaseId)?.codigo) || "KG";
+  const f = (v: number) => v.toLocaleString("pt-BR", { maximumFractionDigits: 3 });
+  const dual = (n: number, b: number) => (unNegId === unidadeBaseId ? `${f(n)} ${un}` : `${f(n)} ${un} / ${f(b)} ${unBase}`);
+  let status: AvaliacaoToleranciaContrato["status"] = "OK";
+  let mensagem = "";
+  if (excessoNeg > 0.000001) {
+    if (excessoNeg > limiteNeg + 0.000001) {
+      status = "EXCEDE";
+      mensagem = `Excede o contratado além da tolerância de ${f(tol)}% — excesso de ${dual(excessoNeg, excessoBase)} (limite ${dual(limiteNeg, limiteBase)}).`;
+    } else {
+      status = "DENTRO_TOLERANCIA";
+      mensagem = `Excede o contratado em ${dual(excessoNeg, excessoBase)} — dentro da tolerância de ${f(tol)}% (limite ${dual(limiteNeg, limiteBase)}).`;
+    }
+  }
+  return { status, toleranciaPercentual: tol, unidadeCodigo: un, excessoNeg, limiteNeg, excessoBase, limiteBase, mensagem };
+}
+
 /** Cópia do contrato com entregue/saldo substituídos pela VERDADE derivada. */
 export function comSaldoDerivado(contrato: Contrato): Contrato {
   const s = calcularSaldoContrato(contrato);
@@ -3888,20 +3940,8 @@ export const romaneioService = {
     // Recusa se a entrega deixar o saldo negativo além da tolerância a maior
     // definida no contrato. Dentro da tolerância: permitido.
     if (contrato) {
-      const saldoAtualContrato = calcularSaldoContrato(contrato);
-      const saldoProjetado = saldoAtualContrato.saldoNeg - quantidadeContrato;
-      if (saldoProjetado < 0) {
-        const tolPerc = contrato.toleranciaPercentualMais ?? 0;
-        const limiteExcesso = contrato.quantidadeTotal * (tolPerc / 100);
-        const excesso = Math.abs(saldoProjetado);
-        if (excesso > limiteExcesso + 0.000001) {
-          const un = unidadeMedidaService.obterPorId(contrato.unidadeNegociacaoId)?.codigo ?? "";
-          return {
-            sucesso: false,
-            mensagem: `Excede o contratado além da tolerância de ${tolPerc}%: excesso de ${excesso.toFixed(3)} ${un} (limite ${limiteExcesso.toFixed(3)} ${un}).`,
-          };
-        }
-      }
+      const aval = avaliarToleranciaContrato(contrato, pesoFinal, unidadeRomaneioId);
+      if (aval.status === "EXCEDE") return { sucesso: false, mensagem: aval.mensagem };
     }
 
 
