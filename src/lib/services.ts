@@ -1165,6 +1165,35 @@ export const produtoEmpresaTabelaPrecoService = {
 };
 
 // ============================================================
+// MODELO DE UNIDADES — FONTE ÚNICA DE CONVERSÃO (Fase 2)
+// ------------------------------------------------------------
+// Unidade base = KG (peso), LT (volume), UND. O kg da balança é a VERDADE.
+// Fatores universais (TON = 1.000 kg, G = 0,001 kg, ML = 0,001 LT) valem para
+// qualquer produto; unidades comerciais (ex.: SC) usam o fator do produto
+// (quantidadeEmbalagem de entrada/saída). Espelha public.fator_base() no banco.
+// PROIBIDO: converter valor já arredondado ou derivar kg de SC/TON arredondada.
+// ============================================================
+const FATORES_UNIVERSAIS: Record<string, number> = { KG: 1, LT: 1, UND: 1, TON: 1000, G: 0.001, ML: 0.001 };
+
+export function fatorBasePorUnidade(unidadeId: string, produto: Produto): number {
+  const un = mockUnidadesMedida.find((u) => u.id === unidadeId && u.deletadoEm === null);
+  if (!un) throw new Error("Unidade não encontrada.");
+  if (unidadeId === getUnidadeBaseParaTipo(produto.tipoUnidade)) return 1;
+  if (unidadeId === produto.unidadeEntradaId && produto.quantidadeEmbalagemEntrada > 0) return produto.quantidadeEmbalagemEntrada;
+  if (unidadeId === produto.unidadeSaidaId && produto.quantidadeEmbalagemSaida > 0) return produto.quantidadeEmbalagemSaida;
+  const universal = FATORES_UNIVERSAIS[un.codigo.toUpperCase()];
+  if (universal !== undefined) return universal;
+  throw new Error(`Unidade "${un.codigo}" não está configurada no produto "${produto.descricao}".`);
+}
+
+/** Exibição: SC 2 casas, KG/LT/UND inteiro, TON 3 casas. Nunca recalcula — só formata. */
+export function formatarQuantidadeUnidade(valor: number, codigo: string): string {
+  const c = (codigo || "").toUpperCase();
+  const casas = c === "TON" ? 3 : c === "KG" || c === "LT" || c === "UND" || c === "G" || c === "ML" ? 0 : 2;
+  return `${(valor || 0).toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas })} ${c}`;
+}
+
+// ============================================================
 // Unidade de Medida
 // ============================================================
 export const unidadeMedidaService = {
@@ -1186,6 +1215,8 @@ export const unidadeMedidaService = {
    * Lógica: origem → unidadeBase (derivada do tipoUnidade) → destino
    */
   converterQuantidade(valor: number, unidadeOrigemId: string, unidadeDestinoId: string, produtoId: string): number {
+    // MODELO DE UNIDADES (Fase 2): conversão ÚNICA via fator "base por unidade"
+    // (fatorBasePorUnidade). Nunca arredonda — valor exato nos dois sentidos.
     if (unidadeOrigemId === unidadeDestinoId) return valor;
     const unidadeOrigem = mockUnidadesMedida.find((u) => u.id === unidadeOrigemId && u.deletadoEm === null);
     const unidadeDestino = mockUnidadesMedida.find((u) => u.id === unidadeDestinoId && u.deletadoEm === null);
@@ -1195,36 +1226,13 @@ export const unidadeMedidaService = {
     if (unidadeOrigem.tipo !== unidadeDestino.tipo) {
       throw new Error(`Não é possível converter ${unidadeOrigem.tipo} para ${unidadeDestino.tipo}.`);
     }
-
     const produto = mockProdutos.find((p) => p.id === produtoId && p.deletadoEm === null);
     if (!produto) {
       throw new Error("Produto não encontrado. Conversão requer produto.");
     }
-
-    const unidadeBaseId = getUnidadeBaseParaTipo(produto.tipoUnidade);
-
-    // Passo 1: Converter origem → unidadeBase
-    let valorBase: number;
-    if (unidadeOrigemId === unidadeBaseId) {
-      valorBase = valor;
-    } else if (unidadeOrigemId === produto.unidadeEntradaId && produto.quantidadeEmbalagemEntrada > 0) {
-      valorBase = valor * produto.quantidadeEmbalagemEntrada;
-    } else if (unidadeOrigemId === produto.unidadeSaidaId && produto.quantidadeEmbalagemSaida > 0) {
-      valorBase = valor * produto.quantidadeEmbalagemSaida;
-    } else {
-      throw new Error(`Unidade de origem "${unidadeOrigem.codigo}" não está configurada no produto "${produto.descricao}".`);
-    }
-
-    // Passo 2: Converter unidadeBase → destino
-    if (unidadeDestinoId === unidadeBaseId) {
-      return valorBase;
-    } else if (unidadeDestinoId === produto.unidadeEntradaId && produto.quantidadeEmbalagemEntrada > 0) {
-      return valorBase / produto.quantidadeEmbalagemEntrada;
-    } else if (unidadeDestinoId === produto.unidadeSaidaId && produto.quantidadeEmbalagemSaida > 0) {
-      return valorBase / produto.quantidadeEmbalagemSaida;
-    } else {
-      throw new Error(`Unidade de destino "${unidadeDestino.codigo}" não está configurada no produto "${produto.descricao}".`);
-    }
+    const fOrig = fatorBasePorUnidade(unidadeOrigemId, produto);
+    const fDest = fatorBasePorUnidade(unidadeDestinoId, produto);
+    return (valor * fOrig) / fDest;
   },
   async codigoExiste(codigo: string, empresaId: string, filialId: string, excludeId?: string): Promise<boolean> {
     await delay(100);
@@ -1725,29 +1733,48 @@ export function romaneiosEntreguesDoContrato(contratoId: string) {
   );
 }
 
-export function calcularSaldoContrato(contrato: Contrato): SaldoContrato {
+/** Fator base/unidade de negociação do contrato (1 se não configurado). */
+function fatorNegociacaoContrato(contrato: Contrato): { produto: Produto | undefined; fator: number; unBaseId: string | null; unNegId: string | null } {
   const produto = mockProdutos.find((p) => p.id === contrato.produtoId);
-  const unidadeBaseId = produto ? getUnidadeBaseParaTipo(produto.tipoUnidade) : null;
-  const converter = (qtd: number, de: string | null, para: string | null): number => {
-    if (!produto || !de || !para || de === para) return qtd;
-    try { return unidadeMedidaService.converterQuantidade(qtd, de, para, produto.id); }
-    catch { return qtd; }
-  };
-  let entregueNeg = 0;
+  const unBaseId = produto ? getUnidadeBaseParaTipo(produto.tipoUnidade) : null;
+  const unNegId = contrato.unidadeNegociacaoId || unBaseId;
+  let fator = 1;
+  if (produto && unNegId) { try { fator = fatorBasePorUnidade(unNegId, produto); } catch { fator = 1; } }
+  return { produto, fator, unBaseId, unNegId };
+}
+
+/**
+ * Cálculo em KG EXATO (espelha public.calc_tolerancia no banco). Valores de
+ * negociação são apenas kg ÷ fator — nunca o contrário, nunca arredondados.
+ */
+export function calcularToleranciaKg(p: { totalKg: number; entregueKg: number; pesoKg: number; toleranciaPct: number; fator: number }) {
+  const saldoKg = p.totalKg - p.entregueKg;
+  const excessoKg = Math.max(0, p.pesoKg - saldoKg);
+  const limiteKg = (p.totalKg * p.toleranciaPct) / 100;
+  const status: AvaliacaoToleranciaContrato["status"] =
+    excessoKg <= 1e-6 ? "OK" : excessoKg > limiteKg + 1e-6 ? "EXCEDE" : "DENTRO_TOLERANCIA";
+  return { status, saldoKg, excessoKg, limiteKg, excessoNeg: excessoKg / p.fator, limiteNeg: limiteKg / p.fator, saldoFinalKg: saldoKg - p.pesoKg };
+}
+
+export function calcularSaldoContrato(contrato: Contrato): SaldoContrato {
+  const { produto, fator, unBaseId } = fatorNegociacaoContrato(contrato);
+  // Contratado em kg sempre derivado da quantidade negociada × fator (nunca de valor arredondado).
+  const totalBase = contrato.quantidadeTotal * fator;
   let entregueBase = 0;
   for (const r of romaneiosEntreguesDoContrato(contrato.id)) {
     const peso = pesoComercialRomaneio(r);
-    const unidadeRom = r.unidadeRomaneioId || unidadeBaseId;
-    entregueNeg += converter(peso, unidadeRom, contrato.unidadeNegociacaoId || unidadeBaseId);
-    entregueBase += converter(peso, unidadeRom, unidadeBaseId);
+    const unidadeRom = r.unidadeRomaneioId || unBaseId;
+    let kg = peso;
+    if (produto && unidadeRom) { try { kg = peso * fatorBasePorUnidade(unidadeRom, produto); } catch { kg = peso; } }
+    entregueBase += kg;
   }
   return {
     totalNeg: contrato.quantidadeTotal,
-    entregueNeg,
-    saldoNeg: contrato.quantidadeTotal - entregueNeg,
-    totalBase: contrato.quantidadeBaseTotal,
+    entregueNeg: entregueBase / fator,
+    saldoNeg: (totalBase - entregueBase) / fator,
+    totalBase,
     entregueBase,
-    saldoBase: contrato.quantidadeBaseTotal - entregueBase,
+    saldoBase: totalBase - entregueBase,
   };
 }
 
@@ -1755,52 +1782,45 @@ export interface AvaliacaoToleranciaContrato {
   status: "OK" | "DENTRO_TOLERANCIA" | "EXCEDE";
   toleranciaPercentual: number;
   unidadeCodigo: string;
-  /** Todos em unidade de NEGOCIAÇÃO do contrato (ex.: SC). */
+  /** Todos em unidade de NEGOCIAÇÃO do contrato (ex.: SC) — kg ÷ fator. */
   excessoNeg: number;
   limiteNeg: number;
-  /** Mesmos valores convertidos para a unidade BASE (ex.: KG). */
+  /** Valores em unidade BASE (kg) — a verdade. */
   excessoBase: number;
   limiteBase: number;
+  /** Saldo do contrato após esta entrega, em kg exato. */
+  saldoFinalBase: number;
   mensagem: string;
 }
 
 /**
- * FONTE ÚNICA da regra de saldo + tolerância do contrato (usada pela finalização
- * e pela tela). A comparação e a tolerância são calculadas na unidade de
- * NEGOCIAÇÃO do contrato; os valores em base (kg) são apenas convertidos para exibição.
+ * FONTE ÚNICA da regra de saldo + tolerância do contrato (tela e finalização).
+ * Comparação feita em KG exato; unidade de negociação só para exibição.
  */
 export function avaliarToleranciaContrato(contrato: Contrato, pesoRomaneio: number, unidadeRomaneioId: string | null): AvaliacaoToleranciaContrato {
-  const produto = mockProdutos.find((p) => p.id === contrato.produtoId);
-  const unidadeBaseId = produto ? getUnidadeBaseParaTipo(produto.tipoUnidade) : null;
-  const unNegId = contrato.unidadeNegociacaoId || unidadeBaseId;
-  const conv = (q: number, de: string | null, para: string | null) => {
-    if (!produto || !de || !para || de === para) return q;
-    try { return unidadeMedidaService.converterQuantidade(q, de, para, produto.id); } catch { return q; }
-  };
-  const unRom = unidadeRomaneioId || unidadeBaseId;
-  const qtdNeg = conv(pesoRomaneio, unRom, unNegId);
+  const { produto, fator, unBaseId, unNegId } = fatorNegociacaoContrato(contrato);
+  const unRom = unidadeRomaneioId || unBaseId;
+  let pesoKg = pesoRomaneio;
+  if (produto && unRom) { try { pesoKg = pesoRomaneio * fatorBasePorUnidade(unRom, produto); } catch { pesoKg = pesoRomaneio; } }
   const saldo = calcularSaldoContrato(contrato);
-  const excessoNeg = Math.max(0, qtdNeg - saldo.saldoNeg);
   const tol = contrato.toleranciaPercentualMais ?? 0;
-  const limiteNeg = contrato.quantidadeTotal * (tol / 100);
-  const excessoBase = conv(excessoNeg, unNegId, unidadeBaseId);
-  const limiteBase = conv(limiteNeg, unNegId, unidadeBaseId);
+  const r = calcularToleranciaKg({ totalKg: saldo.totalBase, entregueKg: saldo.entregueBase, pesoKg, toleranciaPct: tol, fator });
   const un = (unNegId && unidadeMedidaService.obterPorId(unNegId)?.codigo) || "KG";
-  const unBase = (unidadeBaseId && unidadeMedidaService.obterPorId(unidadeBaseId)?.codigo) || "KG";
-  const f = (v: number) => v.toLocaleString("pt-BR", { maximumFractionDigits: 3 });
-  const dual = (n: number, b: number) => (unNegId === unidadeBaseId ? `${f(n)} ${un}` : `${f(n)} ${un} / ${f(b)} ${unBase}`);
-  let status: AvaliacaoToleranciaContrato["status"] = "OK";
+  const unBase = (unBaseId && unidadeMedidaService.obterPorId(unBaseId)?.codigo) || "KG";
+  const pct = tol.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+  const dual = (n: number, b: number) =>
+    unNegId === unBaseId ? formatarQuantidadeUnidade(b, unBase) : `${formatarQuantidadeUnidade(n, un)} / ${formatarQuantidadeUnidade(b, unBase)}`;
   let mensagem = "";
-  if (excessoNeg > 0.000001) {
-    if (excessoNeg > limiteNeg + 0.000001) {
-      status = "EXCEDE";
-      mensagem = `Excede o contratado além da tolerância de ${f(tol)}% — excesso de ${dual(excessoNeg, excessoBase)} (limite ${dual(limiteNeg, limiteBase)}).`;
-    } else {
-      status = "DENTRO_TOLERANCIA";
-      mensagem = `Excede o contratado em ${dual(excessoNeg, excessoBase)} — dentro da tolerância de ${f(tol)}% (limite ${dual(limiteNeg, limiteBase)}).`;
-    }
+  if (r.status === "EXCEDE") {
+    mensagem = `Excede o contratado além da tolerância de ${pct}% — excesso de ${dual(r.excessoNeg, r.excessoKg)} (limite ${dual(r.limiteNeg, r.limiteKg)}).`;
+  } else if (r.status === "DENTRO_TOLERANCIA") {
+    mensagem = `Excede o contratado em ${dual(r.excessoNeg, r.excessoKg)} — dentro da tolerância de ${pct}% (limite ${dual(r.limiteNeg, r.limiteKg)}).`;
   }
-  return { status, toleranciaPercentual: tol, unidadeCodigo: un, excessoNeg, limiteNeg, excessoBase, limiteBase, mensagem };
+  return {
+    status: r.status, toleranciaPercentual: tol, unidadeCodigo: un,
+    excessoNeg: r.excessoNeg, limiteNeg: r.limiteNeg, excessoBase: r.excessoKg, limiteBase: r.limiteKg,
+    saldoFinalBase: r.saldoFinalKg, mensagem,
+  };
 }
 
 /** Cópia do contrato com entregue/saldo substituídos pela VERDADE derivada. */
