@@ -2703,10 +2703,15 @@ export type Database = {
       }
       eh_admin: { Args: never; Returns: boolean }
       entregue_verdade_item: { Args: { _item_id: string }; Returns: number }
+      estornar_romaneio: {
+        Args: { _justificativa: string; _romaneio_id: string }
+        Returns: Json
+      }
       fator_base: {
         Args: { _produto_id: string; _unidade: string }
         Returns: number
       }
+      finalizar_romaneio: { Args: { _romaneio_id: string }; Returns: Json }
       fmt_qtd: { Args: { _un: string; _v: number }; Returns: string }
       has_role: {
         Args: {
@@ -2717,6 +2722,26 @@ export type Database = {
       }
       pode_acessar_filial: { Args: { _filial_id: string }; Returns: boolean }
       pode_gravar: { Args: never; Returns: boolean }
+      reconciliar_saldos_contratos: {
+        Args: never
+        Returns: {
+          cache_base: number
+          contrato_item_id: string
+          diferenca: number
+          numero_contrato: string
+          verdade_base: number
+        }[]
+      }
+      reconciliar_saldos_estoque: {
+        Args: never
+        Returns: {
+          cache_base: number
+          diferenca: number
+          filial_id: string
+          produto_id: string
+          verdade_base: number
+        }[]
+      }
       usuario_grupo_id: { Args: never; Returns: string }
       usuario_id_atual: { Args: never; Returns: string }
     }

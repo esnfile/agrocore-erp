@@ -22,6 +22,13 @@
       "when": 1790708866430,
       "tag": "0002_fase2_schema_dominio",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790708915145,
+      "tag": "0003_fase2_funcoes_transacionais",
+      "breakpoints": true
     }
   ]
 }
