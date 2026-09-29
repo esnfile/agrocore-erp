@@ -1,73 +1,57 @@
-# Dashboards Colapsáveis — 5 Módulos
+# Fase 2 — Etapa 2.1: Schema + Modelo de Unidades (sem migrar telas ainda)
 
-Concordo com a proposta. Ela está alinhada à paleta moderna que acabamos de aplicar (verde/azul/âmbar via tokens semânticos) e ao padrão visual do projeto. Abaixo o plano de execução, com pequenos ajustes para manter consistência com o que já existe.
+A Fase 2 será entregue em etapas. Cada etapa termina com um relatório e aguarda sua confirmação antes da próxima. Esta primeira etapa cobre a Tarefa 1 (schema) e o Adendo de Unidades, que é bloqueador.
 
-## Ajustes em relação ao seu prompt
+## Etapas da Fase 2
 
-1. **Cores via tokens** — não usaremos hex direto nos componentes. Tudo via `hsl(var(--success))`, `--info`, `--warning`, `--destructive`, `--primary` (já configurados em `index.css`). Isso garante dark mode e padrão do projeto.
-2. **Componente Collapse** — usaremos o `Collapsible` do Radix (já instalado em `src/components/ui/collapsible.tsx`), com animação `accordion-down/up` já disponível em `tailwind.config.ts`.
-3. **Trends (↑ +12%)** — os mocks atuais não têm histórico para calcular variação percentual real. Vou **omitir os trends** nesta entrega (deixaria valores fake). Mantemos apenas valor + ícone de alerta quando aplicável. Se quiser trends de verdade, depois calculamos comparando com período anterior.
-4. **Dashboard "Caixas e Bancos"** — não temos hoje uma tela única "Caixas e Bancos"; o equivalente é `ContasFinanceirasPage.tsx`. Vou aplicar o dashboard lá. "Limite Disponível" só existe para Cartões, não para contas bancárias — vou substituir esse card por **"Qtd. Contas Ativas"** (informação real disponível).
-5. **Fluxo de Caixa** — manter como está (já reestilizado). Não vou adicionar o card opcional "Previsão vs Realizado" para não ampliar o escopo; podemos fazer numa próxima rodada.
+```text
+2.1  Schema completo + RLS + funções transacionais + correção de unidades   <- ESTA ETAPA
+2.2  Cadastros base (serviços -> banco) + seed + teste nas telas
+2.3  Contratos/Itens + seed
+2.4  Romaneios (pesagem, classificação, finalizar/estornar via RPC) + seed
+2.5  Estoque (cache + verdade + reconciliação)
+2.6  Fixação   2.7 Liquidação   2.8 Financeiro/Caixa   2.9 Logs
+2.10 Teste ponta a ponta nas telas + relatório final
+```
 
-## Componente reutilizável
+## O que será entregue na 2.1
 
-Criar `src/components/CollapsibleDashboard.tsx`:
+### 1. Modelo de unidades (corrige TON e a deriva de 20 kg)
+- Uma única função de conversão no serviço: `converterKg(kg, unidade, produto)` e `paraKg(qtd, unidade, produto)`, sempre partindo do kg da balança.
+- Fatores: SC = fator do produto (60 kg para soja/milho), TON = 1.000, KG = 1.
+- `calcularSaldoContrato` e `avaliarToleranciaContrato` passam a comparar tudo em kg exato; conversão para SC/TON só na saída, sem arredondar.
+- Nenhum arredondamento em quantidade de contrato, entregue ou saldo (4 casas). PLSL segue inteiro ToEven.
+- Exibição: SC com 2 casas, kg inteiro, TON com 3 casas. Mensagens de tolerância nas duas unidades com valores coerentes.
+- Testes automáticos dos cenários a), b), c) do adendo. O teste clicando nas telas acontece na 2.4, quando os romaneios estiverem no banco, e também na tela atual (mock) ao final desta etapa.
 
-- Wrap em `Collapsible` (recolhido por padrão).
-- Header com título + chevron animado + botão "Expandir/Recolher".
-- Lazy-load: `onOpenChange` dispara `onExpand()` apenas na primeira abertura.
-- Skeleton enquanto carrega; cache via estado do componente pai.
-- Animação suave (`data-[state=open]:animate-accordion-down`).
+### 2. Schema no banco (PostgreSQL padrão)
+Todas as tabelas com `id uuid`, `grupo_id`, `empresa_id`, `filial_id` (cadastros globais ao grupo levam apenas `grupo_id`), `criado_em`, `atualizado_em`, `criado_por`, `atualizado_por`, `deletado_em`.
 
-Criar `src/components/DashboardCard.tsx`:
+- Cadastros: grupos, empresas, filiais, usuarios (ligado ao login existente), pessoas, produtos, produto_unidades (fatores), plano_contas, centros_custo, tipos_lancamento, moedas, cotacoes, condicoes_descontos.
+- Operacional: contratos, contrato_itens, romaneios, romaneio_pesagens, romaneio_classificacao, fixacoes (por item), liquidacoes (por item), saldos_estoque (cache), contas_pagar, contas_receber, caixa_lancamentos, safras, cultivos, log_autorizacoes (substitui a tabela de log atual, mantendo os dados).
+- Quantidades em `numeric(18,4)`, valores em `numeric(18,6)`.
 
-- Props: `title`, `value`, `icon`, `accent` ('success' | 'info' | 'warning' | 'destructive' | 'primary').
-- Border-left colorida conforme `accent` (mesmo padrão dos cards de Fluxo de Caixa).
-- Sem trend nesta versão.
+### 3. Segurança por linha (RLS)
+- Leitura: usuário vê apenas empresas/filiais permitidas dentro do seu grupo.
+- Gravação: Administrador e Operador; Consulta não grava nada.
+- Exclusão de cadastros estruturais: somente Administrador.
 
-## Telas que recebem dashboard
+### 4. Funções transacionais (esqueleto testado, ainda não chamado pelas telas)
+- `finalizar_romaneio`: grava romaneio + movimento de estoque + cache do contrato em uma transação; valida tolerância; rollback total em erro.
+- `estornar_romaneio`: exige justificativa (20+), recusa se houver fixação/liquidação, reverte estoque e cache, status ESTORNADO, grava log.
+- `reconciliar_saldos` (contratos e estoque): compara cache vs verdade (excluindo ESTORNADO) e só alerta.
+- Mensagens de erro em português explicável.
 
+### 5. Dados antigos
+Nada do protótipo em memória entra no banco. As telas continuam no mock durante a 2.1; o seed realista entra módulo a módulo a partir da 2.2.
 
-| #   | Página           | Arquivo                                                               |
-| --- | ---------------- | --------------------------------------------------------------------- |
-| 1   | Contratos        | `src/pages/comercial/` (verificar/criar conforme estrutura existente) |
-| 2   | Gestão de Safras | `src/pages/fazenda/SafrasPage.tsx`                                    |
-| 3   | Contas           | `src/pages/financeiro/ContasPage.tsx`                                 |
-| 4   | Caixas e Bancos  | `src/pages/financeiro/ContasFinanceirasPage.tsx`                      |
-| 5   | Fluxo de Caixa   | já feito (sem mudança)                                                |
-
-
-Para cada uma:
-
-- Adicionar `<CollapsibleDashboard>` acima dos filtros/listagem.
-- 4 cards KPI + 1 gráfico de barras (Recharts, padrão do projeto).
-- Cálculos rodam só ao expandir; resultado fica em `useState`.
-
-## KPIs e gráficos por tela
-
-**Contratos**: Ativos (count), Volume em Trânsito (ton), Valor em Aberto (R$), Vencidos (count). Gráfico: barras horizontais por status.
-
-**Safras**: Área Plantada (ha), Área Colhida (ha), % Colheita, Custos Acumulados (R$). Gráfico: barras agrupadas Plantado vs Colhido por cultura.
-
-**Contas**: A Pagar (R$), A Receber (R$), Vencido (R$), A Vencer (R$). Gráfico: barras agrupadas A Pagar vs A Receber por mês (próximos 6 meses).
-
-**Caixas e Bancos**: Saldo Total, Saldo Caixa, Saldo Bancos, Qtd. Contas Ativas. Gráfico: barras horizontais — saldo por conta.
+## Relatório da 2.1
+- Lista de tabelas criadas e das políticas de segurança.
+- Resultado dos testes de unidade (a, b, c) e dos testes das funções transacionais no banco.
+- Build limpo.
 
 ## Detalhes técnicos
-
-- Recharts já em uso (`DashboardPage.tsx`) — mesma config: `CartesianGrid stroke-muted`, tooltip com `hsl(var(--card))`, eixos `text-xs`.
-- Cores do gráfico via `hsl(var(--chart-1..5))` já definidas.
-- Responsividade: `grid-cols-1 sm:grid-cols-2 lg:grid-cols-4` nos cards; `ResponsiveContainer` no gráfico (altura 256px desktop, reduz no mobile via classes).
-- Filtros de empresa/filial seguem o `OrganizationContext` (igual ao resto do app).
-- Mock services existentes (`contratoService`, `safraService`, `financeiroContaService`, `financeiroContaFinanceiraService`) — sem mudanças no backend mock; agregações feitas no cliente ao expandir.
-
-## Fora de escopo
-
-- Trends percentuais reais (precisa histórico).
-- Drill-down ao clicar nos cards.
-- Exportar dashboard.
-- Mudanças em `mock-data.ts` ou `services.ts`.  
-  
-4. **Dashboard "Caixas e Bancos"** — Ficou errado, não é caixas e bancos, essa é a Tela Caixas, ficou caixas e banco, mas é a tela de lançamentos de Caixa... E não nas contas financeiras...   
-Pode readaptar para ela 
+- Regras de negócio em funções PL/pgSQL padrão (sem recursos exclusivos do Cloud), portáveis para .NET/EF Core.
+- Papéis continuam na tabela de papéis existente; checagem via função `has_role` + nova `pode_acessar_filial(filial_id)`.
+- `services.ts` mantém a mesma interface; troca de mock por consulta real começa na 2.2.
+- Decisão pendente registrada: liquidação em saca inteira (resíduo) — implementado peso exato (opção A) até sua confirmação.
