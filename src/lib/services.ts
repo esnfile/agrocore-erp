@@ -1186,6 +1186,8 @@ export const unidadeMedidaService = {
    * Lógica: origem → unidadeBase (derivada do tipoUnidade) → destino
    */
   converterQuantidade(valor: number, unidadeOrigemId: string, unidadeDestinoId: string, produtoId: string): number {
+    // MODELO DE UNIDADES (Fase 2): conversão ÚNICA via fator "base por unidade"
+    // (fatorBasePorUnidade). Nunca arredonda — valor exato nos dois sentidos.
     if (unidadeOrigemId === unidadeDestinoId) return valor;
     const unidadeOrigem = mockUnidadesMedida.find((u) => u.id === unidadeOrigemId && u.deletadoEm === null);
     const unidadeDestino = mockUnidadesMedida.find((u) => u.id === unidadeDestinoId && u.deletadoEm === null);
@@ -1195,36 +1197,13 @@ export const unidadeMedidaService = {
     if (unidadeOrigem.tipo !== unidadeDestino.tipo) {
       throw new Error(`Não é possível converter ${unidadeOrigem.tipo} para ${unidadeDestino.tipo}.`);
     }
-
     const produto = mockProdutos.find((p) => p.id === produtoId && p.deletadoEm === null);
     if (!produto) {
       throw new Error("Produto não encontrado. Conversão requer produto.");
     }
-
-    const unidadeBaseId = getUnidadeBaseParaTipo(produto.tipoUnidade);
-
-    // Passo 1: Converter origem → unidadeBase
-    let valorBase: number;
-    if (unidadeOrigemId === unidadeBaseId) {
-      valorBase = valor;
-    } else if (unidadeOrigemId === produto.unidadeEntradaId && produto.quantidadeEmbalagemEntrada > 0) {
-      valorBase = valor * produto.quantidadeEmbalagemEntrada;
-    } else if (unidadeOrigemId === produto.unidadeSaidaId && produto.quantidadeEmbalagemSaida > 0) {
-      valorBase = valor * produto.quantidadeEmbalagemSaida;
-    } else {
-      throw new Error(`Unidade de origem "${unidadeOrigem.codigo}" não está configurada no produto "${produto.descricao}".`);
-    }
-
-    // Passo 2: Converter unidadeBase → destino
-    if (unidadeDestinoId === unidadeBaseId) {
-      return valorBase;
-    } else if (unidadeDestinoId === produto.unidadeEntradaId && produto.quantidadeEmbalagemEntrada > 0) {
-      return valorBase / produto.quantidadeEmbalagemEntrada;
-    } else if (unidadeDestinoId === produto.unidadeSaidaId && produto.quantidadeEmbalagemSaida > 0) {
-      return valorBase / produto.quantidadeEmbalagemSaida;
-    } else {
-      throw new Error(`Unidade de destino "${unidadeDestino.codigo}" não está configurada no produto "${produto.descricao}".`);
-    }
+    const fOrig = fatorBasePorUnidade(unidadeOrigemId, produto);
+    const fDest = fatorBasePorUnidade(unidadeDestinoId, produto);
+    return (valor * fOrig) / fDest;
   },
   async codigoExiste(codigo: string, empresaId: string, filialId: string, excludeId?: string): Promise<boolean> {
     await delay(100);
