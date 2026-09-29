@@ -1,4 +1,4 @@
-import { catalogo, getUnidadeBaseParaTipo } from "@/lib/services";
+import { formatarQuantidadeUnidade, catalogo, getUnidadeBaseParaTipo } from "@/lib/services";
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -1573,7 +1573,7 @@ export default function ContratosPage() {
                       {c.quantidadeTotal.toLocaleString("pt-BR")} {getCodigoUnidade(c.unidadeNegociacaoId)}
                     </TableCell>
                     <TableCell className="text-right">
-                      {Math.round(c.quantidadeSaldo).toLocaleString("pt-BR")} {getCodigoUnidade(c.unidadeNegociacaoId)}
+                      {formatarQuantidadeUnidade(c.quantidadeSaldo, getCodigoUnidade(c.unidadeNegociacaoId))}
                     </TableCell>
                     <TableCell className="text-right">
                       {formatCurrency(c.precoUnitario, catalogo.moedas().find((m) => m.id === c.moedaId)?.codigo ?? "BRL")}
@@ -2209,15 +2209,13 @@ export default function ContratosPage() {
                     <div>
                       Quantidade Entregue:{" "}
                        <strong>
-                         {Math.round(editingContrato.quantidadeEntregue).toLocaleString("pt-BR")}{" "}
-                         {getCodigoUnidade(editingContrato.unidadeNegociacaoId)}
+                         {formatarQuantidadeUnidade(editingContrato.quantidadeEntregue, getCodigoUnidade(editingContrato.unidadeNegociacaoId))}
                        </strong>
                     </div>
                     <div>
                       Saldo:{" "}
                        <strong>
-                         {Math.round(editingContrato.quantidadeSaldo).toLocaleString("pt-BR")}{" "}
-                         {getCodigoUnidade(editingContrato.unidadeNegociacaoId)}
+                         {formatarQuantidadeUnidade(editingContrato.quantidadeSaldo, getCodigoUnidade(editingContrato.unidadeNegociacaoId))}
                        </strong>
                     </div>
                     {editingContrato.filialOperacaoId && (
@@ -2258,8 +2256,7 @@ export default function ContratosPage() {
                       <div>
                         <p className="text-muted-foreground">Total Entregue</p>
                          <p className="text-lg font-bold">
-                           {Math.round(editingContrato.quantidadeEntregue).toLocaleString("pt-BR")}{" "}
-                           {getCodigoUnidade(editingContrato.unidadeNegociacaoId)}
+                           {formatarQuantidadeUnidade(editingContrato.quantidadeEntregue, getCodigoUnidade(editingContrato.unidadeNegociacaoId))}
                          </p>
                       </div>
                       <div>
@@ -2701,7 +2698,7 @@ export default function ContratosPage() {
                           <div>
                             <p className="text-muted-foreground text-xs">Total Entregue</p>
                             <p className="text-lg font-bold">
-                              {Math.round(editingContrato.quantidadeEntregue).toLocaleString("pt-BR")} {getCodigoUnidade(editingContrato.unidadeNegociacaoId)}
+                              {formatarQuantidadeUnidade(editingContrato.quantidadeEntregue, getCodigoUnidade(editingContrato.unidadeNegociacaoId))}
                             </p>
                           </div>
                           <div>
