@@ -15,6 +15,13 @@
       "when": 1790608555067,
       "tag": "0001_remove_first_user_admin",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790708866430,
+      "tag": "0002_fase2_schema_dominio",
+      "breakpoints": true
     }
   ]
 }
