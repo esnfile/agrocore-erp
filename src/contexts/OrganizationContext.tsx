@@ -51,6 +51,8 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
       setFilialAtual(null);
       return;
     }
+    // Catálogo de unidades/produtos do banco (conversões síncronas nas telas)
+    carregarCatalogoProdutos().catch((e) => console.error("Falha ao carregar produtos:", e));
     empresaService.listar(grupoAtual.id).then((list) => {
       const permitidas = empresasPermitidas.length > 0
         ? list.filter((e) => empresasPermitidas.includes(e.id))
