@@ -4982,18 +4982,28 @@ async function gravarLogAutorizacao(params: {
   resultado: "AUTORIZADO" | "RECUSADO" | "CANCELADO";
 }): Promise<void> {
   const s = _sessao;
-  if (!s) return;
-  await supabase.from("autorizacoes_log").insert({
+  if (!s) throw new Error("Sessão expirada. Entre novamente.");
+  const uuidOuNulo = (v: string) => (UUID_RE.test(v) ? v : null);
+  // Código estável da ação (mesmo código gravado pelas funções do banco,
+  // ex.: estornar_romaneio → ESTORNO_ROMANEIO). O rótulo é só exibição.
+  const { error } = await supabase.from("autorizacoes_log").insert({
     usuario_id: s.id,
     usuario_nome: s.nome,
-    acao: ROTULO_ACAO_SUPERVISIONADA[params.acao],
+    acao: params.acao,
     registro_tipo: params.alvo.tipo,
     registro_id: params.alvo.id,
     descricao: params.alvo.descricao ?? "",
     justificativa: params.justificativa ?? "",
     resultado: params.resultado,
+    grupo_id: uuidOuNulo(s.grupoId),
+    empresa_id: uuidOuNulo(s.empresaId),
+    filial_id: uuidOuNulo(s.filialId),
   });
+  // Sem log não há autorização: falha de gravação interrompe a operação.
+  if (error) throw new Error("Não foi possível registrar a autorização no log: " + error.message);
 }
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export const autorizacaoService = {
   /**
