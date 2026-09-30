@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { definirSessaoAtual, contratoService, catalogo, avaliarToleranciaContrato, unidadeMedidaService } from "@/lib/services";
+import { instalarProdutosTeste } from "./fixture-produtos";
 import { contratos as mockContratos } from "@/lib/mock-data";
 
 const ctx = () => { const c = mockContratos[0]; return { grupoId: c.grupoId, empresaId: c.empresaId, filialId: c.filialId }; };
@@ -12,7 +13,7 @@ describe("Tolerância em sacas — mesma regra da tela e da finalização", () =
   });
 
   it("1.000 SC + 2%: 1.100 SC bloqueia, 1.015 SC libera com aviso, 0% bloqueia 1.001 SC", async () => {
-    const produto = catalogo.produtos().find((p) => p.deletadoEm === null && p.unidadeEntradaId && p.quantidadeEmbalagemEntrada === 60)!;
+    const produto = instalarProdutosTeste().soja;
     expect(produto).toBeTruthy();
     const kg = catalogo.unidadesMedida().find((u) => u.codigo === "KG")!;
     const mk = (tol: number) => contratoService.salvar({ ...mockContratos[0], id: undefined, numeroContrato: undefined, produtoId: produto.id,
