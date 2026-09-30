@@ -154,8 +154,8 @@ export default function UnidadesMedidaPage() {
       });
       setModalOpen(false);
       loadData();
-    } catch {
-      toast({ title: "Erro", description: "Não foi possível salvar.", variant: "destructive" });
+    } catch (e) {
+      toast({ title: "Não foi possível salvar", description: e instanceof Error ? e.message : String(e), variant: "destructive" });
     } finally {
       setSaving(false);
     }
