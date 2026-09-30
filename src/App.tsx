@@ -12,11 +12,8 @@ import FiliaisPage from "@/pages/admin/FiliaisPage";
 import GrupoPessoasPage from "@/pages/cadastros/GrupoPessoasPage";
 import PessoasPage from "@/pages/cadastros/PessoasPage";
 import TipoProdutoPage from "@/pages/produtos-estoque/TipoProdutoPage";
+import CategoriaProdutoPage from "@/pages/produtos-estoque/CategoriaProdutoPage";
 import MarcaProdutoPage from "@/pages/produtos-estoque/MarcaProdutoPage";
-import DivisaoProdutoPage from "@/pages/produtos-estoque/DivisaoProdutoPage";
-import SecaoProdutoPage from "@/pages/produtos-estoque/SecaoProdutoPage";
-import GrupoProdutoPage from "@/pages/produtos-estoque/GrupoProdutoPage";
-import SubgrupoProdutoPage from "@/pages/produtos-estoque/SubgrupoProdutoPage";
 import CoeficientesPage from "@/pages/produtos-estoque/CoeficientesPage";
 import TabelaPrecosPage from "@/pages/produtos-estoque/TabelaPrecosPage";
 import UnidadesMedidaPage from "@/pages/produtos-estoque/UnidadesMedidaPage";
@@ -131,10 +128,7 @@ const App = () => (
               {/* Produtos e Estoque — Tabelas */}
               <Route path="/produtos-estoque/tipo-produto" element={<TipoProdutoPage />} />
               <Route path="/produtos-estoque/marca-produto" element={<MarcaProdutoPage />} />
-              <Route path="/produtos-estoque/divisao-produto" element={<DivisaoProdutoPage />} />
-              <Route path="/produtos-estoque/secao-produto" element={<SecaoProdutoPage />} />
-              <Route path="/produtos-estoque/grupo-produto" element={<GrupoProdutoPage />} />
-              <Route path="/produtos-estoque/subgrupo-produto" element={<SubgrupoProdutoPage />} />
+              <Route path="/produtos-estoque/categoria-produto" element={<CategoriaProdutoPage />} />
               <Route path="/produtos-estoque/coeficientes" element={<CoeficientesPage />} />
               <Route path="/produtos-estoque/tabela-precos" element={<TabelaPrecosPage />} />
               <Route path="/produtos-estoque/unidades-medida" element={<UnidadesMedidaPage />} />

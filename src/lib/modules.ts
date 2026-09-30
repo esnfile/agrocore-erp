@@ -144,16 +144,7 @@ export const modules: Module[] = [
             children: [
               { title: "Tipo de Produto", url: "/produtos-estoque/tipo-produto", icon: Tags },
               { title: "Marca de Produto", url: "/produtos-estoque/marca-produto", icon: Tags },
-              {
-                title: "Classificação",
-                icon: Layers,
-                children: [
-                  { title: "Divisão", url: "/produtos-estoque/divisao-produto", icon: Component },
-                  { title: "Seção", url: "/produtos-estoque/secao-produto", icon: Component },
-                  { title: "Grupo", url: "/produtos-estoque/grupo-produto", icon: Component },
-                  { title: "Subgrupo", url: "/produtos-estoque/subgrupo-produto", icon: Component },
-                ],
-              },
+              { title: "Categoria de Produto", url: "/produtos-estoque/categoria-produto", icon: Tags },
             ],
           },
           {
