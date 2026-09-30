@@ -1,4 +1,5 @@
 // ============================================================
+import { documentoValido, ieValida } from "@/lib/documento-fiscal";
 // AgroERP — Service Layer (mock, swap-ready)
 // ============================================================
 import { MIN_CARACTERES_JUSTIFICATIVA_ESTORNO } from "./constants";
