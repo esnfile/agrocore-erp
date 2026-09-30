@@ -1,0 +1,1 @@
+- [Permissões futuras](mem://features/permissoes-futuras) — Módulo→Submódulo→Programa→Permissão; decisão saca inteira pendente

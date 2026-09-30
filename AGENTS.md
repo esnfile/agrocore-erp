@@ -1,0 +1,4 @@
+- Conversão de unidades só via `fatorBasePorUnidade` (serviço) / `public.fator_base` (banco), sempre a partir do kg; nunca derivar kg de valor arredondado — evita deriva de saldo.
+- Regra de saldo+tolerância: `calcularToleranciaKg` (JS) espelha `public.calc_tolerancia`; a partir da 2.4 o serviço chama `finalizar_romaneio`/`estornar_romaneio` e não revalida — uma só fonte.
+- Status FINALIZADO/ESTORNADO de romaneio e caches de saldo só mudam pelas funções transacionais (trigger + revoke) — garante atomicidade.
+- RLS por tríade: `usuario_grupo_id()`, `pode_acessar_filial()`, `pode_gravar()`, `eh_admin()` (security definer) — evita recursão e espelha as permissões do serviço.

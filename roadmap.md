@@ -26,3 +26,11 @@
 - [x] P2 Recusa por tolerância exercitada (teste automático no serviço; campo de tolerância adicionado ao contrato)
 - [ ] P2b Repetir o teste de tolerância clicando na interface (aguarda validação do usuário)
 - [x] P3 Regra de arredondamento: pesos de classificação gravados em kg inteiro (half-even)
+
+## Fase 2 — Banco real (etapas com confirmação)
+- [x] 2.1 Schema + RLS + funções transacionais + modelo de unidades (aguarda aprovação)
+- [ ] 2.2 Cadastros base + seed  - [ ] 2.3 Contratos/Itens  - [ ] 2.4 Romaneios (serviço chama RPC, sem revalidar)
+- [ ] 2.5 Estoque  - [ ] 2.6 Fixação  - [ ] 2.7 Liquidação (antes: cliente decide saca inteira x peso exato)
+- [ ] 2.8 Financeiro/Caixa  - [ ] 2.9 Logs  - [ ] 2.10 Ponta a ponta nas telas
+- [ ] Remover dados de teste "Grupo Teste 2.1 A/B" antes do seed da 2.2
+- Futuro: permissões por Módulo → Submódulo → Programa → Permissão (tabelas gersys_* já criadas, vazias)
