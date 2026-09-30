@@ -119,11 +119,7 @@ export default function MovimentacaoEstoquePage() {
   // Conversão em tempo real
   const quantidadeConvertida = useMemo(() => {
     if (!produtoSelecionado || !unidadeMovimentacaoId || !quantidadeInformada || quantidadeInformada <= 0) return null;
-    const baseId = getUnidadeBaseParaTipo(produtoSelecionado.tipoUnidade);
-    if (unidadeMovimentacaoId === baseId) return quantidadeInformada;
-    if (unidadeMovimentacaoId === produtoSelecionado.unidadeEntradaId) return quantidadeInformada * produtoSelecionado.quantidadeEmbalagemEntrada;
-    if (unidadeMovimentacaoId === produtoSelecionado.unidadeSaidaId) return quantidadeInformada * produtoSelecionado.quantidadeEmbalagemSaida;
-    return null;
+    try { return quantidadeInformada * fatorBasePorUnidade(unidadeMovimentacaoId, produtoSelecionado); } catch { return null; }
   }, [quantidadeInformada, unidadeMovimentacaoId, produtoSelecionado]);
 
   useEffect(() => {
