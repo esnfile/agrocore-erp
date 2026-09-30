@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react"; // v3
-import { empresaService, filialService, grupoService } from "@/lib/services";
+import { empresaService, filialService, grupoService, carregarCatalogoProdutos } from "@/lib/services";
 import { useAuth } from "@/contexts/AuthContext";
 import type { Empresa, Filial, Grupo } from "@/lib/mock-data";
 

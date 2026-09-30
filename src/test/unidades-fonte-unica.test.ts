@@ -22,3 +22,14 @@ describe("Fonte única de conversão (produto_unidades, sempre via base)", () =>
     expect(() => fatorBasePorUnidade(KG.id, defensivo)).toThrow(/tipos diferentes/);
   });
 });
+
+import { ieErro } from "@/lib/documento-fiscal";
+describe("IE de Mato Grosso", () => {
+  it("ISENTO aceita, dígito correto aceita, dígito errado e curta recusam", () => {
+    expect(ieErro("ISENTO", "MT")).toBeNull();
+    expect(ieErro("13.456.789-7", "MT")).toBeNull();
+    expect(ieErro("13.456.789-0", "MT")).toMatch(/MT inválida/);
+    expect(ieErro("1234567", "MT")).toMatch(/MT inválida/);
+    expect(ieErro("1234567", "SP")).toMatch(/8 a 14/);
+  });
+});
