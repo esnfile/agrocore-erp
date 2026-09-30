@@ -44,10 +44,7 @@ import {
   empresaService,
   coeficienteEmpresaService,
   tabelaPrecoEmpresaService,
-  divisaoProdutoService,
-  secaoProdutoService,
-  grupoProdutoService,
-  subgrupoProdutoService,
+  categoriaProdutoService,
   marcaProdutoService,
   unidadeMedidaService,
   tipoProdutoService,
@@ -60,10 +57,7 @@ import type {
   Empresa,
   CoeficienteEmpresa,
   TabelaPrecoEmpresa,
-  DivisaoProduto,
-  SecaoProduto,
-  GrupoProduto,
-  SubgrupoProduto,
+  CategoriaProduto,
   MarcaProduto,
   TipoBaixaEstoque,
   UnidadeMedida,
@@ -90,10 +84,8 @@ const schema = z.object({
   quantidadeEmbalagemSaida: z.coerce
     .number()
     .min(0.000001, "Deve ser maior que 0"),
-  divisaoProdutoId: z.string().min(1, "Divisão é obrigatória"),
-  secaoProdutoId: z.string().min(1, "Seção é obrigatória"),
-  grupoProdutoId: z.string().min(1, "Grupo é obrigatório"),
-  subgrupoProdutoId: z.string().min(1, "Subgrupo é obrigatório"),
+  categoriaId: z.string().optional().default(""),
+  precoReferencia: z.coerce.number().min(0, "Não pode ser negativo").optional().default(0),
   marcaProdutoId: z.string().optional().default(""),
   tipoUnidade: z.enum(["PESO", "VOLUME", "UNIDADE"], { required_error: "Tipo de unidade é obrigatório" }),
   unidadeEntradaId: z.string().min(1, "Unidade de entrada é obrigatória"),
@@ -124,6 +116,13 @@ interface TabelaPrecoRowState {
   ativo: boolean;
 }
 
+/** Fator da linha produto_unidades da unidade (base = 1). Nunca lê outra fonte. */
+function fatorDaLinha(p: Produto, unidadeId: string): number {
+  if (!unidadeId) return 1;
+  if (unidadeId === getUnidadeBaseParaTipo(p.tipoUnidade)) return 1;
+  return p.unidades.find((u) => u.unidadeId === unidadeId)?.fator ?? 1;
+}
+
 export default function ProdutosPage() {
   const {
     grupoAtual,
@@ -141,10 +140,7 @@ export default function ProdutosPage() {
   const [deleteTarget, setDeleteTarget] = useState<Produto | null>(null);
 
   // Lookup data
-  const [divisoes, setDivisoes] = useState<DivisaoProduto[]>([]);
-  const [secoes, setSecoes] = useState<SecaoProduto[]>([]);
-  const [gruposProduto, setGruposProduto] = useState<GrupoProduto[]>([]);
-  const [subgrupos, setSubgrupos] = useState<SubgrupoProduto[]>([]);
+  const [categorias, setCategorias] = useState<CategoriaProduto[]>([]);
   const [marcas, setMarcas] = useState<MarcaProduto[]>([]);
   const [unidades, setUnidades] = useState<UnidadeMedida[]>([]);
   const [empresasGrupo, setEmpresasGrupo] = useState<Empresa[]>([]);
@@ -185,21 +181,10 @@ export default function ProdutosPage() {
     formState: { errors },
   } = useForm<FormData>({ resolver: zodResolver(schema) });
   const ativoValue = watch("ativo");
-  const secaoSel = watch("secaoProdutoId");
-  const grupoSel = watch("grupoProdutoId");
   const tipoUnidadeSel = watch("tipoUnidade");
   const unidadeEntradaIdSel = watch("unidadeEntradaId");
   const unidadeSaidaIdSel = watch("unidadeSaidaId");
 
-  // Filtered classification lists
-  const gruposFiltrados = useMemo(
-    () => gruposProduto.filter((g) => g.secaoProdutoId === secaoSel),
-    [gruposProduto, secaoSel]
-  );
-  const subgruposFiltrados = useMemo(
-    () => subgrupos.filter((s) => s.grupoProdutoId === grupoSel),
-    [subgrupos, grupoSel]
-  );
 
   // Derived base unit ID from tipoUnidade
   const unidadeBaseIdSel = useMemo(
@@ -216,9 +201,13 @@ export default function ProdutosPage() {
   );
 
   // Lookup maps for table display
-  const divisaoMap = useMemo(
-    () => Object.fromEntries(divisoes.map((d) => [d.id, d.descricao])),
-    [divisoes]
+  const categoriaMap = useMemo(
+    () => Object.fromEntries(categorias.map((d) => [d.id, d.descricao])),
+    [categorias]
+  );
+  const tipoProdutoMap = useMemo(
+    () => Object.fromEntries(tiposProdutoList.map((d) => [d.id, d.descricao])),
+    [tiposProdutoList]
   );
   const marcaMap = useMemo(
     () => Object.fromEntries(marcas.map((m) => [m.id, m.descricao])),
@@ -229,9 +218,22 @@ export default function ProdutosPage() {
     { key: "codigoBarras", header: "Código" },
     { key: "descricao", header: "Descrição" },
     {
-      key: "divisaoProdutoId",
-      header: "Divisão",
-      render: (row) => divisaoMap[row.divisaoProdutoId] ?? "-",
+      key: "tipoProdutoId",
+      header: "Tipo",
+      render: (row) => tipoProdutoMap[row.tipoProdutoId] ?? "-",
+    },
+    {
+      key: "categoriaId",
+      header: "Categoria",
+      render: (row) => (row.categoriaId ? categoriaMap[row.categoriaId] ?? "-" : "-"),
+    },
+    {
+      key: "unidades",
+      header: "Conversões",
+      render: (row) =>
+        row.unidades.length
+          ? row.unidades.map((u) => `1 ${u.codigo} = ${u.fator.toLocaleString("pt-BR")} ${getCodigoUnidadeBase(row.tipoUnidade)}`).join(" · ")
+          : "-",
     },
     {
       key: "marcaProdutoId",
@@ -260,6 +262,9 @@ export default function ProdutosPage() {
     produtoService.listar(grupoId).then((list) => {
       setData(list);
       setLoading(false);
+    }).catch((e) => {
+      setLoading(false);
+      toast({ title: "Erro ao carregar produtos", description: e instanceof Error ? e.message : String(e), variant: "destructive" });
     });
   }, [grupoId]);
 
@@ -273,18 +278,12 @@ export default function ProdutosPage() {
     const eId = empresaAtual.id;
     const fId = filialAtual.id;
     Promise.all([
-      divisaoProdutoService.listar(eId, fId),
-      secaoProdutoService.listar(eId, fId),
-      grupoProdutoService.listar(eId, fId),
-      subgrupoProdutoService.listar(eId, fId),
+      categoriaProdutoService.listar(eId, fId),
       marcaProdutoService.listar(eId, fId),
       unidadeMedidaService.listar(eId, fId),
       tipoProdutoService.listar(eId, fId),
-    ]).then(([d, s, g, sg, m, um, tp]) => {
-      setDivisoes(d);
-      setSecoes(s);
-      setGruposProduto(g);
-      setSubgrupos(sg);
+    ]).then(([c, m, um, tp]) => {
+      setCategorias(c);
       setMarcas(m);
       setUnidades(um);
       setTiposProdutoList(tp);
@@ -372,10 +371,8 @@ export default function ProdutosPage() {
       tipoBaixaEstoque: "INDIVIDUAL",
       quantidadeEmbalagemEntrada: 1,
       quantidadeEmbalagemSaida: 1,
-      divisaoProdutoId: "",
-      secaoProdutoId: "",
-      grupoProdutoId: "",
-      subgrupoProdutoId: "",
+      categoriaId: "",
+      precoReferencia: 0,
       marcaProdutoId: "",
       tipoUnidade: undefined as any,
       unidadeEntradaId: "",
@@ -412,12 +409,11 @@ export default function ProdutosPage() {
       descricao: row.descricao,
       aplicacao: row.aplicacao,
       tipoBaixaEstoque: row.tipoBaixaEstoque,
-      quantidadeEmbalagemEntrada: row.quantidadeEmbalagemEntrada,
-      quantidadeEmbalagemSaida: row.quantidadeEmbalagemSaida,
-      divisaoProdutoId: row.divisaoProdutoId,
-      secaoProdutoId: row.secaoProdutoId,
-      grupoProdutoId: row.grupoProdutoId,
-      subgrupoProdutoId: row.subgrupoProdutoId,
+      // Qtd. Emb. = editor da linha produto_unidades da unidade (fonte única do fator)
+      quantidadeEmbalagemEntrada: fatorDaLinha(row, row.unidadeEntradaId),
+      quantidadeEmbalagemSaida: fatorDaLinha(row, row.unidadeSaidaId),
+      categoriaId: row.categoriaId ?? "",
+      precoReferencia: row.precoReferencia ?? 0,
       marcaProdutoId: row.marcaProdutoId ?? "",
       tipoUnidade: (row.tipoUnidade || undefined) as any,
       unidadeEntradaId: row.unidadeEntradaId ?? "",
@@ -513,11 +509,19 @@ export default function ProdutosPage() {
 
     setSaving(true);
     try {
+      const { quantidadeEmbalagemEntrada, quantidadeEmbalagemSaida, ...resto } = formData;
       const saved = await produtoService.salvar(
         {
           id: editingId ?? undefined,
-          ...formData,
+          ...resto,
           marcaProdutoId: formData.marcaProdutoId || null,
+          categoriaId: formData.categoriaId || null,
+          precoReferencia: formData.precoReferencia || null,
+          // Fatores editados em "Qtd. Emb." vão para produto_unidades (contra a base)
+          fatoresEditados: [
+            { unidadeId: formData.unidadeEntradaId, fator: Number(quantidadeEmbalagemEntrada) },
+            { unidadeId: formData.unidadeSaidaId, fator: Number(quantidadeEmbalagemSaida) },
+          ],
         },
         {
           grupoId,
@@ -563,10 +567,10 @@ export default function ProdutosPage() {
       });
       setModalOpen(false);
       loadData();
-    } catch {
+    } catch (e) {
       toast({
-        title: "Erro",
-        description: "Não foi possível salvar.",
+        title: "Não foi possível salvar",
+        description: e instanceof Error ? e.message : String(e),
         variant: "destructive",
       });
     } finally {
@@ -576,7 +580,13 @@ export default function ProdutosPage() {
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
-    await produtoService.excluir(deleteTarget.id);
+    try {
+      await produtoService.excluir(deleteTarget.id);
+    } catch (e) {
+      toast({ title: "Não foi possível excluir", description: e instanceof Error ? e.message : String(e), variant: "destructive" });
+      setDeleteTarget(null);
+      return;
+    }
     toast({
       title: "Produto excluído",
       description: `"${deleteTarget.descricao}" foi removido.`,
@@ -792,31 +802,25 @@ export default function ProdutosPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
-                  <Label>
-                    Divisão <span className="text-destructive">*</span>
-                  </Label>
+                  <Label>Categoria</Label>
                   <Select
-                    value={watch("divisaoProdutoId")}
-                    onValueChange={(v) => setValue("divisaoProdutoId", v)}
+                    value={watch("categoriaId") || "__none__"}
+                    onValueChange={(v) => setValue("categoriaId", v === "__none__" ? "" : v)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {divisoes.map((d) => (
-                        <SelectItem key={d.id} value={d.id}>
-                          {d.descricao}
+                      <SelectItem value="__none__">Nenhuma</SelectItem>
+                      {categorias.filter((c) => c.ativo).map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.descricao}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  {errors.divisaoProdutoId && (
-                    <p className="text-xs text-destructive">
-                      {errors.divisaoProdutoId.message}
-                    </p>
-                  )}
                 </div>
                 <div className="space-y-1.5">
                   <Label>Marca</Label>
@@ -831,7 +835,7 @@ export default function ProdutosPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__none__">Nenhuma</SelectItem>
-                      {marcas.map((m) => (
+                      {marcas.filter((m) => m.ativo).map((m) => (
                         <SelectItem key={m.id} value={m.id}>
                           {m.descricao}
                         </SelectItem>
@@ -839,92 +843,10 @@ export default function ProdutosPage() {
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
-                  <Label>
-                    Seção <span className="text-destructive">*</span>
-                  </Label>
-                  <Select
-                    value={watch("secaoProdutoId")}
-                    onValueChange={(v) => {
-                      setValue("secaoProdutoId", v);
-                      setValue("grupoProdutoId", "");
-                      setValue("subgrupoProdutoId", "");
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {secoes.map((s) => (
-                        <SelectItem key={s.id} value={s.id}>
-                          {s.descricao}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.secaoProdutoId && (
-                    <p className="text-xs text-destructive">
-                      {errors.secaoProdutoId.message}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <Label>
-                    Grupo <span className="text-destructive">*</span>
-                  </Label>
-                  <Select
-                    value={watch("grupoProdutoId")}
-                    onValueChange={(v) => {
-                      setValue("grupoProdutoId", v);
-                      setValue("subgrupoProdutoId", "");
-                    }}
-                    disabled={!secaoSel}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {gruposFiltrados.map((g) => (
-                        <SelectItem key={g.id} value={g.id}>
-                          {g.descricao}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.grupoProdutoId && (
-                    <p className="text-xs text-destructive">
-                      {errors.grupoProdutoId.message}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <Label>
-                    Subgrupo <span className="text-destructive">*</span>
-                  </Label>
-                  <Select
-                    value={watch("subgrupoProdutoId")}
-                    onValueChange={(v) => setValue("subgrupoProdutoId", v)}
-                    disabled={!grupoSel}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {subgruposFiltrados.map((s) => (
-                        <SelectItem key={s.id} value={s.id}>
-                          {s.descricao}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.subgrupoProdutoId && (
-                    <p className="text-xs text-destructive">
-                      {errors.subgrupoProdutoId.message}
-                    </p>
-                  )}
+                  <Label htmlFor="precoReferencia">Preço de referência (R$)</Label>
+                  <Input id="precoReferencia" type="number" step="0.01" min="0" {...register("precoReferencia")} />
+                  <p className="text-xs text-muted-foreground">Só pré-preenche o contrato.</p>
                 </div>
               </div>
 
@@ -980,11 +902,8 @@ export default function ProdutosPage() {
                         value={watch("unidadeEntradaId")}
                         onValueChange={(v) => {
                           setValue("unidadeEntradaId", v);
-                          if (v === unidadeBaseIdSel) {
-                            setValue("quantidadeEmbalagemEntrada", 1);
-                          } else {
-                            setValue("quantidadeEmbalagemEntrada", 1);
-                          }
+                          const atual = data.find((p) => p.id === editingId);
+                          setValue("quantidadeEmbalagemEntrada", atual ? fatorDaLinha(atual, v) : 1);
                         }}
                         disabled={!tipoUnidadeSel}
                       >
@@ -1040,11 +959,8 @@ export default function ProdutosPage() {
                         value={watch("unidadeSaidaId")}
                         onValueChange={(v) => {
                           setValue("unidadeSaidaId", v);
-                          if (v === unidadeBaseIdSel) {
-                            setValue("quantidadeEmbalagemSaida", 1);
-                          } else {
-                            setValue("quantidadeEmbalagemSaida", 1);
-                          }
+                          const atual = data.find((p) => p.id === editingId);
+                          setValue("quantidadeEmbalagemSaida", atual ? fatorDaLinha(atual, v) : 1);
                         }}
                         disabled={!tipoUnidadeSel}
                       >
