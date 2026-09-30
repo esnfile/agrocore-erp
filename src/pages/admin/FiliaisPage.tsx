@@ -231,8 +231,8 @@ export default function FiliaisPage() {
       });
       setModalOpen(false);
       loadData();
-    } catch {
-      toast({ title: "Erro", description: "Não foi possível salvar.", variant: "destructive" });
+    } catch (e: any) {
+      toast({ title: "Não foi possível salvar", description: e?.message ?? "Erro inesperado.", variant: "destructive" });
     } finally {
       setSaving(false);
     }
