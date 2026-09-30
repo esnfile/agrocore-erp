@@ -31,7 +31,11 @@
 - [x] 2.1 Schema + RLS + funções transacionais + modelo de unidades (aprovada)
 - [x] 2.2 Cadastros base (grupos, empresas, filiais, grupos de pessoas, pessoas, plano de contas, centros de custo) + seed + teste nas telas
   - [ ] 2.2b Produtos/unidades (faltam tabelas auxiliares: tipo, divisão, seção, grupo, subgrupo, marca) e Moedas/Cotações (modelo de cotação diverge) — aguardam decisão
-- [ ] 2.3 Contratos/Itens  - [ ] 2.4 Romaneios (serviço chama RPC, sem revalidar)
+- [x] 2.2c-A Dados fiscais só na Filial (dígito CNPJ/CPF no serviço + trigger no banco)
+- [ ] 2.2c-B Produtos: tipos, marcas, categoria única, unidade = descrição+tipo (sem fator), conversão só em produto_unidades via base
+- [ ] 2.2c-C Cotações por dia/tipo (DOLAR, SOJA_US_SC, MILHO_US_SC)
+- [ ] 2.2 testes faltantes: AUTORIZADO na tela; criar Pessoa como Consulta
+- [ ] 2.3 Contratos/Itens (UI 1 item; 2 itens só serviço/banco; moeda_precificacao; fixação grava cotação — PROVISÓRIO)  - [ ] 2.4 Romaneios (serviço chama RPC, sem revalidar)
 - [ ] 2.5 Estoque  - [ ] 2.6 Fixação  - [ ] 2.7 Liquidação (antes: cliente decide saca inteira x peso exato)
 - [ ] 2.8 Financeiro/Caixa  - [ ] 2.9 Logs  - [ ] 2.10 Ponta a ponta nas telas
 - [x] Dados de teste "Grupo Teste 2.1 A/B" removidos antes do seed

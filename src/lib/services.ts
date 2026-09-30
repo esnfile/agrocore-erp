@@ -1,4 +1,5 @@
 // ============================================================
+import { documentoValido, ieValida } from "@/lib/documento-fiscal";
 // AgroERP — Service Layer (mock, swap-ready)
 // ============================================================
 import { MIN_CARACTERES_JUSTIFICATIVA_ESTORNO } from "./constants";
@@ -384,6 +385,8 @@ export const filialService = {
     return (await dbContar("romaneios", (q) => q.eq("filial_id", id))) > 0;
   },
   async salvar(data: Partial<Filial>): Promise<Filial> {
+    if (!documentoValido(data.cpfCnpj ?? "")) throw new Error("CNPJ/CPF inválido — dígito verificador não confere.");
+    if (!ieValida(data.ie ?? "")) throw new Error("Inscrição Estadual inválida — informe ISENTO ou de 8 a 14 dígitos.");
     const linha = filialParaLinha(data);
     if (data.id) return mapFilial(await dbAtualizar("filiais", data.id, linha));
     return mapFilial(await dbInserir("filiais", { ...linha, grupo_id: grupoDaSessao() }));
