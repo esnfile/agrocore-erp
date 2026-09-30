@@ -1,4 +1,4 @@
-import { catalogo, getUnidadeBaseParaTipo, getCodigoUnidadeBase } from "@/lib/services";
+import { catalogo, getUnidadeBaseParaTipo, getCodigoUnidadeBase, fatorBasePorUnidade } from "@/lib/services";
 // ============================================================
 // Romaneio Module — Shared Types, Constants & Helpers
 // ============================================================
