@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Search, X } from "lucide-react";
 import { ESTADOS_BRASILEIROS } from "@/lib/constants";
-import { documentoValido, ieValida } from "@/lib/documento-fiscal";
+import { documentoValido, ieErro } from "@/lib/documento-fiscal";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,8 +34,7 @@ const schema = z.object({
   nomeRazao: z.string().min(3, "Mínimo 3 caracteres").max(200, "Máximo 200 caracteres"),
   cpfCnpj: z.string().min(1, "Obrigatório").max(18, "Máximo 18 caracteres")
     .refine(documentoValido, "CNPJ/CPF inválido (dígito verificador)"),
-  ie: z.string().max(30, "Máximo 30 caracteres").optional()
-    .refine((v) => ieValida(v ?? ""), "IE inválida (ISENTO ou 8 a 14 dígitos)"),
+  ie: z.string().max(30, "Máximo 30 caracteres").optional(),
   email: z.string().max(320, "Máximo 320 caracteres").optional(),
   telefone: z.string().max(20, "Máximo 20 caracteres").optional(),
   cep: z.string().max(9, "Máximo 9 caracteres").optional(),
@@ -46,6 +45,9 @@ const schema = z.object({
   cidade: z.string().max(100, "Máximo 100 caracteres").optional(),
   uf: z.string().length(2, "UF deve ter 2 caracteres"),
   ativo: z.boolean(),
+}).superRefine((d, ctx) => {
+  const e = ieErro(d.ie ?? "", d.uf);
+  if (e) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["ie"], message: e });
 });
 
 type FormData = z.infer<typeof schema>;

@@ -1,4 +1,4 @@
-import { catalogo, getUnidadeBaseParaTipo, getCodigoUnidadeBase } from "@/lib/services";
+import { catalogo, getUnidadeBaseParaTipo, getCodigoUnidadeBase, fatorBasePorUnidade } from "@/lib/services";
 // ============================================================
 // Romaneio Module — Shared Types, Constants & Helpers
 // ============================================================
@@ -194,11 +194,7 @@ export function resolveContratoUnidadeInfo(contrato: Contrato, tipoRomaneio?: Ti
     isKg = contrato.unidadeNegociacaoId === unidadeBaseId;
     
     if (!isKg) {
-      if (contrato.unidadeNegociacaoId === produto.unidadeEntradaId) {
-        fator = produto.quantidadeEmbalagemEntrada;
-      } else if (contrato.unidadeNegociacaoId === produto.unidadeSaidaId) {
-        fator = produto.quantidadeEmbalagemSaida;
-      }
+      try { fator = fatorBasePorUnidade(contrato.unidadeNegociacaoId, produto); } catch { fator = 1; }
     }
   }
 

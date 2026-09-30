@@ -50,6 +50,20 @@
       "when": 1790796352247,
       "tag": "0006_filial_documento_fiscal_valido",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790797935177,
+      "tag": "0007_etapa_2_2c_b_produtos_tabelas",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790797992014,
+      "tag": "0008_etapa_2_2c_b_produtos_regras",
+      "breakpoints": true
     }
   ]
 }

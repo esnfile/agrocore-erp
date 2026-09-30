@@ -449,6 +449,21 @@ export const pessoas: Pessoa[] = [
 ];
 
 // ---- Tipo de Produto ----
+export interface CategoriaProduto {
+  id: string;
+  grupoId: string;
+  empresaId: string | null;
+  filialId: string | null;
+  descricao: string;
+  ativo: boolean;
+  criadoEm: string;
+  criadoPor: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+  deletadoEm: string | null;
+  deletadoPor: string | null;
+}
+
 export interface TipoProduto {
   id: string;
   grupoId: string;
@@ -922,16 +937,11 @@ export interface UnidadeMedida {
   deletadoPor: string | null;
 }
 
-/**
- * Resolves the base unit ID for a given TipoUnidadeMedida.
- * PESO → KG (um1), VOLUME → LT (um4), UNIDADE → UND (um6)
- */
+/** ID da unidade base do tipo (KG/LT/UND), resolvido pelo código no catálogo carregado. */
 export function getUnidadeBaseParaTipo(tipo: TipoUnidadeMedida): string {
-  switch (tipo) {
-    case "PESO": return "um1";
-    case "VOLUME": return "um4";
-    case "UNIDADE": return "um6";
-  }
+  const cod = getCodigoUnidadeBase(tipo);
+  const u = unidadesMedida.find((x) => x.deletadoEm === null && x.codigo.toUpperCase() === cod);
+  return u?.id ?? ({ PESO: "um1", VOLUME: "um4", UNIDADE: "um6" } as const)[tipo];
 }
 
 export function getCodigoUnidadeBase(tipo: TipoUnidadeMedida): string {
@@ -945,6 +955,14 @@ export function getCodigoUnidadeBase(tipo: TipoUnidadeMedida): string {
 // ---- Produto ----
 export type TipoBaixaEstoque = "INDIVIDUAL" | "AGREGADO";
 
+/** Linha de produto_unidades: fator SEMPRE contra a unidade base do tipo (kg/LT/UND). */
+export interface ProdutoUnidadeFator {
+  id?: string;
+  unidadeId: string;
+  codigo: string;
+  fator: number;
+}
+
 export interface Produto {
   id: string;
   grupoId: string;
@@ -955,16 +973,18 @@ export interface Produto {
   descricao: string;
   aplicacao: string;
   tipoBaixaEstoque: TipoBaixaEstoque;
-  quantidadeEmbalagemEntrada: number;
-  quantidadeEmbalagemSaida: number;
-  divisaoProdutoId: string;
-  secaoProdutoId: string;
-  grupoProdutoId: string;
-  subgrupoProdutoId: string;
+  categoriaId: string | null;
   marcaProdutoId: string | null;
   tipoUnidade: TipoUnidadeMedida;
+  /** Default de preenchimento (romaneio). Nunca fonte de conversão. */
   unidadeEntradaId: string;
+  /** Default de preenchimento (contrato/venda). Nunca fonte de conversão. */
   unidadeSaidaId: string;
+  /** Apenas referência para pré-preencher contrato. */
+  precoReferencia: number | null;
+  ehGrao: boolean;
+  /** FONTE ÚNICA de conversão (produto_unidades). */
+  unidades: ProdutoUnidadeFator[];
   ativo: boolean;
   criadoEm: string;
   criadoPor: string;
@@ -1120,64 +1140,8 @@ export const unidadesMedida: UnidadeMedida[] = [
   },
 ];
 
-export const produtos: Produto[] = [
-  {
-    id: "prod1",
-    grupoId: "g1",
-    empresaId: "e1",
-    filialId: null,
-    tipoProdutoId: "tp1",
-    codigoBarras: "7891234567890",
-    descricao: "Fertilizante NPK 20-05-20",
-    aplicacao: "Aplicação foliar em soja e milho",
-    tipoBaixaEstoque: "INDIVIDUAL",
-    quantidadeEmbalagemEntrada: 50,
-    quantidadeEmbalagemSaida: 25,
-    divisaoProdutoId: "dp1",
-    secaoProdutoId: "sp1",
-    grupoProdutoId: "grp1",
-    subgrupoProdutoId: "sgp1",
-    marcaProdutoId: "mp1",
-    tipoUnidade: "PESO",
-    unidadeEntradaId: "um1",
-    unidadeSaidaId: "um1",
-    ativo: true,
-    criadoEm: "2024-07-01T08:00:00Z",
-    criadoPor: "u1",
-    atualizadoEm: "2024-07-01T08:00:00Z",
-    atualizadoPor: "u1",
-    deletadoEm: null,
-    deletadoPor: null,
-  },
-  {
-    id: "prod2",
-    grupoId: "g1",
-    empresaId: "e1",
-    filialId: null,
-    tipoProdutoId: "tp1",
-    codigoBarras: "7891234567",
-    descricao: "Soja",
-    aplicacao: "Plantação",
-    tipoBaixaEstoque: "INDIVIDUAL",
-    quantidadeEmbalagemEntrada: 60,
-    quantidadeEmbalagemSaida: 60,
-    divisaoProdutoId: "dp1",
-    secaoProdutoId: "sp1",
-    grupoProdutoId: "grp2",
-    subgrupoProdutoId: "sgp2",
-    marcaProdutoId: null,
-    tipoUnidade: "PESO",
-    unidadeEntradaId: "um7",
-    unidadeSaidaId: "um7",
-    ativo: true,
-    criadoEm: "2024-07-01T08:00:00Z",
-    criadoPor: "u1",
-    atualizadoEm: "2024-07-01T08:00:00Z",
-    atualizadoPor: "u1",
-    deletadoEm: null,
-    deletadoPor: null,
-  },
-];
+// Produtos vêm do banco (produtoService.listar hidrata este array — cache de leitura síncrona).
+export const produtos: Produto[] = [];
 
 export const produtoEmpresas: ProdutoEmpresa[] = [
   {

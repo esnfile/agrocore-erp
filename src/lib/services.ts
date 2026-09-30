@@ -1,5 +1,5 @@
 // ============================================================
-import { documentoValido, ieValida } from "@/lib/documento-fiscal";
+import { documentoValido, ieErro } from "@/lib/documento-fiscal";
 // AgroERP — Service Layer (mock, swap-ready)
 // ============================================================
 import { MIN_CARACTERES_JUSTIFICATIVA_ESTORNO } from "./constants";
@@ -60,6 +60,7 @@ import {
 } from "./mock-data";
 import { getUnidadeBaseParaTipo, getCodigoUnidadeBase } from "./mock-data";
 import type {
+  CategoriaProduto,
   Empresa, Filial, Grupo, GrupoPessoa, Pessoa,
   TipoProduto, MarcaProduto, DivisaoProduto, SecaoProduto, GrupoProduto, SubgrupoProduto,
   Coeficiente, CoeficienteEmpresa, TabelaPreco, TabelaPrecoEmpresa, ParametroComercial, AplicaSobre,
@@ -386,7 +387,8 @@ export const filialService = {
   },
   async salvar(data: Partial<Filial>): Promise<Filial> {
     if (!documentoValido(data.cpfCnpj ?? "")) throw new Error("CNPJ/CPF inválido — dígito verificador não confere.");
-    if (!ieValida(data.ie ?? "")) throw new Error("Inscrição Estadual inválida — informe ISENTO ou de 8 a 14 dígitos.");
+    const erroIe = ieErro(data.ie ?? "", (data as any).uf ?? (data as any).estado);
+    if (erroIe) throw new Error(erroIe);
     const linha = filialParaLinha(data);
     if (data.id) return mapFilial(await dbAtualizar("filiais", data.id, linha));
     return mapFilial(await dbInserir("filiais", { ...linha, grupo_id: grupoDaSessao() }));
@@ -675,8 +677,36 @@ function createCorporateCrudService<T extends CorporateEntity>(store: T[], prefi
   };
 }
 
-export const tipoProdutoService = createCorporateCrudService<TipoProduto>(mockTiposProduto, "tp");
-export const marcaProdutoService = createCorporateCrudService<MarcaProduto>(mockMarcasProduto, "mp");
+// ---- Cadastros auxiliares de produto no banco (nível grupo): tipo, marca, categoria ----
+function createCadastroGrupoDb<T extends { id: string; descricao: string }>(tabela: string) {
+  const mapear = (r: any): T => ({ id: r.id, grupoId: r.grupo_id, empresaId: null, filialId: null, descricao: r.descricao, ativo: r.ativo, ...auditoriaDe(r) } as unknown as T);
+  const listarTodos = async (): Promise<T[]> => (await dbListar(tabela, "descricao")).map(mapear);
+  return {
+    listar: async (_e?: string, _f?: string) => listarTodos(),
+    listarPorGrupo: async (_g?: string) => listarTodos(),
+    listarTodos,
+    async descricaoExiste(descricao: string, _e: string, _f: string, excludeId?: string): Promise<boolean> {
+      const t = descricao.trim().toLowerCase();
+      return (await listarTodos()).some((i) => i.descricao.toLowerCase() === t && i.id !== excludeId);
+    },
+    async salvar(data: Partial<T> & { ativo?: boolean }, _ctx?: unknown): Promise<T> {
+      exigirPermissao("OPERAR");
+      const linha = { descricao: (data.descricao ?? "").trim(), ativo: data.ativo ?? true };
+      if (!linha.descricao) throw new Error("Descrição é obrigatória.");
+      if (data.id) return mapear(await dbAtualizar(tabela, data.id, linha));
+      return mapear(await dbInserir(tabela, { ...linha, grupo_id: grupoDaSessao() }));
+    },
+    async excluir(id: string): Promise<void> {
+      exigirPermissao("OPERAR");
+      const col = tabela === "tipos_produto" ? "tipo_produto_id" : tabela === "marcas_produto" ? "marca_id" : "categoria_id";
+      if ((await dbContar("produtos", (q) => q.eq(col, id))) > 0) throw new Error("Cadastro em uso por produtos — não pode ser excluído.");
+      await dbExcluirLogico(tabela, id);
+    },
+  };
+}
+export const tipoProdutoService = createCadastroGrupoDb<TipoProduto>("tipos_produto");
+export const marcaProdutoService = createCadastroGrupoDb<MarcaProduto>("marcas_produto");
+export const categoriaProdutoService = createCadastroGrupoDb<CategoriaProduto>("categorias_produto");
 export const divisaoProdutoService = createCorporateCrudService<DivisaoProduto>(mockDivisoesProduto, "dp");
 export const secaoProdutoService = createCorporateCrudService<SecaoProduto>(mockSecoesProduto, "sp");
 export const grupoProdutoService = createCorporateCrudService<GrupoProduto>(mockGruposProduto, "grp");
@@ -861,59 +891,73 @@ export const parametroComercialService = {
 // Produtos
 // ============================================================
 export const produtoService = {
-  async listar(grupoId: string): Promise<Produto[]> {
-    await delay();
-    return mockProdutos.filter((p) => p.deletadoEm === null && p.grupoId === grupoId);
+  /** Lê produtos + produto_unidades do banco e hidrata o catálogo síncrono. */
+  async listar(_grupoId?: string): Promise<Produto[]> {
+    await carregarUnidadesDoBanco();
+    const [rows, pus] = await Promise.all([dbListar("produtos", "descricao"), dbListar("produto_unidades", "unidade_codigo")]);
+    const lista = rows.map((r) => mapProduto(r, pus.filter((u) => u.produto_id === r.id)));
+    mockProdutos.splice(0, mockProdutos.length, ...lista);
+    return lista;
   },
-  async descricaoExiste(descricao: string, grupoId: string, excludeId?: string): Promise<boolean> {
-    await delay(100);
+  async descricaoExiste(descricao: string, _grupoId: string, excludeId?: string): Promise<boolean> {
     const t = descricao.trim().toLowerCase();
-    return mockProdutos.some(
-      (p) => p.deletadoEm === null && p.grupoId === grupoId && p.descricao.toLowerCase() === t && p.id !== excludeId
-    );
+    return (await this.listar()).some((p) => p.descricao.toLowerCase() === t && p.id !== excludeId);
   },
-  async salvar(data: Partial<Produto>, ctx: { grupoId: string; empresaId: string; filialId: string }): Promise<Produto> {
-    await delay(400);
-    const now = new Date().toISOString();
-    const existing = data.id ? mockProdutos.find((p) => p.id === data.id && p.deletadoEm === null) : undefined;
-    if (existing) {
-      Object.assign(existing, data, {
-        grupoId: existing.grupoId, empresaId: existing.empresaId, filialId: existing.filialId,
-        criadoEm: existing.criadoEm, criadoPor: existing.criadoPor,
-        atualizadoEm: now, atualizadoPor: usuarioAtualId(), deletadoEm: null, deletadoPor: null,
-      });
-      return existing;
+  /**
+   * Grava o produto e as linhas de produto_unidades editadas em "Qtd. Emb.".
+   * Regra (espelha os triggers do banco): unidades do MESMO tipo do produto;
+   * fator > 0 e SEMPRE contra a base; a base tem fator 1. Nunca fator unidade-a-unidade.
+   */
+  async salvar(
+    data: Partial<Produto> & { fatoresEditados?: { unidadeId: string; fator: number }[] },
+    _ctx?: unknown
+  ): Promise<Produto> {
+    exigirPermissao("OPERAR");
+    const tipo = data.tipoUnidade ?? "PESO";
+    const un = (id?: string) => mockUnidadesMedida.find((u) => u.id === id && u.deletadoEm === null);
+    const uEnt = un(data.unidadeEntradaId), uSai = un(data.unidadeSaidaId);
+    for (const [u, rot] of [[uEnt, "entrada"], [uSai, "saída"]] as const) {
+      if (!u) throw new Error(`Unidade de ${rot} é obrigatória.`);
+      if (u.tipo !== tipo) throw new Error(`Unidade de ${rot} "${u.codigo}" é do tipo ${u.tipo}, mas o produto é ${tipo} — conversão entre tipos diferentes é proibida.`);
     }
-    const novo: Produto = {
-      id: `prod${Date.now()}`,
-      grupoId: ctx.grupoId, empresaId: ctx.empresaId, filialId: null,
-      codigoBarras: data.codigoBarras ?? "",
-      tipoProdutoId: data.tipoProdutoId ?? "",
+    const base = getCodigoUnidadeBase(tipo);
+    const linha = {
       descricao: (data.descricao ?? "").trim(),
-      aplicacao: data.aplicacao ?? "",
-      tipoBaixaEstoque: data.tipoBaixaEstoque ?? "INDIVIDUAL",
-      quantidadeEmbalagemEntrada: data.quantidadeEmbalagemEntrada ?? 1,
-      quantidadeEmbalagemSaida: data.quantidadeEmbalagemSaida ?? 1,
-      divisaoProdutoId: data.divisaoProdutoId ?? "",
-      secaoProdutoId: data.secaoProdutoId ?? "",
-      grupoProdutoId: data.grupoProdutoId ?? "",
-      subgrupoProdutoId: data.subgrupoProdutoId ?? "",
-      marcaProdutoId: data.marcaProdutoId ?? null,
-      tipoUnidade: data.tipoUnidade ?? "PESO",
-      unidadeEntradaId: data.unidadeEntradaId ?? "",
-      unidadeSaidaId: data.unidadeSaidaId ?? "",
+      tipo_produto_id: data.tipoProdutoId || null,
+      categoria_id: data.categoriaId || null,
+      marca_id: data.marcaProdutoId || null,
+      codigo_barras: data.codigoBarras || null,
+      aplicacao: data.aplicacao || null,
+      tipo_baixa_estoque: data.tipoBaixaEstoque ?? "INDIVIDUAL",
+      tipo_unidade: tipo,
+      unidade_base: base,
+      unidade_entrada_padrao: uEnt!.codigo,
+      unidade_saida_padrao: uSai!.codigo,
+      preco_referencia: data.precoReferencia ?? null,
       ativo: data.ativo ?? true,
-      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
-      deletadoEm: null, deletadoPor: null,
     };
-    mockProdutos.push(novo);
-    return novo;
+    if (!linha.descricao) throw new Error("Descrição é obrigatória.");
+    const salvo = data.id ? await dbAtualizar("produtos", data.id, linha) : await dbInserir("produtos", { ...linha, grupo_id: grupoDaSessao(), eh_grao: false });
+    const existentes = await dbListar("produto_unidades", "unidade_codigo", (q) => q.eq("produto_id", salvo.id));
+    for (const f of data.fatoresEditados ?? []) {
+      const u = un(f.unidadeId);
+      if (!u || u.codigo.toUpperCase() === base) continue; // base = 1 por definição, sem linha
+      if (!(f.fator > 0)) throw new Error(`Fator da unidade ${u.codigo} deve ser maior que zero (em ${base}).`);
+      const atual = existentes.find((e) => e.unidade_codigo.toUpperCase() === u.codigo.toUpperCase());
+      if (atual) {
+        if (Number(atual.fator_base) !== f.fator) await dbAtualizar("produto_unidades", atual.id, { fator_base: f.fator });
+      } else {
+        await dbInserir("produto_unidades", { grupo_id: salvo.grupo_id, produto_id: salvo.id, unidade_codigo: u.codigo, fator_base: f.fator });
+      }
+    }
+    const lista = await this.listar();
+    return lista.find((p) => p.id === salvo.id)!;
   },
   async excluir(id: string): Promise<void> {
-    await delay();
-    const now = new Date().toISOString();
-    const p = mockProdutos.find((p) => p.id === id && p.deletadoEm === null);
-    if (p) { p.deletadoEm = now; p.deletadoPor = usuarioAtualId(); p.atualizadoEm = now; p.atualizadoPor = usuarioAtualId(); }
+    exigirPermissao("OPERAR");
+    const emUso = (await dbContar("contrato_itens", (q) => q.eq("produto_id", id))) + (await dbContar("romaneios", (q) => q.eq("produto_id", id)));
+    if (emUso > 0) throw new Error("Produto com contratos ou romaneios vinculados — não pode ser excluído.");
+    await dbExcluirLogico("produtos", id);
   },
   /**
    * Retorna preço sugerido para um produto com base no tipo de contrato e empresa.
@@ -1061,25 +1105,55 @@ export const produtoEmpresaTabelaPrecoService = {
 };
 
 // ============================================================
-// MODELO DE UNIDADES — FONTE ÚNICA DE CONVERSÃO (Fase 2)
+// MODELO DE UNIDADES — FONTE ÚNICA DE CONVERSÃO
 // ------------------------------------------------------------
-// Unidade base = KG (peso), LT (volume), UND. O kg da balança é a VERDADE.
-// Fatores universais (TON = 1.000 kg, G = 0,001 kg, ML = 0,001 LT) valem para
-// qualquer produto; unidades comerciais (ex.: SC) usam o fator do produto
-// (quantidadeEmbalagem de entrada/saída). Espelha public.fator_base() no banco.
-// PROIBIDO: converter valor já arredondado ou derivar kg de SC/TON arredondada.
+// Unidade de medida = descrição + tipo (SEM fator). O fator vive SÓ em
+// produto_unidades (Produto.unidades), sempre contra a base do tipo (KG/LT/UND).
+// Toda conversão passa pela base: unidade → base → unidade. PROIBIDO fator
+// direto unidade-a-unidade e qualquer tabela de fatores "universais" no código.
+// Espelha public.fator_base() no banco.
 // ============================================================
-const FATORES_UNIVERSAIS: Record<string, number> = { KG: 1, LT: 1, UND: 1, TON: 1000, G: 0.001, ML: 0.001 };
-
 export function fatorBasePorUnidade(unidadeId: string, produto: Produto): number {
   const un = mockUnidadesMedida.find((u) => u.id === unidadeId && u.deletadoEm === null);
   if (!un) throw new Error("Unidade não encontrada.");
-  if (unidadeId === getUnidadeBaseParaTipo(produto.tipoUnidade)) return 1;
-  if (unidadeId === produto.unidadeEntradaId && produto.quantidadeEmbalagemEntrada > 0) return produto.quantidadeEmbalagemEntrada;
-  if (unidadeId === produto.unidadeSaidaId && produto.quantidadeEmbalagemSaida > 0) return produto.quantidadeEmbalagemSaida;
-  const universal = FATORES_UNIVERSAIS[un.codigo.toUpperCase()];
-  if (universal !== undefined) return universal;
+  if (un.tipo !== produto.tipoUnidade) {
+    throw new Error(`Unidade "${un.codigo}" (${un.tipo}) não pode ser usada no produto "${produto.descricao}" (${produto.tipoUnidade}) — tipos diferentes.`);
+  }
+  if (un.codigo.toUpperCase() === getCodigoUnidadeBase(produto.tipoUnidade)) return 1;
+  const linha = produto.unidades.find((u) => u.unidadeId === unidadeId || u.codigo.toUpperCase() === un.codigo.toUpperCase());
+  if (linha && linha.fator > 0) return linha.fator;
   throw new Error(`Unidade "${un.codigo}" não está configurada no produto "${produto.descricao}".`);
+}
+
+const mapUnidade = (r: any): UnidadeMedida => ({
+  id: r.id, grupoId: r.grupo_id, empresaId: null, filialId: null,
+  codigo: r.codigo, descricao: r.descricao, tipo: r.tipo, ativo: r.ativo, ...auditoriaDe(r),
+});
+
+function mapProduto(r: any, pus: any[]): Produto {
+  const idDe = (cod?: string | null) => (cod ? mockUnidadesMedida.find((u) => u.deletadoEm === null && u.codigo.toUpperCase() === cod.toUpperCase())?.id ?? "" : "");
+  return {
+    id: r.id, grupoId: r.grupo_id, empresaId: "", filialId: null,
+    tipoProdutoId: r.tipo_produto_id ?? "", codigoBarras: r.codigo_barras ?? "", descricao: r.descricao,
+    aplicacao: r.aplicacao ?? "", tipoBaixaEstoque: r.tipo_baixa_estoque ?? "INDIVIDUAL",
+    categoriaId: r.categoria_id ?? null, marcaProdutoId: r.marca_id ?? null,
+    tipoUnidade: r.tipo_unidade, unidadeEntradaId: idDe(r.unidade_entrada_padrao ?? r.unidade_base),
+    unidadeSaidaId: idDe(r.unidade_saida_padrao ?? r.unidade_base),
+    precoReferencia: r.preco_referencia == null ? null : Number(r.preco_referencia), ehGrao: !!r.eh_grao,
+    unidades: pus.map((u) => ({ id: u.id, unidadeId: idDe(u.unidade_codigo), codigo: u.unidade_codigo, fator: Number(u.fator_base) })),
+    ativo: r.ativo, ...auditoriaDe(r),
+  };
+}
+
+async function carregarUnidadesDoBanco(): Promise<UnidadeMedida[]> {
+  const lista = (await dbListar("unidades_medida", "codigo")).map(mapUnidade);
+  mockUnidadesMedida.splice(0, mockUnidadesMedida.length, ...lista);
+  return lista;
+}
+
+/** Carrega unidades + produtos do banco no catálogo síncrono (chamado ao entrar no sistema). */
+export async function carregarCatalogoProdutos(): Promise<void> {
+  await produtoService.listar();
 }
 
 /** Exibição: SC 2 casas, KG/LT/UND inteiro, TON 3 casas. Nunca recalcula — só formata. */
@@ -1093,14 +1167,11 @@ export function formatarQuantidadeUnidade(valor: number, codigo: string): string
 // Unidade de Medida
 // ============================================================
 export const unidadeMedidaService = {
-  async listar(empresaId: string, filialId: string): Promise<UnidadeMedida[]> {
-    await delay();
-    // Corporate entity - list all for the group
-    return mockUnidadesMedida.filter((u) => u.deletadoEm === null);
+  async listar(_empresaId?: string, _filialId?: string): Promise<UnidadeMedida[]> {
+    return carregarUnidadesDoBanco();
   },
-  async listarPorGrupo(grupoId: string): Promise<UnidadeMedida[]> {
-    await delay();
-    return mockUnidadesMedida.filter((u) => u.deletadoEm === null && u.grupoId === grupoId);
+  async listarPorGrupo(_grupoId?: string): Promise<UnidadeMedida[]> {
+    return carregarUnidadesDoBanco();
   },
   obterPorId(id: string): UnidadeMedida | undefined {
     return mockUnidadesMedida.find((u) => u.id === id && u.deletadoEm === null);
@@ -1130,58 +1201,36 @@ export const unidadeMedidaService = {
     const fDest = fatorBasePorUnidade(unidadeDestinoId, produto);
     return (valor * fOrig) / fDest;
   },
-  async codigoExiste(codigo: string, empresaId: string, filialId: string, excludeId?: string): Promise<boolean> {
-    await delay(100);
+  async codigoExiste(codigo: string, _e: string, _f: string, excludeId?: string): Promise<boolean> {
     const t = codigo.trim().toUpperCase();
-    // Corporate entity - check across group
-    return mockUnidadesMedida.some(
-      (u) => u.deletadoEm === null && u.codigo.toUpperCase() === t && u.id !== excludeId
-    );
+    return (await carregarUnidadesDoBanco()).some((u) => u.codigo.toUpperCase() === t && u.id !== excludeId);
   },
   async estaEmUso(id: string): Promise<boolean> {
-    await delay(100);
-    return mockProdutos.some(
-      (p) => p.deletadoEm === null && (p.unidadeEntradaId === id || p.unidadeSaidaId === id)
-    );
+    const u = mockUnidadesMedida.find((x) => x.id === id);
+    if (!u) return false;
+    const n = (await dbContar("produto_unidades", (q) => q.eq("unidade_codigo", u.codigo)))
+      + (await dbContar("produtos", (q) => q.or(`unidade_entrada_padrao.eq.${u.codigo},unidade_saida_padrao.eq.${u.codigo},unidade_base.eq.${u.codigo}`)));
+    return n > 0;
   },
-  async salvar(
-    data: Partial<UnidadeMedida>,
-    ctx: { grupoId: string; empresaId: string; filialId: string }
-  ): Promise<UnidadeMedida> {
-    await delay(400);
-    const now = new Date().toISOString();
-    const existing = data.id ? mockUnidadesMedida.find((u) => u.id === data.id && u.deletadoEm === null) : undefined;
-    if (existing) {
-      existing.codigo = (data.codigo ?? existing.codigo).trim().toUpperCase();
-      existing.descricao = (data.descricao ?? existing.descricao).trim();
-      existing.tipo = data.tipo ?? existing.tipo;
-      
-      existing.ativo = data.ativo ?? existing.ativo;
-      existing.atualizadoEm = now;
-      existing.atualizadoPor = usuarioAtualId();
-      return existing;
+  /** Unidade = código + descrição + tipo. SEM fator (o fator vive só no produto). */
+  async salvar(data: Partial<UnidadeMedida>, _ctx?: unknown): Promise<UnidadeMedida> {
+    exigirPermissao("OPERAR");
+    const linha = { codigo: (data.codigo ?? "").trim().toUpperCase(), descricao: (data.descricao ?? "").trim(), tipo: data.tipo ?? "UNIDADE", ativo: data.ativo ?? true };
+    if (data.id) {
+      const atual = mockUnidadesMedida.find((u) => u.id === data.id);
+      if (atual && atual.tipo !== linha.tipo && (await this.estaEmUso(data.id))) {
+        throw new Error("Unidade em uso por produtos — o tipo não pode ser alterado.");
+      }
     }
-    const novo: UnidadeMedida = {
-      id: `um${Date.now()}`,
-      grupoId: ctx.grupoId,
-      empresaId: null,
-      filialId: null,
-      codigo: (data.codigo ?? "").trim().toUpperCase(),
-      descricao: (data.descricao ?? "").trim(),
-      tipo: data.tipo ?? "UNIDADE",
-      
-      ativo: data.ativo ?? true,
-      criadoEm: now, criadoPor: usuarioAtualId(), atualizadoEm: now, atualizadoPor: usuarioAtualId(),
-      deletadoEm: null, deletadoPor: null,
-    };
-    mockUnidadesMedida.push(novo);
-    return novo;
+    const r = data.id ? await dbAtualizar("unidades_medida", data.id, linha) : await dbInserir("unidades_medida", { ...linha, grupo_id: grupoDaSessao() });
+    await carregarUnidadesDoBanco();
+    return mapUnidade(r);
   },
   async excluir(id: string): Promise<void> {
-    await delay();
-    const now = new Date().toISOString();
-    const u = mockUnidadesMedida.find((u) => u.id === id && u.deletadoEm === null);
-    if (u) { u.deletadoEm = now; u.deletadoPor = usuarioAtualId(); u.atualizadoEm = now; u.atualizadoPor = usuarioAtualId(); }
+    exigirPermissao("OPERAR");
+    if (await this.estaEmUso(id)) throw new Error("Unidade em uso por produtos — não pode ser excluída.");
+    await dbExcluirLogico("unidades_medida", id);
+    await carregarUnidadesDoBanco();
   },
 };
 

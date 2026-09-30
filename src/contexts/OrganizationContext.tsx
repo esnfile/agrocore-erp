@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react"; // v3
-import { empresaService, filialService, grupoService } from "@/lib/services";
+import { empresaService, filialService, grupoService, carregarCatalogoProdutos } from "@/lib/services";
 import { useAuth } from "@/contexts/AuthContext";
 import type { Empresa, Filial, Grupo } from "@/lib/mock-data";
 
@@ -51,6 +51,8 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
       setFilialAtual(null);
       return;
     }
+    // Catálogo de unidades/produtos do banco (conversões síncronas nas telas)
+    carregarCatalogoProdutos().catch((e) => console.error("Falha ao carregar produtos:", e));
     empresaService.listar(grupoAtual.id).then((list) => {
       const permitidas = empresasPermitidas.length > 0
         ? list.filter((e) => empresasPermitidas.includes(e.id))

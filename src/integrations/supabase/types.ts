@@ -184,6 +184,53 @@ export type Database = {
           },
         ]
       }
+      categorias_produto: {
+        Row: {
+          ativo: boolean
+          atualizado_em: string
+          atualizado_por: string | null
+          criado_em: string
+          criado_por: string | null
+          deletado_em: string | null
+          deletado_por: string | null
+          descricao: string
+          grupo_id: string
+          id: string
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_em?: string
+          atualizado_por?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          deletado_em?: string | null
+          deletado_por?: string | null
+          descricao: string
+          grupo_id: string
+          id?: string
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_em?: string
+          atualizado_por?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          deletado_em?: string | null
+          deletado_por?: string | null
+          descricao?: string
+          grupo_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categorias_produto_grupo_id_fkey"
+            columns: ["grupo_id"]
+            isOneToOne: false
+            referencedRelation: "grupos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       centros_custo: {
         Row: {
           ativo: boolean
@@ -1491,6 +1538,53 @@ export type Database = {
           },
         ]
       }
+      marcas_produto: {
+        Row: {
+          ativo: boolean
+          atualizado_em: string
+          atualizado_por: string | null
+          criado_em: string
+          criado_por: string | null
+          deletado_em: string | null
+          deletado_por: string | null
+          descricao: string
+          grupo_id: string
+          id: string
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_em?: string
+          atualizado_por?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          deletado_em?: string | null
+          deletado_por?: string | null
+          descricao: string
+          grupo_id: string
+          id?: string
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_em?: string
+          atualizado_por?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          deletado_em?: string | null
+          deletado_por?: string | null
+          descricao?: string
+          grupo_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marcas_produto_grupo_id_fkey"
+            columns: ["grupo_id"]
+            isOneToOne: false
+            referencedRelation: "grupos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       moedas: {
         Row: {
           ativo: boolean
@@ -1898,9 +1992,12 @@ export type Database = {
       }
       produtos: {
         Row: {
+          aplicacao: string | null
           ativo: boolean
           atualizado_em: string
           atualizado_por: string | null
+          categoria_id: string | null
+          codigo_barras: string | null
           criado_em: string
           criado_por: string | null
           deletado_em: string | null
@@ -1909,13 +2006,22 @@ export type Database = {
           eh_grao: boolean
           grupo_id: string
           id: string
+          marca_id: string | null
+          preco_referencia: number | null
+          tipo_baixa_estoque: string
+          tipo_produto_id: string | null
           tipo_unidade: string
           unidade_base: string
+          unidade_entrada_padrao: string | null
+          unidade_saida_padrao: string | null
         }
         Insert: {
+          aplicacao?: string | null
           ativo?: boolean
           atualizado_em?: string
           atualizado_por?: string | null
+          categoria_id?: string | null
+          codigo_barras?: string | null
           criado_em?: string
           criado_por?: string | null
           deletado_em?: string | null
@@ -1924,13 +2030,22 @@ export type Database = {
           eh_grao?: boolean
           grupo_id: string
           id?: string
+          marca_id?: string | null
+          preco_referencia?: number | null
+          tipo_baixa_estoque?: string
+          tipo_produto_id?: string | null
           tipo_unidade?: string
           unidade_base?: string
+          unidade_entrada_padrao?: string | null
+          unidade_saida_padrao?: string | null
         }
         Update: {
+          aplicacao?: string | null
           ativo?: boolean
           atualizado_em?: string
           atualizado_por?: string | null
+          categoria_id?: string | null
+          codigo_barras?: string | null
           criado_em?: string
           criado_por?: string | null
           deletado_em?: string | null
@@ -1939,15 +2054,42 @@ export type Database = {
           eh_grao?: boolean
           grupo_id?: string
           id?: string
+          marca_id?: string | null
+          preco_referencia?: number | null
+          tipo_baixa_estoque?: string
+          tipo_produto_id?: string | null
           tipo_unidade?: string
           unidade_base?: string
+          unidade_entrada_padrao?: string | null
+          unidade_saida_padrao?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "produtos_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias_produto"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "produtos_grupo_id_fkey"
             columns: ["grupo_id"]
             isOneToOne: false
             referencedRelation: "grupos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produtos_marca_id_fkey"
+            columns: ["marca_id"]
+            isOneToOne: false
+            referencedRelation: "marcas_produto"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produtos_tipo_produto_id_fkey"
+            columns: ["tipo_produto_id"]
+            isOneToOne: false
+            referencedRelation: "tipos_produto"
             referencedColumns: ["id"]
           },
         ]
@@ -2515,6 +2657,53 @@ export type Database = {
           },
         ]
       }
+      tipos_produto: {
+        Row: {
+          ativo: boolean
+          atualizado_em: string
+          atualizado_por: string | null
+          criado_em: string
+          criado_por: string | null
+          deletado_em: string | null
+          deletado_por: string | null
+          descricao: string
+          grupo_id: string
+          id: string
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_em?: string
+          atualizado_por?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          deletado_em?: string | null
+          deletado_por?: string | null
+          descricao: string
+          grupo_id: string
+          id?: string
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_em?: string
+          atualizado_por?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          deletado_em?: string | null
+          deletado_por?: string | null
+          descricao?: string
+          grupo_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tipos_produto_grupo_id_fkey"
+            columns: ["grupo_id"]
+            isOneToOne: false
+            referencedRelation: "grupos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       unidades_medida: {
         Row: {
           ativo: boolean
@@ -2820,6 +3009,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      ie_valida: { Args: { _ie: string; _uf: string }; Returns: boolean }
       pode_acessar_filial: { Args: { _filial_id: string }; Returns: boolean }
       pode_gravar: { Args: never; Returns: boolean }
       reconciliar_saldos_contratos: {
@@ -2842,6 +3032,11 @@ export type Database = {
           verdade_base: number
         }[]
       }
+      tipo_unidade_codigo: {
+        Args: { _codigo: string; _grupo: string }
+        Returns: string
+      }
+      unidade_base_do_tipo: { Args: { _tipo: string }; Returns: string }
       usuario_grupo_id: { Args: never; Returns: string }
       usuario_id_atual: { Args: never; Returns: string }
     }

@@ -1,4 +1,4 @@
-import { catalogo, getUnidadeBaseParaTipo } from "@/lib/services";
+import { catalogo, getUnidadeBaseParaTipo, fatorBasePorUnidade } from "@/lib/services";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -119,11 +119,7 @@ export default function MovimentacaoEstoquePage() {
   // Conversão em tempo real
   const quantidadeConvertida = useMemo(() => {
     if (!produtoSelecionado || !unidadeMovimentacaoId || !quantidadeInformada || quantidadeInformada <= 0) return null;
-    const baseId = getUnidadeBaseParaTipo(produtoSelecionado.tipoUnidade);
-    if (unidadeMovimentacaoId === baseId) return quantidadeInformada;
-    if (unidadeMovimentacaoId === produtoSelecionado.unidadeEntradaId) return quantidadeInformada * produtoSelecionado.quantidadeEmbalagemEntrada;
-    if (unidadeMovimentacaoId === produtoSelecionado.unidadeSaidaId) return quantidadeInformada * produtoSelecionado.quantidadeEmbalagemSaida;
-    return null;
+    try { return quantidadeInformada * fatorBasePorUnidade(unidadeMovimentacaoId, produtoSelecionado); } catch { return null; }
   }, [quantidadeInformada, unidadeMovimentacaoId, produtoSelecionado]);
 
   useEffect(() => {

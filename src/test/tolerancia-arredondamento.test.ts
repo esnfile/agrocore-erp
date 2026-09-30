@@ -3,6 +3,7 @@ import {
   definirSessaoAtual, contratoService, romaneioService, romaneioPesagemService,
   calcularSaldoContrato, arredondarKg, catalogo,
 } from "@/lib/services";
+import { instalarProdutosTeste } from "./fixture-produtos";
 import { contratos as mockContratos, romaneios as mockRomaneios, pontosEstoque as mockPontosEstoque } from "@/lib/mock-data";
 
 const ctxBase = () => {
@@ -12,10 +13,11 @@ const ctxBase = () => {
 
 async function criarContrato1000kg() {
   const base = mockContratos[0];
+  const { soja } = instalarProdutosTeste();
   const um = catalogo.unidadesMedida().find((u) => u.codigo === "KG")!;
   return contratoService.salvar(
     {
-      ...base, id: undefined, numeroContrato: undefined,
+      ...base, id: undefined, numeroContrato: undefined, produtoId: soja.id,
       unidadeNegociacaoId: um.id, quantidadeTotal: 1000, quantidadeBaseTotal: 1000,
       toleranciaPercentualMais: 2, status: "ATIVO",
     } as never,

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { definirSessaoAtual, contratoService, catalogo, avaliarToleranciaContrato, calcularToleranciaKg } from "@/lib/services";
+import { instalarProdutosTeste } from "./fixture-produtos";
 import { contratos as mockContratos, produtos as mockProdutos } from "@/lib/mock-data";
 
 const ctx = () => { const c = mockContratos[0]; return { grupoId: c.grupoId, empresaId: c.empresaId, filialId: c.filialId }; };
@@ -29,7 +30,7 @@ describe("Modelo de unidades — kg exato, conversão única", () => {
   });
 
   it("contratos reais: SC 16,67 / TON na borda e acima / mensagens coerentes", async () => {
-    const produto = catalogo.produtos().find((p) => p.deletadoEm === null && p.unidadeEntradaId && p.quantidadeEmbalagemEntrada === 60)!;
+    const produto = instalarProdutosTeste().soja;
     const un = (c: string) => catalogo.unidadesMedida().find((u) => u.codigo === c)!;
     const mk = (unId: string, qtd: number, tol: number) => contratoService.salvar({ ...mockContratos[0], id: undefined, numeroContrato: undefined,
       produtoId: produto.id, unidadeNegociacaoId: unId, quantidadeTotal: qtd, toleranciaPercentualMais: tol, status: "ATIVO" } as never, ctx());
