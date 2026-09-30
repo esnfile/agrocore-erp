@@ -202,7 +202,7 @@ export type Database = {
           ativo?: boolean
           atualizado_em?: string
           atualizado_por?: string | null
-          codigo: string
+          codigo?: string
           criado_em?: string
           criado_por?: string | null
           deletado_em?: string | null
@@ -959,11 +959,12 @@ export type Database = {
           ativo: boolean
           atualizado_em: string
           atualizado_por: string | null
-          cpf_cnpj: string
+          cpf_cnpj: string | null
           criado_em: string
           criado_por: string | null
           deletado_em: string | null
           deletado_por: string | null
+          descricao: string
           grupo_id: string
           id: string
           nome_razao: string
@@ -973,11 +974,12 @@ export type Database = {
           ativo?: boolean
           atualizado_em?: string
           atualizado_por?: string | null
-          cpf_cnpj: string
+          cpf_cnpj?: string | null
           criado_em?: string
           criado_por?: string | null
           deletado_em?: string | null
           deletado_por?: string | null
+          descricao?: string
           grupo_id: string
           id?: string
           nome_razao: string
@@ -987,11 +989,12 @@ export type Database = {
           ativo?: boolean
           atualizado_em?: string
           atualizado_por?: string | null
-          cpf_cnpj?: string
+          cpf_cnpj?: string | null
           criado_em?: string
           criado_por?: string | null
           deletado_em?: string | null
           deletado_por?: string | null
+          descricao?: string
           grupo_id?: string
           id?: string
           nome_razao?: string
@@ -1015,19 +1018,23 @@ export type Database = {
           bairro: string | null
           cep: string | null
           cidade: string | null
+          complemento: string | null
           cpf_cnpj: string | null
           criado_em: string
           criado_por: string | null
           deletado_em: string | null
           deletado_por: string | null
+          email: string | null
           empresa_id: string
           endereco: string | null
           estado: string | null
           grupo_id: string
           id: string
           inscricao_estadual: string | null
+          matriz_filial: string
           nome_razao: string
           numero_km: string | null
+          telefone: string | null
         }
         Insert: {
           ativo?: boolean
@@ -1036,19 +1043,23 @@ export type Database = {
           bairro?: string | null
           cep?: string | null
           cidade?: string | null
+          complemento?: string | null
           cpf_cnpj?: string | null
           criado_em?: string
           criado_por?: string | null
           deletado_em?: string | null
           deletado_por?: string | null
+          email?: string | null
           empresa_id: string
           endereco?: string | null
           estado?: string | null
           grupo_id: string
           id?: string
           inscricao_estadual?: string | null
+          matriz_filial?: string
           nome_razao: string
           numero_km?: string | null
+          telefone?: string | null
         }
         Update: {
           ativo?: boolean
@@ -1057,19 +1068,23 @@ export type Database = {
           bairro?: string | null
           cep?: string | null
           cidade?: string | null
+          complemento?: string | null
           cpf_cnpj?: string | null
           criado_em?: string
           criado_por?: string | null
           deletado_em?: string | null
           deletado_por?: string | null
+          email?: string | null
           empresa_id?: string
           endereco?: string | null
           estado?: string | null
           grupo_id?: string
           id?: string
           inscricao_estadual?: string | null
+          matriz_filial?: string
           nome_razao?: string
           numero_km?: string | null
+          telefone?: string | null
         }
         Relationships: [
           {
@@ -1303,36 +1318,89 @@ export type Database = {
       }
       grupos: {
         Row: {
+          ativo: boolean
           atualizado_em: string
           atualizado_por: string | null
           criado_em: string
           criado_por: string | null
           deletado_em: string | null
           deletado_por: string | null
+          descricao: string
           id: string
           nome: string
         }
         Insert: {
+          ativo?: boolean
           atualizado_em?: string
           atualizado_por?: string | null
           criado_em?: string
           criado_por?: string | null
           deletado_em?: string | null
           deletado_por?: string | null
+          descricao?: string
           id?: string
           nome: string
         }
         Update: {
+          ativo?: boolean
           atualizado_em?: string
           atualizado_por?: string | null
           criado_em?: string
           criado_por?: string | null
           deletado_em?: string | null
           deletado_por?: string | null
+          descricao?: string
           id?: string
           nome?: string
         }
         Relationships: []
+      }
+      grupos_pessoa: {
+        Row: {
+          ativo: boolean
+          atualizado_em: string
+          atualizado_por: string | null
+          criado_em: string
+          criado_por: string | null
+          deletado_em: string | null
+          deletado_por: string | null
+          descricao: string
+          grupo_id: string
+          id: string
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_em?: string
+          atualizado_por?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          deletado_em?: string | null
+          deletado_por?: string | null
+          descricao: string
+          grupo_id: string
+          id?: string
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_em?: string
+          atualizado_por?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          deletado_em?: string | null
+          deletado_por?: string | null
+          descricao?: string
+          grupo_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grupos_pessoa_grupo_id_fkey"
+            columns: ["grupo_id"]
+            isOneToOne: false
+            referencedRelation: "grupos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       liquidacoes: {
         Row: {
@@ -1622,60 +1690,84 @@ export type Database = {
           atualizado_em: string
           atualizado_por: string | null
           cidade: string | null
+          contatos: Json
           cpf_cnpj: string | null
           criado_em: string
           criado_por: string | null
+          data_nascimento_abertura: string | null
           deletado_em: string | null
           deletado_por: string | null
           eh_motorista: boolean
           email: string | null
+          enderecos: Json
           estado: string | null
           grupo_id: string
+          grupo_pessoa_id: string | null
           id: string
           inscricao_estadual: string | null
+          nome_fantasia: string | null
           nome_razao: string
           relacao_comercial: string
+          relacoes: string[]
+          sexo: string | null
           telefone: string | null
+          tipo_pessoa: string
         }
         Insert: {
           ativo?: boolean
           atualizado_em?: string
           atualizado_por?: string | null
           cidade?: string | null
+          contatos?: Json
           cpf_cnpj?: string | null
           criado_em?: string
           criado_por?: string | null
+          data_nascimento_abertura?: string | null
           deletado_em?: string | null
           deletado_por?: string | null
           eh_motorista?: boolean
           email?: string | null
+          enderecos?: Json
           estado?: string | null
           grupo_id: string
+          grupo_pessoa_id?: string | null
           id?: string
           inscricao_estadual?: string | null
+          nome_fantasia?: string | null
           nome_razao: string
           relacao_comercial?: string
+          relacoes?: string[]
+          sexo?: string | null
           telefone?: string | null
+          tipo_pessoa?: string
         }
         Update: {
           ativo?: boolean
           atualizado_em?: string
           atualizado_por?: string | null
           cidade?: string | null
+          contatos?: Json
           cpf_cnpj?: string | null
           criado_em?: string
           criado_por?: string | null
+          data_nascimento_abertura?: string | null
           deletado_em?: string | null
           deletado_por?: string | null
           eh_motorista?: boolean
           email?: string | null
+          enderecos?: Json
           estado?: string | null
           grupo_id?: string
+          grupo_pessoa_id?: string | null
           id?: string
           inscricao_estadual?: string | null
+          nome_fantasia?: string | null
           nome_razao?: string
           relacao_comercial?: string
+          relacoes?: string[]
+          sexo?: string | null
           telefone?: string | null
+          tipo_pessoa?: string
         }
         Relationships: [
           {
@@ -1683,6 +1775,13 @@ export type Database = {
             columns: ["grupo_id"]
             isOneToOne: false
             referencedRelation: "grupos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pessoas_grupo_pessoa_fk"
+            columns: ["grupo_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "grupos_pessoa"
             referencedColumns: ["id"]
           },
         ]
