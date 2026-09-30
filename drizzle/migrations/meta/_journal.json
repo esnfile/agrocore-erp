@@ -29,6 +29,13 @@
       "when": 1790708915145,
       "tag": "0003_fase2_funcoes_transacionais",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790732069124,
+      "tag": "0004_fase2_msg_tolerancia",
+      "breakpoints": true
     }
   ]
 }
