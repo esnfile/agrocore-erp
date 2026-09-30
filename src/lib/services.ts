@@ -690,14 +690,14 @@ function createCadastroGrupoDb<T extends { id: string; descricao: string }>(tabe
       return (await listarTodos()).some((i) => i.descricao.toLowerCase() === t && i.id !== excludeId);
     },
     async salvar(data: Partial<T> & { ativo?: boolean }, _ctx?: unknown): Promise<T> {
-      exigirPermissao("GRAVAR_CADASTRO");
+      exigirPermissao("OPERAR");
       const linha = { descricao: (data.descricao ?? "").trim(), ativo: data.ativo ?? true };
       if (!linha.descricao) throw new Error("Descrição é obrigatória.");
       if (data.id) return mapear(await dbAtualizar(tabela, data.id, linha));
       return mapear(await dbInserir(tabela, { ...linha, grupo_id: grupoDaSessao() }));
     },
     async excluir(id: string): Promise<void> {
-      exigirPermissao("GRAVAR_CADASTRO");
+      exigirPermissao("OPERAR");
       const col = tabela === "tipos_produto" ? "tipo_produto_id" : tabela === "marcas_produto" ? "marca_id" : "categoria_id";
       if ((await dbContar("produtos", (q) => q.eq(col, id))) > 0) throw new Error("Cadastro em uso por produtos — não pode ser excluído.");
       await dbExcluirLogico(tabela, id);
@@ -912,7 +912,7 @@ export const produtoService = {
     data: Partial<Produto> & { fatoresEditados?: { unidadeId: string; fator: number }[] },
     _ctx?: unknown
   ): Promise<Produto> {
-    exigirPermissao("GRAVAR_CADASTRO");
+    exigirPermissao("OPERAR");
     const tipo = data.tipoUnidade ?? "PESO";
     const un = (id?: string) => mockUnidadesMedida.find((u) => u.id === id && u.deletadoEm === null);
     const uEnt = un(data.unidadeEntradaId), uSai = un(data.unidadeSaidaId);
@@ -954,7 +954,7 @@ export const produtoService = {
     return lista.find((p) => p.id === salvo.id)!;
   },
   async excluir(id: string): Promise<void> {
-    exigirPermissao("GRAVAR_CADASTRO");
+    exigirPermissao("OPERAR");
     const emUso = (await dbContar("contrato_itens", (q) => q.eq("produto_id", id))) + (await dbContar("romaneios", (q) => q.eq("produto_id", id)));
     if (emUso > 0) throw new Error("Produto com contratos ou romaneios vinculados — não pode ser excluído.");
     await dbExcluirLogico("produtos", id);
@@ -1214,7 +1214,7 @@ export const unidadeMedidaService = {
   },
   /** Unidade = código + descrição + tipo. SEM fator (o fator vive só no produto). */
   async salvar(data: Partial<UnidadeMedida>, _ctx?: unknown): Promise<UnidadeMedida> {
-    exigirPermissao("GRAVAR_CADASTRO");
+    exigirPermissao("OPERAR");
     const linha = { codigo: (data.codigo ?? "").trim().toUpperCase(), descricao: (data.descricao ?? "").trim(), tipo: data.tipo ?? "UNIDADE", ativo: data.ativo ?? true };
     if (data.id) {
       const atual = mockUnidadesMedida.find((u) => u.id === data.id);
@@ -1227,7 +1227,7 @@ export const unidadeMedidaService = {
     return mapUnidade(r);
   },
   async excluir(id: string): Promise<void> {
-    exigirPermissao("GRAVAR_CADASTRO");
+    exigirPermissao("OPERAR");
     if (await this.estaEmUso(id)) throw new Error("Unidade em uso por produtos — não pode ser excluída.");
     await dbExcluirLogico("unidades_medida", id);
     await carregarUnidadesDoBanco();
