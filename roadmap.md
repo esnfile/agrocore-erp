@@ -28,9 +28,11 @@
 - [x] P3 Regra de arredondamento: pesos de classificação gravados em kg inteiro (half-even)
 
 ## Fase 2 — Banco real (etapas com confirmação)
-- [x] 2.1 Schema + RLS + funções transacionais + modelo de unidades (aguarda aprovação)
-- [ ] 2.2 Cadastros base + seed  - [ ] 2.3 Contratos/Itens  - [ ] 2.4 Romaneios (serviço chama RPC, sem revalidar)
+- [x] 2.1 Schema + RLS + funções transacionais + modelo de unidades (aprovada)
+- [x] 2.2 Cadastros base (grupos, empresas, filiais, grupos de pessoas, pessoas, plano de contas, centros de custo) + seed + teste nas telas
+  - [ ] 2.2b Produtos/unidades (faltam tabelas auxiliares: tipo, divisão, seção, grupo, subgrupo, marca) e Moedas/Cotações (modelo de cotação diverge) — aguardam decisão
+- [ ] 2.3 Contratos/Itens  - [ ] 2.4 Romaneios (serviço chama RPC, sem revalidar)
 - [ ] 2.5 Estoque  - [ ] 2.6 Fixação  - [ ] 2.7 Liquidação (antes: cliente decide saca inteira x peso exato)
 - [ ] 2.8 Financeiro/Caixa  - [ ] 2.9 Logs  - [ ] 2.10 Ponta a ponta nas telas
-- [ ] Remover dados de teste "Grupo Teste 2.1 A/B" antes do seed da 2.2
+- [x] Dados de teste "Grupo Teste 2.1 A/B" removidos antes do seed
 - Futuro: permissões por Módulo → Submódulo → Programa → Permissão (tabelas gersys_* já criadas, vazias)
