@@ -215,381 +215,274 @@ export const catalogo = {
 // Helpers puros de unidade (sem estado) — reexportados para as telas.
 export { getUnidadeBaseParaTipo, getCodigoUnidadeBase };
 
+// ============================================================
+// FASE 2.2 — Cadastros base no banco real (Lovable Cloud)
+// ------------------------------------------------------------
+// Mesma interface async de antes; a tela não muda. Segurança em duas
+// camadas: o serviço recusa sem sessão / perfil Consulta
+// (usuarioAtualId / exigirPermissao) e o RLS do banco recusa de novo.
+// Soft delete: nunca DELETE físico — só deletado_em/deletado_por.
+// ============================================================
+const db = () => supabase as any;
+
+function erroBanco(error: { code?: string; message: string }): Error {
+  if (error.code === "42501" || /row-level security/i.test(error.message)) {
+    return new Error("Permissão negada: seu perfil não permite gravar este cadastro.");
+  }
+  if (error.code === "23505") return new Error("Já existe um registro com estes dados (duplicado).");
+  if (error.code === "23503") return new Error("Registro vinculado a outro cadastro — operação não permitida.");
+  return new Error(error.message);
+}
+
+async function dbListar<R = any>(tabela: string, ordem: string, filtro?: (q: any) => any): Promise<R[]> {
+  let q = db().from(tabela).select("*").is("deletado_em", null).order(ordem);
+  if (filtro) q = filtro(q);
+  const { data, error } = await q;
+  if (error) throw erroBanco(error);
+  return (data ?? []) as R[];
+}
+
+async function dbInserir(tabela: string, row: Record<string, unknown>): Promise<any> {
+  const uid = usuarioAtualId();
+  const { data, error } = await db().from(tabela).insert({ ...row, criado_por: uid, atualizado_por: uid }).select().single();
+  if (error) throw erroBanco(error);
+  return data;
+}
+
+async function dbAtualizar(tabela: string, id: string, patch: Record<string, unknown>): Promise<any> {
+  const uid = usuarioAtualId();
+  const { data, error } = await db()
+    .from(tabela)
+    .update({ ...patch, atualizado_em: new Date().toISOString(), atualizado_por: uid })
+    .eq("id", id)
+    .is("deletado_em", null)
+    .select();
+  if (error) throw erroBanco(error);
+  // RLS em UPDATE não gera erro: filtra silenciosamente. Zero linhas = recusa.
+  if (!data || data.length === 0) {
+    throw new Error("Permissão negada: seu perfil não permite alterar este registro (ou ele não existe mais).");
+  }
+  return data[0];
+}
+
+async function dbExcluirLogico(tabela: string, id: string): Promise<void> {
+  const uid = usuarioAtualId();
+  const agora = new Date().toISOString();
+  await dbAtualizar(tabela, id, { deletado_em: agora, deletado_por: uid });
+}
+
+async function dbContar(tabela: string, filtro: (q: any) => any): Promise<number> {
+  const { count, error } = await filtro(db().from(tabela).select("id", { count: "exact", head: true }).is("deletado_em", null));
+  if (error) throw erroBanco(error);
+  return count ?? 0;
+}
+
+const auditoriaDe = (r: any) => ({
+  criadoEm: r.criado_em,
+  criadoPor: r.criado_por ?? "",
+  atualizadoEm: r.atualizado_em,
+  atualizadoPor: r.atualizado_por ?? "",
+  deletadoEm: r.deletado_em ?? null,
+  deletadoPor: r.deletado_por ?? null,
+});
+
+const grupoDaSessao = (): string => {
+  const g = _sessao?.grupoId ?? "";
+  if (!g) throw new Error("Contexto organizacional não carregado. Recarregue a página.");
+  return g;
+};
+
 // ---- Grupos ----
+const mapGrupo = (r: any): Grupo => ({ id: r.id, nome: r.nome, descricao: r.descricao ?? "", ativo: r.ativo, ...auditoriaDe(r) });
+
 export const grupoService = {
   async listar(): Promise<Grupo[]> {
-    await delay();
-    return mockGrupos.filter((g) => g.deletadoEm === null);
+    return (await dbListar("grupos", "nome")).map(mapGrupo);
   },
   async obterPorId(id: string): Promise<Grupo | undefined> {
-    await delay();
-    return mockGrupos.find((g) => g.id === id && g.deletadoEm === null);
+    return (await dbListar("grupos", "nome", (q) => q.eq("id", id))).map(mapGrupo)[0];
   },
   async salvar(data: Partial<Grupo>): Promise<Grupo> {
-    await delay(400);
-    const now = new Date().toISOString();
-    const userId = usuarioAtualId();
-    const existing = data.id ? mockGrupos.find((g) => g.id === data.id && g.deletadoEm === null) : undefined;
-    if (existing) {
-      existing.nome = (data.nome ?? existing.nome).trim();
-      existing.descricao = data.descricao ?? existing.descricao;
-      existing.ativo = data.ativo ?? existing.ativo;
-      existing.atualizadoEm = now;
-      existing.atualizadoPor = userId;
-      return existing;
-    }
-    const novo: Grupo = {
-      id: `g${Date.now()}`,
-      nome: (data.nome ?? "").trim(),
-      descricao: data.descricao ?? "",
-      ativo: true,
-      criadoEm: now,
-      criadoPor: userId,
-      atualizadoEm: now,
-      atualizadoPor: userId,
-      deletadoEm: null,
-      deletadoPor: null,
-    };
-    mockGrupos.push(novo);
-    return novo;
+    usuarioAtualId();
+    const patch = { nome: (data.nome ?? "").trim(), descricao: data.descricao ?? "", ativo: data.ativo ?? true };
+    if (data.id) return mapGrupo(await dbAtualizar("grupos", data.id, patch));
+    // Multiempresa: cada usuário pertence a um único grupo; o banco recusa
+    // criação de grupo pela aplicação (RLS sem política de INSERT).
+    throw new Error("Novos grupos empresariais são criados na implantação do sistema, não pela aplicação.");
   },
   async nomeExiste(nome: string, excludeId?: string): Promise<boolean> {
-    await delay(100);
-    const trimmed = nome.trim().toLowerCase();
-    return mockGrupos.some(
-      (g) => g.deletadoEm === null && g.nome.toLowerCase() === trimmed && g.id !== excludeId
-    );
+    const alvo = nome.trim().toLowerCase();
+    return (await this.listar()).some((g) => g.nome.toLowerCase() === alvo && g.id !== excludeId);
   },
   async possuiEmpresas(id: string): Promise<boolean> {
-    await delay(100);
-    return mockEmpresas.some((e) => e.grupoId === id && e.deletadoEm === null);
+    return (await dbContar("empresas", (q) => q.eq("grupo_id", id))) > 0;
   },
   async excluir(id: string): Promise<void> {
-    await delay();
-    const now = new Date().toISOString();
-    const g = mockGrupos.find((g) => g.id === id && g.deletadoEm === null);
-    if (g) {
-      g.deletadoEm = now;
-      g.deletadoPor = usuarioAtualId();
-      g.atualizadoEm = now;
-      g.atualizadoPor = usuarioAtualId();
-    }
+    await dbExcluirLogico("grupos", id);
   },
 };
 
 // ---- Empresas ----
+const mapEmpresa = (r: any): Empresa => ({
+  id: r.id, grupoId: r.grupo_id, nome: r.nome_razao, descricao: r.descricao ?? "", ativo: r.ativo, ...auditoriaDe(r),
+});
+
 export const empresaService = {
   async listar(grupoId?: string): Promise<Empresa[]> {
-    await delay();
-    let list = mockEmpresas.filter((e) => e.deletadoEm === null);
-    if (grupoId) list = list.filter((e) => e.grupoId === grupoId);
-    return list;
+    return (await dbListar("empresas", "nome_razao", (q) => (grupoId ? q.eq("grupo_id", grupoId) : q))).map(mapEmpresa);
   },
   async obterPorId(id: string): Promise<Empresa | undefined> {
-    await delay();
-    return mockEmpresas.find((e) => e.id === id);
+    return (await dbListar("empresas", "nome_razao", (q) => q.eq("id", id))).map(mapEmpresa)[0];
   },
   async salvar(data: Partial<Empresa>): Promise<Empresa> {
-    await delay(400);
-    const now = new Date().toISOString();
-    const userId = usuarioAtualId();
-    const existing = data.id ? mockEmpresas.find((e) => e.id === data.id && e.deletadoEm === null) : undefined;
-    if (existing) {
-      existing.nome = (data.nome ?? existing.nome).trim();
-      existing.descricao = data.descricao ?? existing.descricao;
-      existing.ativo = data.ativo ?? existing.ativo;
-      existing.grupoId = data.grupoId ?? existing.grupoId;
-      existing.atualizadoEm = now;
-      existing.atualizadoPor = userId;
-      return existing;
-    }
-    const nova: Empresa = {
-      id: `e${Date.now()}`,
-      grupoId: data.grupoId ?? "g1",
-      nome: (data.nome ?? "").trim(),
-      descricao: data.descricao ?? "",
-      ativo: data.ativo ?? true,
-      criadoEm: now,
-      criadoPor: userId,
-      atualizadoEm: now,
-      atualizadoPor: userId,
-      deletadoEm: null,
-      deletadoPor: null,
-    };
-    mockEmpresas.push(nova);
-    return nova;
+    const patch = { nome_razao: (data.nome ?? "").trim(), descricao: data.descricao ?? "", ativo: data.ativo ?? true };
+    if (data.id) return mapEmpresa(await dbAtualizar("empresas", data.id, patch));
+    return mapEmpresa(await dbInserir("empresas", { ...patch, grupo_id: data.grupoId || grupoDaSessao() }));
   },
   async possuiFiliais(id: string): Promise<boolean> {
-    await delay(100);
-    return mockFiliais.some((f) => f.empresaId === id && f.deletadoEm === null);
+    return (await dbContar("filiais", (q) => q.eq("empresa_id", id))) > 0;
   },
   async excluir(id: string): Promise<void> {
-    await delay();
-    const now = new Date().toISOString();
-    const emp = mockEmpresas.find((e) => e.id === id && e.deletadoEm === null);
-    if (emp) {
-      emp.deletadoEm = now;
-      emp.deletadoPor = usuarioAtualId();
-      emp.atualizadoEm = now;
-      emp.atualizadoPor = usuarioAtualId();
-    }
+    await dbExcluirLogico("empresas", id);
   },
 };
 
 // ---- Filiais ----
+const mapFilial = (r: any): Filial => ({
+  id: r.id, empresaId: r.empresa_id, matrizFilial: r.matriz_filial === "MATRIZ" ? "MATRIZ" : "FILIAL",
+  nomeRazao: r.nome_razao, cpfCnpj: r.cpf_cnpj ?? "", ie: r.inscricao_estadual ?? "", email: r.email ?? "",
+  telefone: r.telefone ?? "", cep: r.cep ?? "", logradouro: r.endereco ?? "", numero: r.numero_km ?? "",
+  complemento: r.complemento ?? "", bairro: r.bairro ?? "", cidade: r.cidade ?? "", uf: r.estado ?? "",
+  ativo: r.ativo, ...auditoriaDe(r),
+});
+
+const filialParaLinha = (d: Partial<Filial>) => ({
+  empresa_id: d.empresaId, matriz_filial: d.matrizFilial ?? "FILIAL", nome_razao: (d.nomeRazao ?? "").trim(),
+  cpf_cnpj: (d.cpfCnpj ?? "").trim() || null, inscricao_estadual: (d.ie ?? "").trim() || null,
+  email: (d.email ?? "").trim() || null, telefone: (d.telefone ?? "").trim() || null, cep: (d.cep ?? "").trim() || null,
+  endereco: (d.logradouro ?? "").trim() || null, numero_km: (d.numero ?? "").trim() || null,
+  complemento: (d.complemento ?? "").trim() || null, bairro: (d.bairro ?? "").trim() || null,
+  cidade: (d.cidade ?? "").trim() || null, estado: (d.uf ?? "").trim() || null, ativo: d.ativo ?? true,
+});
+
 export const filialService = {
   async listar(): Promise<Filial[]> {
-    await delay();
-    return mockFiliais.filter((f) => f.deletadoEm === null);
+    return (await dbListar("filiais", "nome_razao")).map(mapFilial);
   },
   async listarPorEmpresa(empresaId: string): Promise<Filial[]> {
-    await delay();
-    return mockFiliais.filter((f) => f.empresaId === empresaId && f.deletadoEm === null);
+    return (await dbListar("filiais", "nome_razao", (q) => q.eq("empresa_id", empresaId))).map(mapFilial);
   },
   async obterPorId(id: string): Promise<Filial | undefined> {
-    await delay();
-    return mockFiliais.find((f) => f.id === id && f.deletadoEm === null);
+    return (await dbListar("filiais", "nome_razao", (q) => q.eq("id", id))).map(mapFilial)[0];
   },
   async cpfCnpjExiste(cpfCnpj: string, empresaId: string, excludeId?: string): Promise<boolean> {
-    await delay(100);
-    const trimmed = cpfCnpj.trim();
-    return mockFiliais.some(
-      (f) => f.deletadoEm === null && f.empresaId === empresaId && f.cpfCnpj === trimmed && f.id !== excludeId
-    );
+    const alvo = cpfCnpj.trim();
+    if (!alvo) return false;
+    return (await this.listarPorEmpresa(empresaId)).some((f) => f.cpfCnpj === alvo && f.id !== excludeId);
   },
-  async possuiMovimentacoes(_id: string): Promise<boolean> {
-    await delay(100);
-    return false;
+  async possuiMovimentacoes(id: string): Promise<boolean> {
+    return (await dbContar("romaneios", (q) => q.eq("filial_id", id))) > 0;
   },
   async salvar(data: Partial<Filial>): Promise<Filial> {
-    await delay(400);
-    const now = new Date().toISOString();
-    const userId = usuarioAtualId();
-    const existing = data.id ? mockFiliais.find((f) => f.id === data.id && f.deletadoEm === null) : undefined;
-    if (existing) {
-      Object.assign(existing, data, { atualizadoEm: now, atualizadoPor: userId });
-      return existing;
-    }
-    const nova: Filial = {
-      id: `f${Date.now()}`,
-      empresaId: data.empresaId ?? "",
-      matrizFilial: data.matrizFilial ?? "FILIAL",
-      nomeRazao: (data.nomeRazao ?? "").trim(),
-      cpfCnpj: (data.cpfCnpj ?? "").trim(),
-      ie: (data.ie ?? "").trim(),
-      email: (data.email ?? "").trim(),
-      telefone: (data.telefone ?? "").trim(),
-      cep: (data.cep ?? "").trim(),
-      logradouro: (data.logradouro ?? "").trim(),
-      numero: (data.numero ?? "").trim(),
-      complemento: (data.complemento ?? "").trim(),
-      bairro: (data.bairro ?? "").trim(),
-      cidade: (data.cidade ?? "").trim(),
-      uf: (data.uf ?? "").trim(),
-      ativo: data.ativo ?? true,
-      criadoEm: now,
-      criadoPor: userId,
-      atualizadoEm: now,
-      atualizadoPor: userId,
-      deletadoEm: null,
-      deletadoPor: null,
-    };
-    mockFiliais.push(nova);
-    return nova;
+    const linha = filialParaLinha(data);
+    if (data.id) return mapFilial(await dbAtualizar("filiais", data.id, linha));
+    return mapFilial(await dbInserir("filiais", { ...linha, grupo_id: grupoDaSessao() }));
   },
   async excluir(id: string): Promise<void> {
-    await delay();
-    const now = new Date().toISOString();
-    const f = mockFiliais.find((f) => f.id === id && f.deletadoEm === null);
-    if (f) {
-      f.deletadoEm = now;
-      f.deletadoPor = usuarioAtualId();
-      f.atualizadoEm = now;
-      f.atualizadoPor = usuarioAtualId();
-    }
+    await dbExcluirLogico("filiais", id);
   },
 };
 
-// ---- Grupo de Pessoas ----
+// ---- Grupo de Pessoas (nível grupo empresarial) ----
+const mapGrupoPessoa = (r: any): GrupoPessoa => ({
+  id: r.id, grupoId: r.grupo_id, empresaId: _sessao?.empresaId ?? "", filialId: _sessao?.filialId ?? "",
+  descGrupoPessoa: r.descricao, ativo: r.ativo, ...auditoriaDe(r),
+});
+
 export const grupoPessoaService = {
-  async listar(empresaId: string, filialId: string): Promise<GrupoPessoa[]> {
-    await delay();
-    return mockGruposPessoa.filter(
-      (gp) => gp.deletadoEm === null && gp.empresaId === empresaId && gp.filialId === filialId
-    );
+  async listar(_empresaId: string, _filialId: string): Promise<GrupoPessoa[]> {
+    return (await dbListar("grupos_pessoa", "descricao")).map(mapGrupoPessoa);
   },
   async listarTodos(): Promise<GrupoPessoa[]> {
-    await delay();
-    return mockGruposPessoa.filter((gp) => gp.deletadoEm === null);
+    return (await dbListar("grupos_pessoa", "descricao")).map(mapGrupoPessoa);
   },
-  async nomeExiste(nome: string, empresaId: string, filialId: string, excludeId?: string): Promise<boolean> {
-    await delay(100);
-    const trimmed = nome.trim().toLowerCase();
-    return mockGruposPessoa.some(
-      (gp) =>
-        gp.deletadoEm === null &&
-        gp.empresaId === empresaId &&
-        gp.filialId === filialId &&
-        gp.descGrupoPessoa.toLowerCase() === trimmed &&
-        gp.id !== excludeId
-    );
+  async nomeExiste(nome: string, _empresaId: string, _filialId: string, excludeId?: string): Promise<boolean> {
+    const alvo = nome.trim().toLowerCase();
+    return (await this.listarTodos()).some((g) => g.descGrupoPessoa.toLowerCase() === alvo && g.id !== excludeId);
   },
-  async salvar(
-    data: Partial<GrupoPessoa>,
-    ctx: { grupoId: string; empresaId: string; filialId: string }
-  ): Promise<GrupoPessoa> {
-    await delay(400);
-    const now = new Date().toISOString();
-    const userId = usuarioAtualId();
-    const existing = data.id
-      ? mockGruposPessoa.find((gp) => gp.id === data.id && gp.deletadoEm === null)
-      : undefined;
-    if (existing) {
-      existing.descGrupoPessoa = (data.descGrupoPessoa ?? existing.descGrupoPessoa).trim();
-      existing.ativo = data.ativo ?? existing.ativo;
-      existing.atualizadoEm = now;
-      existing.atualizadoPor = userId;
-      return existing;
-    }
-    const novo: GrupoPessoa = {
-      id: `gp${Date.now()}`,
-      grupoId: ctx.grupoId,
-      empresaId: ctx.empresaId,
-      filialId: ctx.filialId,
-      descGrupoPessoa: (data.descGrupoPessoa ?? "").trim(),
-      ativo: data.ativo ?? true,
-      criadoEm: now,
-      criadoPor: userId,
-      atualizadoEm: now,
-      atualizadoPor: userId,
-      deletadoEm: null,
-      deletadoPor: null,
-    };
-    mockGruposPessoa.push(novo);
-    return novo;
+  async salvar(data: Partial<GrupoPessoa>, ctx: { grupoId: string; empresaId: string; filialId: string }): Promise<GrupoPessoa> {
+    const patch = { descricao: (data.descGrupoPessoa ?? "").trim(), ativo: data.ativo ?? true };
+    if (data.id) return mapGrupoPessoa(await dbAtualizar("grupos_pessoa", data.id, patch));
+    return mapGrupoPessoa(await dbInserir("grupos_pessoa", { ...patch, grupo_id: ctx.grupoId || grupoDaSessao() }));
   },
   async excluir(id: string): Promise<void> {
-    await delay();
-    const now = new Date().toISOString();
-    const gp = mockGruposPessoa.find((gp) => gp.id === id && gp.deletadoEm === null);
-    if (gp) {
-      gp.deletadoEm = now;
-      gp.deletadoPor = usuarioAtualId();
-      gp.atualizadoEm = now;
-      gp.atualizadoPor = usuarioAtualId();
-    }
+    await dbExcluirLogico("grupos_pessoa", id);
   },
   async possuiPessoas(id: string): Promise<boolean> {
-    await delay(100);
-    return mockPessoas.some((p) => p.grupoPessoaId === id && p.deletadoEm === null);
+    return (await dbContar("pessoas", (q) => q.eq("grupo_pessoa_id", id))) > 0;
   },
 };
 
-// ---- Pessoas ----
+// ---- Pessoas (nível grupo empresarial) ----
+const mapPessoa = (r: any): Pessoa => ({
+  id: r.id, grupoId: r.grupo_id, empresaId: _sessao?.empresaId ?? "", filialId: _sessao?.filialId ?? "",
+  tipoPessoa: r.tipo_pessoa === "PF" ? "PF" : "PJ", grupoPessoaId: r.grupo_pessoa_id ?? "",
+  relacaoComercial: r.relacoes ?? [], nomeRazao: r.nome_razao, dataNascimentoAbertura: r.data_nascimento_abertura ?? "",
+  cpfCnpj: r.cpf_cnpj ?? "", rgIe: r.inscricao_estadual ?? "", nomeFantasia: r.nome_fantasia ?? "",
+  sexo: (r.sexo ?? "") as Pessoa["sexo"], ativo: r.ativo, enderecos: r.enderecos ?? [], contatos: r.contatos ?? [],
+  ...auditoriaDe(r),
+});
+
+const pessoaParaLinha = (d: Partial<Pessoa>) => {
+  const relacoes = d.relacaoComercial ?? [];
+  const end = (d.enderecos ?? []).find((e) => e.enderecoPadrao) ?? d.enderecos?.[0];
+  const tel = (d.contatos ?? []).find((c) => c.tipoContato === "Telefone" || c.tipoContato === "WhatsApp");
+  const mail = (d.contatos ?? []).find((c) => c.tipoContato === "Email");
+  return {
+    tipo_pessoa: d.tipoPessoa ?? "PF", grupo_pessoa_id: d.grupoPessoaId || null, relacoes,
+    relacao_comercial: (relacoes[0] ?? "Cliente").toUpperCase(), eh_motorista: relacoes.includes("Motorista"),
+    nome_razao: (d.nomeRazao ?? "").trim(), data_nascimento_abertura: d.dataNascimentoAbertura || null,
+    cpf_cnpj: (d.cpfCnpj ?? "").trim() || null, inscricao_estadual: (d.rgIe ?? "").trim() || null,
+    nome_fantasia: (d.nomeFantasia ?? "").trim() || null, sexo: d.sexo || null, ativo: d.ativo ?? true,
+    enderecos: d.enderecos ?? [], contatos: d.contatos ?? [],
+    cidade: end?.cidade || null, estado: end?.estado || null,
+    telefone: tel?.descContatoPessoa || null, email: mail?.descContatoPessoa || null,
+  };
+};
+
 export const pessoaService = {
   async listar(
-    empresaId: string,
-    filialId: string,
-    filtros?: {
-      nome?: string;
-      cpfCnpj?: string;
-      tipoPessoa?: string;
-      relacaoComercial?: string;
-      status?: string;
-    }
+    _empresaId: string,
+    _filialId: string,
+    filtros?: { nome?: string; cpfCnpj?: string; tipoPessoa?: string; relacaoComercial?: string; status?: string }
   ): Promise<Pessoa[]> {
-    await delay();
-    let list = mockPessoas.filter(
-      (p) => p.deletadoEm === null && p.empresaId === empresaId && p.filialId === filialId
-    );
+    let list = (await dbListar("pessoas", "nome_razao")).map(mapPessoa);
     if (filtros?.nome) {
-      const term = filtros.nome.toLowerCase();
-      list = list.filter((p) => p.nomeRazao.toLowerCase().includes(term));
+      const t = filtros.nome.toLowerCase();
+      list = list.filter((p) => p.nomeRazao.toLowerCase().includes(t));
     }
     if (filtros?.cpfCnpj) {
-      const term = filtros.cpfCnpj.toLowerCase();
-      list = list.filter((p) => p.cpfCnpj.toLowerCase().includes(term));
+      const t = filtros.cpfCnpj.toLowerCase();
+      list = list.filter((p) => p.cpfCnpj.toLowerCase().includes(t));
     }
-    if (filtros?.tipoPessoa) {
-      list = list.filter((p) => p.tipoPessoa === filtros.tipoPessoa);
-    }
-    if (filtros?.relacaoComercial) {
-      list = list.filter((p) => p.relacaoComercial.includes(filtros.relacaoComercial!));
-    }
-    if (filtros?.status) {
-      const isAtivo = filtros.status === "ativo";
-      list = list.filter((p) => p.ativo === isAtivo);
-    }
+    if (filtros?.tipoPessoa) list = list.filter((p) => p.tipoPessoa === filtros.tipoPessoa);
+    if (filtros?.relacaoComercial) list = list.filter((p) => p.relacaoComercial.includes(filtros.relacaoComercial!));
+    if (filtros?.status) list = list.filter((p) => p.ativo === (filtros.status === "ativo"));
     return list;
   },
-  async cpfCnpjExiste(cpfCnpj: string, empresaId: string, excludeId?: string): Promise<boolean> {
-    await delay(100);
-    const trimmed = cpfCnpj.trim();
-    return mockPessoas.some(
-      (p) => p.deletadoEm === null && p.empresaId === empresaId && p.cpfCnpj === trimmed && p.id !== excludeId
-    );
+  async cpfCnpjExiste(cpfCnpj: string, _empresaId: string, excludeId?: string): Promise<boolean> {
+    const alvo = cpfCnpj.trim();
+    if (!alvo) return false;
+    const achados = await dbListar("pessoas", "nome_razao", (q) => q.eq("cpf_cnpj", alvo));
+    return achados.some((r: any) => r.id !== excludeId);
   },
-  async salvar(
-    data: Partial<Pessoa>,
-    ctx: { grupoId: string; empresaId: string; filialId: string }
-  ): Promise<Pessoa> {
-    await delay(400);
-    const now = new Date().toISOString();
-    const userId = usuarioAtualId();
-    const existing = data.id
-      ? mockPessoas.find((p) => p.id === data.id && p.deletadoEm === null)
-      : undefined;
-    if (existing) {
-      Object.assign(existing, data, {
-        grupoId: existing.grupoId,
-        empresaId: existing.empresaId,
-        filialId: existing.filialId,
-        criadoEm: existing.criadoEm,
-        criadoPor: existing.criadoPor,
-        atualizadoEm: now,
-        atualizadoPor: userId,
-        deletadoEm: null,
-        deletadoPor: null,
-      });
-      return existing;
-    }
-    const nova: Pessoa = {
-      id: `p${Date.now()}`,
-      grupoId: ctx.grupoId,
-      empresaId: ctx.empresaId,
-      filialId: ctx.filialId,
-      tipoPessoa: data.tipoPessoa ?? "PF",
-      grupoPessoaId: data.grupoPessoaId ?? "",
-      relacaoComercial: data.relacaoComercial ?? [],
-      nomeRazao: (data.nomeRazao ?? "").trim(),
-      dataNascimentoAbertura: data.dataNascimentoAbertura ?? "",
-      cpfCnpj: (data.cpfCnpj ?? "").trim(),
-      rgIe: (data.rgIe ?? "").trim(),
-      nomeFantasia: (data.nomeFantasia ?? "").trim(),
-      sexo: data.sexo ?? "",
-      ativo: data.ativo ?? true,
-      enderecos: data.enderecos ?? [],
-      contatos: data.contatos ?? [],
-      criadoEm: now,
-      criadoPor: userId,
-      atualizadoEm: now,
-      atualizadoPor: userId,
-      deletadoEm: null,
-      deletadoPor: null,
-    };
-    mockPessoas.push(nova);
-    return nova;
+  async salvar(data: Partial<Pessoa>, ctx: { grupoId: string; empresaId: string; filialId: string }): Promise<Pessoa> {
+    const linha = pessoaParaLinha(data);
+    if (data.id) return mapPessoa(await dbAtualizar("pessoas", data.id, linha));
+    return mapPessoa(await dbInserir("pessoas", { ...linha, grupo_id: ctx.grupoId || grupoDaSessao() }));
   },
   async excluir(id: string): Promise<void> {
-    await delay();
-    const now = new Date().toISOString();
-    const p = mockPessoas.find((p) => p.id === id && p.deletadoEm === null);
-    if (p) {
-      p.deletadoEm = now;
-      p.deletadoPor = usuarioAtualId();
-      p.atualizadoEm = now;
-      p.atualizadoPor = usuarioAtualId();
-    }
+    await dbExcluirLogico("pessoas", id);
   },
 };
 
@@ -3122,30 +3015,54 @@ export const financeiroCartaoService = {
 };
 
 // ============================================================
-// Financeiro — Plano de Contas
+// Financeiro — Plano de Contas (banco real, Fase 2.2)
 // ============================================================
-const _financeiroPlanoContaBase = createCorporateCrudService<FinanceiroPlanoConta>(mockFinanceiroPlanoContas as any, "fpc");
-export const financeiroPlanoContaService = {
-  ..._financeiroPlanoContaBase,
-  // Cadastro estrutural: exclusão restrita ao perfil Administrador (Fase 1).
-  async excluir(id: string) {
-    exigirPermissao("EXCLUIR_CADASTRO_ESTRUTURAL");
-    return _financeiroPlanoContaBase.excluir(id);
-  },
-};
+function criarCrudCorporativoDb<T extends CorporateEntity>(
+  tabela: string,
+  mapear: (r: any) => T,
+  paraLinha: (d: Partial<T>) => Record<string, unknown>
+) {
+  const listarTudo = async () => (await dbListar(tabela, "descricao")).map(mapear);
+  return {
+    async listar(_empresaId: string, _filialId: string): Promise<T[]> { return listarTudo(); },
+    async listarPorGrupo(_grupoId: string): Promise<T[]> { return listarTudo(); },
+    async listarTodos(): Promise<T[]> { return listarTudo(); },
+    async descricaoExiste(descricao: string, _e: string, _f: string, excludeId?: string): Promise<boolean> {
+      const alvo = descricao.trim().toLowerCase();
+      return (await listarTudo()).some((i) => i.descricao.toLowerCase() === alvo && i.id !== excludeId);
+    },
+    async salvar(data: Partial<T>, ctx: { grupoId: string; empresaId: string; filialId: string }): Promise<T> {
+      const linha = { descricao: (data.descricao ?? "").trim(), ativo: data.ativo ?? true, ...paraLinha(data) };
+      if (data.id) return mapear(await dbAtualizar(tabela, data.id, linha));
+      return mapear(await dbInserir(tabela, { ...linha, grupo_id: ctx.grupoId || grupoDaSessao() }));
+    },
+    async excluir(id: string): Promise<void> {
+      // Cadastro estrutural: exclusão restrita ao Administrador (serviço + RLS).
+      exigirPermissao("EXCLUIR_CADASTRO_ESTRUTURAL");
+      await dbExcluirLogico(tabela, id);
+    },
+  };
+}
+
+export const financeiroPlanoContaService = criarCrudCorporativoDb<FinanceiroPlanoConta>(
+  "plano_contas",
+  (r) => ({
+    id: r.id, grupoId: r.grupo_id, empresaId: null, filialId: null, codigo: r.codigo, descricao: r.descricao,
+    tipo: r.tipo as TipoPlanoConta, ativo: r.ativo, ...auditoriaDe(r),
+  }),
+  (d) => ({ codigo: (d.codigo ?? "").trim(), tipo: d.tipo ?? "DESPESA" })
+);
 
 // ============================================================
-// Financeiro — Centros de Custo
+// Financeiro — Centros de Custo (banco real, Fase 2.2)
 // ============================================================
-const _financeiroCentroCustoBase = createCorporateCrudService<FinanceiroCentroCusto>(mockFinanceiroCentrosCusto as any, "fcc");
-export const financeiroCentroCustoService = {
-  ..._financeiroCentroCustoBase,
-  // Cadastro estrutural: exclusão restrita ao perfil Administrador (Fase 1).
-  async excluir(id: string) {
-    exigirPermissao("EXCLUIR_CADASTRO_ESTRUTURAL");
-    return _financeiroCentroCustoBase.excluir(id);
-  },
-};
+export const financeiroCentroCustoService = criarCrudCorporativoDb<FinanceiroCentroCusto>(
+  "centros_custo",
+  (r) => ({
+    id: r.id, grupoId: r.grupo_id, empresaId: null, filialId: null, descricao: r.descricao, ativo: r.ativo, ...auditoriaDe(r),
+  }),
+  () => ({})
+);
 
 // ============================================================
 // Financeiro — Movimentações
@@ -4982,18 +4899,28 @@ async function gravarLogAutorizacao(params: {
   resultado: "AUTORIZADO" | "RECUSADO" | "CANCELADO";
 }): Promise<void> {
   const s = _sessao;
-  if (!s) return;
-  await supabase.from("autorizacoes_log").insert({
+  if (!s) throw new Error("Sessão expirada. Entre novamente.");
+  const uuidOuNulo = (v: string) => (UUID_RE.test(v) ? v : null);
+  // Código estável da ação (mesmo código gravado pelas funções do banco,
+  // ex.: estornar_romaneio → ESTORNO_ROMANEIO). O rótulo é só exibição.
+  const { error } = await supabase.from("autorizacoes_log").insert({
     usuario_id: s.id,
     usuario_nome: s.nome,
-    acao: ROTULO_ACAO_SUPERVISIONADA[params.acao],
+    acao: params.acao,
     registro_tipo: params.alvo.tipo,
     registro_id: params.alvo.id,
     descricao: params.alvo.descricao ?? "",
     justificativa: params.justificativa ?? "",
     resultado: params.resultado,
+    grupo_id: uuidOuNulo(s.grupoId),
+    empresa_id: uuidOuNulo(s.empresaId),
+    filial_id: uuidOuNulo(s.filialId),
   });
+  // Sem log não há autorização: falha de gravação interrompe a operação.
+  if (error) throw new Error("Não foi possível registrar a autorização no log: " + error.message);
 }
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export const autorizacaoService = {
   /**

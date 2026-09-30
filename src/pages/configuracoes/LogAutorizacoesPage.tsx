@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { autorizacaoService, type RegistroAutorizacao } from "@/lib/services";
+import { autorizacaoService, ROTULO_ACAO_SUPERVISIONADA, type RegistroAutorizacao } from "@/lib/services";
 
 export default function LogAutorizacoesPage() {
   const [registros, setRegistros] = useState<RegistroAutorizacao[]>([]);
@@ -112,7 +112,9 @@ export default function LogAutorizacoesPage() {
                       {new Date(r.criadoEm).toLocaleString("pt-BR")}
                     </TableCell>
                     <TableCell className="text-sm">{r.usuarioNome}</TableCell>
-                    <TableCell className="text-sm">{r.acao}</TableCell>
+                    <TableCell className="text-sm">
+                      {ROTULO_ACAO_SUPERVISIONADA[r.acao as keyof typeof ROTULO_ACAO_SUPERVISIONADA] ?? r.acao}
+                    </TableCell>
                     <TableCell className="text-sm">
                       <span className="text-muted-foreground">{r.registroTipo}</span>
                       {r.descricao ? ` — ${r.descricao}` : r.registroId ? ` — ${r.registroId.substring(0, 8)}` : ""}
