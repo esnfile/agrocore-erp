@@ -43,6 +43,13 @@
       "when": 1790733244101,
       "tag": "0005_fase2_2_cadastros_base_colunas",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790796352247,
+      "tag": "0006_filial_documento_fiscal_valido",
+      "breakpoints": true
     }
   ]
 }

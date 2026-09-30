@@ -2800,6 +2800,7 @@ export type Database = {
           status: string
         }[]
       }
+      documento_valido: { Args: { _doc: string }; Returns: boolean }
       eh_admin: { Args: never; Returns: boolean }
       entregue_verdade_item: { Args: { _item_id: string }; Returns: number }
       estornar_romaneio: {
